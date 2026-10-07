@@ -9,11 +9,17 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR branch cancels the run for the previous push.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# The jobs run in parallel; each one fails fast instead of hanging for hours.
 jobs:
-  test:
+  lint:
+    name: Lint and type check
     runs-on: ubuntu-latest
-    # A hung step (e.g. an apt mirror) should fail fast instead of running for six hours.
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,16 +29,48 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run check
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
       - run: npm run test:coverage
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
           fail_ci_if_error: false
-      - run: npx playwright install --with-deps chromium
-        timeout-minutes: 5
-      - run: npm run test:e2e
-      - name: Server tests (sync between devices, settings)
-        run: npm run test:server
-        env:
-          WRANGLER_SEND_METRICS: 'false'
+
+  e2e:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Chromium and its system libraries come preinstalled, which saves the slow apt install.
+    # Keep the tag in step with @playwright/test in package-lock.json; Playwright fails with a
+    # clear message when they differ.
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Browser tests
+            script: test:e2e
+          - name: Server tests (sync between devices, settings)
+            script: test:server
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run ${{ matrix.script }}
