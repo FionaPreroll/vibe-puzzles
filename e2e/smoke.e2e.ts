@@ -47,3 +47,18 @@ test('switches to German', async ({ page }) => {
 	await page.getByRole('combobox', { name: 'Language' }).selectOption('de');
 	await expect(page.getByRole('heading', { name: /Logikrätsel/ })).toBeVisible();
 });
+
+test('a Pinwheel line dragged from a clicked edge keeps that edge', async ({ page }) => {
+	await page.goto('/pinwheel/tutorial');
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const box = (await board.boundingBox())!;
+	const cell = box.width / 5;
+	// Press on the edge between dots (3,0) and (3,1), left of its middle, and drag right to (3,2).
+	const y = box.y + 3 * cell;
+	await page.mouse.move(box.x + 0.5 * cell, y);
+	await page.mouse.down();
+	for (const x of [0.7, 0.9, 1.1, 1.4, 1.7, 2.1]) await page.mouse.move(box.x + x * cell, y);
+	await page.mouse.up();
+	await expect(board.locator('[data-line="h:3:0"]')).toHaveCount(1);
+	await expect(board.locator('[data-line="h:3:1"]')).toHaveCount(1);
+});
