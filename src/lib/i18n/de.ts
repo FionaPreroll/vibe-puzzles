@@ -100,7 +100,8 @@ const de: Dictionary = {
 		ranked: 'Gelöst in {time}! Platz {rank} von {total} bei {variant}.',
 		yourBest: 'Deine Bestzeit ist {time}.',
 		unrankedPersonal: 'Gelöst in {time}! Persönliche Zeit: nicht gewertet.',
-		unrankedLocal: 'Gelöst in {time}! Nicht gewertet: Nur Rätsel vom Server kommen in die Wertung.'
+		unrankedLocal: 'Gelöst in {time}! Nicht gewertet: Nur Rätsel vom Server kommen in die Wertung.',
+		expired: 'Gelöst in {time}! Nicht gewertet: Der Server hebt dieses alte Rätsel nicht mehr auf.'
 	},
 	difficulty: {
 		normal: 'Normal',

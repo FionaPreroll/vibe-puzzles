@@ -26,7 +26,7 @@ export interface ScoreEntry {
 
 export interface ScoreResult {
 	ok: boolean;
-	code?: 'wrong' | 'repeat' | 'personal' | 'local' | 'ranked';
+	code?: 'wrong' | 'repeat' | 'personal' | 'local' | 'ranked' | 'expired';
 	message: string;
 	timeMs?: number;
 	bestMs?: number;

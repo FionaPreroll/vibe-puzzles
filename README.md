@@ -101,6 +101,8 @@ The Cloudflare deployment hands out puzzles from the server (`SERVER_PUZZLES` is
 
 Because the collection is public, a determined player can look a puzzle up in it or feed it to a solver program; the server clock still keeps ranked times honest about when the puzzle was handed out.
 
+The server deletes old tickets once a day (a cron trigger in `wrangler.jsonc`): unsolved ones 45 days after they were issued, solved ones 7 days after the solve. A game whose ticket is gone can still be solved, but is not ranked.
+
 To deploy from a local machine instead, put the database ID into `wrangler.jsonc` and run `npm run cf:deploy`.
 
 ### API
