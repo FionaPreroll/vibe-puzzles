@@ -1,0 +1,48 @@
+name: Grow puzzle collection
+
+# Adds freshly generated puzzles to static/puzzles on dev once a week (or by hand). Every puzzle
+# is checked for a unique solution before it is committed.
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      per_variant:
+        description: New puzzles per puzzle type
+        default: '5'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: puzzle-bank
+  cancel-in-progress: false
+
+jobs:
+  grow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run bank:grow -- --per-variant "$PER_VARIANT" --max-minutes 30
+        env:
+          PER_VARIANT: ${{ inputs.per_variant || '5' }}
+      - run: npx vitest --run src/lib/games/bank.test.ts
+      - name: Commit new puzzles
+        run: |
+          git add static/puzzles
+          if git diff --cached --quiet; then
+            echo "Nothing new."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Grow the puzzle collection"
+          git pull --rebase origin dev
+          git push origin HEAD:dev

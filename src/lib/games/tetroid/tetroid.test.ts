@@ -160,3 +160,16 @@ describe('generator', () => {
 		}
 	});
 });
+
+describe('tutorial', () => {
+	it('has a unique solution that matches the given start', async () => {
+		const { TETROID_TUTORIAL, tetroidTutorialStart } = await import('./tutorial');
+		const res = solveTetroid(TETROID_TUTORIAL, { limit: 2 });
+		expect(res.solutions).toHaveLength(1);
+		const start = tetroidTutorialStart(TETROID_TUTORIAL);
+		start.marks.forEach((m, i) => {
+			if (m === SHADED) expect(res.solutions[0][i]).toBe(1);
+			if (m === CROSS) expect(res.solutions[0][i]).toBe(0);
+		});
+	});
+});

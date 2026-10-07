@@ -1,6 +1,6 @@
 # Vibe Puzzles
 
-A collection of logic puzzles that runs in the browser. Every puzzle is generated on the fly with a unique solution.
+A collection of logic puzzles that runs in the browser, in English and German. Every puzzle has a unique solution; puzzles are generated on the device or taken from a pre-generated collection.
 
 - **Tetroid**: shade one tetromino in every region so that all shaded cells connect, no 2×2 block is shaded and equal tetrominoes never touch.
 - **Pinwheel**: divide the grid into regions that are point-symmetric around their centre dot.
@@ -12,6 +12,10 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4.
 - Deterministic generators: a puzzle ID (shown under the board) always produces the same puzzle on every device.
 - Normal and hard difficulty in several sizes, plus daily, weekly and monthly specials.
 - Undo and redo, checkpoints, timers, error highlighting, zoom, keyboard and touch controls, print and share.
+- An interactive tutorial puzzle on the first visit of each game.
+- English and German, picked from the browser language and switchable in the header.
+- Installable as an app (PWA) and playable offline after the first visit.
+- A growing collection of pre-generated puzzles (see below); players choose between the collection, puzzles generated on their device, or both.
 - Progress, settings and statistics are saved in the browser.
 - Optional server (Cloudflare Workers with D1): anonymous players, game sync across devices with a sync code, and leaderboards.
 
@@ -26,7 +30,9 @@ npm run cf:dev     # build and run with the API and a local D1 database
 npm run lint       # prettier and eslint
 npm run check      # svelte-check and worker type check
 npm test           # unit tests
-npm run test:e2e   # browser smoke tests (run `npx playwright install chromium` once)
+npm run test:e2e   # browser tests (run `npx playwright install chromium` once)
+npm run test:server # browser tests against the server: two devices syncing a game
+npm run bank:grow  # add puzzles to the collection (--per-variant N --max-minutes M)
 ```
 
 ## Project layout
@@ -37,17 +43,26 @@ src/lib/games/<id>/   one folder per game: rules, solver, generator, logic, Boar
 src/lib/games/logic.ts   registry of game logic (used by the client and the server)
 src/lib/games/index.ts   registry of game modules (logic plus UI)
 src/lib/client/       browser-side storage, API client, game session, generator web worker
-src/lib/components/   game shell and dialogs
+src/lib/components/   game shell, tutorial and dialogs
+src/lib/i18n/         translations (en.ts is the reference, de.ts must have the same keys)
+src/service-worker/   offline cache
 src/routes/           pages
+static/puzzles/       the puzzle collection, one JSON file per game and puzzle type
+scripts/              grow-puzzle-bank.ts
 worker/               Cloudflare Worker: REST API and storage
 migrations/           D1 schema
 ```
 
 ### Adding a game
 
-1. Create `src/lib/games/<id>/` with a `logic.ts` exporting a `GameLogic` (variants, generator, state encoding, answer check) and an `index.ts` exporting a `GameModule` (name, rules, tools, settings and a `Board.svelte` component).
-2. Register the logic in `src/lib/games/logic.ts` and the module in `src/lib/games/index.ts`.
-3. Generators must be deterministic for a seed and must not depend on time, so puzzle IDs work everywhere.
+1. Create `src/lib/games/<id>/` with a `logic.ts` exporting a `GameLogic` (variants, generator, solution counter, state encoding, answer check) and an `index.ts` exporting a `GameModule` (name, tools, settings, an optional tutorial puzzle and a `Board.svelte` component).
+2. Add the texts (tagline, rules, notes, control hints, tutorial steps) under `games.<id>` in every file in `src/lib/i18n/`.
+3. Register the logic in `src/lib/games/logic.ts` and the module in `src/lib/games/index.ts`.
+4. Generators must be deterministic for a seed and must not depend on time, so puzzle IDs work everywhere.
+
+## Puzzle collection
+
+`static/puzzles/<game>/<type>.json` holds pre-generated puzzles with their IDs. The `Grow puzzle collection` workflow runs weekly (or by hand) on `dev`, adds puzzles with fresh random seeds, checks each one for a unique solution and commits them, so the collection keeps growing. The unit tests check every stored puzzle again. In the settings, players choose where new puzzles come from: the collection, their device, or both at random (the default). The collection also saves generating time when a puzzle is opened by an ID it contains.
 
 ## Branches and pull requests
 

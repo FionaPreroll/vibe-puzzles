@@ -3,13 +3,17 @@ import type { Variant } from './variants';
 
 export interface ToolInfo {
 	id: string;
+	/** English fallback; the shown name comes from `tool.<id>` in the translations. */
 	label: string;
+	/** Short symbol for compact tool bars. */
+	icon: string;
 	/** Shortcut key. */
 	key: string;
 }
 
 export interface SettingInfo {
 	key: string;
+	/** English fallback; the shown text comes from `setting.<key>` in the translations. */
 	label: string;
 	default: boolean;
 	/** Only offered while this other setting has the given value. */
@@ -51,6 +55,8 @@ export interface GameLogic<P = unknown, S = unknown> {
 	id: string;
 	variants: Variant[];
 	generate(variant: Variant, seed: number): P;
+	/** Number of solutions, searching for at most `limit`; `finished` is false if it gave up. */
+	countSolutions(puzzle: P, limit: number): { count: number; finished: boolean };
 	/** Sanity check for a puzzle definition received from elsewhere. */
 	isValidPuzzle(puzzle: unknown, variant: Variant): puzzle is P;
 	emptyState(puzzle: P): S;
@@ -74,12 +80,12 @@ export interface ToolOption {
 	color: string;
 }
 
-/** A game as presented by the client. */
+/**
+ * A game as presented by the client. Texts (tagline, rules, notes, control hints, tutorial) live
+ * in the translations under `games.<id>`.
+ */
 export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	name: string;
-	tagline: string;
-	rules: string[];
-	notes: string[];
 	tools: ToolInfo[];
 	defaultTool(touch: boolean): string;
 	/** Optional per-tool options (e.g. colours), selected with extra keys. */
@@ -88,4 +94,6 @@ export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	board: Component<BoardProps<P, S>>;
 	/** Small static preview for the home page. */
 	icon: string;
+	/** A small hand-picked first puzzle for the interactive tutorial (texts in the translations). */
+	tutorial?: { puzzle: P; start(puzzle: P): S };
 }

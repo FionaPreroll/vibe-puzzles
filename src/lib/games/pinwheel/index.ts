@@ -1,30 +1,22 @@
 import { withCommon } from '../../core/settings';
+import { PINWHEEL_TUTORIAL } from './tutorial';
 import type { GameModule } from '../../core/types';
 import Board, { NOTE_COLOURS } from './Board.svelte';
 import { pinwheelLogic } from './logic';
-import type { PinwheelPuzzle, PinwheelState } from './rules';
+import { emptyPinwheelState, type PinwheelPuzzle, type PinwheelState } from './rules';
 
 const SWATCH_NAMES = ['', 'Violet', 'Red', 'Yellow', 'Green', 'Blue'];
 
 export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState> = {
 	...pinwheelLogic,
 	name: 'Pinwheel',
-	tagline: 'Split the grid into regions that look the same upside down.',
 	icon: '✺',
-	rules: [
-		'Each region has exactly one white circle in it.',
-		'The circle is the centre of its rotational symmetry: rotating the region by 180° around the circle gives the same shape, position and orientation.',
-		'A region cannot be a neighbour to itself.'
-	],
-	notes: [
-		'Click between dots to draw a line, right click to set a cross, Shift+click to colour a cell. Right click a circle to lock a finished region.'
-	],
 	tools: [
-		{ id: 'rotate', label: 'Rotate', key: '1' },
-		{ id: 'black', label: 'Black', key: '2' },
-		{ id: 'cross', label: 'Cross', key: '3' },
-		{ id: 'blank', label: 'Blank', key: '4' },
-		{ id: 'color', label: 'Color', key: '5' }
+		{ id: 'rotate', label: 'Rotate', icon: '⟳', key: '1' },
+		{ id: 'black', label: 'Line', icon: '╱', key: '2' },
+		{ id: 'cross', label: 'Cross', icon: '✕', key: '3' },
+		{ id: 'blank', label: 'Blank', icon: '⌫', key: '4' },
+		{ id: 'color', label: 'Colour', icon: '●', key: '5' }
 	],
 	defaultTool: () => 'black',
 	toolOptions: {
@@ -44,5 +36,6 @@ export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState> = {
 		{ key: 'blackHoles', label: 'Black hole in completed galaxies', default: false },
 		{ key: 'autoColor', label: 'Auto color completed galaxies', default: false }
 	]),
+	tutorial: { puzzle: PINWHEEL_TUTORIAL, start: emptyPinwheelState },
 	board: Board
 };

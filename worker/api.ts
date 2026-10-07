@@ -133,13 +133,15 @@ async function submitTicket(player: { id: string }, b: Record<string, unknown>, 
 	const logic = GAME_LOGIC[ticket.game];
 	const puzzle = JSON.parse(ticket.puzzle);
 	if (typeof b.answer !== 'string' || !logic.verifyAnswer(puzzle, b.answer)) {
-		return json({ ok: false, message: 'That is not the solution yet.' });
+		return json({ ok: false, code: 'wrong', message: 'That is not the solution yet.' });
 	}
 	const now = Date.now();
 	if (!(await store.solveTicket(ticket.id, now))) {
 		return json({
 			ok: true,
+			code: 'repeat',
 			puzzleId: ticket.puzzleId,
+			timeMs: now - ticket.issuedAt,
 			message: 'Solved! (You solved this puzzle before.)'
 		});
 	}
@@ -176,7 +178,7 @@ async function submitScore(req: Request, store: Store, options: ApiOptions) {
 		throw new HttpError(400, 'Puzzle does not match its ID');
 	}
 	if (typeof b.answer !== 'string' || !logic.verifyAnswer(b.puzzle, b.answer)) {
-		return json({ ok: false, message: 'That is not the solution yet.' });
+		return json({ ok: false, code: 'wrong', message: 'That is not the solution yet.' });
 	}
 	const timeMs = Math.round(Number(b.timeMs));
 	const playMs = Math.round(Number(b.playMs));
@@ -219,16 +221,21 @@ async function recordScore(
 		createdAt: Date.now()
 	});
 	const shown = s.competitive ? timeMs : playMs;
-	const base = { ok: true, puzzleId };
+	const base = { ok: true, puzzleId, timeMs: shown };
 	if (!added) {
 		return json({
 			...base,
+			code: 'repeat',
 			message: `Solved in ${formatTime(shown)}! (You solved this puzzle before.)`
 		});
 	}
 	if (!competitive) {
 		const why = s.unranked ?? 'personal timer';
-		return json({ ...base, message: `Solved in ${formatTime(shown)}! Not ranked: ${why}.` });
+		return json({
+			...base,
+			code: s.unranked ? 'local' : 'personal',
+			message: `Solved in ${formatTime(shown)}! Not ranked: ${why}.`
+		});
 	}
 	const scope = scopeOf(game, variant.key, puzzleId);
 	const [mine, total] = await Promise.all([store.rank(scope, player.id), store.players(scope)]);
@@ -236,6 +243,8 @@ async function recordScore(
 		mine && mine.row.timeMs < timeMs ? ` Your best is ${formatTime(mine.row.timeMs)}.` : '';
 	return json({
 		...base,
+		code: 'ranked',
+		bestMs: mine?.row.timeMs,
 		rank: mine?.rank,
 		total,
 		message: `Solved in ${formatTime(timeMs)}! Rank ${mine?.rank ?? '–'} of ${total} on ${variant.label}.${best}`

@@ -30,6 +30,8 @@
 		type PinwheelPuzzle,
 		type PinwheelState
 	} from './rules';
+	import { extendPath, type Dot } from './path';
+	import { t } from '../../i18n/index.svelte';
 
 	let {
 		puzzle,
@@ -47,7 +49,6 @@
 	}: BoardProps<PinwheelPuzzle, PinwheelState> = $props();
 
 	type Edge = { kind: 'h' | 'v'; i: number; j: number };
-	type Dot = { i: number; j: number };
 	type Pending =
 		| {
 				kind: 'edges';
@@ -55,6 +56,8 @@
 				inverse: boolean;
 				edges: string[];
 				path: Dot[] | null;
+				/** The path started on an edge, which stays drawn whichever way the pointer goes. */
+				anchored?: boolean;
 		  }
 		| { kind: 'cells'; colour: number; cells: number[] }
 		| { kind: 'centre'; k: number; cell: number };
@@ -332,26 +335,7 @@
 			const d2 = Math.hypot(x - p2.j, y - p2.i);
 			path = d1 < d2 ? [p2, p1] : [p1, p2];
 		}
-		pending = { kind: 'edges', status, inverse, edges: [edgeKey(e)], path };
-	}
-
-	function extendPath(p: Extract<Pending, { kind: 'edges' }>, target: Dot) {
-		const path = p.path!;
-		const lastDot = path[path.length - 1];
-		if (target.i === lastDot.i && target.j === lastDot.j) return;
-		const idx = path.findIndex((d) => d.i === target.i && d.j === target.j);
-		if (idx >= 0) {
-			p.path = path.slice(0, idx + 1);
-			return;
-		}
-		if (target.i !== lastDot.i && target.j !== lastDot.j) return;
-		const next = path.slice();
-		let cur = lastDot;
-		while (cur.i !== target.i || cur.j !== target.j) {
-			cur = { i: cur.i + Math.sign(target.i - cur.i), j: cur.j + Math.sign(target.j - cur.j) };
-			next.push(cur);
-		}
-		p.path = next;
+		pending = { kind: 'edges', status, inverse, edges: [edgeKey(e)], path, anchored: !!path };
 	}
 
 	function dragTo(x: number, y: number) {
@@ -385,7 +369,9 @@
 			}
 			if (copy.path) {
 				const d = nearestDot(px, py);
-				if (Math.hypot(px - d.j, py - d.i) < 0.45) extendPath(copy, d);
+				if (Math.hypot(px - d.j, py - d.i) < 0.45) {
+					copy.path = extendPath(copy.path, d, copy.anchored);
+				}
 			} else {
 				const e = edgeAt(px, py);
 				if (e && !copy.edges.includes(edgeKey(e))) copy.edges.push(edgeKey(e));
@@ -544,7 +530,7 @@
 						p.status = edgeStatus(getEdge(board, e2), false);
 						if (p.status !== LINE) p.path = null;
 					}
-					if (p.path) extendPath(p, cursor);
+					if (p.path) p.path = extendPath(p.path, cursor);
 					else if (!p.edges.includes(edgeKey(e2))) p.edges.push(edgeKey(e2));
 					pending = p;
 				}
@@ -639,7 +625,7 @@
 			: 'pan-x pan-y pinch-zoom'}
 	role="grid"
 	tabindex="-1"
-	aria-label="Puzzle board"
+	aria-label={t('game.board')}
 	{onpointerdown}
 	{onpointermove}
 	{onpointerup}
@@ -676,6 +662,7 @@
 		{#each edgeList as { key, e, value } (key)}
 			{#if value === LINE}
 				<path
+					data-line={key}
 					d={edgePath(e)}
 					stroke={frozen.has(key) ? '#9ca3af' : '#1f2937'}
 					stroke-width={lineWidth}

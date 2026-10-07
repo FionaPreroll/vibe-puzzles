@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # A hung step (e.g. an apt mirror) should fail fast instead of running for six hours.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,6 +20,16 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run check
-      - run: npm test
+      - run: npm run test:coverage
+      - uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          fail_ci_if_error: false
       - run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
       - run: npm run test:e2e
+      - name: Server tests (sync between devices, settings)
+        run: npm run test:server
+        env:
+          WRANGLER_SEND_METRICS: 'false'

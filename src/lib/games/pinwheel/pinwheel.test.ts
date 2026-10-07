@@ -115,3 +115,10 @@ describe('generator', () => {
 		}
 	});
 });
+
+describe('tutorial', () => {
+	it('has a unique solution', async () => {
+		const { PINWHEEL_TUTORIAL } = await import('./tutorial');
+		expect(solvePinwheel(PINWHEEL_TUTORIAL, { limit: 2 }).solutions).toHaveLength(1);
+	});
+});

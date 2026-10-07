@@ -10,9 +10,12 @@ import {
 	type Variant
 } from '../core/variants';
 import { currentPlayer, issuePuzzle, pullSave, pushSave, serverPuzzles, submitScore } from './api';
+import { findInBank, loadPuzzleSource, pickFromBank } from './bank';
 import { generate } from './generate';
 import type { GameSettings } from './settings.svelte';
 import { breakStreak, recordSolve } from './stats';
+import { t, variantLabel } from '../i18n/index.svelte';
+import type { ScoreResult } from './api';
 import { keys, load, remove, save } from './storage';
 
 export interface SavedGame<S = unknown> {
@@ -47,6 +50,8 @@ export class GameSession<P = unknown, S = unknown> {
 	/** 0 while the puzzle came from the server and is not solved yet (the ID reveals the seed). */
 	puzzleId = $state(0);
 	ticket = $state<string | null>(null);
+	/** Where the current puzzle came from. */
+	source = $state<'local' | 'bank' | 'server'>('local');
 	puzzle = $state.raw<P | null>(null);
 	state = $state.raw<S | null>(null);
 	past = $state.raw<S[]>([]);
@@ -147,24 +152,37 @@ export class GameSession<P = unknown, S = unknown> {
 		let puzzle: P;
 		let ticket: string | null = null;
 		let startedAt = Date.now();
+		let source: 'local' | 'bank' | 'server' = 'local';
 		try {
 			const issued = puzzleId == null ? await this.fromServer() : null;
+			const banked = puzzleId == null && !issued ? await this.fromBank() : null;
 			if (issued) {
 				({ puzzle, ticket, issuedAt: startedAt } = issued);
 				puzzleId = issued.puzzleId ?? 0;
+				source = 'server';
+			} else if (banked) {
+				({ id: puzzleId, puzzle } = banked);
+				source = 'bank';
 			} else {
 				puzzleId ??= this.localPuzzleId();
 				const { variantIndex, seed } = decodePuzzleId(puzzleId);
-				puzzle = await generate<P>(this.game.id, variantIndex, seed);
+				const v = this.game.variants[variantIndex];
+				// A puzzle from the collection needs no generating (big ones take a while).
+				const stored = v && !v.special ? await findInBank<P>(this.game.id, v.key, puzzleId) : null;
+				puzzle =
+					stored && this.game.isValidPuzzle(stored, v)
+						? stored
+						: await generate<P>(this.game.id, variantIndex, seed);
 			}
 		} catch (e) {
 			if (token === this.openToken)
-				this.message = { kind: 'error', text: `Could not create the puzzle: ${e}` };
+				this.message = { kind: 'error', text: t('session.createFailed', { error: String(e) }) };
 			return;
 		}
 		if (token !== this.openToken) return;
 		this.puzzleId = puzzleId;
 		this.ticket = ticket;
+		this.source = source;
 		this.puzzle = puzzle;
 		const sharedState = shared ? this.game.decodeState(puzzle, shared) : null;
 		this.state = sharedState ?? this.game.emptyState(puzzle);
@@ -197,6 +215,15 @@ export class GameSession<P = unknown, S = unknown> {
 		return encodePuzzleId(this.variantIndex, seed);
 	}
 
+	/** A new puzzle from the collection, if the player's choice of source says so. */
+	private async fromBank(): Promise<{ id: number; puzzle: P } | null> {
+		const source = loadPuzzleSource();
+		if (this.variant.special || source === 'local') return null;
+		if (source === 'mixed' && Math.random() < 0.5) return null;
+		const pick = await pickFromBank<P>(this.game.id, this.variant.key);
+		return pick && this.game.isValidPuzzle(pick.puzzle, this.variant) ? pick : null;
+	}
+
 	/** Ask the server for a puzzle; null (play locally, unranked) if it does not issue them. */
 	private async fromServer(): Promise<{
 		puzzle: P;
@@ -211,10 +238,7 @@ export class GameSession<P = unknown, S = unknown> {
 		} catch {
 			/* fall back to a local puzzle */
 		}
-		this.message = {
-			kind: 'info',
-			text: 'The server could not create a puzzle, so this one is played offline and not ranked.'
-		};
+		this.message = { kind: 'info', text: t('session.serverFailed') };
 		return null;
 	}
 
@@ -224,6 +248,8 @@ export class GameSession<P = unknown, S = unknown> {
 		if (!this.game.isValidState(puzzle, s.state)) return false;
 		this.puzzleId = s.puzzleId;
 		this.ticket = s.ticket ?? null;
+		this.source = s.ticket ? 'server' : 'local';
+		this.changedAt = s.updatedAt;
 		this.puzzle = puzzle;
 		this.state = s.state;
 		this.past = [];
@@ -250,12 +276,17 @@ export class GameSession<P = unknown, S = unknown> {
 		const remote = await pullSave<SavedGame<S>>(this.saveKey);
 		if (!remote || token !== this.openToken || this.touched) return;
 		const local = load<SavedGame<S> | null>(this.saveKey, null);
-		if (local && remote.data.updatedAt <= local.updatedAt) return;
-		if (remote.data.solved) return;
+		// A newer local game wins, unless nobody has played it yet: then the other device's game
+		// continues here.
+		if (local && remote.data.updatedAt <= local.updatedAt && this.hasProgress(local)) return;
+		if (remote.data.solved || !this.hasProgress(remote.data)) return;
+		if (local?.puzzleId === remote.data.puzzleId && remote.data.updatedAt <= local.updatedAt)
+			return;
 		this.pauseClock();
+		if (this.pushTimer) clearTimeout(this.pushTimer);
 		if (this.restore(remote.data)) {
 			save(this.saveKey, remote.data);
-			this.message = { kind: 'info', text: 'Continued your game from another device.' };
+			this.message = { kind: 'info', text: t('session.continued') };
 		}
 		this.resumeClock();
 	}
@@ -437,7 +468,7 @@ export class GameSession<P = unknown, S = unknown> {
 		if (!this.game.isSolved(this.puzzle, state)) {
 			const alt = this.game.acceptAlternative?.(this.puzzle, state, this.settings.values);
 			if (!alt) {
-				if (!auto) this.message = { kind: 'error', text: 'Not solved yet. Keep going!' };
+				if (!auto) this.message = { kind: 'error', text: t('session.notSolved') };
 				return;
 			}
 			this.replace(alt);
@@ -450,9 +481,16 @@ export class GameSession<P = unknown, S = unknown> {
 		this.solved = true;
 		const competitive = !this.settings.values.personalTimer;
 		const shown = competitive ? this.finalMs : this.finalPlayMs;
-		recordSolve(this.game.id, this.variant.key, this.puzzleId, shown, this.period);
+		recordSolve(
+			this.game.id,
+			this.variant.key,
+			this.puzzleId,
+			shown,
+			this.period,
+			this.variant.special
+		);
 		this.persist();
-		this.message = { kind: 'success', text: `Solved in ${formatDuration(shown)}!` };
+		this.message = { kind: 'success', text: t('session.solved', { time: formatDuration(shown) }) };
 
 		this.submitting = true;
 		try {
@@ -471,21 +509,65 @@ export class GameSession<P = unknown, S = unknown> {
 				this.puzzleId = res.puzzleId;
 				this.persist();
 			}
-			if (res) this.message = { kind: res.ok ? 'success' : 'error', text: res.message };
+			if (res)
+				this.message = { kind: res.ok ? 'success' : 'error', text: this.scoreText(res, shown) };
 		} catch (e) {
 			this.message = {
 				kind: 'info',
-				text: `Solved in ${formatDuration(shown)}! (Score not uploaded: ${(e as Error).message})`
+				text: t('session.uploadFailed', {
+					time: formatDuration(shown),
+					error: (e as Error).message
+				})
 			};
 		} finally {
 			this.submitting = false;
 		}
 	}
 
+	private scoreText(res: ScoreResult, shown: number): string {
+		const time = formatDuration(res.timeMs ?? shown);
+		switch (res.code) {
+			case 'wrong':
+				return t('session.wrong');
+			case 'repeat':
+				return t('session.repeat', { time });
+			case 'personal':
+				return t('session.unrankedPersonal', { time });
+			case 'local':
+				return t('session.unrankedLocal', { time });
+			case 'ranked': {
+				const text = t('session.ranked', {
+					time,
+					rank: res.rank ?? '–',
+					total: res.total ?? '–',
+					variant: variantLabel(this.variant)
+				});
+				const best = res.bestMs != null && res.bestMs < (res.timeMs ?? Infinity);
+				return best
+					? `${text} ${t('session.yourBest', { time: formatDuration(res.bestMs!) })}`
+					: text;
+			}
+			default:
+				return res.message;
+		}
+	}
+
 	// ---- Persistence ------------------------------------------------------------------------
 
-	persist() {
+	/** Whether a saved game is worth keeping over another one: any move, checkpoint or solve. */
+	private hasProgress(save: SavedGame<S>): boolean {
+		if (save.solved || save.checkpoints?.length) return true;
+		const empty = this.game.emptyState(save.puzzle as P);
+		return JSON.stringify(save.state) !== JSON.stringify(empty);
+	}
+
+	/** When the game last changed; decides which save wins between devices. */
+	private changedAt = 0;
+
+	/** Save locally and, after a short pause, to the server. `changed` is false for a plain flush. */
+	persist(changed = true) {
 		if (!this.puzzle || !this.state || !this.saveKey) return;
+		if (changed || !this.changedAt) this.changedAt = Date.now();
 		const running = this.runningSince != null ? Date.now() - this.runningSince : 0;
 		const data: SavedGame<S> = {
 			version: 1,
@@ -498,18 +580,20 @@ export class GameSession<P = unknown, S = unknown> {
 			solved: this.solved,
 			startedAt: this.startedAt,
 			playMs: this.playMs + running,
-			updatedAt: Date.now(),
+			updatedAt: this.changedAt,
 			...(this.ticket ? { ticket: this.ticket } : {})
 		};
 		save(this.saveKey, data);
 		if (this.pushTimer) clearTimeout(this.pushTimer);
+		// An untouched new puzzle is not uploaded, so it cannot replace a game on another device.
+		if (!this.hasProgress(data)) return;
 		const key = this.saveKey;
 		this.pushTimer = setTimeout(() => pushSave(key, data, data.updatedAt), 1500);
 	}
 
 	/** Flush the play time into the save (page hide / unload). */
 	flush() {
-		this.persist();
+		this.persist(false);
 	}
 }
 

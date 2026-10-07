@@ -1,4 +1,5 @@
 import { resolve } from '$app/paths';
+import { t } from '../i18n/index.svelte';
 import { load, remove, save } from './storage';
 
 /**
@@ -25,7 +26,10 @@ export interface ScoreEntry {
 
 export interface ScoreResult {
 	ok: boolean;
+	code?: 'wrong' | 'repeat' | 'personal' | 'local' | 'ranked';
 	message: string;
+	timeMs?: number;
+	bestMs?: number;
 	rank?: number;
 	total?: number;
 	puzzleId?: number;
@@ -96,7 +100,7 @@ export async function register(name: string): Promise<Player> {
 export async function linkDevice(code: string): Promise<Player> {
 	const token = code.replace(/[\s-]/g, '');
 	const res = await fetch(`${api()}/player`, { headers: { authorization: `Bearer ${token}` } });
-	if (!res.ok) throw new Error('Unknown sync code');
+	if (!res.ok) throw new Error(t('player.unknownCode'));
 	const body = (await res.json()) as { id: string; name: string };
 	const player = { id: body.id, name: body.name, token };
 	save('player', player);

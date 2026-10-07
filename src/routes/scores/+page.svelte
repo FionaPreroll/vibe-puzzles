@@ -12,6 +12,7 @@
 	import { formatDuration } from '#lib/core/time.ts';
 	import { encodePuzzleId, periodKey, specialSeed } from '#lib/core/variants.ts';
 	import { GAMES } from '#lib/games/index.ts';
+	import { t, variantLabel } from '#lib/i18n/index.svelte.ts';
 
 	let gameId = $state(GAMES[0].id);
 	let variantKey = $state(GAMES[0].variants[0].key);
@@ -63,33 +64,33 @@
 </script>
 
 <svelte:head>
-	<title>Scores · Vibe Puzzles</title>
+	<title>{t('scores.title')} · {t('app.name')}</title>
 </svelte:head>
 
-<h1 class="text-3xl font-bold tracking-tight">Hall of fame & statistics</h1>
+<h1 class="text-3xl font-bold tracking-tight">{t('scores.title')}</h1>
 
 <div class="mt-6 flex flex-wrap gap-3">
 	<label class="flex items-center gap-2 text-sm">
-		Game
+		{t('scores.game')}
 		<select class="input" bind:value={gameId}>
 			{#each GAMES as g (g.id)}<option value={g.id}>{g.name}</option>{/each}
 		</select>
 	</label>
 	<label class="flex items-center gap-2 text-sm">
-		Puzzle type
+		{t('scores.puzzleType')}
 		<select class="input" bind:value={variantKey}>
-			{#each game.variants as v (v.key)}<option value={v.key}>{v.label}</option>{/each}
+			{#each game.variants as v (v.key)}<option value={v.key}>{variantLabel(v)}</option>{/each}
 		</select>
 	</label>
 </div>
 
 <div class="mt-6 grid gap-6 lg:grid-cols-2">
 	<section class="panel">
-		<h2 class="text-lg font-semibold">Your statistics</h2>
-		<p class="text-xs text-stone-500">Kept on this device.</p>
+		<h2 class="text-lg font-semibold">{t('scores.yourStats')}</h2>
+		<p class="text-xs text-stone-500">{t('scores.keptLocally')}</p>
 		{#if stats}
 			<dl class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-				{#each [['Solved', String(stats.solved)], ['Current streak', String(stats.streak)], ['Best streak', String(stats.bestStreak)], ['Best time', stats.bestMs != null ? formatDuration(stats.bestMs) : '–'], ['Average', average != null ? formatDuration(average) : '–']] as [label, value] (label)}
+				{#each [[t('scores.solved'), String(stats.solved)], [t('scores.streak'), String(stats.streak)], [t('scores.bestStreak'), String(stats.bestStreak)], [t('scores.bestTime'), stats.bestMs != null ? formatDuration(stats.bestMs) : '–'], [t('scores.average'), average != null ? formatDuration(average) : '–']] as [label, value] (label)}
 					<div class="rounded-lg bg-stone-100 p-3 dark:bg-stone-800">
 						<dt class="text-xs text-stone-500 dark:text-stone-400">{label}</dt>
 						<dd class="mt-1 font-mono text-xl tabular-nums">{value}</dd>
@@ -97,7 +98,7 @@
 				{/each}
 			</dl>
 			{#if stats.recent.length}
-				<h3 class="section-title mt-5">Recent solves</h3>
+				<h3 class="section-title mt-5">{t('scores.recent')}</h3>
 				<ul class="mt-2 divide-y divide-stone-200 text-sm dark:divide-stone-800">
 					{#each stats.recent as r (r.at)}
 						<li class="flex justify-between py-1.5">
@@ -115,20 +116,24 @@
 
 	<section class="panel">
 		<h2 class="text-lg font-semibold">
-			{variant.special ? `${variant.label}: current puzzle` : 'Best times'}
+			{variant.special
+				? t('scores.currentPuzzle', { variant: variantLabel(variant) })
+				: t('scores.bestTimes')}
 		</h2>
 		{#if hasServer === false}
 			<p class="mt-3 text-sm text-stone-600 dark:text-stone-400">
-				Online leaderboards need the optional server, which this deployment does not run.
+				{t('scores.noServer')}
 			</p>
 		{:else if boardError}
 			<p class="mt-3 text-sm text-rose-600">{boardError}</p>
 		{:else if !board}
-			<p class="mt-3 text-sm text-stone-500">Loading…</p>
+			<p class="mt-3 text-sm text-stone-500">{t('scores.loading')}</p>
 		{:else if board.entries.length === 0}
-			<p class="mt-3 text-sm text-stone-600 dark:text-stone-400">No times yet. Be the first!</p>
+			<p class="mt-3 text-sm text-stone-600 dark:text-stone-400">{t('scores.empty')}</p>
 		{:else}
-			<p class="text-xs text-stone-500">{board.players} player{board.players === 1 ? '' : 's'}</p>
+			<p class="text-xs text-stone-500">
+				{board.players === 1 ? t('scores.player') : t('scores.players', { count: board.players })}
+			</p>
 			<ol class="mt-3 divide-y divide-stone-200 text-sm dark:divide-stone-800">
 				{#each board.entries as e (e.rank)}
 					<li
@@ -144,13 +149,13 @@
 			</ol>
 			{#if board.me && !board.entries.some((e) => e.me)}
 				<p class="mt-3 border-t border-stone-200 pt-2 text-sm dark:border-stone-800">
-					You: rank {board.me.rank} with {formatDuration(board.me.timeMs)}
+					{t('scores.you', { rank: board.me.rank, time: formatDuration(board.me.timeMs) })}
 				</p>
 			{/if}
 		{/if}
 		{#if hasServer && !currentPlayer()}
 			<p class="mt-4 text-sm">
-				<a class="link" href={resolve('/player')}>Pick a player name</a> to appear here.
+				<a class="link" href={resolve('/player')}>{t('scores.pickName')}</a>{t('scores.toAppear')}
 			</p>
 		{/if}
 	</section>
