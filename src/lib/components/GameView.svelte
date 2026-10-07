@@ -161,6 +161,32 @@
 		share.image = await screenshot();
 	}
 
+	/** Share the solve, e.g. to a messenger; without the Web Share API the text is copied. */
+	async function shareSolve() {
+		if (!session.puzzleId) return;
+		const url = `${location.origin}${resolve('/[game]', { game: game.id })}?id=${session.puzzleId}`;
+		const text = t('game.brag', {
+			game: game.name,
+			variant: label,
+			id: session.puzzleId.toLocaleString('en-US'),
+			time: formatDuration(clock)
+		});
+		if (navigator.share) {
+			try {
+				await navigator.share({ title: `${game.name} · ${t('app.name')}`, text, url });
+			} catch {
+				// The share sheet was closed.
+			}
+			return;
+		}
+		try {
+			await navigator.clipboard.writeText(`${text} ${url}`);
+			session.message = { kind: 'info', text: t('game.bragCopied') };
+		} catch {
+			session.message = { kind: 'info', text: `${text} ${url}` };
+		}
+	}
+
 	/** Render the board SVG into a PNG data URL. */
 	async function screenshot(): Promise<string | null> {
 		const svg = boardArea?.querySelector('svg');
@@ -783,6 +809,9 @@
 					onclick={newPuzzle}
 					disabled={newBusy || session.loading}>{t('game.newPuzzle')}</button
 				>
+				{#if session.solved && session.puzzleId}
+					<button class="btn" onclick={shareSolve}>{t('game.shareSolve')}</button>
+				{/if}
 				{@render rareActions(false)}
 				<div class="relative lg:hidden">
 					<button
