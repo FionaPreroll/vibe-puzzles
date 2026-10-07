@@ -31,6 +31,7 @@ npm run lint       # prettier and eslint
 npm run check      # svelte-check and worker type check
 npm test           # unit tests
 npm run test:e2e   # browser tests (run `npx playwright install chromium` once)
+npm run test:server # browser tests against the server: two devices syncing a game
 npm run bank:grow  # add puzzles to the collection (--per-variant N --max-minutes M)
 ```
 

@@ -249,6 +249,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.puzzleId = s.puzzleId;
 		this.ticket = s.ticket ?? null;
 		this.source = s.ticket ? 'server' : 'local';
+		this.changedAt = s.updatedAt;
 		this.puzzle = puzzle;
 		this.state = s.state;
 		this.past = [];
@@ -275,9 +276,14 @@ export class GameSession<P = unknown, S = unknown> {
 		const remote = await pullSave<SavedGame<S>>(this.saveKey);
 		if (!remote || token !== this.openToken || this.touched) return;
 		const local = load<SavedGame<S> | null>(this.saveKey, null);
-		if (local && remote.data.updatedAt <= local.updatedAt) return;
-		if (remote.data.solved) return;
+		// A newer local game wins, unless nobody has played it yet: then the other device's game
+		// continues here.
+		if (local && remote.data.updatedAt <= local.updatedAt && this.hasProgress(local)) return;
+		if (remote.data.solved || !this.hasProgress(remote.data)) return;
+		if (local?.puzzleId === remote.data.puzzleId && remote.data.updatedAt <= local.updatedAt)
+			return;
 		this.pauseClock();
+		if (this.pushTimer) clearTimeout(this.pushTimer);
 		if (this.restore(remote.data)) {
 			save(this.saveKey, remote.data);
 			this.message = { kind: 'info', text: t('session.continued') };
@@ -548,8 +554,20 @@ export class GameSession<P = unknown, S = unknown> {
 
 	// ---- Persistence ------------------------------------------------------------------------
 
-	persist() {
+	/** Whether a saved game is worth keeping over another one: any move, checkpoint or solve. */
+	private hasProgress(save: SavedGame<S>): boolean {
+		if (save.solved || save.checkpoints?.length) return true;
+		const empty = this.game.emptyState(save.puzzle as P);
+		return JSON.stringify(save.state) !== JSON.stringify(empty);
+	}
+
+	/** When the game last changed; decides which save wins between devices. */
+	private changedAt = 0;
+
+	/** Save locally and, after a short pause, to the server. `changed` is false for a plain flush. */
+	persist(changed = true) {
 		if (!this.puzzle || !this.state || !this.saveKey) return;
+		if (changed || !this.changedAt) this.changedAt = Date.now();
 		const running = this.runningSince != null ? Date.now() - this.runningSince : 0;
 		const data: SavedGame<S> = {
 			version: 1,
@@ -562,18 +580,20 @@ export class GameSession<P = unknown, S = unknown> {
 			solved: this.solved,
 			startedAt: this.startedAt,
 			playMs: this.playMs + running,
-			updatedAt: Date.now(),
+			updatedAt: this.changedAt,
 			...(this.ticket ? { ticket: this.ticket } : {})
 		};
 		save(this.saveKey, data);
 		if (this.pushTimer) clearTimeout(this.pushTimer);
+		// An untouched new puzzle is not uploaded, so it cannot replace a game on another device.
+		if (!this.hasProgress(data)) return;
 		const key = this.saveKey;
 		this.pushTimer = setTimeout(() => pushSave(key, data, data.updatedAt), 1500);
 	}
 
 	/** Flush the play time into the save (page hide / unload). */
 	flush() {
-		this.persist();
+		this.persist(false);
 	}
 }
 
