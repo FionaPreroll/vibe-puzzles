@@ -163,7 +163,15 @@ async function issuePuzzle(req: Request, store: Store, options: ApiOptions) {
 /** Solve of a server-issued puzzle: the stored puzzle and the server clock count. */
 async function submitTicket(player: { id: string }, b: Record<string, unknown>, store: Store) {
 	const ticket = await store.getTicket(String(b.ticket));
-	if (!ticket || ticket.playerId !== player.id) throw new HttpError(400, 'Unknown puzzle ticket');
+	if (!ticket) {
+		// Most likely removed by cleanupTickets; the solve can no longer be verified.
+		return json({
+			ok: false,
+			code: 'expired',
+			message: 'Not ranked: the server no longer keeps this old puzzle.'
+		});
+	}
+	if (ticket.playerId !== player.id) throw new HttpError(400, 'Unknown puzzle ticket');
 	const logic = GAME_LOGIC[ticket.game];
 	const puzzle = JSON.parse(ticket.puzzle);
 	if (typeof b.answer !== 'string' || !logic.verifyAnswer(puzzle, b.answer)) {
@@ -312,6 +320,21 @@ async function getBoard(url: URL, req: Request, store: Store) {
 		me: mine ? entry(mine.rank, mine.row) : null,
 		players
 	});
+}
+
+/** How long the server keeps puzzle tickets: unsolved ones, and solved ones after the solve. */
+export const TICKET_RETENTION_DAYS = { unsolved: 45, solved: 7 };
+
+/**
+ * Removes old puzzle tickets (run daily by the Worker's cron trigger). An unsolved ticket that
+ * old cannot give a meaningful ranked time; a solved one is only kept to recognise a repeat.
+ */
+export async function cleanupTickets(store: Store, now = Date.now()): Promise<number> {
+	const day = 86_400_000;
+	return store.deleteTickets(
+		now - TICKET_RETENTION_DAYS.unsolved * day,
+		now - TICKET_RETENTION_DAYS.solved * day
+	);
 }
 
 export async function handleApi(

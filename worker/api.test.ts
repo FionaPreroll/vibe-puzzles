@@ -4,12 +4,11 @@ import { decodePuzzleId, encodePuzzleId, periodKey } from '../src/lib/core/varia
 import { generateTetroid } from '../src/lib/games/tetroid/generator';
 import type { TetroidPuzzle } from '../src/lib/games/tetroid/rules';
 import { solveTetroid } from '../src/lib/games/tetroid/solver';
-import { handleApi, type ApiOptions } from './api';
+import { cleanupTickets, handleApi, TICKET_RETENTION_DAYS, type ApiOptions } from './api';
 import type { BankLoader } from './bank';
 import { MemoryStore } from './store';
 
-function client(options: ApiOptions = {}) {
-	const store = new MemoryStore();
+function client(options: ApiOptions = {}, store = new MemoryStore()) {
 	return async (method: string, path: string, body?: unknown, token?: string) => {
 		const headers: Record<string, string> = {};
 		if (token) headers.authorization = `Bearer ${token}`;
@@ -170,6 +169,36 @@ describe('api', () => {
 			expect(entry.timeMs).toBeGreaterThanOrEqual(0);
 			expect(entry.timeMs).toBeLessThan(60000);
 			expect((await submit(solved)).body.message).toContain('before');
+		});
+
+		it('does not rank a ticket the server has cleaned up', async () => {
+			const store = new MemoryStore();
+			const api = client({ serverPuzzles: true }, store);
+			const token = (await api('POST', '/player', { name: 'A' })).body.token as string;
+			const issued = (await api('POST', '/puzzles', { game: 'tetroid', variant: '6n' }, token))
+				.body as { ticket: string; puzzle: TetroidPuzzle; issuedAt: number };
+			const day = 86_400_000;
+			// Not old enough yet.
+			const soon = issued.issuedAt + (TICKET_RETENTION_DAYS.unsolved - 1) * day;
+			expect(await cleanupTickets(store, soon)).toBe(0);
+			const later = issued.issuedAt + (TICKET_RETENTION_DAYS.unsolved + 1) * day;
+			expect(await cleanupTickets(store, later)).toBe(1);
+			const solved = solveTetroid(issued.puzzle, { limit: 1 }).solutions[0].join('');
+			const res = await api(
+				'POST',
+				'/scores',
+				{ ticket: issued.ticket, answer: solved, timeMs: 1, playMs: 1, competitive: true },
+				token
+			);
+			expect(res.body).toMatchObject({ ok: false, code: 'expired' });
+			expect((await api('GET', '/scores?game=tetroid&variant=6n')).body.players).toBe(0);
+		});
+
+		it("rejects another player's ticket", async () => {
+			const { api, issued, solved } = await setup();
+			const other = (await api('POST', '/player', { name: 'B' })).body.token as string;
+			const res = await api('POST', '/scores', { ticket: issued.ticket, answer: solved }, other);
+			expect(res.status).toBe(400);
 		});
 
 		it('does not rank puzzles the client generated', async () => {

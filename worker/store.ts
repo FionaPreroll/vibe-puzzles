@@ -66,6 +66,8 @@ export interface Store {
 	solveTicket(id: string, at: number): Promise<boolean>;
 	/** IDs of the puzzles of a type that a player was issued or has solved. */
 	playedPuzzles(playerId: string, game: string, variant: string): Promise<Set<number>>;
+	/** Deletes tickets issued before `issuedBefore` or solved before `solvedBefore`; returns how many. */
+	deleteTickets(issuedBefore: number, solvedBefore: number): Promise<number>;
 }
 
 export class MemoryStore implements Store {
@@ -175,6 +177,17 @@ export class MemoryStore implements Store {
 				(r) => r.puzzleId
 			)
 		);
+	}
+
+	async deleteTickets(issuedBefore: number, solvedBefore: number) {
+		let deleted = 0;
+		for (const t of [...this.tickets.values()]) {
+			if (t.issuedAt < issuedBefore || (t.solvedAt != null && t.solvedAt < solvedBefore)) {
+				this.tickets.delete(t.id);
+				deleted++;
+			}
+		}
+		return deleted;
 	}
 }
 
@@ -373,5 +386,13 @@ export class D1Store implements Store {
 			.bind(playerId, game, variant, playerId, game, variant)
 			.all<{ puzzle_id: number }>();
 		return new Set(results.map((r) => r.puzzle_id));
+	}
+
+	async deleteTickets(issuedBefore: number, solvedBefore: number) {
+		const res = await this.db
+			.prepare('DELETE FROM tickets WHERE issued_at < ? OR solved_at < ?')
+			.bind(issuedBefore, solvedBefore)
+			.run();
+		return res.meta.changes;
 	}
 }

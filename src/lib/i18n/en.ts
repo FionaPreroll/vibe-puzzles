@@ -98,7 +98,8 @@ const en = {
 		ranked: 'Solved in {time}! Rank {rank} of {total} on {variant}.',
 		yourBest: 'Your best is {time}.',
 		unrankedPersonal: 'Solved in {time}! Personal timer: not ranked.',
-		unrankedLocal: 'Solved in {time}! Not ranked: only puzzles from the server are ranked.'
+		unrankedLocal: 'Solved in {time}! Not ranked: only puzzles from the server are ranked.',
+		expired: 'Solved in {time}! Not ranked: the server no longer keeps this old puzzle.'
 	},
 	difficulty: {
 		normal: 'Normal',

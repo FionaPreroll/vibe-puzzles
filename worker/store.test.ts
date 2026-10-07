@@ -160,4 +160,21 @@ describe.each([
 		expect(await store.playedPuzzles('ann', 'tetroid', '8n')).toEqual(new Set([8]));
 		expect(await store.playedPuzzles('ann', 'pinwheel', '6n')).toEqual(new Set());
 	});
+
+	it('deletes old tickets', async () => {
+		const store = await withPlayers('ann');
+		const ticket = { playerId: 'ann', game: 'tetroid', variant: '6n', puzzleId: 7, puzzle: '{}' };
+		await store.createTicket({ ...ticket, id: 'old-open', issuedAt: 100, solvedAt: null });
+		await store.createTicket({ ...ticket, id: 'new-open', issuedAt: 500, solvedAt: null });
+		await store.createTicket({ ...ticket, id: 'old-solved', issuedAt: 300, solvedAt: null });
+		await store.solveTicket('old-solved', 350);
+		await store.createTicket({ ...ticket, id: 'new-solved', issuedAt: 300, solvedAt: null });
+		await store.solveTicket('new-solved', 450);
+		expect(await store.deleteTickets(200, 400)).toBe(2);
+		expect(await store.getTicket('old-open')).toBeNull();
+		expect(await store.getTicket('old-solved')).toBeNull();
+		expect(await store.getTicket('new-open')).not.toBeNull();
+		expect(await store.getTicket('new-solved')).not.toBeNull();
+		expect(await store.deleteTickets(200, 400)).toBe(0);
+	});
 });

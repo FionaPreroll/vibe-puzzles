@@ -512,8 +512,10 @@ export class GameSession<P = unknown, S = unknown> {
 				this.puzzleId = res.puzzleId;
 				this.persist();
 			}
-			if (res)
-				this.message = { kind: res.ok ? 'success' : 'error', text: this.scoreText(res, shown) };
+			if (res) {
+				const kind = res.ok ? 'success' : res.code === 'expired' ? 'info' : 'error';
+				this.message = { kind, text: this.scoreText(res, shown) };
+			}
 		} catch (e) {
 			this.message = {
 				kind: 'info',
@@ -538,6 +540,8 @@ export class GameSession<P = unknown, S = unknown> {
 				return t('session.unrankedPersonal', { time });
 			case 'local':
 				return t('session.unrankedLocal', { time });
+			case 'expired':
+				return t('session.expired', { time });
 			case 'ranked': {
 				const text = t('session.ranked', {
 					time,

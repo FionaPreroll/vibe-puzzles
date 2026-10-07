@@ -1,11 +1,11 @@
-import { handleApi } from './api';
+import { cleanupTickets, handleApi } from './api';
 import { assetBank } from './bank';
 import { D1Store } from './store';
 
 export interface Env {
 	DB: D1Database;
 	ASSETS: Fetcher;
-	/** "true" to generate puzzles on the server (see README). */
+	/** "true" to hand out puzzles from the server (see README). */
 	SERVER_PUZZLES?: string;
 }
 
@@ -20,5 +20,12 @@ export default {
 				bank: assetBank(env.ASSETS)
 			});
 		return env.ASSETS.fetch(req);
+	},
+
+	/** Daily housekeeping (`triggers.crons` in wrangler.jsonc). */
+	async scheduled(_controller, env, ctx) {
+		ctx.waitUntil(
+			cleanupTickets(new D1Store(env.DB)).then((n) => console.log(`Deleted ${n} old tickets`))
+		);
 	}
 } satisfies ExportedHandler<Env>;
