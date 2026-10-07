@@ -1,5 +1,7 @@
 # Vibe Puzzles
 
+[![CI](https://github.com/FionaPreroll/vibe-puzzles/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/FionaPreroll/vibe-puzzles/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/FionaPreroll/vibe-puzzles/graph/badge.svg?branch=main)](https://codecov.io/gh/FionaPreroll/vibe-puzzles)
+
 A collection of logic puzzles that runs in the browser, in English and German. Every puzzle has a unique solution; puzzles are generated on the device or taken from a pre-generated collection.
 
 - **Tetroid**: shade one tetromino in every region so that all shaded cells connect, no 2×2 block is shaded and equal tetrominoes never touch.

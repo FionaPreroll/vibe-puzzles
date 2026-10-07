@@ -12,7 +12,7 @@ on:
         default: '5'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: puzzle-bank
@@ -21,6 +21,9 @@ concurrency:
 jobs:
   grow:
     runs-on: ubuntu-latest
+    # Pushes the new puzzles to dev.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
