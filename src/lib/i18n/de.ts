@@ -207,10 +207,7 @@ const de: Dictionary = {
 		solvedAll: 'Du hast dein erstes Rätsel gelöst. Bereit für ein echtes?'
 	},
 	pwa: {
-		install: 'App installieren',
-		offlineReady: 'Bereit zum Offline-Spielen.',
-		update: 'Eine neue Version ist da.',
-		reload: 'Neu laden'
+		install: 'App installieren'
 	},
 	games: {
 		tetroid: {

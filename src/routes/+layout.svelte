@@ -11,6 +11,26 @@
 
 	if (typeof window !== 'undefined') initLocale();
 
+	/** Browsers that support installing the app fire this event; we offer a button for it. */
+	interface InstallPrompt extends Event {
+		prompt(): Promise<void>;
+	}
+	let install = $state<InstallPrompt | null>(null);
+
+	$effect(() => {
+		const offer = (e: Event) => {
+			e.preventDefault();
+			install = e as InstallPrompt;
+		};
+		const installed = () => (install = null);
+		window.addEventListener('beforeinstallprompt', offer);
+		window.addEventListener('appinstalled', installed);
+		return () => {
+			window.removeEventListener('beforeinstallprompt', offer);
+			window.removeEventListener('appinstalled', installed);
+		};
+	});
+
 	$effect(() => {
 		document.documentElement.classList.toggle('dark', theme.night);
 	});
@@ -57,8 +77,23 @@
 				>
 			{/each}
 		</nav>
+		{#if install}
+			<button
+				class="btn-sm ml-auto gap-1"
+				aria-label={t('pwa.install')}
+				title={t('pwa.install')}
+				onclick={async () => {
+					await install?.prompt();
+					install = null;
+				}}
+				><span aria-hidden="true">⤓</span><span class="hidden sm:inline">{t('pwa.install')}</span
+				></button
+			>
+		{/if}
 		<select
-			class="ml-auto rounded-md bg-transparent px-1 py-1 text-sm text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+			class="{install
+				? 'sm:ml-0'
+				: ''} ml-auto rounded-md bg-transparent px-1 py-1 text-sm text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
 			aria-label={t('app.language')}
 			value={i18n.locale}
 			onchange={(e) => setLocale(e.currentTarget.value as Locale)}

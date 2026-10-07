@@ -62,3 +62,24 @@ test('a Pinwheel line dragged from a clicked edge keeps that edge', async ({ pag
 	await expect(board.locator('[data-line="h:3:0"]')).toHaveCount(1);
 	await expect(board.locator('[data-line="h:3:1"]')).toHaveCount(1);
 });
+
+test('works offline after the first visit', async ({ page, context }) => {
+	await page.goto('/');
+	await page.evaluate(async () => {
+		await navigator.serviceWorker.ready;
+		if (!navigator.serviceWorker.controller) {
+			await new Promise((r) => navigator.serviceWorker.addEventListener('controllerchange', r));
+		}
+	});
+	await context.setOffline(true);
+	await page.goto('/tetroid?v=6n');
+	await expect(page.getByText(/Puzzle ID/i)).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible();
+	await context.setOffline(false);
+});
+
+test('has an install manifest', async ({ request }) => {
+	const manifest = await (await request.get('/manifest.webmanifest')).json();
+	expect(manifest.icons.length).toBeGreaterThan(1);
+	for (const icon of manifest.icons) expect((await request.get(`/${icon.src}`)).ok()).toBe(true);
+});

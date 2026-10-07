@@ -205,10 +205,7 @@ const en = {
 		solvedAll: 'You solved your first puzzle. Ready for a real one?'
 	},
 	pwa: {
-		install: 'Install app',
-		offlineReady: 'Ready to play offline.',
-		update: 'A new version is available.',
-		reload: 'Reload'
+		install: 'Install app'
 	},
 	games: {
 		tetroid: {
