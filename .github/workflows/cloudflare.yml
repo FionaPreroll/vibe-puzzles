@@ -8,6 +8,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     if: github.event_name == 'workflow_dispatch' || vars.CLOUDFLARE_DEPLOY == 'true'
