@@ -1,7 +1,7 @@
 <script lang="ts">
 	import './layout.css';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
+	import { page, updated } from '$app/state';
 	import favicon from '#lib/assets/favicon.svg';
 	import { setNight, theme } from '#lib/client/settings.svelte.ts';
 	import { i18n, initLocale, LOCALES, setLocale, t, type Locale } from '#lib/i18n/index.svelte.ts';
@@ -16,6 +16,8 @@
 		prompt(): Promise<void>;
 	}
 	let install = $state<InstallPrompt | null>(null);
+	/** A newer version is online; hidden for this page view once dismissed. */
+	let updateDismissed = $state(false);
 
 	$effect(() => {
 		const offer = (e: Event) => {
@@ -113,3 +115,26 @@
 <main class="mx-auto max-w-7xl px-4 py-6">
 	{@render children()}
 </main>
+
+<footer class="mx-auto max-w-7xl px-4 pb-6 text-xs text-stone-500 dark:text-stone-400">
+	<a class="hover:underline" href={resolve('/about')}>{t('about.link')}</a>
+	· v{__BUILD__.version} ({__BUILD__.commit.slice(0, 7)})
+</footer>
+
+{#if updated.current && !updateDismissed}
+	<div
+		class="popover fixed inset-x-0 top-3 z-50 mx-auto flex w-fit max-w-[calc(100%-1.5rem)] items-center gap-3 text-sm"
+		role="status"
+	>
+		<span>{t('update.available')}</span>
+		<button class="btn btn-primary btn-sm" onclick={() => location.reload()}
+			>{t('update.reload')}</button
+		>
+		<button
+			class="btn-icon size-7"
+			aria-label={t('update.dismiss')}
+			title={t('update.dismiss')}
+			onclick={() => (updateDismissed = true)}>✕</button
+		>
+	</div>
+{/if}
