@@ -168,7 +168,7 @@ export class GameSession<P = unknown, S = unknown> {
 				const { variantIndex, seed } = decodePuzzleId(puzzleId);
 				const v = this.game.variants[variantIndex];
 				// A puzzle from the collection needs no generating (big ones take a while).
-				const stored = v && !v.special ? await findInBank<P>(this.game.id, v.key, puzzleId) : null;
+				const stored = v ? await findInBank<P>(this.game.id, v.key, puzzleId) : null;
 				puzzle =
 					stored && this.game.isValidPuzzle(stored, v)
 						? stored
@@ -280,8 +280,11 @@ export class GameSession<P = unknown, S = unknown> {
 		// continues here.
 		if (local && remote.data.updatedAt <= local.updatedAt && this.hasProgress(local)) return;
 		if (remote.data.solved || !this.hasProgress(remote.data)) return;
-		if (local?.puzzleId === remote.data.puzzleId && remote.data.updatedAt <= local.updatedAt)
-			return;
+		// Server-issued puzzles keep their ID secret (0) until solved, so the ticket tells them apart.
+		const same =
+			local?.puzzleId === remote.data.puzzleId &&
+			(local.ticket ?? null) === (remote.data.ticket ?? null);
+		if (same && remote.data.updatedAt <= local!.updatedAt) return;
 		this.pauseClock();
 		if (this.pushTimer) clearTimeout(this.pushTimer);
 		if (this.restore(remote.data)) {

@@ -64,7 +64,7 @@ migrations/           D1 schema
 
 ## Puzzle collection
 
-`static/puzzles/<game>/<type>.json` holds pre-generated puzzles with their IDs. The `Grow puzzle collection` workflow runs weekly (or by hand) on `dev`, adds puzzles with fresh random seeds, checks each one for a unique solution and commits them, so the collection keeps growing. The unit tests check every stored puzzle again. In the settings, players choose where new puzzles come from: the collection, their device, or both at random (the default). The collection also saves generating time when a puzzle is opened by an ID it contains.
+`static/puzzles/<game>/<type>.json` holds pre-generated puzzles with their IDs. The `Grow puzzle collection` workflow runs weekly (or by hand, with the number of new puzzles per type and a time limit) on `dev`. It first stores the special puzzles of the coming periods, then adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution before it is committed, so the collection keeps growing. The unit tests check every stored puzzle again. In the settings, players choose where new puzzles come from: the collection, their device, or both at random (the default). The collection also saves generating time when a puzzle is opened by an ID it contains.
 
 ## Branches and pull requests
 
@@ -89,16 +89,17 @@ One-time setup:
 2. Add the repository secrets `CLOUDFLARE_API_TOKEN` (with Workers and D1 edit permissions), `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_D1_DATABASE_ID` (the ID printed in step 1).
 3. Set the repository variable `CLOUDFLARE_DEPLOY` to `true` to deploy on every push to `main`, or run the `Deploy to Cloudflare Workers` workflow by hand.
 
-#### Server-generated puzzles
+#### Server puzzles
 
-By default the browser generates every puzzle. Because a puzzle ID is also the generator seed, anyone who knows the ID can compute the solution. Setting `SERVER_PUZZLES` to `"true"` in `wrangler.jsonc` moves generation to the server for signed-in players:
+The Cloudflare deployment hands out puzzles from the server (`SERVER_PUZZLES` is `"true"` in `wrangler.jsonc`). The server never generates a puzzle itself: it only uses the pre-generated collection in `static/puzzles`, which is deployed with the app. That keeps every request well within the CPU limits of the Workers free plan.
 
-- The server picks a secret seed, stores the puzzle and returns it with a ticket. The puzzle ID is shown only after the puzzle is solved.
+- A signed-in player gets a random collection puzzle they have not had yet, with a ticket. The puzzle ID is shown only after the puzzle is solved.
+- Daily, weekly and monthly specials come from the collection too: the `Grow puzzle collection` workflow stores the puzzle of each coming period ahead of time (about 400 days, 60 weeks and 14 months).
 - A ranked time is measured by the server, from issuing the puzzle to receiving the correct answer.
 - Only server-issued puzzles are ranked. Puzzles opened by ID or shared links still work but are not ranked.
-- If the server cannot create a puzzle, the browser generates one and the game is not ranked.
+- If the collection has no puzzle for a type, the server says so and the browser generates one; that game is not ranked.
 
-Large puzzles need more CPU time than the Workers free plan allows per request (10 ms), so this mode needs the paid plan. Raise `limits.cpu_ms` in `wrangler.jsonc` if large puzzles time out.
+Because the collection is public, a determined player can look a puzzle up in it or feed it to a solver program; the server clock still keeps ranked times honest about when the puzzle was handed out.
 
 To deploy from a local machine instead, put the database ID into `wrangler.jsonc` and run `npm run cf:deploy`.
 
@@ -109,7 +110,7 @@ To deploy from a local machine instead, put the database ID into `wrangler.jsonc
 | GET            | `/api/health`     | Server availability                            |
 | POST/GET/PATCH | `/api/player`     | Register, look up (by token), rename           |
 | GET/PUT        | `/api/saves/:key` | Load and store a saved game (newest wins)      |
-| POST           | `/api/puzzles`    | New server puzzle (with `SERVER_PUZZLES`)      |
+| POST           | `/api/puzzles`    | Puzzle from the collection (`SERVER_PUZZLES`)  |
 | POST           | `/api/scores`     | Submit a solve; the server verifies the answer |
 | GET            | `/api/scores`     | Leaderboard for a game and variant             |
 

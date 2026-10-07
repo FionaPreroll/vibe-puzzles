@@ -13,6 +13,11 @@ async function device(browser: Browser): Promise<Page> {
 	return page;
 }
 
+/** The saved 6x6 Tetroid game: its puzzle, ticket (if the server issued it) and shaded cells. */
+async function savedGame(page: Page): Promise<{ puzzle: unknown; ticket?: string } | null> {
+	return page.evaluate(() => JSON.parse(localStorage.getItem('vp:save:tetroid:6n') ?? 'null'));
+}
+
 async function shadedCells(page: Page): Promise<number[]> {
 	return page.evaluate(() => {
 		const save = JSON.parse(localStorage.getItem('vp:save:tetroid:6n') ?? 'null');
@@ -51,7 +56,9 @@ test('a game continues on a second device linked with the sync code', async ({ b
 	]) {
 		await phone.mouse.click(box.x + (c + 0.5) * cell, box.y + (r + 0.5) * cell);
 	}
-	const phoneId = await phone.locator('.select-all').first().textContent();
+	// The server hands out the puzzle with a ticket and keeps its ID secret until it is solved.
+	const phoneGame = (await savedGame(phone))!;
+	expect(phoneGame.ticket).toEqual(expect.any(String));
 	const phoneCells = await shadedCells(phone);
 	expect(phoneCells).toHaveLength(3);
 	// Saves are pushed shortly after the last move.
@@ -64,7 +71,10 @@ test('a game continues on a second device linked with the sync code', async ({ b
 	await expect(laptop.getByText('Continued your game from another device.')).toBeVisible({
 		timeout: 15_000
 	});
-	await expect(laptop.locator('.select-all').first()).toHaveText(phoneId!);
+	expect(await savedGame(laptop)).toMatchObject({
+		puzzle: phoneGame.puzzle,
+		ticket: phoneGame.ticket
+	});
 	expect(await shadedCells(laptop)).toEqual(phoneCells);
 
 	// Laptop: one more move, then the phone picks it up when it comes back to the page.

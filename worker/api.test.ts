@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { encodePuzzleId } from '../src/lib/core/variants';
+import { specialPuzzleId, type PuzzleBank } from '../src/lib/core/bank';
+import { decodePuzzleId, encodePuzzleId, periodKey } from '../src/lib/core/variants';
 import { generateTetroid } from '../src/lib/games/tetroid/generator';
 import type { TetroidPuzzle } from '../src/lib/games/tetroid/rules';
 import { solveTetroid } from '../src/lib/games/tetroid/solver';
 import { handleApi, type ApiOptions } from './api';
+import type { BankLoader } from './bank';
 import { MemoryStore } from './store';
 
 function client(options: ApiOptions = {}) {
@@ -189,6 +191,85 @@ describe('api', () => {
 			);
 			expect(res.body.message).toContain('Not ranked');
 			expect((await api('GET', '/scores?game=tetroid&variant=6n')).body.players).toBe(0);
+		});
+	});
+
+	describe('server puzzles from the collection', () => {
+		// Variant 10 of Tetroid is the daily special.
+		const today = periodKey('daily');
+		const dailyId = specialPuzzleId('tetroid', 10, 'daily', today);
+		const daily = generateTetroid(10, 10, 'normal', decodePuzzleId(dailyId).seed).puzzle;
+		const other = generateTetroid(6, 6, 'normal', 77).puzzle;
+		const banks: Record<string, PuzzleBank> = {
+			'tetroid:6n': {
+				version: 1,
+				game: 'tetroid',
+				variant: '6n',
+				puzzles: [
+					{ id: puzzleId, puzzle },
+					{ id: encodePuzzleId(0, 77), puzzle: other }
+				]
+			},
+			'tetroid:daily': {
+				version: 1,
+				game: 'tetroid',
+				variant: 'daily',
+				puzzles: [{ id: dailyId, period: today, puzzle: daily }]
+			},
+			'tetroid:8n': { version: 1, game: 'tetroid', variant: '8n', puzzles: [] },
+			// A broken file must not be handed out.
+			'tetroid:8h': {
+				version: 1,
+				game: 'tetroid',
+				variant: '8h',
+				puzzles: [{ id: 1, puzzle: { width: 3 } }]
+			}
+		};
+		const bank: BankLoader = async (game, variant) => banks[`${game}:${variant}`] ?? null;
+
+		async function setup() {
+			const api = client({ serverPuzzles: true, bank });
+			const token = (await api('POST', '/player', { name: 'A' })).body.token as string;
+			const issue = (variant: string) =>
+				api('POST', '/puzzles', { game: 'tetroid', variant }, token);
+			return { api, token, issue };
+		}
+
+		it('hands out every puzzle of a type before repeating one', async () => {
+			const { issue } = await setup();
+			const first = (await issue('6n')).body.puzzle;
+			const second = (await issue('6n')).body.puzzle;
+			expect([first, second]).toEqual(expect.arrayContaining([puzzle, other]));
+			// All played: any of them again.
+			expect([puzzle, other]).toContainEqual((await issue('6n')).body.puzzle);
+		});
+
+		it('hands out the special puzzle of the current period', async () => {
+			const { issue } = await setup();
+			const res = await issue('daily');
+			expect(res.status).toBe(201);
+			expect(res.body).toMatchObject({ puzzle: daily, puzzleId: dailyId });
+		});
+
+		it('never generates a puzzle that is not in the collection', async () => {
+			const { issue } = await setup();
+			for (const variant of ['8n', '8h', '10n', 'weekly']) {
+				expect((await issue(variant)).status, variant).toBe(503);
+			}
+		});
+
+		it('ranks a solve of a collection puzzle and reveals its ID', async () => {
+			const { api, token, issue } = await setup();
+			const issued = (await issue('6n')).body as { ticket: string; puzzle: TetroidPuzzle };
+			const solved = solveTetroid(issued.puzzle, { limit: 1 }).solutions[0].join('');
+			const res = await api(
+				'POST',
+				'/scores',
+				{ ticket: issued.ticket, answer: solved, timeMs: 1, playMs: 1, competitive: true },
+				token
+			);
+			expect(res.body).toMatchObject({ ok: true, rank: 1 });
+			expect(banks['tetroid:6n'].puzzles.map((p) => p.id)).toContain(res.body.puzzleId);
 		});
 	});
 });

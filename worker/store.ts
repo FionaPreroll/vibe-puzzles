@@ -64,6 +64,8 @@ export interface Store {
 	getTicket(id: string): Promise<TicketRow | null>;
 	/** Marks the ticket solved; false if it already was. */
 	solveTicket(id: string, at: number): Promise<boolean>;
+	/** IDs of the puzzles of a type that a player was issued or has solved. */
+	playedPuzzles(playerId: string, game: string, variant: string): Promise<Set<number>>;
 }
 
 export class MemoryStore implements Store {
@@ -163,6 +165,16 @@ export class MemoryStore implements Store {
 		if (!t || t.solvedAt != null) return false;
 		t.solvedAt = at;
 		return true;
+	}
+
+	async playedPuzzles(playerId: string, game: string, variant: string) {
+		const mine = (r: { playerId: string; game: string; variant: string }) =>
+			r.playerId === playerId && r.game === game && r.variant === variant;
+		return new Set(
+			[...this.scores.filter(mine), ...[...this.tickets.values()].filter(mine)].map(
+				(r) => r.puzzleId
+			)
+		);
 	}
 }
 
@@ -350,5 +362,16 @@ export class D1Store implements Store {
 			.bind(at, id)
 			.run();
 		return res.meta.changes > 0;
+	}
+
+	async playedPuzzles(playerId: string, game: string, variant: string) {
+		const { results } = await this.db
+			.prepare(
+				`SELECT puzzle_id FROM scores WHERE player_id = ? AND game = ? AND variant = ?
+				 UNION SELECT puzzle_id FROM tickets WHERE player_id = ? AND game = ? AND variant = ?`
+			)
+			.bind(playerId, game, variant, playerId, game, variant)
+			.all<{ puzzle_id: number }>();
+		return new Set(results.map((r) => r.puzzle_id));
 	}
 }
