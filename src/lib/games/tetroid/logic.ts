@@ -1,6 +1,7 @@
 import { neighbours, packDigits, unpackDigits } from '../../core/grid';
 import type { GameLogic, Settings } from '../../core/types';
 import type { Variant } from '../../core/variants';
+import { solveTetroid } from './solver';
 import { generateTetroid } from './generator';
 import {
 	applyAutoCrosses,
@@ -78,6 +79,10 @@ export const tetroidLogic: GameLogic<TetroidPuzzle, TetroidState> = {
 	id: 'tetroid',
 	variants: TETROID_VARIANTS,
 	generate: (v, seed) => generateTetroid(v.width, v.height, v.difficulty, seed).puzzle,
+	countSolutions(p, limit) {
+		const res = solveTetroid(p, { limit, maxNodes: 2_000_000 });
+		return { count: res.solutions.length, finished: res.finished };
+	},
 	isValidPuzzle(p: unknown, v): p is TetroidPuzzle {
 		if (!p || typeof p !== 'object') return false;
 		const q = p as TetroidPuzzle;

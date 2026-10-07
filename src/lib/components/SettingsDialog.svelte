@@ -1,9 +1,17 @@
 <script lang="ts">
 	import type { GameSettings } from '../client/settings.svelte';
 	import { settingLabel, t } from '../i18n/index.svelte';
+	import {
+		loadPuzzleSource,
+		PUZZLE_SOURCES,
+		savePuzzleSource,
+		type PuzzleSource
+	} from '../client/bank';
 	import Dialog from './Dialog.svelte';
 
 	let { open = $bindable(false), settings }: { open: boolean; settings: GameSettings } = $props();
+
+	let source = $state<PuzzleSource>(loadPuzzleSource());
 
 	const visible = $derived(
 		settings.info.filter((s) => !s.requires || settings.values[s.requires.key] === s.requires.value)
@@ -28,4 +36,25 @@
 			</li>
 		{/each}
 	</ul>
+	<fieldset class="mt-4 border-t border-stone-200 pt-3 dark:border-stone-700">
+		<legend class="section-title px-2">{t('source.title')}</legend>
+		{#each PUZZLE_SOURCES as s (s)}
+			<label
+				class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-stone-100 dark:hover:bg-stone-800"
+			>
+				<input
+					type="radio"
+					name="puzzle-source"
+					class="size-4 accent-indigo-600"
+					checked={source === s}
+					onchange={() => {
+						source = s;
+						savePuzzleSource(s);
+					}}
+				/>
+				<span>{t(`source.${s}`)}</span>
+			</label>
+		{/each}
+		<p class="mt-1 px-2 text-xs text-stone-500 dark:text-stone-400">{t('source.note')}</p>
+	</fieldset>
 </Dialog>

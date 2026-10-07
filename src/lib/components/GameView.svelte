@@ -696,6 +696,9 @@
 			{t('game.idLine', { variant: label })}:
 			{#if session.puzzleId}
 				<span class="font-mono select-all">{session.puzzleId.toLocaleString('en-US')}</span>
+				{#if session.source === 'bank'}
+					<span class="text-stone-500">({t('game.fromBank')})</span>
+				{/if}
 			{:else}
 				<span title={t('game.idHiddenTitle')}>{t('game.idHidden')}</span>
 			{/if}

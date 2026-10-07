@@ -1,6 +1,7 @@
 import { packDigits, unpackDigits } from '../../core/grid';
 import type { GameLogic } from '../../core/types';
 import type { Variant } from '../../core/variants';
+import { solvePinwheel } from './solver';
 import { generatePinwheel } from './generator';
 import {
 	acceptByColours,
@@ -71,6 +72,10 @@ export const pinwheelLogic: GameLogic<PinwheelPuzzle, PinwheelState> = {
 	id: 'pinwheel',
 	variants: PINWHEEL_VARIANTS,
 	generate: (v, seed) => generatePinwheel(v.width, v.height, v.difficulty, seed).puzzle,
+	countSolutions(p, limit) {
+		const res = solvePinwheel(p, { limit, maxNodes: 2_000_000 });
+		return { count: res.solutions.length, finished: res.finished };
+	},
 	isValidPuzzle(p: unknown, v): p is PinwheelPuzzle {
 		if (!p || typeof p !== 'object') return false;
 		const q = p as PinwheelPuzzle;

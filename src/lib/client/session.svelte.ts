@@ -10,6 +10,7 @@ import {
 	type Variant
 } from '../core/variants';
 import { currentPlayer, issuePuzzle, pullSave, pushSave, serverPuzzles, submitScore } from './api';
+import { findInBank, loadPuzzleSource, pickFromBank } from './bank';
 import { generate } from './generate';
 import type { GameSettings } from './settings.svelte';
 import { breakStreak, recordSolve } from './stats';
@@ -49,6 +50,8 @@ export class GameSession<P = unknown, S = unknown> {
 	/** 0 while the puzzle came from the server and is not solved yet (the ID reveals the seed). */
 	puzzleId = $state(0);
 	ticket = $state<string | null>(null);
+	/** Where the current puzzle came from. */
+	source = $state<'local' | 'bank' | 'server'>('local');
 	puzzle = $state.raw<P | null>(null);
 	state = $state.raw<S | null>(null);
 	past = $state.raw<S[]>([]);
@@ -149,15 +152,27 @@ export class GameSession<P = unknown, S = unknown> {
 		let puzzle: P;
 		let ticket: string | null = null;
 		let startedAt = Date.now();
+		let source: 'local' | 'bank' | 'server' = 'local';
 		try {
 			const issued = puzzleId == null ? await this.fromServer() : null;
+			const banked = puzzleId == null && !issued ? await this.fromBank() : null;
 			if (issued) {
 				({ puzzle, ticket, issuedAt: startedAt } = issued);
 				puzzleId = issued.puzzleId ?? 0;
+				source = 'server';
+			} else if (banked) {
+				({ id: puzzleId, puzzle } = banked);
+				source = 'bank';
 			} else {
 				puzzleId ??= this.localPuzzleId();
 				const { variantIndex, seed } = decodePuzzleId(puzzleId);
-				puzzle = await generate<P>(this.game.id, variantIndex, seed);
+				const v = this.game.variants[variantIndex];
+				// A puzzle from the collection needs no generating (big ones take a while).
+				const stored = v && !v.special ? await findInBank<P>(this.game.id, v.key, puzzleId) : null;
+				puzzle =
+					stored && this.game.isValidPuzzle(stored, v)
+						? stored
+						: await generate<P>(this.game.id, variantIndex, seed);
 			}
 		} catch (e) {
 			if (token === this.openToken)
@@ -167,6 +182,7 @@ export class GameSession<P = unknown, S = unknown> {
 		if (token !== this.openToken) return;
 		this.puzzleId = puzzleId;
 		this.ticket = ticket;
+		this.source = source;
 		this.puzzle = puzzle;
 		const sharedState = shared ? this.game.decodeState(puzzle, shared) : null;
 		this.state = sharedState ?? this.game.emptyState(puzzle);
@@ -199,6 +215,15 @@ export class GameSession<P = unknown, S = unknown> {
 		return encodePuzzleId(this.variantIndex, seed);
 	}
 
+	/** A new puzzle from the collection, if the player's choice of source says so. */
+	private async fromBank(): Promise<{ id: number; puzzle: P } | null> {
+		const source = loadPuzzleSource();
+		if (this.variant.special || source === 'local') return null;
+		if (source === 'mixed' && Math.random() < 0.5) return null;
+		const pick = await pickFromBank<P>(this.game.id, this.variant.key);
+		return pick && this.game.isValidPuzzle(pick.puzzle, this.variant) ? pick : null;
+	}
+
 	/** Ask the server for a puzzle; null (play locally, unranked) if it does not issue them. */
 	private async fromServer(): Promise<{
 		puzzle: P;
@@ -223,6 +248,7 @@ export class GameSession<P = unknown, S = unknown> {
 		if (!this.game.isValidState(puzzle, s.state)) return false;
 		this.puzzleId = s.puzzleId;
 		this.ticket = s.ticket ?? null;
+		this.source = s.ticket ? 'server' : 'local';
 		this.puzzle = puzzle;
 		this.state = s.state;
 		this.past = [];

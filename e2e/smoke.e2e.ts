@@ -83,3 +83,11 @@ test('has an install manifest', async ({ request }) => {
 	expect(manifest.icons.length).toBeGreaterThan(1);
 	for (const icon of manifest.icons) expect((await request.get(`/${icon.src}`)).ok()).toBe(true);
 });
+
+test('plays a puzzle from the collection when chosen', async ({ page }) => {
+	await page.goto('/');
+	await page.evaluate(() => localStorage.setItem('vp:puzzleSource', '"bank"'));
+	await page.goto('/tetroid?v=20h');
+	await expect(page.getByText('(from the puzzle collection)')).toBeVisible({ timeout: 10_000 });
+	await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible();
+});

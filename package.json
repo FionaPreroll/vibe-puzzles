@@ -16,7 +16,8 @@
 		"test": "vitest --run",
 		"test:e2e": "playwright test",
 		"cf:dev": "npm run build && wrangler d1 migrations apply DB --local && wrangler dev",
-		"cf:deploy": "npm run build && wrangler d1 migrations apply DB --remote && wrangler deploy"
+		"cf:deploy": "npm run build && wrangler d1 migrations apply DB --remote && wrangler deploy",
+		"bank:grow": "tsx scripts/grow-puzzle-bank.ts"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^5.20261007.1",
@@ -37,6 +38,7 @@
 		"svelte": "^5.57.1",
 		"svelte-check": "^4.6.0",
 		"tailwindcss": "^4.3.0",
+		"tsx": "^4.23.15",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.60.1",
 		"vite": "^8.3.0",
