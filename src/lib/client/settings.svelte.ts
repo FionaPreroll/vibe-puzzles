@@ -26,14 +26,12 @@ export class GameSettings {
 		const stored = load<StoredSettings | null>(`settings:${game}`, null);
 		const values: Settings = {};
 		for (const s of info) values[s.key] = stored?.values[s.key] ?? s.default;
-		values.nightMode = theme.night;
 		this.values = values;
 		this.updatedAt = stored?.updatedAt ?? 0;
 	}
 
 	set(key: string, value: boolean) {
 		this.values[key] = value;
-		if (key === 'nightMode') setNight(value);
 		this.updatedAt = Date.now();
 		save(`settings:${this.game}`, { values: { ...this.values }, updatedAt: this.updatedAt });
 	}
@@ -53,7 +51,6 @@ export class GameSettings {
 				this.values[s.key] = remote.values[s.key];
 			}
 		}
-		if (typeof remote.values.nightMode === 'boolean') setNight(remote.values.nightMode);
 		this.updatedAt = remote.updatedAt;
 		save(`settings:${this.game}`, { values: { ...this.values }, updatedAt: this.updatedAt });
 	}
@@ -68,7 +65,7 @@ export function saveTool(game: string, tool: string) {
 }
 
 export function loadTouchMode(): TouchMode {
-	return load<TouchMode>('touch', 'auto');
+	return load<TouchMode>('touch', 'draw');
 }
 
 export function saveTouchMode(mode: TouchMode) {

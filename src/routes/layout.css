@@ -40,6 +40,9 @@
 	.link {
 		@apply text-indigo-600 underline-offset-2 hover:underline dark:text-indigo-400;
 	}
+	.menu-item {
+		@apply rounded-md px-3 py-2 text-left text-sm hover:bg-stone-100 disabled:opacity-50 dark:hover:bg-stone-800;
+	}
 	.section-title {
 		@apply text-xs font-semibold tracking-wider text-stone-500 uppercase dark:text-stone-400;
 	}
