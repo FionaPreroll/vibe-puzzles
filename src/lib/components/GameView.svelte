@@ -44,6 +44,9 @@
 	let menuOpen = $state(false);
 	let now = $state(Date.now());
 	let showZoom = $state(false);
+	let moreOpen = $state(false);
+	/** Phones show messages as a toast over the board, so they never push the layout around. */
+	let toast = $state(false);
 	let share = $state<{ link: string; image: string | null } | null>(null);
 	let idInput = $state('');
 	let newBusy = $state(false);
@@ -275,6 +278,13 @@
 		wasSolved = solved;
 	});
 
+	$effect(() => {
+		if (!session.message) return void (toast = false);
+		toast = true;
+		const timer = setTimeout(() => (toast = false), 4000);
+		return () => clearTimeout(timer);
+	});
+
 	// ---- Keyboard shortcuts --------------------------------------------------------------------
 
 	function onkeydown(e: KeyboardEvent) {
@@ -331,6 +341,13 @@
 		boardArea.scrollLeft -= e.clientX - pan.x;
 		window.scrollBy(0, -(e.clientY - pan.y));
 		pan = { x: e.clientX, y: e.clientY };
+	}
+
+	function messageClass(kind: string) {
+		if (kind === 'success')
+			return 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200';
+		if (kind === 'error') return 'bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200';
+		return 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200';
 	}
 
 	const clock = $derived(
@@ -592,13 +609,9 @@
 				</div>
 			{/if}
 			<!-- In the toolbar row, so a message never pushes the board down -->
-			{#if session.message}
+			{#if session.message && wide}
 				<p
-					class="rounded-md px-3 py-1.5 text-sm {session.message.kind === 'success'
-						? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200'
-						: session.message.kind === 'error'
-							? 'bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200'
-							: 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200'}"
+					class="rounded-md px-3 py-1.5 text-sm {messageClass(session.message.kind)}"
 					role="status"
 				>
 					{session.message.text}
@@ -648,6 +661,16 @@
 					</div>
 				{/if}
 			</div>
+			{#if session.message && toast && !wide}
+				<div class="absolute inset-x-0 top-2 z-10 flex justify-center" role="status">
+					<button
+						class="max-w-[90%] rounded-md px-3 py-1.5 text-sm shadow-lg {messageClass(
+							session.message.kind
+						)}"
+						onclick={() => (toast = false)}>{session.message.text}</button
+					>
+				</div>
+			{/if}
 			{#if session.loading}
 				<div class="absolute inset-0 grid min-h-48 place-items-center text-stone-500">
 					{t('game.creating')}
@@ -719,51 +742,70 @@
 				</div>
 			{/if}
 
-			<p class="mt-4 text-sm text-stone-600 dark:text-stone-400">
+			<p class="mt-4 text-xs text-stone-600 sm:text-sm dark:text-stone-400">
 				{t('game.idLine', { variant: label })}:
 				{#if session.puzzleId}
 					<span class="font-mono select-all">{session.puzzleId.toLocaleString('en-US')}</span>
 					{#if session.source === 'bank'}
-						<span class="text-stone-500">({t('game.fromBank')})</span>
+						<span class="hidden text-stone-500 sm:inline">({t('game.fromBank')})</span>
 					{/if}
 				{:else}
 					<span title={t('game.idHiddenTitle')}>{t('game.idHidden')}</span>
 				{/if}
 			</p>
 
+			<!-- Most used first; on narrow screens the rare actions sit in a "more" menu -->
+			{#snippet rareActions(menu: boolean)}
+				{@const cls = menu ? 'menu-item' : 'btn hidden lg:inline-flex'}
+				<button
+					class={cls}
+					onclick={() => ((moreOpen = false), startOver())}
+					disabled={session.loading}>{t('game.startOver')}</button
+				>
+				<button
+					class={cls}
+					onclick={() => ((moreOpen = false), makeShare())}
+					disabled={session.loading || !session.puzzleId}>{t('game.share')}</button
+				>
+				<button class={cls} onclick={() => ((moreOpen = false), window.print())}
+					>{t('game.print')}</button
+				>
+			{/snippet}
 			<div class="mt-3 flex flex-wrap gap-2">
 				<button
 					class="btn btn-primary"
 					onclick={() => session.submit()}
 					disabled={session.solved || session.loading}>{t('game.done')}</button
 				>
-				<button class="btn" onclick={startOver} disabled={session.loading}
-					>{t('game.startOver')}</button
-				>
-				<button class="btn" onclick={() => window.print()}>{t('game.print')}</button>
-				<button class="btn" onclick={makeShare} disabled={session.loading || !session.puzzleId}
-					>{t('game.share')}</button
-				>
 				<button class="btn" onclick={newPuzzle} disabled={newBusy || session.loading}
 					>{t('game.newPuzzle')}</button
 				>
+				{@render rareActions(false)}
+				<div class="relative lg:hidden">
+					<button
+						class="btn"
+						onclick={() => (moreOpen = !moreOpen)}
+						aria-expanded={moreOpen}
+						aria-label={t('game.more')}
+						title={t('game.more')}>⋯</button
+					>
+					{#if moreOpen}
+						<button
+							class="fixed inset-0 z-20 cursor-default"
+							tabindex="-1"
+							aria-hidden="true"
+							onclick={() => (moreOpen = false)}
+						></button>
+						<div
+							class="popover absolute right-0 bottom-full z-30 mb-1 flex w-48 flex-col p-1"
+							role="menu"
+						>
+							{@render rareActions(true)}
+						</div>
+					{/if}
+				</div>
 			</div>
 		</div>
-
-		{#if isTouch && showTools}
-			<label class="mt-3 flex items-center gap-2 text-sm">
-				{t('game.touch')}
-				<select
-					class="input py-1"
-					value={touchMode}
-					onchange={(e) => setTouchMode(e.currentTarget.value as TouchMode)}
-				>
-					<option value="auto">{t('game.touchAuto')}</option>
-					<option value="draw">{t('game.touchDraw')}</option>
-					<option value="pan">{t('game.touchPan')}</option>
-				</select>
-			</label>
-		{/if}
 
 		{#if share}
 			<div class="panel mt-3 text-sm">
@@ -812,4 +854,9 @@
 	</div>
 {/if}
 
-<SettingsDialog bind:open={showSettings} {settings} />
+<SettingsDialog
+	bind:open={showSettings}
+	{settings}
+	touchMode={isTouch && showTools ? touchMode : undefined}
+	ontouchmode={setTouchMode}
+/>

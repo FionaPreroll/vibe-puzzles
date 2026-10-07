@@ -18,7 +18,6 @@ export const COMMON_SETTINGS: SettingInfo[] = [
 		default: false,
 		requires: { key: 'hideTimer', value: false }
 	},
-	{ key: 'nightMode', label: 'Night mode', default: false },
 	{ key: 'highlightErrors', label: 'Highlight errors', default: true },
 	{
 		key: 'blueErrors',
