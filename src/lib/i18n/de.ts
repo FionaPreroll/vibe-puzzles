@@ -110,6 +110,11 @@ const de: Dictionary = {
 		weekly: 'Wochenrätsel',
 		monthly: 'Monatsrätsel'
 	},
+	specialShort: {
+		daily: 'Tag',
+		weekly: 'Woche',
+		monthly: 'Monat'
+	},
 	tool: {
 		rotate: 'Wechseln',
 		black: 'Schwarz',
@@ -130,6 +135,7 @@ const de: Dictionary = {
 		highlightErrors: 'Fehler markieren',
 		blueErrors: 'Fehler blau statt rot',
 		highlightLastChange: 'Letzte Änderung hervorheben',
+		solvedAnimation: 'Animation beim Lösen',
 		highlightBlock: 'Aktuellen Bereich hervorheben',
 		highlightGroup: 'Aktuelle Zellgruppe hervorheben [Shift]',
 		thickBorders: 'Dickere Bereichsgrenzen',
@@ -213,14 +219,12 @@ const de: Dictionary = {
 		tetroid: {
 			tagline: 'Schattiere ein Tetromino in jedem Bereich.',
 			rules: [
-				'Setze in jeden Bereich genau ein Tetromino.',
-				'Zwei Tetrominos derselben Art dürfen sich nicht waagerecht oder senkrecht berühren. Drehungen und Spiegelungen zählen als dieselbe Art.',
-				'Alle schattierten Zellen bilden eine zusammenhängende Fläche.',
-				'Schattierte 2×2-Flächen sind nicht erlaubt.'
+				'Schattiere in jedem Bereich genau ein Tetromino (4 zusammenhängende Zellen).',
+				'Zwei gleiche Tetrominos dürfen sich nicht an einer Kante berühren. Gedrehte oder gespiegelte zählen als gleich.',
+				'Alle schattierten Zellen hängen zusammen.',
+				'Kein 2×2-Block darf ganz schattiert sein.'
 			],
-			notes: [
-				'Ein Tetromino ist eine Form aus 4 verbundenen Zellen. Es gibt 5 Arten, nach ihrer Form L, I, T, S und O genannt. O kommt nicht vor, weil es eine 2×2-Fläche ist.'
-			],
+			notes: ['Mögliche Formen sind also L, I, T und S. Das Quadrat O fällt durch Regel 4 weg.'],
 			controlsMouse:
 				'Klicke eine Zelle zum Schattieren, Rechtsklick setzt ein Kreuz. Ziehen markiert mehrere Zellen. Tasten 1–4 wählen ein Werkzeug.',
 			controlsTouch:
@@ -235,9 +239,9 @@ const de: Dictionary = {
 		pinwheel: {
 			tagline: 'Teile das Gitter in Bereiche, die auf dem Kopf gleich aussehen.',
 			rules: [
-				'Jeder Bereich enthält genau einen weißen Kreis.',
-				'Der Kreis ist das Drehzentrum: Um 180° um den Kreis gedreht, hat der Bereich dieselbe Form, Lage und Ausrichtung.',
-				'Ein Bereich darf nicht an sich selbst grenzen.'
+				'Teile das Gitter entlang der Linien in Bereiche mit je genau einem Kreis.',
+				'Jeder Bereich ist punktsymmetrisch zu seinem Kreis: Um 180° gedreht, deckt er sich genau mit sich selbst.',
+				'Linien trennen nur verschiedene Bereiche, nie zwei Zellen desselben Bereichs.'
 			],
 			notes: [],
 			tool: { black: 'Linie' },

@@ -65,10 +65,12 @@
 			<li>
 				<button
 					class="{cell} {v.key === current ? active : ''}"
+					aria-label={variantLabel(v)}
+					title={variantLabel(v)}
 					aria-current={v.key === current ? 'true' : undefined}
 					onclick={() => onpick(v.key)}
 				>
-					{variantLabel(v)}
+					{t(`specialShort.${v.special}`)}
 					<span class="block text-xs text-stone-500 dark:text-stone-400"
 						>{v.width}×{v.height}
 						{#if done}<span class="text-emerald-600 dark:text-emerald-400">{done}</span>{/if}</span

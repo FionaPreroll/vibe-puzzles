@@ -26,7 +26,8 @@ export const COMMON_SETTINGS: SettingInfo[] = [
 		default: false,
 		requires: { key: 'highlightErrors', value: true }
 	},
-	{ key: 'highlightLastChange', label: 'Highlight last change', default: false }
+	{ key: 'highlightLastChange', label: 'Highlight last change', default: false },
+	{ key: 'solvedAnimation', label: 'Animate a solved puzzle', default: true }
 ];
 
 export function withCommon(extra: SettingInfo[]): SettingInfo[] {

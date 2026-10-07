@@ -64,7 +64,7 @@
 
 <div class="mx-auto grid max-w-4xl gap-6 md:grid-cols-[1fr_minmax(0,22rem)] md:items-start">
 	<section class="order-2 md:order-1" bind:clientWidth={width}>
-		<div class="mx-auto w-fit {solved ? 'solved-pop' : ''}">
+		<div class="mx-auto w-fit {solved ? 'solved-glow' : ''}">
 			<Board
 				puzzle={tutorial.puzzle}
 				state={current}

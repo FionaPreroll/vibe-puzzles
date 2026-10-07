@@ -56,9 +56,26 @@
 	let areaWidth = $state(0);
 	let viewportHeight = $state(800);
 	let wide = $state(true);
+	let toolbarHeight = $state(0);
+	/** Marks the end of the toolbar; unlike the toolbar itself it never sticks. */
+	let toolbarEnd: HTMLDivElement | undefined = $state();
+	/** Height of the tools, ID line and buttons below the board. */
+	let belowHeight = $state(0);
+	/** Page offset of the board area's top, measured from the toolbar. */
+	let boardTop = $state(200);
+
+	$effect(() => {
+		// Re-measure when anything above the board changes size.
+		void [viewportHeight, wide, toolbarHeight, areaWidth];
+		if (!toolbarEnd) return;
+		// Board area: mt-3 plus the scroll container's py-1.
+		boardTop = toolbarEnd.getBoundingClientRect().top + window.scrollY + 16;
+	});
 
 	const variant = $derived(session.variant);
-	const zoomKey = $derived(`zoom:${game.id}:${variant.key}`);
+	// `boardZoom` (not `zoom`): older versions stored an absolute zoom under `zoom:`, which would
+	// otherwise blow up the board now that zoom is relative to the fitted size.
+	const zoomKey = $derived(`boardZoom:${game.id}:${variant.key}`);
 	/** Zoom relative to the automatic size (1 = fit the screen). */
 	let zoom = $derived(load<number>(zoomKey, 1));
 
@@ -67,11 +84,13 @@
 		const p = session.puzzle as { width: number; height: number } | null;
 		if (!p || !areaWidth) return 36;
 		const margin = settings.values.showCoordinates ? 1.3 : 0.2;
-		// Space taken by the header, toolbars and buttons around the board.
-		const chrome = wide ? 290 : 250;
+		// Everything above and below the board, the page's bottom padding and, on phones, the
+		// fixed tool bar.
+		const phoneBar = !wide && !settings.values.hideControls ? 80 : 0;
+		const chrome = boardTop + 4 + belowHeight + 24 + phoneBar;
 		const byWidth = areaWidth / (p.width + margin);
 		const byHeight = Math.max(240, viewportHeight - chrome) / (p.height + margin);
-		return Math.max(16, Math.min(72, Math.floor(Math.min(byWidth, byHeight))));
+		return Math.max(16, Math.min(96, Math.floor(Math.min(byWidth, byHeight))));
 	});
 	const cellSize = $derived(Math.max(8, Math.round(fitCell * zoom)));
 
@@ -247,7 +266,7 @@
 	$effect(() => {
 		const solved = session.solved;
 		const loading = session.loading;
-		if (solved && !wasSolved && !loading) {
+		if (solved && !wasSolved && !loading && settings.values.solvedAnimation) {
 			celebrate = true;
 			const timer = setTimeout(() => (celebrate = false), 1800);
 			wasSolved = solved;
@@ -501,6 +520,7 @@
 		</button>
 
 		<div
+			bind:offsetHeight={toolbarHeight}
 			class="flex flex-wrap items-center gap-2 {settings.values.stickyToolbar
 				? 'sticky top-0 z-10 bg-stone-50/95 py-2 backdrop-blur dark:bg-stone-950/95'
 				: ''}"
@@ -571,20 +591,22 @@
 					{@render swatchRow()}
 				</div>
 			{/if}
+			<!-- In the toolbar row, so a message never pushes the board down -->
+			{#if session.message}
+				<p
+					class="rounded-md px-3 py-1.5 text-sm {session.message.kind === 'success'
+						? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200'
+						: session.message.kind === 'error'
+							? 'bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200'
+							: 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200'}"
+					role="status"
+				>
+					{session.message.text}
+				</p>
+			{/if}
 		</div>
 
-		{#if session.message}
-			<p
-				class="mt-3 rounded-lg px-4 py-2 text-sm {session.message.kind === 'success'
-					? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200'
-					: session.message.kind === 'error'
-						? 'bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200'
-						: 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200'}"
-				role="status"
-			>
-				{session.message.text}
-			</p>
-		{/if}
+		<div bind:this={toolbarEnd}></div>
 
 		<div class="relative mt-3" bind:clientWidth={areaWidth}>
 			<div
@@ -596,7 +618,7 @@
 				{#if session.puzzle && session.state}
 					<div
 						class="relative mx-auto w-fit rounded-sm {session.paused ? 'invisible' : ''} {celebrate
-							? 'solved-pop'
+							? 'solved-glow'
 							: ''}"
 					>
 						<Board
@@ -613,7 +635,11 @@
 							onmove={(next, changed) => session.move(next, changed)}
 						/>
 						{#if celebrate}
-							<div class="solved-burst pointer-events-none absolute inset-0" aria-hidden="true">
+							<!-- Clipped to the board so the sparkles never resize the page -->
+							<div
+								class="solved-burst pointer-events-none absolute inset-0 overflow-hidden"
+								aria-hidden="true"
+							>
 								{#each Array.from({ length: 12 }, (_, i) => i) as i (i)}
 									<span style:--a="{i * 30}deg" style:--d="{(i % 3) * 60}ms">✦</span>
 								{/each}
@@ -636,90 +662,92 @@
 			{/if}
 		</div>
 
-		{#if showTools}
-			<!-- Wide screens: tools below the board, unless they sit in the sticky bar -->
-			{#if !toolsOnTop}
+		<div bind:offsetHeight={belowHeight}>
+			{#if showTools}
+				<!-- Wide screens: tools below the board, unless they sit in the sticky bar -->
+				{#if !toolsOnTop}
+					<div
+						class="mt-3 hidden flex-wrap items-center gap-2 lg:flex"
+						role="toolbar"
+						aria-label={t('game.tools')}
+					>
+						{@render toolButtons(false)}
+						{@render swatchRow()}
+					</div>
+				{/if}
+				<!-- Phones: a fixed bar at the bottom, in reach of the thumb -->
 				<div
-					class="mt-3 hidden flex-wrap items-center gap-2 lg:flex"
-					role="toolbar"
-					aria-label={t('game.tools')}
+					class="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden dark:border-stone-800 dark:bg-stone-900/95"
 				>
-					{@render toolButtons(false)}
-					{@render swatchRow()}
+					{#if game.toolOptions && showSwatches}
+						<div class="mb-1.5 flex justify-center">{@render swatchRow()}</div>
+					{/if}
+					<div class="mx-auto flex max-w-md gap-1" role="toolbar" aria-label={t('game.tools')}>
+						{@render toolButtons(true)}
+					</div>
 				</div>
 			{/if}
-			<!-- Phones: a fixed bar at the bottom, in reach of the thumb -->
-			<div
-				class="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden dark:border-stone-800 dark:bg-stone-900/95"
-			>
-				{#if game.toolOptions && showSwatches}
-					<div class="mb-1.5 flex justify-center">{@render swatchRow()}</div>
-				{/if}
-				<div class="mx-auto flex max-w-md gap-1" role="toolbar" aria-label={t('game.tools')}>
-					{@render toolButtons(true)}
-				</div>
-			</div>
-		{/if}
 
-		{#if settings.values.showCheckpoints}
-			<div class="mt-3 flex flex-wrap items-center gap-2" aria-label={t('game.checkpoints')}>
-				<button class="btn-sm" onclick={() => session.saveCheckpoint()} title="Ctrl+S"
-					>{t('game.save')}</button
-				>
+			{#if settings.values.showCheckpoints}
+				<div class="mt-3 flex flex-wrap items-center gap-2" aria-label={t('game.checkpoints')}>
+					<button class="btn-sm" onclick={() => session.saveCheckpoint()} title="Ctrl+S"
+						>{t('game.save')}</button
+					>
+					<button
+						class="btn-sm"
+						onclick={() => session.addCheckpoint()}
+						disabled={session.checkpoints.length >= MAX_CHECKPOINTS}
+						title="Ctrl+Shift+S">{t('game.add')}</button
+					>
+					{#each session.checkpoints as _, i (i)}
+						<span class="relative">
+							<button
+								class="btn-sm min-w-9 {session.currentCheckpoint === i ? 'btn-active' : ''}"
+								onclick={() => session.loadCheckpoint(i)}
+								oncontextmenu={(e) => (e.preventDefault(), session.deleteCheckpoint(i))}
+								title={t('game.loadCheckpoint', { n: i + 1 })}>{i + 1}</button
+							>
+							<button
+								class="absolute -top-1.5 -right-1.5 grid size-4 place-items-center rounded-full bg-stone-300 text-[10px] leading-none dark:bg-stone-600"
+								aria-label={t('game.deleteCheckpoint', { n: i + 1 })}
+								onclick={() =>
+									confirm(t('game.confirmDeleteCheckpoint', { n: i + 1 })) &&
+									session.deleteCheckpoint(i)}>×</button
+							>
+						</span>
+					{/each}
+				</div>
+			{/if}
+
+			<p class="mt-4 text-sm text-stone-600 dark:text-stone-400">
+				{t('game.idLine', { variant: label })}:
+				{#if session.puzzleId}
+					<span class="font-mono select-all">{session.puzzleId.toLocaleString('en-US')}</span>
+					{#if session.source === 'bank'}
+						<span class="text-stone-500">({t('game.fromBank')})</span>
+					{/if}
+				{:else}
+					<span title={t('game.idHiddenTitle')}>{t('game.idHidden')}</span>
+				{/if}
+			</p>
+
+			<div class="mt-3 flex flex-wrap gap-2">
 				<button
-					class="btn-sm"
-					onclick={() => session.addCheckpoint()}
-					disabled={session.checkpoints.length >= MAX_CHECKPOINTS}
-					title="Ctrl+Shift+S">{t('game.add')}</button
+					class="btn btn-primary"
+					onclick={() => session.submit()}
+					disabled={session.solved || session.loading}>{t('game.done')}</button
 				>
-				{#each session.checkpoints as _, i (i)}
-					<span class="relative">
-						<button
-							class="btn-sm min-w-9 {session.currentCheckpoint === i ? 'btn-active' : ''}"
-							onclick={() => session.loadCheckpoint(i)}
-							oncontextmenu={(e) => (e.preventDefault(), session.deleteCheckpoint(i))}
-							title={t('game.loadCheckpoint', { n: i + 1 })}>{i + 1}</button
-						>
-						<button
-							class="absolute -top-1.5 -right-1.5 grid size-4 place-items-center rounded-full bg-stone-300 text-[10px] leading-none dark:bg-stone-600"
-							aria-label={t('game.deleteCheckpoint', { n: i + 1 })}
-							onclick={() =>
-								confirm(t('game.confirmDeleteCheckpoint', { n: i + 1 })) &&
-								session.deleteCheckpoint(i)}>×</button
-						>
-					</span>
-				{/each}
+				<button class="btn" onclick={startOver} disabled={session.loading}
+					>{t('game.startOver')}</button
+				>
+				<button class="btn" onclick={() => window.print()}>{t('game.print')}</button>
+				<button class="btn" onclick={makeShare} disabled={session.loading || !session.puzzleId}
+					>{t('game.share')}</button
+				>
+				<button class="btn" onclick={newPuzzle} disabled={newBusy || session.loading}
+					>{t('game.newPuzzle')}</button
+				>
 			</div>
-		{/if}
-
-		<p class="mt-4 text-sm text-stone-600 dark:text-stone-400">
-			{t('game.idLine', { variant: label })}:
-			{#if session.puzzleId}
-				<span class="font-mono select-all">{session.puzzleId.toLocaleString('en-US')}</span>
-				{#if session.source === 'bank'}
-					<span class="text-stone-500">({t('game.fromBank')})</span>
-				{/if}
-			{:else}
-				<span title={t('game.idHiddenTitle')}>{t('game.idHidden')}</span>
-			{/if}
-		</p>
-
-		<div class="mt-3 flex flex-wrap gap-2">
-			<button
-				class="btn btn-primary"
-				onclick={() => session.submit()}
-				disabled={session.solved || session.loading}>{t('game.done')}</button
-			>
-			<button class="btn" onclick={startOver} disabled={session.loading}
-				>{t('game.startOver')}</button
-			>
-			<button class="btn" onclick={() => window.print()}>{t('game.print')}</button>
-			<button class="btn" onclick={makeShare} disabled={session.loading || !session.puzzleId}
-				>{t('game.share')}</button
-			>
-			<button class="btn" onclick={newPuzzle} disabled={newBusy || session.loading}
-				>{t('game.newPuzzle')}</button
-			>
 		</div>
 
 		{#if isTouch && showTools}
