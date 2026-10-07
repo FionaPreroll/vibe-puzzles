@@ -218,6 +218,42 @@ const en = {
 	pwa: {
 		install: 'Install app'
 	},
+	update: {
+		available: 'A new version is available.',
+		reload: 'Reload',
+		dismiss: 'Not now'
+	},
+	about: {
+		link: 'About',
+		title: 'About Vibe Puzzles',
+		intro: 'Logic puzzles in the browser. Every puzzle has exactly one solution.',
+		build: 'Build',
+		version: 'Version',
+		commit: 'Commit',
+		built: 'Built',
+		source: 'Source code',
+		licenses: 'Licences',
+		licensesNote: 'The app is built with these open source libraries:',
+		puzzleTypes:
+			'Tetroid follows the rules of LITS, Pinwheel those of Tentai Show (Galaxies). Both are classic puzzle types from Japan.',
+		privacy: 'Privacy',
+		privacyLocal:
+			'Your games, stats and settings are stored only in this browser (local storage). There are no cookies, no tracking and no ads.',
+		privacyServer:
+			'If you create a player on the server, it stores your player name, a hash of your random player code, your scores, the puzzles it issued to you and, for syncing between devices, your saves and settings. Nothing else.',
+		privacyHost:
+			'The site is hosted on GitHub Pages; GitHub may log technical data such as your IP address when the page loads.',
+		backup: 'Backup',
+		backupNote:
+			'Download everything this browser stores for Vibe Puzzles as a JSON file, or restore it from such a file. The file contains your player code, so keep it private.',
+		export: 'Export backup',
+		import: 'Import backup',
+		schema: 'File format (JSON Schema)',
+		confirmImport:
+			'Restore {count} entries from this backup? Entries with the same name are overwritten.',
+		imported: 'Restored {count} entries. Reloading…',
+		importFailed: 'This file cannot be restored: {error}.'
+	},
 	games: {
 		tetroid: {
 			tagline: 'Shade one tetromino in every region.',

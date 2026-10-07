@@ -219,6 +219,42 @@ const de: Dictionary = {
 	pwa: {
 		install: 'App installieren'
 	},
+	update: {
+		available: 'Eine neue Version ist da.',
+		reload: 'Neu laden',
+		dismiss: 'Später'
+	},
+	about: {
+		link: 'Über',
+		title: 'Über Vibe Puzzles',
+		intro: 'Logikrätsel im Browser. Jedes Rätsel hat genau eine Lösung.',
+		build: 'Build',
+		version: 'Version',
+		commit: 'Commit',
+		built: 'Erstellt',
+		source: 'Quellcode',
+		licenses: 'Lizenzen',
+		licensesNote: 'Die App baut auf diesen Open-Source-Bibliotheken auf:',
+		puzzleTypes:
+			'Tetroid folgt den Regeln von LITS, Pinwheel denen von Tentai Show (Galaxies). Beides sind klassische Rätselarten aus Japan.',
+		privacy: 'Datenschutz',
+		privacyLocal:
+			'Deine Spiele, Statistiken und Einstellungen liegen nur in diesem Browser (Local Storage). Es gibt keine Cookies, kein Tracking und keine Werbung.',
+		privacyServer:
+			'Wenn du einen Spieler auf dem Server anlegst, speichert er deinen Spielernamen, deinen zufälligen Spieler-Code (nur als Hash), deine Ergebnisse, die dir ausgegebenen Rätsel und, zum Abgleich zwischen Geräten, deine Spielstände und Einstellungen. Sonst nichts.',
+		privacyHost:
+			'Die Seite liegt bei GitHub Pages; GitHub kann beim Laden technische Daten wie deine IP-Adresse protokollieren.',
+		backup: 'Datensicherung',
+		backupNote:
+			'Lade alles, was dieser Browser für Vibe Puzzles speichert, als JSON-Datei herunter, oder stelle es aus so einer Datei wieder her. Die Datei enthält deinen Spieler-Code, gib sie also nicht weiter.',
+		export: 'Sicherung exportieren',
+		import: 'Sicherung importieren',
+		schema: 'Dateiformat (JSON-Schema)',
+		confirmImport:
+			'{count} Einträge aus dieser Sicherung wiederherstellen? Einträge mit gleichem Namen werden überschrieben.',
+		imported: '{count} Einträge wiederhergestellt. Seite wird neu geladen…',
+		importFailed: 'Diese Datei lässt sich nicht wiederherstellen: {error}.'
+	},
 	games: {
 		tetroid: {
 			tagline: 'Schattiere ein Tetromino in jedem Bereich.',

@@ -1,0 +1,33 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://fionapreroll.github.io/vibe-puzzles/backup.schema.json",
+	"title": "Vibe Puzzles backup",
+	"description": "Everything Vibe Puzzles stores in one browser: game saves, stats, settings, language and the player code.",
+	"type": "object",
+	"required": ["format", "version", "exportedAt", "app", "data"],
+	"properties": {
+		"$schema": { "type": "string" },
+		"format": { "const": "vibe-puzzles-backup" },
+		"version": { "const": 1 },
+		"exportedAt": {
+			"type": "string",
+			"format": "date-time",
+			"description": "When the backup was made."
+		},
+		"app": {
+			"type": "object",
+			"description": "The app build that made the backup.",
+			"required": ["version", "commit"],
+			"properties": {
+				"version": { "type": "string" },
+				"commit": { "type": "string" }
+			}
+		},
+		"data": {
+			"type": "object",
+			"description": "Stored values by key, without the vp: prefix. Values are the raw stored strings, usually JSON.",
+			"propertyNames": { "minLength": 1 },
+			"additionalProperties": { "type": "string" }
+		}
+	}
+}

@@ -2,8 +2,37 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vitest/config';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+
+const pkg = (name: string) =>
+	JSON.parse(readFileSync(`${name ? `node_modules/${name}/` : ''}package.json`, 'utf8'));
+
+function commit(): string {
+	if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
+	try {
+		return execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+			.toString()
+			.trim();
+	} catch {
+		return 'unknown';
+	}
+}
+
+/** Shown on the About page. */
+const build = {
+	version: pkg('').version as string,
+	commit: commit(),
+	date: new Date().toISOString(),
+	// Libraries whose code or generated styles ship with the app.
+	licenses: ['svelte', '@sveltejs/kit', 'tailwindcss'].map((name) => {
+		const p = pkg(name);
+		return { name, version: p.version as string, license: p.license as string };
+	})
+};
 
 export default defineConfig({
+	define: { __BUILD__: JSON.stringify(build) },
 	plugins: [
 		tailwindcss(),
 		sveltekit({
