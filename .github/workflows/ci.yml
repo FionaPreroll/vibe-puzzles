@@ -3,8 +3,8 @@ name: CI
 on:
   push:
     branches: [main, dev]
+  # Every pull request, also one stacked on another feature branch.
   pull_request:
-    branches: [main, dev]
 
 permissions:
   contents: read
