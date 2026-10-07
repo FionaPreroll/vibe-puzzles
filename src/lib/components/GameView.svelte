@@ -772,13 +772,16 @@
 				>
 			{/snippet}
 			<div class="mt-3 flex flex-wrap gap-2">
+				<!-- Once solved, "New puzzle" takes over as the main action -->
 				<button
-					class="btn btn-primary"
+					class="btn {session.solved ? '' : 'btn-primary'}"
 					onclick={() => session.submit()}
 					disabled={session.solved || session.loading}>{t('game.done')}</button
 				>
-				<button class="btn" onclick={newPuzzle} disabled={newBusy || session.loading}
-					>{t('game.newPuzzle')}</button
+				<button
+					class="btn {session.solved ? 'btn-primary next-up' : ''}"
+					onclick={newPuzzle}
+					disabled={newBusy || session.loading}>{t('game.newPuzzle')}</button
 				>
 				{@render rareActions(false)}
 				<div class="relative lg:hidden">

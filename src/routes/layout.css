@@ -99,7 +99,20 @@
 		transform: translate(-50%, -50%) rotate(var(--a)) translateY(-160px) scale(1.2);
 	}
 }
+/* "New puzzle" after solving: a ring pulses a few times to point the way on. */
+.next-up {
+	animation: next-up 1.6s ease-out 0.6s 3;
+}
+@keyframes next-up {
+	0% {
+		box-shadow: 0 0 0 0 rgb(79 70 229 / 0.6);
+	}
+	100% {
+		box-shadow: 0 0 0 10px rgb(79 70 229 / 0);
+	}
+}
 @media (prefers-reduced-motion: reduce) {
+	.next-up,
 	.solved-glow,
 	.solved-burst,
 	.solved-burst span {
