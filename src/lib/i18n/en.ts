@@ -108,6 +108,12 @@ const en = {
 		weekly: 'Weekly',
 		monthly: 'Monthly'
 	},
+	/** Short names for the narrow specials row of the puzzle type picker. */
+	specialShort: {
+		daily: 'Daily',
+		weekly: 'Weekly',
+		monthly: 'Monthly'
+	},
 	tool: {
 		rotate: 'Rotate',
 		black: 'Black',
@@ -128,6 +134,7 @@ const en = {
 		highlightErrors: 'Highlight errors',
 		blueErrors: 'Use blue for errors',
 		highlightLastChange: 'Highlight last change',
+		solvedAnimation: 'Animate a solved puzzle',
 		highlightBlock: 'Highlight current block',
 		highlightGroup: 'Highlight current group of cells [Shift]',
 		thickBorders: 'Thicker block borders',
@@ -211,14 +218,12 @@ const en = {
 		tetroid: {
 			tagline: 'Shade one tetromino in every region.',
 			rules: [
-				'Place one tetromino in each region.',
-				'Two tetrominoes of matching types cannot touch each other horizontally or vertically. Rotations and reflections count as matching.',
-				'The shaded cells should form a single connected area.',
-				'2×2 shaded areas are not allowed.'
+				'Shade exactly one tetromino (4 connected cells) in each region.',
+				'Two identical tetrominoes may not share an edge. Rotated or mirrored ones count as identical.',
+				'All shaded cells form one connected area.',
+				'No 2×2 block may be fully shaded.'
 			],
-			notes: [
-				'A tetromino is a shape made of 4 connected cells. There are 5 types, named L, I, T, S and O after their shape. O is not used because it is a 2×2 shape, which is not allowed.'
-			],
+			notes: ['So the possible shapes are L, I, T and S. The square O is ruled out by rule 4.'],
 			controlsMouse:
 				'Click a cell to shade it, right click to place a cross. Drag to paint several cells. Keys 1–4 pick a tool.',
 			controlsTouch:
@@ -233,9 +238,9 @@ const en = {
 		pinwheel: {
 			tagline: 'Split the grid into regions that look the same upside down.',
 			rules: [
-				'Each region has exactly one white circle in it.',
-				'The circle is the centre of its rotational symmetry: rotating the region by 180° around the circle gives the same shape, position and orientation.',
-				'A region cannot be a neighbour to itself.'
+				'Split the grid along its lines into regions with exactly one circle each.',
+				'Each region is symmetric around its circle: turned by 180° around it, the region covers itself exactly.',
+				'Lines only separate different regions, never two cells of the same one.'
 			],
 			notes: [],
 			tool: { black: 'Line' },

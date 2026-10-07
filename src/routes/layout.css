@@ -45,21 +45,36 @@
 	}
 }
 
-/* Solved: the board pops and a few sparkles fly out. */
-.solved-pop {
-	animation: solved-pop 0.6s ease-out;
+/* Solved: a green glow pulses around the board and a few sparkles fly out. Neither changes the
+   layout: box-shadow takes no space and the sparkles are clipped to the board. */
+.solved-glow {
+	animation: solved-glow 1.2s ease-out;
 	box-shadow: 0 0 0 4px rgb(16 185 129 / 0.6);
-	transition: box-shadow 1.2s;
 }
-@keyframes solved-pop {
+@keyframes solved-glow {
 	0% {
-		transform: scale(1);
+		box-shadow: 0 0 0 0 rgb(16 185 129 / 0.9);
 	}
-	40% {
-		transform: scale(1.04);
+	30% {
+		box-shadow: 0 0 0 4px rgb(16 185 129 / 0.9);
 	}
 	100% {
-		transform: scale(1);
+		box-shadow: 0 0 0 4px rgb(16 185 129 / 0.6);
+	}
+}
+/* The flash sits inside the board, so the scroll container around it never clips it. */
+.solved-burst {
+	animation: solved-flash 1.2s ease-out forwards;
+}
+@keyframes solved-flash {
+	0% {
+		box-shadow: inset 0 0 0 0 rgb(16 185 129 / 0);
+	}
+	30% {
+		box-shadow: inset 0 0 32px 8px rgb(16 185 129 / 0.55);
+	}
+	100% {
+		box-shadow: inset 0 0 0 0 rgb(16 185 129 / 0);
 	}
 }
 .solved-burst span {
@@ -82,7 +97,8 @@
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	.solved-pop,
+	.solved-glow,
+	.solved-burst,
 	.solved-burst span {
 		animation: none;
 	}
@@ -98,49 +114,6 @@
 	footer {
 		display: none !important;
 	}
-	/* Solved: the board pops and a few sparkles fly out. */
-	.solved-pop {
-		animation: solved-pop 0.6s ease-out;
-		box-shadow: 0 0 0 4px rgb(16 185 129 / 0.6);
-		transition: box-shadow 1.2s;
-	}
-	@keyframes solved-pop {
-		0% {
-			transform: scale(1);
-		}
-		40% {
-			transform: scale(1.04);
-		}
-		100% {
-			transform: scale(1);
-		}
-	}
-	.solved-burst span {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		color: rgb(245 158 11);
-		font-size: 1.5rem;
-		opacity: 0;
-		animation: solved-burst 1.2s ease-out var(--d) forwards;
-	}
-	@keyframes solved-burst {
-		0% {
-			opacity: 1;
-			transform: translate(-50%, -50%) rotate(var(--a)) translateY(0) scale(0.5);
-		}
-		100% {
-			opacity: 0;
-			transform: translate(-50%, -50%) rotate(var(--a)) translateY(-160px) scale(1.2);
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.solved-pop,
-		.solved-burst span {
-			animation: none;
-		}
-	}
-
 	.print-only {
 		display: block;
 	}
