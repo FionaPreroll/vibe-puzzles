@@ -9,6 +9,7 @@
 		signOut,
 		type Player
 	} from '#lib/client/api.ts';
+	import { t } from '#lib/i18n/index.svelte.ts';
 
 	let hasServer = $state<boolean | null>(null);
 	let player = $state<Player | null>(null);
@@ -44,40 +45,42 @@
 </script>
 
 <svelte:head>
-	<title>Player · Vibe Puzzles</title>
+	<title>{t('player.title')} · {t('app.name')}</title>
 </svelte:head>
 
-<h1 class="text-3xl font-bold tracking-tight">Player</h1>
+<h1 class="text-3xl font-bold tracking-tight">{t('player.title')}</h1>
 
 <div class="mt-6 max-w-xl space-y-6">
 	{#if hasServer === null}
-		<p class="text-stone-500">Checking for the server…</p>
+		<p class="text-stone-500">{t('player.checking')}</p>
 	{:else if !hasServer}
 		<section class="panel text-sm text-stone-700 dark:text-stone-300">
-			<p>
-				This deployment has no server, so games are saved in this browser only and there are no
-				online leaderboards. Everything else works as usual.
-			</p>
+			<p>{t('player.noServer')}</p>
 		</section>
 	{:else if !player}
 		<section class="panel">
-			<h2 class="text-lg font-semibold">Pick a name</h2>
+			<h2 class="text-lg font-semibold">{t('player.pickName')}</h2>
 			<p class="mt-1 text-sm text-stone-600 dark:text-stone-400">
-				Your name appears on the leaderboards. Your games and settings sync to the server so you can
-				continue on another device. No email or password needed.
+				{t('player.pickNameText')}
 			</p>
 			<form
 				class="mt-4 flex gap-2"
 				onsubmit={(e) => (e.preventDefault(), run(() => register(name)))}
 			>
-				<input class="input flex-1" maxlength="24" required placeholder="Name" bind:value={name} />
-				<button class="btn btn-primary" disabled={busy}>Start</button>
+				<input
+					class="input flex-1"
+					maxlength="24"
+					required
+					placeholder={t('player.name')}
+					bind:value={name}
+				/>
+				<button class="btn btn-primary" disabled={busy}>{t('player.start')}</button>
 			</form>
 		</section>
 		<section class="panel">
-			<h2 class="text-lg font-semibold">Already playing on another device?</h2>
+			<h2 class="text-lg font-semibold">{t('player.otherDevice')}</h2>
 			<p class="mt-1 text-sm text-stone-600 dark:text-stone-400">
-				Enter the sync code shown on that device.
+				{t('player.otherDeviceText')}
 			</p>
 			<form
 				class="mt-4 flex gap-2"
@@ -89,40 +92,39 @@
 					placeholder="xxxx-xxxx-xxxx-xxxx"
 					bind:value={code}
 				/>
-				<button class="btn" disabled={busy}>Link device</button>
+				<button class="btn" disabled={busy}>{t('player.link')}</button>
 			</form>
 		</section>
 	{:else}
 		<section class="panel">
-			<h2 class="text-lg font-semibold">Name</h2>
+			<h2 class="text-lg font-semibold">{t('player.name')}</h2>
 			<form class="mt-3 flex gap-2" onsubmit={(e) => (e.preventDefault(), run(() => rename(name)))}>
 				<input class="input flex-1" maxlength="24" required bind:value={name} />
-				<button class="btn" disabled={busy || name === player.name}>Rename</button>
+				<button class="btn" disabled={busy || name === player.name}>{t('player.rename')}</button>
 			</form>
 		</section>
 		<section class="panel">
-			<h2 class="text-lg font-semibold">Sync code</h2>
+			<h2 class="text-lg font-semibold">{t('player.syncCode')}</h2>
 			<p class="mt-1 text-sm text-stone-600 dark:text-stone-400">
-				Enter this code on another device to continue your games there. Keep it private: it is the
-				key to your player.
+				{t('player.syncCodeText')}
 			</p>
 			<div class="mt-3 flex items-center gap-2">
 				<code class="rounded-md bg-stone-100 px-3 py-2 font-mono dark:bg-stone-800">
 					{showCode ? grouped : '••••-••••-••••-••••'}
 				</code>
 				<button class="btn" onclick={() => (showCode = !showCode)}
-					>{showCode ? 'Hide' : 'Show'}</button
+					>{showCode ? t('player.hide') : t('player.show')}</button
 				>
 			</div>
 		</section>
 		<button
 			class="btn"
 			onclick={() => {
-				if (confirm('Sign out on this device? Keep your sync code to sign back in.')) {
+				if (confirm(t('player.confirmSignOut'))) {
 					signOut();
 					player = null;
 				}
-			}}>Sign out</button
+			}}>{t('player.signOut')}</button
 		>
 	{/if}
 	{#if error}<p class="text-sm text-rose-600">{error}</p>{/if}

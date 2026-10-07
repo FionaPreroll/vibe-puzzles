@@ -3,13 +3,17 @@ import type { Variant } from './variants';
 
 export interface ToolInfo {
 	id: string;
+	/** English fallback; the shown name comes from `tool.<id>` in the translations. */
 	label: string;
+	/** Short symbol for compact tool bars. */
+	icon: string;
 	/** Shortcut key. */
 	key: string;
 }
 
 export interface SettingInfo {
 	key: string;
+	/** English fallback; the shown text comes from `setting.<key>` in the translations. */
 	label: string;
 	default: boolean;
 	/** Only offered while this other setting has the given value. */
@@ -74,12 +78,12 @@ export interface ToolOption {
 	color: string;
 }
 
-/** A game as presented by the client. */
+/**
+ * A game as presented by the client. Texts (tagline, rules, notes, control hints, tutorial) live
+ * in the translations under `games.<id>`.
+ */
 export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	name: string;
-	tagline: string;
-	rules: string[];
-	notes: string[];
 	tools: ToolInfo[];
 	defaultTool(touch: boolean): string;
 	/** Optional per-tool options (e.g. colours), selected with extra keys. */

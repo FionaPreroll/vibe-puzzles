@@ -13,6 +13,8 @@ import { currentPlayer, issuePuzzle, pullSave, pushSave, serverPuzzles, submitSc
 import { generate } from './generate';
 import type { GameSettings } from './settings.svelte';
 import { breakStreak, recordSolve } from './stats';
+import { t, variantLabel } from '../i18n/index.svelte';
+import type { ScoreResult } from './api';
 import { keys, load, remove, save } from './storage';
 
 export interface SavedGame<S = unknown> {
@@ -159,7 +161,7 @@ export class GameSession<P = unknown, S = unknown> {
 			}
 		} catch (e) {
 			if (token === this.openToken)
-				this.message = { kind: 'error', text: `Could not create the puzzle: ${e}` };
+				this.message = { kind: 'error', text: t('session.createFailed', { error: String(e) }) };
 			return;
 		}
 		if (token !== this.openToken) return;
@@ -211,10 +213,7 @@ export class GameSession<P = unknown, S = unknown> {
 		} catch {
 			/* fall back to a local puzzle */
 		}
-		this.message = {
-			kind: 'info',
-			text: 'The server could not create a puzzle, so this one is played offline and not ranked.'
-		};
+		this.message = { kind: 'info', text: t('session.serverFailed') };
 		return null;
 	}
 
@@ -255,7 +254,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.pauseClock();
 		if (this.restore(remote.data)) {
 			save(this.saveKey, remote.data);
-			this.message = { kind: 'info', text: 'Continued your game from another device.' };
+			this.message = { kind: 'info', text: t('session.continued') };
 		}
 		this.resumeClock();
 	}
@@ -437,7 +436,7 @@ export class GameSession<P = unknown, S = unknown> {
 		if (!this.game.isSolved(this.puzzle, state)) {
 			const alt = this.game.acceptAlternative?.(this.puzzle, state, this.settings.values);
 			if (!alt) {
-				if (!auto) this.message = { kind: 'error', text: 'Not solved yet. Keep going!' };
+				if (!auto) this.message = { kind: 'error', text: t('session.notSolved') };
 				return;
 			}
 			this.replace(alt);
@@ -450,9 +449,16 @@ export class GameSession<P = unknown, S = unknown> {
 		this.solved = true;
 		const competitive = !this.settings.values.personalTimer;
 		const shown = competitive ? this.finalMs : this.finalPlayMs;
-		recordSolve(this.game.id, this.variant.key, this.puzzleId, shown, this.period);
+		recordSolve(
+			this.game.id,
+			this.variant.key,
+			this.puzzleId,
+			shown,
+			this.period,
+			this.variant.special
+		);
 		this.persist();
-		this.message = { kind: 'success', text: `Solved in ${formatDuration(shown)}!` };
+		this.message = { kind: 'success', text: t('session.solved', { time: formatDuration(shown) }) };
 
 		this.submitting = true;
 		try {
@@ -471,14 +477,46 @@ export class GameSession<P = unknown, S = unknown> {
 				this.puzzleId = res.puzzleId;
 				this.persist();
 			}
-			if (res) this.message = { kind: res.ok ? 'success' : 'error', text: res.message };
+			if (res)
+				this.message = { kind: res.ok ? 'success' : 'error', text: this.scoreText(res, shown) };
 		} catch (e) {
 			this.message = {
 				kind: 'info',
-				text: `Solved in ${formatDuration(shown)}! (Score not uploaded: ${(e as Error).message})`
+				text: t('session.uploadFailed', {
+					time: formatDuration(shown),
+					error: (e as Error).message
+				})
 			};
 		} finally {
 			this.submitting = false;
+		}
+	}
+
+	private scoreText(res: ScoreResult, shown: number): string {
+		const time = formatDuration(res.timeMs ?? shown);
+		switch (res.code) {
+			case 'wrong':
+				return t('session.wrong');
+			case 'repeat':
+				return t('session.repeat', { time });
+			case 'personal':
+				return t('session.unrankedPersonal', { time });
+			case 'local':
+				return t('session.unrankedLocal', { time });
+			case 'ranked': {
+				const text = t('session.ranked', {
+					time,
+					rank: res.rank ?? '–',
+					total: res.total ?? '–',
+					variant: variantLabel(this.variant)
+				});
+				const best = res.bestMs != null && res.bestMs < (res.timeMs ?? Infinity);
+				return best
+					? `${text} ${t('session.yourBest', { time: formatDuration(res.bestMs!) })}`
+					: text;
+			}
+			default:
+				return res.message;
 		}
 	}
 

@@ -17,13 +17,13 @@
 		saveTouchMode,
 		type StoredSettings
 	} from '../client/settings.svelte';
-	import { getStats } from '../client/stats';
 	import { load, save, setQuotaHandler } from '../client/storage';
 	import { formatDuration } from '../core/time';
 	import type { GameModule, TouchMode } from '../core/types';
-	import { periodKey } from '../core/variants';
+	import { t, tList, toolLabel, variantLabel } from '../i18n/index.svelte';
 	import HoldButton from './HoldButton.svelte';
 	import SettingsDialog from './SettingsDialog.svelte';
+	import VariantPicker from './VariantPicker.svelte';
 
 	let { game }: { game: GameModule } = $props();
 
@@ -40,6 +40,8 @@
 	let showSettings = $state(false);
 	let rulesHidden = $state(load<boolean>('rulesHidden', false));
 	let panelCollapsed = $state(false);
+	/** Phone layout: the side panel opens as a drawer. */
+	let menuOpen = $state(false);
 	let now = $state(Date.now());
 	let showZoom = $state(false);
 	let share = $state<{ link: string; image: string | null } | null>(null);
@@ -47,29 +49,43 @@
 	let newBusy = $state(false);
 	let boardArea: HTMLDivElement | undefined = $state();
 	let hasServer = $state(false);
+	let celebrate = $state(false);
+
+	// ---- Board size ----------------------------------------------------------------------------
+
+	let areaWidth = $state(0);
+	let viewportHeight = $state(800);
+	let wide = $state(true);
 
 	const variant = $derived(session.variant);
 	const zoomKey = $derived(`zoom:${game.id}:${variant.key}`);
+	/** Zoom relative to the automatic size (1 = fit the screen). */
 	let zoom = $derived(load<number>(zoomKey, 1));
-	const cellSize = $derived(Math.round(36 * zoom));
+
+	/** Largest cell size that shows the whole board without scrolling. */
+	const fitCell = $derived.by(() => {
+		const p = session.puzzle as { width: number; height: number } | null;
+		if (!p || !areaWidth) return 36;
+		const margin = settings.values.showCoordinates ? 1.3 : 0.2;
+		// Space taken by the header, toolbars and buttons around the board.
+		const chrome = wide ? 290 : 250;
+		const byWidth = areaWidth / (p.width + margin);
+		const byHeight = Math.max(240, viewportHeight - chrome) / (p.height + margin);
+		return Math.max(16, Math.min(72, Math.floor(Math.min(byWidth, byHeight))));
+	});
+	const cellSize = $derived(Math.max(8, Math.round(fitCell * zoom)));
 
 	function setZoom(z: number) {
-		zoom = Math.min(4, Math.max(0.15, z));
+		zoom = Math.min(3, Math.max(0.3, z));
 		save(zoomKey, zoom);
 	}
 
-	function fitZoom() {
-		if (!boardArea || !session.puzzle) return;
-		const p = session.puzzle as { width: number };
-		const available = boardArea.parentElement!.clientWidth;
-		const target = Math.max(320, Math.min(available * 0.9, available));
-		setZoom(target / (36 * (p.width + 1)));
-	}
+	// ---- Actions -------------------------------------------------------------------------------
 
-	function setTool(t: string) {
-		if (t !== tool) previousTool = tool;
-		tool = t;
-		saveTool(game.id, t);
+	function setTool(id: string) {
+		if (id !== tool) previousTool = tool;
+		tool = id;
+		saveTool(game.id, id);
 	}
 
 	function setTouchMode(mode: TouchMode) {
@@ -85,6 +101,7 @@
 
 	async function openVariant(key: string, puzzleId?: number) {
 		share = null;
+		menuOpen = false;
 		await session.open(key, { puzzleId });
 		replaceState(variantUrl(session.variant.key), {});
 	}
@@ -108,7 +125,7 @@
 	}
 
 	function startOver() {
-		if (confirm('Are you sure? This clears the board and restarts the timer.')) session.startOver();
+		if (confirm(t('game.confirmStartOver'))) session.startOver();
 	}
 
 	async function makeShare() {
@@ -156,7 +173,7 @@
 	onMount(() => {
 		cleanupSpecialSaves();
 		setQuotaHandler(() => {
-			if (confirm('Your browser storage is full. Clear old saved games?')) clearOldSaves();
+			if (confirm(t('game.storageFull'))) clearOldSaves();
 		});
 		const params = new URL(location.href).searchParams;
 		const id = Number(params.get('id')) || undefined;
@@ -168,6 +185,14 @@
 			.then(() => {
 				if (params.has('s') || params.has('id')) replaceState(variantUrl(session.variant.key), {});
 			});
+
+		const media = matchMedia('(min-width: 1024px)');
+		const layout = () => {
+			wide = media.matches;
+			if (wide) menuOpen = false;
+		};
+		layout();
+		media.addEventListener('change', layout);
 
 		const activity = () =>
 			session.setActive(document.visibilityState === 'visible' && document.hasFocus());
@@ -192,6 +217,7 @@
 
 		return () => {
 			clearInterval(tick);
+			media.removeEventListener('change', layout);
 			document.removeEventListener('visibilitychange', visibility);
 			window.removeEventListener('focus', activity);
 			window.removeEventListener('blur', activity);
@@ -208,12 +234,31 @@
 		return () => clearTimeout(t);
 	});
 
+	// A short celebration when the puzzle gets solved while playing (not when opening a solved one).
+	let wasSolved = false;
+	$effect(() => {
+		const solved = session.solved;
+		const loading = session.loading;
+		if (solved && !wasSolved && !loading) {
+			celebrate = true;
+			const timer = setTimeout(() => (celebrate = false), 1800);
+			wasSolved = solved;
+			return () => clearTimeout(timer);
+		}
+		wasSolved = solved;
+	});
+
 	// ---- Keyboard shortcuts --------------------------------------------------------------------
 
 	function onkeydown(e: KeyboardEvent) {
-		const t = e.target as HTMLElement | null;
-		if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+		const target = e.target as HTMLElement | null;
+		if (
+			target &&
+			(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+		)
+			return;
 		if (document.querySelector('dialog[open]')) return;
+		if (e.key === 'Escape' && menuOpen) return void (menuOpen = false);
 		const mod = e.ctrlKey || e.metaKey;
 		const key = e.key.toLowerCase();
 		if (mod && key === 's') {
@@ -227,7 +272,7 @@
 			e.preventDefault();
 			session.undo();
 		} else if (e.key === 'Enter' && !mod) {
-			if ((t?.tagName ?? '') === 'BUTTON') return;
+			if ((target?.tagName ?? '') === 'BUTTON') return;
 			e.preventDefault();
 			session.submit();
 		} else if ((e.key === '=' || e.key === '+') && !mod && !e.altKey) {
@@ -237,8 +282,8 @@
 			if (game.toolOptions)
 				setTool(tool === game.toolOptions.tool ? previousTool : game.toolOptions.tool);
 		} else if (!mod && !e.altKey && !settings.values.hideControls) {
-			const t2 = game.tools.find((x) => x.key === e.key);
-			if (t2) return setTool(t2.id);
+			const found = game.tools.find((x) => x.key === e.key);
+			if (found) return setTool(found.id);
 			const opt = game.toolOptions?.values.find((x) => x.key === e.key);
 			if (opt) {
 				toolOption = opt.value;
@@ -264,26 +309,99 @@
 	const clock = $derived(
 		settings.values.personalTimer ? session.personal(now) : session.elapsed(now)
 	);
-
-	function marker(key: string) {
-		const v = game.variants.find((x) => x.key === key)!;
-		const stats = getStats(game.id, key);
-		if (v.special) return stats.lastPeriod === periodKey(v.special) ? '✓' : '';
-		return stats.streak >= 100 ? '★' : '';
-	}
+	const swatchNames = $derived(tList('swatch'));
+	const showTools = $derived(!settings.values.hideControls);
+	/** Desktop: tools join the sticky top bar when that setting is on, else they sit below the board. */
+	const toolsOnTop = $derived(!!settings.values.stickyToolbar);
+	const label = $derived(variantLabel(variant));
 </script>
 
-<svelte:window {onkeydown} onpointermove={onpanmove} onpointerup={() => (pan = null)} />
+<svelte:window
+	{onkeydown}
+	onpointermove={onpanmove}
+	onpointerup={() => (pan = null)}
+	bind:innerHeight={viewportHeight}
+/>
 
 <svelte:head>
-	<title>{game.name} · {variant.label} · Vibe Puzzles</title>
+	<title>{game.name} · {label} · {t('app.name')}</title>
 </svelte:head>
 
-<div class="screen-only flex flex-col gap-6 lg:flex-row lg:items-start">
-	<!-- Side panel -->
+{#snippet toolButtons(compact: boolean)}
+	{#each game.tools as tl (tl.id)}
+		{@const name = toolLabel(game.id, tl)}
+		{@const swatch =
+			game.toolOptions?.tool === tl.id
+				? game.toolOptions.values.find((o) => o.value === toolOption)?.color
+				: undefined}
+		<button
+			class={compact
+				? `flex min-w-14 flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-xs ${tool === tl.id ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100' : 'text-stone-600 dark:text-stone-300'}`
+				: `btn ${tool === tl.id ? 'btn-active' : ''}`}
+			aria-pressed={tool === tl.id}
+			title="{name} ({tl.key})"
+			onclick={() => {
+				if (game.toolOptions?.tool === tl.id && tool === tl.id) showSwatches = !showSwatches;
+				else if (game.toolOptions?.tool === tl.id && compact) showSwatches = true;
+				setTool(tl.id);
+			}}
+		>
+			{#if swatch}
+				<span
+					class="inline-block {compact
+						? 'size-5'
+						: 'size-3'} rounded-full border border-stone-400 align-middle"
+					style:background={swatch}
+				></span>
+			{:else}
+				<span class={compact ? 'text-lg leading-5' : ''} aria-hidden="true">{tl.icon}</span>
+			{/if}
+			{name}
+		</button>
+	{/each}
+{/snippet}
+
+{#snippet swatchRow()}
+	{#if game.toolOptions && showSwatches}
+		<div class="flex flex-wrap items-center gap-2">
+			{#each game.toolOptions.values as o (o.value)}
+				<button
+					class="size-8 rounded-full border-2 {toolOption === o.value
+						? 'border-stone-900 dark:border-white'
+						: 'border-transparent'}"
+					style:background={o.color}
+					title="{swatchNames[o.value] ?? o.label} ({o.key})"
+					aria-label={t('game.colour', { name: swatchNames[o.value] ?? o.label })}
+					onclick={() => {
+						toolOption = o.value;
+						setTool(game.toolOptions!.tool);
+					}}
+				></button>
+			{/each}
+		</div>
+	{/if}
+{/snippet}
+
+<div
+	class="screen-only flex flex-col gap-6 lg:flex-row lg:items-start {showTools
+		? 'pb-24 lg:pb-0'
+		: ''}"
+>
+	<!-- Side panel: a column on wide screens, a drawer on phones -->
+	{#if menuOpen}
+		<button
+			class="fixed inset-0 z-30 bg-black/40 lg:hidden"
+			aria-label={t('game.closeMenu')}
+			onclick={() => (menuOpen = false)}
+		></button>
+	{/if}
 	<aside
-		class="panel w-full shrink-0 lg:sticky lg:top-4 {panelCollapsed ? 'lg:w-14' : 'lg:w-72'}"
-		aria-label="{game.name} menu"
+		class="panel shrink-0 lg:sticky lg:top-4 lg:block {panelCollapsed
+			? 'lg:w-14'
+			: 'lg:w-72'} lg:rounded-xl {menuOpen
+			? 'fixed inset-y-0 left-0 z-40 block w-[min(22rem,88vw)] overflow-y-auto rounded-none'
+			: 'hidden'}"
+		aria-label={t('game.menu', { game: game.name })}
 	>
 		<div class="flex items-center justify-between gap-2">
 			{#if !panelCollapsed}
@@ -294,65 +412,61 @@
 			{/if}
 			<button
 				class="btn-icon hidden lg:inline-flex"
-				aria-label={panelCollapsed ? 'Expand panel' : 'Collapse panel'}
+				aria-label={panelCollapsed ? t('game.expandPanel') : t('game.collapsePanel')}
 				onclick={() => (panelCollapsed = !panelCollapsed)}>{panelCollapsed ? '»' : '«'}</button
+			>
+			<button
+				class="btn-icon lg:hidden"
+				aria-label={t('game.closeMenu')}
+				onclick={() => (menuOpen = false)}>✕</button
 			>
 		</div>
 		{#if !panelCollapsed}
-			<section class="mt-4">
+			<nav class="mt-4" aria-label={t('game.puzzleType')}>
+				<h2 class="section-title">{t('game.puzzleType')}</h2>
+				<div class="mt-1">
+					<VariantPicker {game} current={variant.key} onpick={(key) => openVariant(key)} />
+				</div>
+			</nav>
+
+			<section class="mt-5">
 				<div class="flex items-center justify-between">
-					<h2 class="section-title">Rules</h2>
+					<h2 class="section-title">{t('game.rules')}</h2>
 					<button
 						class="link text-sm"
 						onclick={() => {
 							rulesHidden = !rulesHidden;
 							save('rulesHidden', rulesHidden);
-						}}>{rulesHidden ? 'Show' : 'Hide'}</button
+						}}>{rulesHidden ? t('game.show') : t('game.hide')}</button
 					>
 				</div>
 				{#if !rulesHidden}
 					<ol class="mt-2 list-decimal space-y-1.5 pl-5 text-sm">
-						{#each game.rules as rule, i (i)}<li>{rule}</li>{/each}
+						{#each tList(`games.${game.id}.rules`) as rule, i (i)}<li>{rule}</li>{/each}
 					</ol>
-					{#each game.notes as note, i (i)}
+					{#each tList(`games.${game.id}.notes`) as note, i (i)}
 						<p class="mt-2 text-xs text-stone-500 dark:text-stone-400">{note}</p>
 					{/each}
+					<h3 class="section-title mt-3">{t('game.controls')}</h3>
+					<p class="mt-1 text-xs text-stone-500 dark:text-stone-400">
+						{t(`games.${game.id}.${isTouch ? 'controlsTouch' : 'controlsMouse'}`)}
+					</p>
 				{/if}
 			</section>
-
-			<nav class="mt-5" aria-label="Puzzle types">
-				<h2 class="section-title">Puzzle type</h2>
-				<ul class="mt-2 grid grid-cols-2 gap-1 text-sm lg:grid-cols-1">
-					{#each game.variants as v (v.key)}
-						<li>
-							<button
-								class="w-full rounded-md px-2 py-1 text-left hover:bg-stone-100 dark:hover:bg-stone-800 {v.key ===
-								variant.key
-									? 'bg-indigo-50 font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
-									: ''}"
-								onclick={() => openVariant(v.key)}
-							>
-								{v.label}
-								<span class="text-amber-500">{marker(v.key)}</span>
-							</button>
-						</li>
-					{/each}
-				</ul>
-			</nav>
 
 			<form class="mt-5 flex gap-2" onsubmit={(e) => (e.preventDefault(), openById())}>
 				<input
 					class="input min-w-0 flex-1"
 					inputmode="numeric"
-					placeholder="Puzzle ID"
-					aria-label="Open puzzle by ID"
+					placeholder={t('game.puzzleId')}
+					aria-label={t('game.openById')}
 					bind:value={idInput}
 				/>
-				<button class="btn" type="submit">Open</button>
+				<button class="btn" type="submit">{t('game.open')}</button>
 			</form>
 			<p class="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
 				<a class="link" href="{resolve('/scores')}?game={game.id}&v={variant.key}"
-					>Hall of fame & statistics</a
+					>{t('game.scoresLink')}</a
 				>
 			</p>
 		{/if}
@@ -360,62 +474,90 @@
 
 	<!-- Game column -->
 	<section class="min-w-0 flex-1">
+		<!-- Phone: game and puzzle type, opens the drawer -->
+		<button
+			class="mb-2 flex w-full items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 text-left shadow-sm lg:hidden dark:border-stone-800 dark:bg-stone-900"
+			onclick={() => (menuOpen = true)}
+			aria-label={t('game.openMenu')}
+			aria-expanded={menuOpen}
+		>
+			<span class="text-xl" aria-hidden="true">{game.icon}</span>
+			<span class="font-semibold">{game.name}</span>
+			<span class="text-stone-500 dark:text-stone-400">· {label}</span>
+			<span class="ml-auto text-stone-400" aria-hidden="true">☰</span>
+		</button>
+
 		<div
 			class="flex flex-wrap items-center gap-2 {settings.values.stickyToolbar
 				? 'sticky top-0 z-10 bg-stone-50/95 py-2 backdrop-blur dark:bg-stone-950/95'
 				: ''}"
 		>
 			<div class="relative">
-				<button class="btn" onclick={() => (showZoom = !showZoom)} aria-expanded={showZoom}
-					>Zoom</button
+				<button
+					class="btn"
+					onclick={() => (showZoom = !showZoom)}
+					aria-expanded={showZoom}
+					aria-label={t('game.zoom')}
+					title={t('game.zoom')}
 				>
+					<span aria-hidden="true">⌕</span><span class="hidden sm:inline">{t('game.zoom')}</span>
+				</button>
 				{#if showZoom}
 					<div class="popover absolute top-full left-0 z-20 mt-1 flex w-72 items-center gap-2">
 						<input
 							type="range"
-							min="15"
-							max="400"
+							min="30"
+							max="300"
 							value={Math.round(zoom * 100)}
 							oninput={(e) => setZoom(Number(e.currentTarget.value) / 100)}
 							class="flex-1 accent-indigo-600"
-							aria-label="Zoom"
+							aria-label={t('game.zoom')}
 						/>
-						<button class="btn-sm" onclick={() => setZoom(1)} title="Reset to 100%"
-							>{Math.round(zoom * 100)}%</button
+						<button class="btn-sm" onclick={() => setZoom(1)} title={t('game.resetZoom')}
+							>{zoom === 1 ? t('game.fit') : `${Math.round(zoom * 100)}%`}</button
 						>
-						<button class="btn-sm" onclick={fitZoom}>Fit</button>
 					</div>
 				{/if}
 			</div>
 			<button
 				class="btn"
 				onclick={() => (showSettings = true)}
-				aria-label="Settings"
-				title="Settings">⚙︎</button
+				aria-label={t('game.settings')}
+				title={t('game.settings')}>⚙︎</button
 			>
 			{#if !settings.values.hideTimer}
 				<span
 					class="min-w-20 rounded-md bg-white px-3 py-1.5 text-center font-mono tabular-nums shadow-sm dark:bg-stone-800"
-					aria-label="Timer"
+					aria-label={t('game.timer')}
 				>
 					{formatDuration(clock)}
 				</span>
 				{#if settings.values.personalTimer && !session.solved}
 					<button class="btn" onclick={() => session.setManualPause(!session.manualPause)}>
-						{session.manualPause ? 'Resume' : 'Pause'}
+						{session.manualPause ? t('game.resume') : t('game.pause')}
 					</button>
 				{/if}
 			{/if}
 			<HoldButton
-				label="Undo"
+				label={t('game.undo')}
 				action={() => session.undo()}
 				disabled={session.past.length === 0 || session.readonly}>↶</HoldButton
 			>
 			<HoldButton
-				label="Redo"
+				label={t('game.redo')}
 				action={() => session.redo()}
 				disabled={session.future.length === 0 || session.readonly}>↷</HoldButton
 			>
+			{#if showTools && toolsOnTop}
+				<div
+					class="hidden flex-wrap items-center gap-2 lg:flex"
+					role="toolbar"
+					aria-label={t('game.tools')}
+				>
+					{@render toolButtons(false)}
+					{@render swatchRow()}
+				</div>
+			{/if}
 		</div>
 
 		{#if session.message}
@@ -431,15 +573,19 @@
 			</p>
 		{/if}
 
-		<div class="relative mt-3">
+		<div class="relative mt-3" bind:clientWidth={areaWidth}>
 			<div
 				bind:this={boardArea}
-				class="overflow-x-auto py-2"
+				class="overflow-x-auto py-1"
 				role="presentation"
 				onpointerdown={onpanstart}
 			>
 				{#if session.puzzle && session.state}
-					<div class="mx-auto w-fit {session.paused ? 'invisible' : ''}">
+					<div
+						class="relative mx-auto w-fit rounded-sm {session.paused ? 'invisible' : ''} {celebrate
+							? 'solved-pop'
+							: ''}"
+					>
 						<Board
 							puzzle={session.puzzle}
 							state={session.state}
@@ -453,86 +599,65 @@
 							{touchMode}
 							onmove={(next, changed) => session.move(next, changed)}
 						/>
+						{#if celebrate}
+							<div class="solved-burst pointer-events-none absolute inset-0" aria-hidden="true">
+								{#each Array.from({ length: 12 }, (_, i) => i) as i (i)}
+									<span style:--a="{i * 30}deg" style:--d="{(i % 3) * 60}ms">✦</span>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				{/if}
 			</div>
 			{#if session.loading}
 				<div class="absolute inset-0 grid min-h-48 place-items-center text-stone-500">
-					Creating puzzle…
+					{t('game.creating')}
 				</div>
 			{:else if session.paused}
 				<button
 					class="absolute inset-0 grid place-items-center text-lg font-medium"
 					onclick={() => session.setManualPause(false)}
 				>
-					Paused — click to resume
+					{t('game.paused')}
 				</button>
 			{/if}
 		</div>
 
-		{#if !settings.values.hideControls}
-			<div class="mt-3 flex flex-wrap items-center gap-2" role="toolbar" aria-label="Tools">
-				{#each game.tools as t (t.id)}
-					<button
-						class="btn {tool === t.id ? 'btn-active' : ''}"
-						aria-pressed={tool === t.id}
-						title="{t.label} ({t.key})"
-						onclick={() => {
-							if (game.toolOptions?.tool === t.id && tool === t.id) showSwatches = !showSwatches;
-							setTool(t.id);
-						}}
-					>
-						{t.label}
-						{#if game.toolOptions?.tool === t.id}
-							<span
-								class="inline-block size-3 rounded-full border border-stone-400"
-								style:background={game.toolOptions.values.find((o) => o.value === toolOption)
-									?.color}
-							></span>
-						{/if}
-					</button>
-				{/each}
+		{#if showTools}
+			<!-- Wide screens: tools below the board, unless they sit in the sticky bar -->
+			{#if !toolsOnTop}
+				<div
+					class="mt-3 hidden flex-wrap items-center gap-2 lg:flex"
+					role="toolbar"
+					aria-label={t('game.tools')}
+				>
+					{@render toolButtons(false)}
+					{@render swatchRow()}
+				</div>
+			{/if}
+			<!-- Phones: a fixed bar at the bottom, in reach of the thumb -->
+			<div
+				class="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden dark:border-stone-800 dark:bg-stone-900/95"
+			>
 				{#if game.toolOptions && showSwatches}
-					{#each game.toolOptions.values as o (o.value)}
-						<button
-							class="size-8 rounded-full border-2 {toolOption === o.value
-								? 'border-stone-900 dark:border-white'
-								: 'border-transparent'}"
-							style:background={o.color}
-							title="{o.label} ({o.key})"
-							aria-label="Colour {o.label}"
-							onclick={() => {
-								toolOption = o.value;
-								setTool(game.toolOptions!.tool);
-							}}
-						></button>
-					{/each}
+					<div class="mb-1.5 flex justify-center">{@render swatchRow()}</div>
 				{/if}
-				{#if isTouch}
-					<label class="ml-auto flex items-center gap-1 text-sm">
-						Touch
-						<select
-							class="input py-1"
-							value={touchMode}
-							onchange={(e) => setTouchMode(e.currentTarget.value as TouchMode)}
-						>
-							<option value="auto">Auto</option>
-							<option value="draw">Always draw</option>
-							<option value="pan">Always pan</option>
-						</select>
-					</label>
-				{/if}
+				<div class="mx-auto flex max-w-md gap-1" role="toolbar" aria-label={t('game.tools')}>
+					{@render toolButtons(true)}
+				</div>
 			</div>
 		{/if}
 
 		{#if settings.values.showCheckpoints}
-			<div class="mt-3 flex flex-wrap items-center gap-2" aria-label="Checkpoints">
-				<button class="btn-sm" onclick={() => session.saveCheckpoint()} title="Ctrl+S">Save</button>
+			<div class="mt-3 flex flex-wrap items-center gap-2" aria-label={t('game.checkpoints')}>
+				<button class="btn-sm" onclick={() => session.saveCheckpoint()} title="Ctrl+S"
+					>{t('game.save')}</button
+				>
 				<button
 					class="btn-sm"
 					onclick={() => session.addCheckpoint()}
 					disabled={session.checkpoints.length >= MAX_CHECKPOINTS}
-					title="Ctrl+Shift+S">Add</button
+					title="Ctrl+Shift+S">{t('game.add')}</button
 				>
 				{#each session.checkpoints as _, i (i)}
 					<span class="relative">
@@ -540,13 +665,14 @@
 							class="btn-sm min-w-9 {session.currentCheckpoint === i ? 'btn-active' : ''}"
 							onclick={() => session.loadCheckpoint(i)}
 							oncontextmenu={(e) => (e.preventDefault(), session.deleteCheckpoint(i))}
-							title="Load checkpoint {i + 1} (right click deletes)">{i + 1}</button
+							title={t('game.loadCheckpoint', { n: i + 1 })}>{i + 1}</button
 						>
 						<button
 							class="absolute -top-1.5 -right-1.5 grid size-4 place-items-center rounded-full bg-stone-300 text-[10px] leading-none dark:bg-stone-600"
-							aria-label="Delete checkpoint {i + 1}"
-							onclick={() => confirm(`Delete checkpoint ${i + 1}?`) && session.deleteCheckpoint(i)}
-							>×</button
+							aria-label={t('game.deleteCheckpoint', { n: i + 1 })}
+							onclick={() =>
+								confirm(t('game.confirmDeleteCheckpoint', { n: i + 1 })) &&
+								session.deleteCheckpoint(i)}>×</button
 						>
 					</span>
 				{/each}
@@ -554,11 +680,11 @@
 		{/if}
 
 		<p class="mt-4 text-sm text-stone-600 dark:text-stone-400">
-			{variant.label} Puzzle ID:
+			{t('game.idLine', { variant: label })}:
 			{#if session.puzzleId}
 				<span class="font-mono select-all">{session.puzzleId.toLocaleString('en-US')}</span>
 			{:else}
-				<span title="Ranked server puzzle">shown once solved</span>
+				<span title={t('game.idHiddenTitle')}>{t('game.idHidden')}</span>
 			{/if}
 		</p>
 
@@ -566,35 +692,52 @@
 			<button
 				class="btn btn-primary"
 				onclick={() => session.submit()}
-				disabled={session.solved || session.loading}>Done</button
+				disabled={session.solved || session.loading}>{t('game.done')}</button
 			>
-			<button class="btn" onclick={startOver} disabled={session.loading}>Start Over</button>
-			<button class="btn" onclick={() => window.print()}>Print…</button>
+			<button class="btn" onclick={startOver} disabled={session.loading}
+				>{t('game.startOver')}</button
+			>
+			<button class="btn" onclick={() => window.print()}>{t('game.print')}</button>
 			<button class="btn" onclick={makeShare} disabled={session.loading || !session.puzzleId}
-				>Share</button
+				>{t('game.share')}</button
 			>
 			<button class="btn" onclick={newPuzzle} disabled={newBusy || session.loading}
-				>New Puzzle</button
+				>{t('game.newPuzzle')}</button
 			>
 		</div>
+
+		{#if isTouch && showTools}
+			<label class="mt-3 flex items-center gap-2 text-sm">
+				{t('game.touch')}
+				<select
+					class="input py-1"
+					value={touchMode}
+					onchange={(e) => setTouchMode(e.currentTarget.value as TouchMode)}
+				>
+					<option value="auto">{t('game.touchAuto')}</option>
+					<option value="draw">{t('game.touchDraw')}</option>
+					<option value="pan">{t('game.touchPan')}</option>
+				</select>
+			</label>
+		{/if}
 
 		{#if share}
 			<div class="panel mt-3 text-sm">
 				<div class="flex items-start justify-between gap-2">
 					<div class="min-w-0 space-y-2">
 						<p>
-							Link to your progress:
+							{t('game.shareLink')}
 							<a class="link break-all" href={share.link}>{share.link}</a>
 						</p>
 						{#if share.image}
 							<p>
 								<a class="link" href={share.image} download="{game.id}-{session.puzzleId}.png"
-									>Screenshot (PNG)</a
+									>{t('game.screenshot')}</a
 								>
 							</p>
 						{/if}
 					</div>
-					<button class="btn-icon" aria-label="Close share panel" onclick={() => (share = null)}
+					<button class="btn-icon" aria-label={t('game.closeShare')} onclick={() => (share = null)}
 						>✕</button
 					>
 				</div>
@@ -607,7 +750,7 @@
 {#if session.puzzle && session.state}
 	<div class="print-only">
 		<p class="mb-2 text-sm">
-			{game.name} · {variant.label}{session.puzzleId ? ` · Puzzle ID ${session.puzzleId}` : ''}
+			{game.name} · {label}{session.puzzleId ? ` · ${t('game.puzzleId')} ${session.puzzleId}` : ''}
 		</p>
 		<Board
 			puzzle={session.puzzle}

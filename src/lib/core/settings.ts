@@ -3,7 +3,11 @@ import type { SettingInfo } from './types';
 /** Settings shared by every game, in dialog order. Games add their own after `highlightErrors`. */
 export const COMMON_SETTINGS: SettingInfo[] = [
 	{ key: 'hideControls', label: 'Hide game controls', default: false, deviceOnly: true },
-	{ key: 'stickyToolbar', label: 'Sticky toolbar (experimental)', default: false },
+	{
+		key: 'stickyToolbar',
+		label: 'Keep toolbar and tools at the top while scrolling',
+		default: false
+	},
 	{ key: 'autoSubmit', label: 'Auto submit', default: true },
 	{ key: 'showCheckpoints', label: 'Show checkpoints', default: false },
 	{ key: 'showCoordinates', label: 'Show board coordinates', default: false },

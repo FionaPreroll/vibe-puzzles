@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { t } from '../i18n/index.svelte';
 
 	let {
 		open = $bindable(false),
@@ -26,7 +27,7 @@
 		class="flex items-center justify-between border-b border-stone-200 px-5 py-3 dark:border-stone-700"
 	>
 		<h2 class="text-lg font-semibold">{title}</h2>
-		<button class="btn-icon" aria-label="Close" onclick={() => (open = false)}>✕</button>
+		<button class="btn-icon" aria-label={t('app.close')} onclick={() => (open = false)}>✕</button>
 	</div>
 	<div class="max-h-[70vh] overflow-y-auto px-5 py-4">
 		{@render children()}

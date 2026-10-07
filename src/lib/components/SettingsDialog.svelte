@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { GameSettings } from '../client/settings.svelte';
+	import { settingLabel, t } from '../i18n/index.svelte';
 	import Dialog from './Dialog.svelte';
 
 	let { open = $bindable(false), settings }: { open: boolean; settings: GameSettings } = $props();
@@ -9,7 +10,7 @@
 	);
 </script>
 
-<Dialog bind:open title="Settings">
+<Dialog bind:open title={t('game.settings')}>
 	<ul class="space-y-1">
 		{#each visible as s (s.key)}
 			<li>
@@ -22,7 +23,7 @@
 						checked={settings.values[s.key]}
 						onchange={(e) => settings.set(s.key, e.currentTarget.checked)}
 					/>
-					<span>{s.label}</span>
+					<span>{settingLabel(s)}</span>
 				</label>
 			</li>
 		{/each}
