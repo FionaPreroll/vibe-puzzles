@@ -72,6 +72,17 @@ One-time setup:
 2. Add the repository secrets `CLOUDFLARE_API_TOKEN` (with Workers and D1 edit permissions), `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_D1_DATABASE_ID` (the ID printed in step 1).
 3. Set the repository variable `CLOUDFLARE_DEPLOY` to `true` to deploy on every push to `main`, or run the `Deploy to Cloudflare Workers` workflow by hand.
 
+#### Server-generated puzzles
+
+By default the browser generates every puzzle. Because a puzzle ID is also the generator seed, anyone who knows the ID can compute the solution. Setting `SERVER_PUZZLES` to `"true"` in `wrangler.jsonc` moves generation to the server for signed-in players:
+
+- The server picks a secret seed, stores the puzzle and returns it with a ticket. The puzzle ID is shown only after the puzzle is solved.
+- A ranked time is measured by the server, from issuing the puzzle to receiving the correct answer.
+- Only server-issued puzzles are ranked. Puzzles opened by ID or shared links still work but are not ranked.
+- If the server cannot create a puzzle, the browser generates one and the game is not ranked.
+
+Large puzzles need more CPU time than the Workers free plan allows per request (10 ms), so this mode needs the paid plan. Raise `limits.cpu_ms` in `wrangler.jsonc` if large puzzles time out.
+
 To deploy from a local machine instead, put the database ID into `wrangler.jsonc` and run `npm run cf:deploy`.
 
 ### API
@@ -81,7 +92,8 @@ To deploy from a local machine instead, put the database ID into `wrangler.jsonc
 | GET            | `/api/health`     | Server availability                            |
 | POST/GET/PATCH | `/api/player`     | Register, look up (by token), rename           |
 | GET/PUT        | `/api/saves/:key` | Load and store a saved game (newest wins)      |
+| POST           | `/api/puzzles`    | New server puzzle (with `SERVER_PUZZLES`)      |
 | POST           | `/api/scores`     | Submit a solve; the server verifies the answer |
 | GET            | `/api/scores`     | Leaderboard for a game and variant             |
 
-Players authenticate with a random token (the sync code); only its SHA-256 hash is stored. Submitted answers are checked against the regenerated puzzle, but solve times come from the client, so leaderboards are not cheat-proof.
+Players authenticate with a random token (the sync code); only its SHA-256 hash is stored. Submitted answers are always checked on the server. Without `SERVER_PUZZLES` the solve times come from the client, so leaderboards are easy to cheat; with it, times are measured by the server, though a player can still feed a puzzle to a solver program.

@@ -25,6 +25,18 @@ export interface BoardRow {
 	createdAt: number;
 }
 
+/** A puzzle the server generated for one player; the competitive clock runs from `issuedAt`. */
+export interface TicketRow {
+	id: string;
+	playerId: string;
+	game: string;
+	variant: string;
+	puzzleId: number;
+	puzzle: string;
+	issuedAt: number;
+	solvedAt: number | null;
+}
+
 /** Leaderboard scope: a variant overall, or one puzzle (special types). */
 export interface Scope {
 	game: string;
@@ -48,6 +60,10 @@ export interface Store {
 	/** Rank (1-based) and best row of a player, or null. */
 	rank(scope: Scope, playerId: string): Promise<{ rank: number; row: BoardRow } | null>;
 	players(scope: Scope): Promise<number>;
+	createTicket(ticket: TicketRow): Promise<void>;
+	getTicket(id: string): Promise<TicketRow | null>;
+	/** Marks the ticket solved; false if it already was. */
+	solveTicket(id: string, at: number): Promise<boolean>;
 }
 
 export class MemoryStore implements Store {
@@ -55,6 +71,7 @@ export class MemoryStore implements Store {
 	private readonly saves = new Map<string, { data: string; updatedAt: number }>();
 	private readonly prints = new Map<string, string>();
 	private readonly scores: ScoreRow[] = [];
+	private readonly tickets = new Map<string, TicketRow>();
 
 	async createPlayer(id: string, name: string, tokenHash: string) {
 		this.playerRows.set(id, { id, name, tokenHash });
@@ -131,6 +148,33 @@ export class MemoryStore implements Store {
 	async players(scope: Scope) {
 		return this.best(scope).length;
 	}
+
+	async createTicket(ticket: TicketRow) {
+		this.tickets.set(ticket.id, { ...ticket });
+	}
+
+	async getTicket(id: string) {
+		const t = this.tickets.get(id);
+		return t ? { ...t } : null;
+	}
+
+	async solveTicket(id: string, at: number) {
+		const t = this.tickets.get(id);
+		if (!t || t.solvedAt != null) return false;
+		t.solvedAt = at;
+		return true;
+	}
+}
+
+interface TicketDbRow {
+	id: string;
+	player_id: string;
+	game: string;
+	variant: string;
+	puzzle_id: number;
+	puzzle: string;
+	issued_at: number;
+	solved_at: number | null;
 }
 
 interface BestRow {
@@ -269,5 +313,42 @@ export class D1Store implements Store {
 			.bind(...args)
 			.first<{ c: number }>();
 		return row?.c ?? 0;
+	}
+
+	async createTicket(t: TicketRow) {
+		await this.db
+			.prepare(
+				`INSERT INTO tickets (id, player_id, game, variant, puzzle_id, puzzle, issued_at, solved_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`
+			)
+			.bind(t.id, t.playerId, t.game, t.variant, t.puzzleId, t.puzzle, t.issuedAt)
+			.run();
+	}
+
+	async getTicket(id: string) {
+		const r = await this.db
+			.prepare('SELECT * FROM tickets WHERE id = ?')
+			.bind(id)
+			.first<TicketDbRow>();
+		return r
+			? {
+					id: r.id,
+					playerId: r.player_id,
+					game: r.game,
+					variant: r.variant,
+					puzzleId: r.puzzle_id,
+					puzzle: r.puzzle,
+					issuedAt: r.issued_at,
+					solvedAt: r.solved_at
+				}
+			: null;
+	}
+
+	async solveTicket(id: string, at: number) {
+		const res = await this.db
+			.prepare('UPDATE tickets SET solved_at = ? WHERE id = ? AND solved_at IS NULL')
+			.bind(at, id)
+			.run();
+		return res.meta.changes > 0;
 	}
 }

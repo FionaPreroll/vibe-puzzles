@@ -9,7 +9,7 @@ import {
 	specialSeed,
 	type Variant
 } from '../core/variants';
-import { currentPlayer, pullSave, pushSave, submitScore } from './api';
+import { currentPlayer, issuePuzzle, pullSave, pushSave, serverPuzzles, submitScore } from './api';
 import { generate } from './generate';
 import type { GameSettings } from './settings.svelte';
 import { breakStreak, recordSolve } from './stats';
@@ -27,6 +27,8 @@ export interface SavedGame<S = unknown> {
 	startedAt: number;
 	playMs: number;
 	updatedAt: number;
+	/** Puzzle issued by the server (ranked); its ID is 0 until solved. */
+	ticket?: string;
 }
 
 export interface Message {
@@ -42,7 +44,9 @@ export const MAX_CHECKPOINTS = 10;
  */
 export class GameSession<P = unknown, S = unknown> {
 	variantIndex = $state(0);
+	/** 0 while the puzzle came from the server and is not solved yet (the ID reveals the seed). */
 	puzzleId = $state(0);
+	ticket = $state<string | null>(null);
 	puzzle = $state.raw<P | null>(null);
 	state = $state.raw<S | null>(null);
 	past = $state.raw<S[]>([]);
@@ -130,17 +134,29 @@ export class GameSession<P = unknown, S = unknown> {
 			this.syncFromServer(token);
 			return;
 		}
-		await this.start(puzzleId ?? encodePuzzleId(index, randomSeed()), token, opts.shared);
+		// A requested regular puzzle is played locally; new and current special ones may come
+		// from the server.
+		const fromServer = !opts.shared && (opts.puzzleId == null || !!this.period);
+		await this.start(fromServer ? null : puzzleId!, token, opts.shared);
 		this.syncFromServer(token);
 	}
 
-	/** Start a fresh game of `puzzleId`. */
-	private async start(puzzleId: number, token: number, shared?: string) {
-		const { variantIndex, seed } = decodePuzzleId(puzzleId);
+	/** Start a fresh game of `puzzleId`, or of a new puzzle (from the server if it issues them). */
+	private async start(puzzleId: number | null, token: number, shared?: string) {
 		this.loading = true;
 		let puzzle: P;
+		let ticket: string | null = null;
+		let startedAt = Date.now();
 		try {
-			puzzle = await generate<P>(this.game.id, variantIndex, seed);
+			const issued = puzzleId == null ? await this.fromServer() : null;
+			if (issued) {
+				({ puzzle, ticket, issuedAt: startedAt } = issued);
+				puzzleId = issued.puzzleId ?? 0;
+			} else {
+				puzzleId ??= this.localPuzzleId();
+				const { variantIndex, seed } = decodePuzzleId(puzzleId);
+				puzzle = await generate<P>(this.game.id, variantIndex, seed);
+			}
 		} catch (e) {
 			if (token === this.openToken)
 				this.message = { kind: 'error', text: `Could not create the puzzle: ${e}` };
@@ -148,6 +164,7 @@ export class GameSession<P = unknown, S = unknown> {
 		}
 		if (token !== this.openToken) return;
 		this.puzzleId = puzzleId;
+		this.ticket = ticket;
 		this.puzzle = puzzle;
 		const sharedState = shared ? this.game.decodeState(puzzle, shared) : null;
 		this.state = sharedState ?? this.game.emptyState(puzzle);
@@ -158,12 +175,47 @@ export class GameSession<P = unknown, S = unknown> {
 		this.lastChange = new Set();
 		this.solved = false;
 		this.manualPause = false;
-		this.startedAt = Date.now();
+		this.startedAt = startedAt;
 		this.playMs = 0;
 		this.touched = false;
 		this.finishLoading(token);
 		this.persist();
-		this.prefetch();
+		if (!ticket) this.prefetch();
+	}
+
+	/** The next local puzzle: prefetched, the current special or a random one. */
+	private localPuzzleId(): number {
+		const v = this.variant;
+		if (v.special) {
+			return encodePuzzleId(
+				this.variantIndex,
+				specialSeed(this.game.id, v.special, periodKey(v.special))
+			);
+		}
+		const seed = this.nextSeed ?? randomSeed();
+		this.nextSeed = null;
+		return encodePuzzleId(this.variantIndex, seed);
+	}
+
+	/** Ask the server for a puzzle; null (play locally, unranked) if it does not issue them. */
+	private async fromServer(): Promise<{
+		puzzle: P;
+		ticket: string;
+		issuedAt: number;
+		puzzleId: number | null;
+	} | null> {
+		if (!(await serverPuzzles())) return null;
+		try {
+			const issued = await issuePuzzle<P>(this.game.id, this.variant.key);
+			if (this.game.isValidPuzzle(issued.puzzle, this.variant)) return issued;
+		} catch {
+			/* fall back to a local puzzle */
+		}
+		this.message = {
+			kind: 'info',
+			text: 'The server could not create a puzzle, so this one is played offline and not ranked.'
+		};
+		return null;
 	}
 
 	private restore(s: SavedGame<S>): boolean {
@@ -171,6 +223,7 @@ export class GameSession<P = unknown, S = unknown> {
 		const puzzle = s.puzzle as P;
 		if (!this.game.isValidState(puzzle, s.state)) return false;
 		this.puzzleId = s.puzzleId;
+		this.ticket = s.ticket ?? null;
 		this.puzzle = puzzle;
 		this.state = s.state;
 		this.past = [];
@@ -223,9 +276,7 @@ export class GameSession<P = unknown, S = unknown> {
 		const token = ++this.openToken;
 		this.pauseClock();
 		this.message = null;
-		const seed = this.nextSeed ?? randomSeed();
-		this.nextSeed = null;
-		await this.start(encodePuzzleId(this.variantIndex, seed), token);
+		await this.start(null, token);
 	}
 
 	/** Generate the next puzzle of this variant in the background. */
@@ -289,7 +340,8 @@ export class GameSession<P = unknown, S = unknown> {
 		this.lastChange = new Set();
 		this.solved = false;
 		this.manualPause = false;
-		this.startedAt = Date.now();
+		// The server measures ranked time from when it issued the puzzle.
+		if (!this.ticket) this.startedAt = Date.now();
 		this.playMs = 0;
 		this.runningSince = null;
 		this.message = null;
@@ -412,8 +464,13 @@ export class GameSession<P = unknown, S = unknown> {
 				answer: this.game.answer(this.puzzle, state),
 				timeMs: this.finalMs,
 				playMs: this.finalPlayMs,
-				competitive
+				competitive,
+				ticket: this.ticket ?? undefined
 			});
+			if (res?.puzzleId && !this.puzzleId) {
+				this.puzzleId = res.puzzleId;
+				this.persist();
+			}
 			if (res) this.message = { kind: res.ok ? 'success' : 'error', text: res.message };
 		} catch (e) {
 			this.message = {
@@ -441,7 +498,8 @@ export class GameSession<P = unknown, S = unknown> {
 			solved: this.solved,
 			startedAt: this.startedAt,
 			playMs: this.playMs + running,
-			updatedAt: Date.now()
+			updatedAt: Date.now(),
+			...(this.ticket ? { ticket: this.ticket } : {})
 		};
 		save(this.saveKey, data);
 		if (this.pushTimer) clearTimeout(this.pushTimer);

@@ -11,6 +11,11 @@
 		"not_found_handling": "404-page",
 		"run_worker_first": ["/api/*"]
 	},
+	"vars": {
+		// "true" generates puzzles on the server so ranked players never see the seed. Large
+		// puzzles need more CPU time than the Workers free plan allows (see README).
+		"SERVER_PUZZLES": "false"
+	},
 	"d1_databases": [
 		{
 			"binding": "DB",

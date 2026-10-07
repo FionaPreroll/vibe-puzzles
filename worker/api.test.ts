@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { encodePuzzleId } from '../src/lib/core/variants';
 import { generateTetroid } from '../src/lib/games/tetroid/generator';
-import { handleApi } from './api';
+import type { TetroidPuzzle } from '../src/lib/games/tetroid/rules';
+import { solveTetroid } from '../src/lib/games/tetroid/solver';
+import { handleApi, type ApiOptions } from './api';
 import { MemoryStore } from './store';
 
-function client() {
+function client(options: ApiOptions = {}) {
 	const store = new MemoryStore();
 	return async (method: string, path: string, body?: unknown, token?: string) => {
 		const headers: Record<string, string> = {};
@@ -15,7 +17,8 @@ function client() {
 				headers,
 				body: body === undefined ? undefined : JSON.stringify(body)
 			}),
-			store
+			store,
+			options
 		);
 		return { status: res.status, body: (await res.json()) as Record<string, unknown> };
 	};
@@ -30,7 +33,7 @@ const answer = solution.join('');
 describe('api', () => {
 	it('reports health', async () => {
 		const api = client();
-		expect((await api('GET', '/health')).body).toEqual({ ok: true });
+		expect((await api('GET', '/health')).body).toEqual({ ok: true, serverPuzzles: false });
 	});
 
 	it('creates, reads and renames players', async () => {
@@ -125,5 +128,67 @@ describe('api', () => {
 		);
 		expect(res.body.ok).toBe(true);
 		expect((await api('GET', '/scores?game=tetroid&variant=6n')).body.players).toBe(0);
+	});
+
+	describe('server puzzles', () => {
+		async function setup() {
+			const api = client({ serverPuzzles: true });
+			const token = (await api('POST', '/player', { name: 'A' })).body.token as string;
+			const issued = (await api('POST', '/puzzles', { game: 'tetroid', variant: '6n' }, token))
+				.body as { ticket: string; puzzle: TetroidPuzzle; issuedAt: number; puzzleId: null };
+			const solved = solveTetroid(issued.puzzle, { limit: 1 }).solutions[0].join('');
+			return { api, token, issued, solved };
+		}
+
+		it('issues puzzles without revealing the seed', async () => {
+			const { api, issued } = await setup();
+			expect((await api('GET', '/health')).body.serverPuzzles).toBe(true);
+			expect(issued.puzzleId).toBeNull();
+			expect(issued.puzzle.width).toBe(6);
+			expect(typeof issued.ticket).toBe('string');
+			expect((await api('POST', '/puzzles', { game: 'tetroid', variant: '6n' })).status).toBe(401);
+		});
+
+		it('ranks a ticket with the server clock and reveals the ID', async () => {
+			const { api, token, issued, solved } = await setup();
+			const submit = (answer: string) =>
+				api(
+					'POST',
+					'/scores',
+					{ ticket: issued.ticket, answer, timeMs: 1, playMs: 1, competitive: true },
+					token
+				);
+			expect((await submit('0'.repeat(36))).body.ok).toBe(false);
+			const res = await submit(solved);
+			expect(res.body).toMatchObject({ ok: true, rank: 1, total: 1 });
+			expect(res.body.puzzleId).toBeGreaterThan(0);
+			const board = await api('GET', '/scores?game=tetroid&variant=6n');
+			const [entry] = board.body.entries as { timeMs: number }[];
+			// The claimed 1 ms is ignored in favour of the time since the puzzle was issued.
+			expect(entry.timeMs).toBeGreaterThanOrEqual(0);
+			expect(entry.timeMs).toBeLessThan(60000);
+			expect((await submit(solved)).body.message).toContain('before');
+		});
+
+		it('does not rank puzzles the client generated', async () => {
+			const { api, token } = await setup();
+			const res = await api(
+				'POST',
+				'/scores',
+				{
+					game: 'tetroid',
+					variant: '6n',
+					puzzleId,
+					puzzle,
+					answer,
+					timeMs: 1000,
+					playMs: 900,
+					competitive: true
+				},
+				token
+			);
+			expect(res.body.message).toContain('Not ranked');
+			expect((await api('GET', '/scores?game=tetroid&variant=6n')).body.players).toBe(0);
+		});
 	});
 });

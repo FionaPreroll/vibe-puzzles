@@ -28,18 +28,47 @@ export interface ScoreResult {
 	message: string;
 	rank?: number;
 	total?: number;
+	puzzleId?: number;
 }
 
 /** Same-origin API under the app's base path. */
 const api = () => `${resolve('/').replace(/\/$/, '')}/api`;
-let available: Promise<boolean> | null = null;
+interface Health {
+	ok: boolean;
+	serverPuzzles: boolean;
+}
+let health: Promise<Health> | null = null;
 
-export function serverAvailable(): Promise<boolean> {
-	available ??= fetch(`${api()}/health`)
+function checkHealth(): Promise<Health> {
+	health ??= fetch(`${api()}/health`)
 		.then((r) => (r.ok ? r.json() : null))
-		.then((body) => body?.ok === true)
-		.catch(() => false);
-	return available;
+		.then((body) => ({ ok: body?.ok === true, serverPuzzles: body?.serverPuzzles === true }))
+		.catch(() => ({ ok: false, serverPuzzles: false }));
+	return health;
+}
+
+export async function serverAvailable(): Promise<boolean> {
+	return (await checkHealth()).ok;
+}
+
+/** Whether new puzzles come from the server (needs a registered player). */
+export async function serverPuzzles(): Promise<boolean> {
+	return !!currentPlayer() && (await checkHealth()).serverPuzzles;
+}
+
+export interface IssuedPuzzle<P = unknown> {
+	ticket: string;
+	puzzle: P;
+	issuedAt: number;
+	/** Only for special puzzles; regular IDs stay secret until solved. */
+	puzzleId: number | null;
+}
+
+export function issuePuzzle<P>(game: string, variant: string): Promise<IssuedPuzzle<P>> {
+	return call<IssuedPuzzle<P>>('/puzzles', {
+		method: 'POST',
+		body: JSON.stringify({ game, variant })
+	});
 }
 
 export function currentPlayer(): Player | null {
@@ -121,6 +150,8 @@ export interface Submission {
 	timeMs: number;
 	playMs: number;
 	competitive: boolean;
+	/** Set for puzzles issued by the server. */
+	ticket?: string;
 }
 
 export async function submitScore(s: Submission): Promise<ScoreResult | null> {

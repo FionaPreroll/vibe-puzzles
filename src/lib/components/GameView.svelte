@@ -555,7 +555,11 @@
 
 		<p class="mt-4 text-sm text-stone-600 dark:text-stone-400">
 			{variant.label} Puzzle ID:
-			<span class="font-mono select-all">{session.puzzleId.toLocaleString('en-US')}</span>
+			{#if session.puzzleId}
+				<span class="font-mono select-all">{session.puzzleId.toLocaleString('en-US')}</span>
+			{:else}
+				<span title="Ranked server puzzle">shown once solved</span>
+			{/if}
 		</p>
 
 		<div class="mt-3 flex flex-wrap gap-2">
@@ -566,7 +570,9 @@
 			>
 			<button class="btn" onclick={startOver} disabled={session.loading}>Start Over</button>
 			<button class="btn" onclick={() => window.print()}>Print…</button>
-			<button class="btn" onclick={makeShare} disabled={session.loading}>Share</button>
+			<button class="btn" onclick={makeShare} disabled={session.loading || !session.puzzleId}
+				>Share</button
+			>
 			<button class="btn" onclick={newPuzzle} disabled={newBusy || session.loading}
 				>New Puzzle</button
 			>
@@ -600,7 +606,9 @@
 <!-- Printed: the empty puzzle only -->
 {#if session.puzzle && session.state}
 	<div class="print-only">
-		<p class="mb-2 text-sm">{game.name} · {variant.label} · Puzzle ID {session.puzzleId}</p>
+		<p class="mb-2 text-sm">
+			{game.name} · {variant.label}{session.puzzleId ? ` · Puzzle ID ${session.puzzleId}` : ''}
+		</p>
 		<Board
 			puzzle={session.puzzle}
 			state={session.state}

@@ -25,8 +25,8 @@ export function decodePuzzleId(id: number): { variantIndex: number; seed: number
 	return { variantIndex: id % VARIANT_SLOTS, seed: Math.floor(id / VARIANT_SLOTS) };
 }
 
-export function randomSeed(): number {
-	return 1 + Math.floor(Math.random() * (SEED_SPACE - 1));
+export function randomSeed(random: () => number = Math.random): number {
+	return 1 + Math.floor(random() * (SEED_SPACE - 1));
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');

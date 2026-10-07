@@ -1,6 +1,21 @@
 import { GAME_LOGIC } from '../src/lib/games/logic';
-import { decodePuzzleId } from '../src/lib/core/variants';
+import type { Variant } from '../src/lib/core/variants';
+import {
+	decodePuzzleId,
+	encodePuzzleId,
+	periodKey,
+	randomSeed,
+	specialSeed
+} from '../src/lib/core/variants';
 import type { Scope, Store } from './store';
+
+export interface ApiOptions {
+	/**
+	 * Generate puzzles on the server. The client then never learns the seed of a ranked puzzle,
+	 * and ranked times are measured by the server from the moment the puzzle was issued.
+	 */
+	serverPuzzles?: boolean;
+}
 
 /**
  * JSON API of the optional server. All game rules are verified with the same logic the client
@@ -79,9 +94,73 @@ function scopeOf(game: string, variantKey: string, puzzleId: number | null): Sco
 	return { game, variant: variantKey, puzzleId: variant.special ? puzzleId : null };
 }
 
-async function submitScore(req: Request, store: Store) {
+const secureRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
+
+/** Generate a puzzle for a player and remember it; the seed of regular puzzles stays secret. */
+async function issuePuzzle(req: Request, store: Store) {
 	const player = await auth(req, store);
 	const b = await body(req);
+	const game = String(b.game);
+	const logic = GAME_LOGIC[game];
+	const index = logic ? logic.variants.findIndex((v) => v.key === b.variant) : -1;
+	if (index < 0) throw new HttpError(400, 'Unknown game or puzzle type');
+	const variant = logic.variants[index];
+	const seed = variant.special
+		? specialSeed(game, variant.special, periodKey(variant.special))
+		: randomSeed(secureRandom);
+	const puzzleId = encodePuzzleId(index, seed);
+	const puzzle = logic.generate(variant, seed);
+	const ticket = newToken();
+	const issuedAt = Date.now();
+	await store.createTicket({
+		id: ticket,
+		playerId: player.id,
+		game,
+		variant: variant.key,
+		puzzleId,
+		puzzle: JSON.stringify(puzzle),
+		issuedAt,
+		solvedAt: null
+	});
+	// Special puzzles are the same for everyone, so their ID is no secret.
+	return json({ ticket, puzzle, issuedAt, puzzleId: variant.special ? puzzleId : null }, 201);
+}
+
+/** Solve of a server-issued puzzle: the stored puzzle and the server clock count. */
+async function submitTicket(player: { id: string }, b: Record<string, unknown>, store: Store) {
+	const ticket = await store.getTicket(String(b.ticket));
+	if (!ticket || ticket.playerId !== player.id) throw new HttpError(400, 'Unknown puzzle ticket');
+	const logic = GAME_LOGIC[ticket.game];
+	const puzzle = JSON.parse(ticket.puzzle);
+	if (typeof b.answer !== 'string' || !logic.verifyAnswer(puzzle, b.answer)) {
+		return json({ ok: false, message: 'That is not the solution yet.' });
+	}
+	const now = Date.now();
+	if (!(await store.solveTicket(ticket.id, now))) {
+		return json({
+			ok: true,
+			puzzleId: ticket.puzzleId,
+			message: 'Solved! (You solved this puzzle before.)'
+		});
+	}
+	const playMs = Math.max(0, Math.round(Number(b.playMs)) || 0);
+	return recordScore(player, store, {
+		game: ticket.game,
+		variant: logic.variants.find((v) => v.key === ticket.variant)!,
+		puzzleId: ticket.puzzleId,
+		timeMs: now - ticket.issuedAt,
+		playMs,
+		competitive: b.competitive !== false,
+		unranked: null
+	});
+}
+
+async function submitScore(req: Request, store: Store, options: ApiOptions) {
+	const player = await auth(req, store);
+	const b = await body(req);
+	if (options.serverPuzzles && typeof b.ticket === 'string') {
+		return submitTicket(player, b, store);
+	}
 	const game = String(b.game);
 	const logic = GAME_LOGIC[game];
 	if (!logic) throw new HttpError(400, 'Unknown game');
@@ -102,8 +181,33 @@ async function submitScore(req: Request, store: Store) {
 	const timeMs = Math.round(Number(b.timeMs));
 	const playMs = Math.round(Number(b.playMs));
 	if (!(timeMs > 0) || !(playMs >= 0)) throw new HttpError(400, 'Invalid time');
-	const competitive = b.competitive !== false;
+	return recordScore(player, store, {
+		game,
+		variant,
+		puzzleId,
+		timeMs,
+		playMs,
+		competitive: b.competitive !== false,
+		// With server puzzles only those are ranked: a client that knows the seed knows the solution.
+		unranked: options.serverPuzzles ? 'only puzzles from the server are ranked' : null
+	});
+}
 
+async function recordScore(
+	player: { id: string },
+	store: Store,
+	s: {
+		game: string;
+		variant: Variant;
+		puzzleId: number;
+		timeMs: number;
+		playMs: number;
+		competitive: boolean;
+		unranked: string | null;
+	}
+) {
+	const { game, variant, puzzleId, timeMs, playMs } = s;
+	const competitive = s.competitive && !s.unranked;
 	const added = await store.addScore({
 		playerId: player.id,
 		game,
@@ -114,25 +218,24 @@ async function submitScore(req: Request, store: Store) {
 		competitive,
 		createdAt: Date.now()
 	});
-	const shown = competitive ? timeMs : playMs;
+	const shown = s.competitive ? timeMs : playMs;
+	const base = { ok: true, puzzleId };
 	if (!added) {
 		return json({
-			ok: true,
+			...base,
 			message: `Solved in ${formatTime(shown)}! (You solved this puzzle before.)`
 		});
 	}
 	if (!competitive) {
-		return json({
-			ok: true,
-			message: `Solved in ${formatTime(shown)}! Personal timer: not ranked.`
-		});
+		const why = s.unranked ?? 'personal timer';
+		return json({ ...base, message: `Solved in ${formatTime(shown)}! Not ranked: ${why}.` });
 	}
 	const scope = scopeOf(game, variant.key, puzzleId);
 	const [mine, total] = await Promise.all([store.rank(scope, player.id), store.players(scope)]);
 	const best =
 		mine && mine.row.timeMs < timeMs ? ` Your best is ${formatTime(mine.row.timeMs)}.` : '';
 	return json({
-		ok: true,
+		...base,
 		rank: mine?.rank,
 		total,
 		message: `Solved in ${formatTime(timeMs)}! Rank ${mine?.rank ?? '–'} of ${total} on ${variant.label}.${best}`
@@ -168,12 +271,20 @@ async function getBoard(url: URL, req: Request, store: Store) {
 	});
 }
 
-export async function handleApi(req: Request, store: Store): Promise<Response> {
+export async function handleApi(
+	req: Request,
+	store: Store,
+	options: ApiOptions = {}
+): Promise<Response> {
 	const url = new URL(req.url);
 	const path = url.pathname.replace(/^.*?\/api\//, '/');
 	const method = req.method;
 	try {
-		if (path === '/health') return json({ ok: true });
+		if (path === '/health') return json({ ok: true, serverPuzzles: !!options.serverPuzzles });
+
+		if (path === '/puzzles' && method === 'POST' && options.serverPuzzles) {
+			return await issuePuzzle(req, store);
+		}
 
 		if (path === '/player') {
 			if (method === 'POST') {
@@ -214,7 +325,7 @@ export async function handleApi(req: Request, store: Store): Promise<Response> {
 		}
 
 		if (path === '/scores') {
-			if (method === 'POST') return await submitScore(req, store);
+			if (method === 'POST') return await submitScore(req, store, options);
 			if (method === 'GET') return await getBoard(url, req, store);
 		}
 
