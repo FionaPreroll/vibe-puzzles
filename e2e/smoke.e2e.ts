@@ -9,7 +9,7 @@ test('home lists the games', async ({ page }) => {
 for (const game of ['tetroid', 'pinwheel']) {
 	test(`${game} generates and renders a board`, async ({ page }) => {
 		await page.goto(`/${game}?v=${game === 'tetroid' ? '6n' : '5n'}`);
-		await expect(page.getByText(/Puzzle ID/i)).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 		await expect(page.getByRole('grid', { name: 'Puzzle board' }).first()).toBeVisible();
 	});
 }
@@ -39,7 +39,7 @@ test('the first visit opens the tutorial, which can be solved', async ({ page })
 	}
 	await expect(page.getByText('Well done!')).toBeVisible();
 	await page.getByRole('link', { name: 'Play a real puzzle' }).click();
-	await expect(page.getByText(/Puzzle ID/i)).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 });
 
 test('switches to German', async ({ page }) => {
@@ -73,7 +73,7 @@ test('works offline after the first visit', async ({ page, context }) => {
 	});
 	await context.setOffline(true);
 	await page.goto('/tetroid?v=6n');
-	await expect(page.getByText(/Puzzle ID/i)).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 	await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible();
 	await context.setOffline(false);
 });
