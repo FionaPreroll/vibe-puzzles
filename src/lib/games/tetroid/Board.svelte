@@ -2,6 +2,7 @@
 	import { columnLabel } from '../../core/grid';
 	import type { BoardProps } from '../../core/types';
 	import { analyze, CROSS, EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from './rules';
+	import { t } from '../../i18n/index.svelte';
 
 	let {
 		puzzle,
@@ -378,7 +379,7 @@
 			: 'pan-x pan-y pinch-zoom'}
 	role="grid"
 	tabindex="-1"
-	aria-label="Puzzle board"
+	aria-label={t('game.board')}
 	{onpointerdown}
 	{onpointermove}
 	{onpointerup}

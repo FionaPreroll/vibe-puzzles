@@ -92,4 +92,6 @@ export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	board: Component<BoardProps<P, S>>;
 	/** Small static preview for the home page. */
 	icon: string;
+	/** A small hand-picked first puzzle for the interactive tutorial (texts in the translations). */
+	tutorial?: { puzzle: P; start(puzzle: P): S };
 }

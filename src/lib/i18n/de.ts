@@ -230,7 +230,7 @@ const de: Dictionary = {
 				'Tippe eine Zelle an, um zwischen schattiert, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Zellen.',
 			tutorial: [
 				'Jeder dick umrandete Bereich braucht genau ein Tetromino: vier schattierte Zellen in einer Reihe, als L, T oder S.',
-				'Dieses kleine Brett hat vier Bereiche. Der Bereich oben links ist schon fertig: Er enthält ein L.',
+				'Dieses kleine Brett hat vier Bereiche. Der Bereich oben links ist schon fertig: Er enthält ein S.',
 				'Alle schattierten Zellen müssen verbunden sein, und keine 2×2-Fläche darf schattiert sein. Gleiche Formen dürfen sich über eine Bereichsgrenze nicht berühren.',
 				'Jetzt löse das Brett: Schattiere in jedem anderen Bereich ein Tetromino. Falsche Stellen werden rot.'
 			]

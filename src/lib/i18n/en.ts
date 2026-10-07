@@ -228,7 +228,7 @@ const en = {
 				'Tap a cell to cycle through shaded, cross and empty. Hold a moment, then drag to paint several cells.',
 			tutorial: [
 				'Each region with a thick border needs exactly one tetromino: four shaded cells in a row, an L, a T or an S shape.',
-				'This small board has four regions. The top-left region is already done: it holds an L.',
+				'This small board has four regions. The top-left region is already done: it holds an S.',
 				'Shaded cells must all connect, and no 2×2 block may be shaded. Same shapes may not touch across a region border.',
 				'Now finish the board: shade one tetromino in each of the other regions. Wrong spots turn red.'
 			]

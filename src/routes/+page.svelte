@@ -12,6 +12,7 @@
 		dailyKey: string | null;
 		dailyDone: boolean;
 		dailyStreak: number;
+		tutorialDone: boolean;
 	}
 
 	let resume = $state<{ game: (typeof GAMES)[number]; save: SavedGame } | null>(null);
@@ -32,7 +33,8 @@
 			status[game.id] = {
 				dailyKey: daily?.key ?? null,
 				dailyDone: !!stats && stats.lastPeriod === periodKey('daily'),
-				dailyStreak: stats ? currentPeriodStreak(stats, 'daily') : 0
+				dailyStreak: stats ? currentPeriodStreak(stats, 'daily') : 0,
+				tutorialDone: load<boolean>(`tutorialDone:${game.id}`, false)
 			};
 		}
 	});
@@ -98,8 +100,13 @@
 					{/if}
 				</a>
 			{/if}
-			<div class="mt-3 flex items-center gap-2">
+			<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
 				<a class="btn btn-primary" href={gameUrl(game.id)}>{t('home.play')}</a>
+				{#if game.tutorial && s && !s.tutorialDone}
+					<a class="link text-sm" href={resolve('/[game]/tutorial', { game: game.id })}
+						>{t('home.tutorial', { game: game.name })}</a
+					>
+				{/if}
 			</div>
 		</li>
 	{/each}

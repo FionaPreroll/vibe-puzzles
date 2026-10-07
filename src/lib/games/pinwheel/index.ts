@@ -1,8 +1,9 @@
 import { withCommon } from '../../core/settings';
+import { PINWHEEL_TUTORIAL } from './tutorial';
 import type { GameModule } from '../../core/types';
 import Board, { NOTE_COLOURS } from './Board.svelte';
 import { pinwheelLogic } from './logic';
-import type { PinwheelPuzzle, PinwheelState } from './rules';
+import { emptyPinwheelState, type PinwheelPuzzle, type PinwheelState } from './rules';
 
 const SWATCH_NAMES = ['', 'Violet', 'Red', 'Yellow', 'Green', 'Blue'];
 
@@ -35,5 +36,6 @@ export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState> = {
 		{ key: 'blackHoles', label: 'Black hole in completed galaxies', default: false },
 		{ key: 'autoColor', label: 'Auto color completed galaxies', default: false }
 	]),
+	tutorial: { puzzle: PINWHEEL_TUTORIAL, start: emptyPinwheelState },
 	board: Board
 };

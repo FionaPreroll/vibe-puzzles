@@ -1,4 +1,5 @@
 import { withCommon } from '../../core/settings';
+import { TETROID_TUTORIAL, tetroidTutorialStart } from './tutorial';
 import type { GameModule } from '../../core/types';
 import Board from './Board.svelte';
 import { tetroidLogic } from './logic';
@@ -23,5 +24,6 @@ export const tetroid: GameModule<TetroidPuzzle, TetroidState> = {
 		{ key: 'autoCrossCorners', label: 'Auto place X on corners', default: false },
 		{ key: 'autoCrossRegions', label: 'Auto place X in completed regions', default: false }
 	]),
+	tutorial: { puzzle: TETROID_TUTORIAL, start: tetroidTutorialStart },
 	board: Board
 };

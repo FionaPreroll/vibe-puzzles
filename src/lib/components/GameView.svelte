@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { replaceState } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import { currentPlayer, pullSave, pushSave, serverAvailable } from '../client/api';
 	import {
 		cleanupSpecialSaves,
@@ -176,6 +176,14 @@
 			if (confirm(t('game.storageFull'))) clearOldSaves();
 		});
 		const params = new URL(location.href).searchParams;
+		// The very first visit of a game starts with its tutorial.
+		if (game.tutorial && params.size === 0 && !load<boolean>(`tutorialSeen:${game.id}`, false)) {
+			save(`tutorialSeen:${game.id}`, true);
+			if (!load<boolean>(`tutorialDone:${game.id}`, false)) {
+				goto(resolve('/[game]/tutorial', { game: game.id }), { replaceState: true });
+				return;
+			}
+		}
 		const id = Number(params.get('id')) || undefined;
 		session
 			.open(params.get('v') ?? game.variants[0].key, {
@@ -468,6 +476,11 @@
 				<a class="link" href="{resolve('/scores')}?game={game.id}&v={variant.key}"
 					>{t('game.scoresLink')}</a
 				>
+				{#if game.tutorial}
+					<a class="link" href={resolve('/[game]/tutorial', { game: game.id })}
+						>{t('game.tutorial')}</a
+					>
+				{/if}
 			</p>
 		{/if}
 	</aside>
