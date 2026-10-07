@@ -12,9 +12,9 @@
 		"run_worker_first": ["/api/*"]
 	},
 	"vars": {
-		// "true" generates puzzles on the server so ranked players never see the seed. Large
-		// puzzles need more CPU time than the Workers free plan allows (see README).
-		"SERVER_PUZZLES": "false"
+		// "true" hands out puzzles from the server so ranked times are measured by the server. The
+		// server only uses the pre-generated collection in static/puzzles (see README).
+		"SERVER_PUZZLES": "true"
 	},
 	"d1_databases": [
 		{

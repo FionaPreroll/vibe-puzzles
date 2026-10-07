@@ -141,4 +141,23 @@ describe.each([
 		expect(await store.solveTicket('t2', 300)).toBe(false);
 		expect((await store.getTicket('t1'))?.solvedAt).toBe(200);
 	});
+
+	it('lists the puzzles a player was issued or solved', async () => {
+		const store = await withPlayers('ann', 'bob');
+		const ticket = {
+			playerId: 'ann',
+			game: 'tetroid',
+			variant: '6n',
+			puzzle: '{}',
+			solvedAt: null
+		};
+		await store.createTicket({ ...ticket, id: 't1', puzzleId: 7, issuedAt: 1 });
+		await store.createTicket({ ...ticket, id: 't2', puzzleId: 8, issuedAt: 2, variant: '8n' });
+		await store.addScore(score('ann', 100, { puzzleId: 9 }));
+		await store.addScore(score('ann', 100, { puzzleId: 7 }));
+		await store.addScore(score('bob', 100, { puzzleId: 10 }));
+		expect(await store.playedPuzzles('ann', 'tetroid', '6n')).toEqual(new Set([7, 9]));
+		expect(await store.playedPuzzles('ann', 'tetroid', '8n')).toEqual(new Set([8]));
+		expect(await store.playedPuzzles('ann', 'pinwheel', '6n')).toEqual(new Set());
+	});
 });

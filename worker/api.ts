@@ -1,4 +1,5 @@
 import { GAME_LOGIC } from '../src/lib/games/logic';
+import type { BankEntry, PuzzleBank } from '../src/lib/core/bank';
 import type { Variant } from '../src/lib/core/variants';
 import {
 	decodePuzzleId,
@@ -7,6 +8,7 @@ import {
 	randomSeed,
 	specialSeed
 } from '../src/lib/core/variants';
+import type { BankLoader } from './bank';
 import type { Scope, Store } from './store';
 
 export interface ApiOptions {
@@ -15,6 +17,11 @@ export interface ApiOptions {
 	 * and ranked times are measured by the server from the moment the puzzle was issued.
 	 */
 	serverPuzzles?: boolean;
+	/**
+	 * Take server puzzles from the pre-generated collection instead of generating them, which
+	 * keeps every request within the CPU limits of Cloudflare Workers.
+	 */
+	bank?: BankLoader;
 }
 
 /**
@@ -96,8 +103,20 @@ function scopeOf(game: string, variantKey: string, puzzleId: number | null): Sco
 
 const secureRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
 
-/** Generate a puzzle for a player and remember it; the seed of regular puzzles stays secret. */
-async function issuePuzzle(req: Request, store: Store) {
+/** A random puzzle from the collection, preferring ones the player has not had yet. */
+async function pickFromBank(
+	bank: PuzzleBank,
+	playerId: string,
+	store: Store
+): Promise<BankEntry | null> {
+	const played = await store.playedPuzzles(playerId, bank.game, bank.variant);
+	const fresh = bank.puzzles.filter((p) => !played.has(p.id));
+	const pool = fresh.length ? fresh : bank.puzzles;
+	return pool.length ? pool[Math.floor(secureRandom() * pool.length)] : null;
+}
+
+/** Hand out a puzzle to a player and remember it; the ID of regular puzzles stays secret. */
+async function issuePuzzle(req: Request, store: Store, options: ApiOptions) {
 	const player = await auth(req, store);
 	const b = await body(req);
 	const game = String(b.game);
@@ -105,11 +124,26 @@ async function issuePuzzle(req: Request, store: Store) {
 	const index = logic ? logic.variants.findIndex((v) => v.key === b.variant) : -1;
 	if (index < 0) throw new HttpError(400, 'Unknown game or puzzle type');
 	const variant = logic.variants[index];
-	const seed = variant.special
-		? specialSeed(game, variant.special, periodKey(variant.special))
-		: randomSeed(secureRandom);
-	const puzzleId = encodePuzzleId(index, seed);
-	const puzzle = logic.generate(variant, seed);
+	let puzzleId: number;
+	let puzzle: unknown;
+	if (options.bank) {
+		const bank = await options.bank(game, variant.key);
+		const entry = !bank
+			? null
+			: variant.special
+				? bank.puzzles.find((p) => p.period === periodKey(variant.special!))
+				: await pickFromBank(bank, player.id, store);
+		if (!entry || !logic.isValidPuzzle(entry.puzzle, variant)) {
+			throw new HttpError(503, 'No pre-generated puzzle available');
+		}
+		({ id: puzzleId, puzzle } = entry);
+	} else {
+		const seed = variant.special
+			? specialSeed(game, variant.special, periodKey(variant.special))
+			: randomSeed(secureRandom);
+		puzzleId = encodePuzzleId(index, seed);
+		puzzle = logic.generate(variant, seed);
+	}
 	const ticket = newToken();
 	const issuedAt = Date.now();
 	await store.createTicket({
@@ -292,7 +326,7 @@ export async function handleApi(
 		if (path === '/health') return json({ ok: true, serverPuzzles: !!options.serverPuzzles });
 
 		if (path === '/puzzles' && method === 'POST' && options.serverPuzzles) {
-			return await issuePuzzle(req, store);
+			return await issuePuzzle(req, store, options);
 		}
 
 		if (path === '/player') {

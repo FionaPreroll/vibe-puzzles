@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { specialPuzzleId, upcomingPeriods } from './bank';
 import { columnLabel, neighbours, packDigits, unpackDigits } from './grid';
 import { hashString, Rng } from './rng';
 import { COMMON_SETTINGS, withCommon } from './settings';
@@ -158,6 +159,27 @@ describe('variants', () => {
 		// Sunday ends the ISO week.
 		expect(periodKey('weekly', new Date(Date.UTC(2026, 9, 11)))).toBe('2026-W41');
 		expect(periodKey('weekly', new Date(Date.UTC(2026, 9, 12)))).toBe('2026-W42');
+	});
+
+	it('lists the coming periods of a special type', () => {
+		const from = new Date(Date.UTC(2026, 11, 30, 12));
+		expect(upcomingPeriods('daily', 3, from)).toEqual(['2026-12-30', '2026-12-31', '2027-01-01']);
+		expect(upcomingPeriods('weekly', 3, from)).toEqual(['2026-W53', '2027-W01', '2027-W02']);
+		expect(upcomingPeriods('monthly', 3, from)).toEqual(['2026-12', '2027-01', '2027-02']);
+		// The 31st does not skip a short month.
+		expect(upcomingPeriods('monthly', 2, new Date(Date.UTC(2027, 0, 31)))).toEqual([
+			'2027-01',
+			'2027-02'
+		]);
+		expect(upcomingPeriods('daily', 0)).toEqual([]);
+	});
+
+	it('derives special puzzle IDs from the period', () => {
+		const id = specialPuzzleId('tetroid', 10, 'daily', '2026-10-07');
+		expect(decodePuzzleId(id)).toEqual({
+			variantIndex: 10,
+			seed: specialSeed('tetroid', 'daily', '2026-10-07')
+		});
 	});
 
 	it('gives every player the same special seed for a period', () => {

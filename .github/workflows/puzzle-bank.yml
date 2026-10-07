@@ -1,6 +1,7 @@
 name: Grow puzzle collection
 
-# Adds freshly generated puzzles to static/puzzles on dev once a week (or by hand). Every puzzle
+# Adds freshly generated puzzles to static/puzzles on dev once a week (or by hand), including the
+# special puzzles of the coming periods for the server (see README). Every puzzle
 # is checked for a unique solution before it is committed.
 on:
   schedule:
@@ -10,6 +11,9 @@ on:
       per_variant:
         description: New puzzles per puzzle type
         default: '5'
+      max_minutes:
+        description: Time limit for generating, in minutes (at most 300)
+        default: '30'
 
 permissions:
   contents: read
@@ -21,6 +25,7 @@ concurrency:
 jobs:
   grow:
     runs-on: ubuntu-latest
+    timeout-minutes: 330
     # Pushes the new puzzles to dev.
     permissions:
       contents: write
@@ -33,9 +38,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run bank:grow -- --per-variant "$PER_VARIANT" --max-minutes 30
+      - run: npm run bank:grow -- --per-variant "$PER_VARIANT" --max-minutes "$MAX_MINUTES"
         env:
           PER_VARIANT: ${{ inputs.per_variant || '5' }}
+          MAX_MINUTES: ${{ inputs.max_minutes || '30' }}
       - run: npx vitest --run src/lib/games/bank.test.ts
       - name: Commit new puzzles
         run: |
