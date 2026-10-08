@@ -4,9 +4,14 @@ import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { checkShippedLicenses, readLicense } from './scripts/licenses.ts';
 
-const pkg = (name: string) =>
-	JSON.parse(readFileSync(`${name ? `node_modules/${name}/` : ''}package.json`, 'utf8'));
+/**
+ * Open source packages whose code (or, for Tailwind CSS, generated styles) ships with the app.
+ * The About page shows each with its licence text; the build fails if the browser code holds a
+ * package that is missing here.
+ */
+const SHIPPED_PACKAGES = ['svelte', '@sveltejs/kit', 'devalue', 'clsx', 'tailwindcss'];
 
 function commit(): string {
 	if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
@@ -19,21 +24,21 @@ function commit(): string {
 	}
 }
 
-/** Shown on the About page. */
+/** Shown in the footer and on the About page. */
 const build = {
-	version: pkg('').version as string,
+	version: JSON.parse(readFileSync('package.json', 'utf8')).version as string,
 	commit: commit(),
-	date: new Date().toISOString(),
-	// Libraries whose code or generated styles ship with the app.
-	licenses: ['svelte', '@sveltejs/kit', 'tailwindcss'].map((name) => {
-		const p = pkg(name);
-		return { name, version: p.version as string, license: p.license as string };
-	})
+	date: new Date().toISOString()
 };
 
 export default defineConfig({
-	define: { __BUILD__: JSON.stringify(build) },
+	define: {
+		__BUILD__: JSON.stringify(build),
+		// Separate from __BUILD__, which every page uses: only the About page carries the texts.
+		__LICENSES__: JSON.stringify(SHIPPED_PACKAGES.map((name) => readLicense('.', name)))
+	},
 	plugins: [
+		checkShippedLicenses(SHIPPED_PACKAGES),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {
@@ -51,7 +56,7 @@ export default defineConfig({
 		coverage: {
 			provider: 'v8',
 			// Svelte components are covered by the Playwright suites, which report no coverage.
-			include: ['src/**/*.{js,ts}', 'worker/**/*.ts'],
+			include: ['src/**/*.{js,ts}', 'worker/**/*.ts', 'scripts/licenses.ts'],
 			exclude: ['src/test/**', '**/*.test.ts'],
 			reporter: ['text-summary', 'lcov']
 		},
@@ -61,7 +66,7 @@ export default defineConfig({
 				test: {
 					name: 'server',
 					environment: 'node',
-					include: ['src/**/*.{test,spec}.{js,ts}', 'worker/**/*.test.ts'],
+					include: ['src/**/*.{test,spec}.{js,ts}', 'worker/**/*.test.ts', 'scripts/**/*.test.ts'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
 			}

@@ -101,11 +101,18 @@
 	<section class="panel text-sm">
 		<h2 class="section-title">{t('about.licenses')}</h2>
 		<p class="mt-2">{t('about.licensesNote')}</p>
-		<ul class="mt-2 space-y-1">
-			{#each build.licenses as l (l.name)}
+		<ul class="mt-2 space-y-2">
+			{#each __LICENSES__ as l (l.name)}
 				<li>
-					<a class="link" href="https://www.npmjs.com/package/{l.name}">{l.name}</a>
+					<a class="link" href={l.url}>{l.name}</a>
 					{l.version} · {l.license}
+					<details class="mt-1">
+						<summary class="cursor-pointer text-stone-600 dark:text-stone-400">
+							{t('about.licenseText', { name: l.name })}
+						</summary>
+						<pre
+							class="mt-1 max-h-64 overflow-auto rounded-md bg-stone-100 p-3 text-xs whitespace-pre-wrap dark:bg-stone-800">{l.text}</pre>
+					</details>
 				</li>
 			{/each}
 		</ul>

@@ -252,6 +252,7 @@ const en = {
 		built: 'Built',
 		source: 'Source code',
 		licenses: 'Licences',
+		licenseText: 'Licence text of {name}',
 		licensesNote: 'The app is built with these open source libraries:',
 		puzzleTypes:
 			'Tetroid follows the rules of LITS, Pinwheel those of Tentai Show (Galaxies), both classic puzzle types from Japan. Sudoku and its mode Calcudoku keep their usual rules.',
