@@ -113,6 +113,16 @@ describe('rules', () => {
 		expect(digitsOf(s.notes[2])).toEqual([1, 2, 4]);
 		expect(s.notes[0]).toBe(0);
 		expect(fillMissingNotes(easy, s)).toBe(s);
+		// A cell with no possible digit left stays without notes.
+		let stuck = fillNotes(easy, emptySudokuState(easy));
+		for (const [i, d] of [
+			[3, 1],
+			[5, 2],
+			[6, 4]
+		])
+			stuck = placeDigit(easy, stuck, i, d);
+		stuck = { ...stuck, notes: stuck.notes.map((m, i) => (i === 2 ? 0 : m)) };
+		expect(fillMissingNotes(easy, stuck)).toBe(stuck);
 	});
 
 	it('removes notes that a placed digit rules out', () => {
