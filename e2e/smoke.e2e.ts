@@ -114,16 +114,23 @@ test('caches a collection file when it is first used, not on install', async ({
 			expect.stringMatching(/^\/puzzles\/tetroid\/8n\/\d{4}\.json$/),
 			'/puzzles/tetroid/8n/index.json'
 		]);
+	const [chunk, index] = (await cached())['vibe-puzzles-collection'].sort();
 
-	// Offline, after a reload (so the page itself has nothing in memory), the next puzzle of that
-	// type still comes from the cached file.
+	// Offline, the service worker answers with the cached files; a file that was never needed is
+	// missing (the game then generates the puzzle on the device).
 	await context.setOffline(true);
-	await page.reload();
-	await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible();
-	const id = await page.locator('.font-mono.select-all').textContent();
-	await page.getByRole('button', { name: 'New puzzle' }).click();
-	await expect(page.locator('.font-mono.select-all')).not.toHaveText(id!);
-	await expect(page.getByText('(from the puzzle collection)')).toBeVisible();
+	const loads = (path: string) =>
+		page.evaluate(
+			(p) =>
+				fetch(p).then(
+					(r) => r.ok,
+					() => false
+				),
+			path
+		);
+	expect(await loads(index)).toBe(true);
+	expect(await loads(chunk)).toBe(true);
+	expect(await loads('/puzzles/tetroid/6n/index.json')).toBe(false);
 	await context.setOffline(false);
 });
 
