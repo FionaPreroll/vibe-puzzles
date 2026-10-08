@@ -3,7 +3,8 @@
 	import { resolve } from '$app/paths';
 	import { page, updated } from '$app/state';
 	import favicon from '#lib/assets/favicon.svg';
-	import { setNight, theme } from '#lib/client/settings.svelte.ts';
+	import { followSystemTheme, setNight, theme } from '#lib/client/settings.svelte.ts';
+	import { paletteCss } from '#lib/core/palette.ts';
 	import { i18n, initLocale, LOCALES, setLocale, t, type Locale } from '#lib/i18n/index.svelte.ts';
 	import type { LayoutProps } from './$types';
 
@@ -36,6 +37,7 @@
 	$effect(() => {
 		document.documentElement.classList.toggle('dark', theme.night);
 	});
+	$effect(followSystemTheme);
 
 	const nav = $derived([
 		{ href: resolve('/'), label: t('nav.games'), match: (p: string) => p === resolve('/') },
@@ -54,6 +56,9 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<!-- The board colours as CSS variables, built from a constant in palette.ts -->
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+	{@html `<style>${paletteCss()}</style>`}
 </svelte:head>
 
 <header

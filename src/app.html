@@ -7,6 +7,17 @@
 		<meta name="theme-color" content="#4f46e5" />
 		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/icon-192.png" />
+		<script>
+			// Night mode before the first paint, by the rule of `theme` in settings.svelte.ts.
+			try {
+				const night = JSON.parse(localStorage.getItem('vp:night'));
+				if (night ?? matchMedia('(prefers-color-scheme: dark)').matches) {
+					document.documentElement.classList.add('dark');
+				}
+			} catch {
+				// No storage: the app applies night mode once it starts.
+			}
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

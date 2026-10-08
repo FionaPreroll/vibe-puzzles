@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryStorage } from '../../test/memory-storage';
 import { load, save } from './storage';
 import {
+	followSystemTheme,
 	GameSettings,
 	loadTool,
 	loadTouchMode,
@@ -45,6 +46,53 @@ describe('night mode', () => {
 		expect(load('night', false)).toBe(true);
 		setNight(false);
 		expect(load('night', true)).toBe(false);
+	});
+});
+
+describe('night mode from the system', () => {
+	/** A colour scheme query whose result the test can change. */
+	function stubScheme(dark: boolean) {
+		const listeners = new Set<() => void>();
+		const query = {
+			matches: dark,
+			addEventListener: (_: string, f: () => void) => listeners.add(f),
+			removeEventListener: (_: string, f: () => void) => listeners.delete(f)
+		};
+		vi.stubGlobal('matchMedia', () => query);
+		return {
+			listeners,
+			set(next: boolean) {
+				query.matches = next;
+				for (const f of listeners) f();
+			}
+		};
+	}
+
+	it('follows the system until the player chooses', () => {
+		const scheme = stubScheme(true);
+		const stop = followSystemTheme();
+		expect(theme.night).toBe(true);
+		scheme.set(false);
+		expect(theme.night).toBe(false);
+
+		setNight(true);
+		scheme.set(false);
+		expect(theme.night).toBe(true);
+		stop();
+		expect(scheme.listeners.size).toBe(0);
+	});
+
+	it('starts from the system when the app loads', async () => {
+		stubScheme(true);
+		vi.resetModules();
+		const fresh = await import('./settings.svelte');
+		expect(fresh.theme.night).toBe(true);
+	});
+
+	it('does nothing without matchMedia (server rendering, tests)', () => {
+		setNight(false);
+		followSystemTheme()();
+		expect(theme.night).toBe(false);
 	});
 });
 

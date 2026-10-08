@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { CELEBRATION_COLOURS, colourRegions, columnLabel } from '../../core/grid';
+	import { colours } from '../../core/palette';
 	import type { BoardProps } from '../../core/types';
 	import { t } from '../../i18n/index.svelte';
 	import {
@@ -51,8 +52,8 @@
 
 	const grid = $derived(blank ? puzzle.givens : currentGrid(puzzle, board));
 	const clashes = $derived(conflicts(size, grid, !calc));
-	const errorColour = $derived(settings.blueErrors ? '#1e3a8a' : '#dc2626');
-	const errorFill = $derived(settings.blueErrors ? '#dbeafe' : '#fee2e2');
+	const errorColour = $derived(settings.blueErrors ? colours.blueError : colours.error);
+	const errorFill = $derived(settings.blueErrors ? colours.blueErrorFill : colours.errorFill);
 
 	/** The solution, only worked out when wrong digits are to be shown. */
 	const solution = $derived(
@@ -121,18 +122,18 @@
 	});
 
 	function fillOf(i: number): string {
-		if (blank) return '#ffffff';
-		if (i === selected) return '#fde68a';
+		if (blank) return colours.surface;
+		if (i === selected) return colours.selection;
 		if ((settings.highlightErrors && clashes[i]) || wrong?.[i]) return errorFill;
-		if (selectedDigit && grid[i] === selectedDigit) return '#bfdbfe';
-		if (inSelectedUnits(i)) return '#e5edf8';
-		return '#ffffff';
+		if (selectedDigit && grid[i] === selectedDigit) return colours.sameDigit;
+		if (inSelectedUnits(i)) return colours.unit;
+		return colours.surface;
 	}
 
 	function textColour(i: number): string {
-		if (puzzle.givens[i]) return '#111827';
+		if (puzzle.givens[i]) return colours.ink;
 		if ((settings.highlightErrors && clashes[i]) || wrong?.[i]) return errorColour;
-		return '#1d4ed8';
+		return colours.entered;
 	}
 
 	// ---- Input --------------------------------------------------------------------------------
@@ -232,8 +233,8 @@
 	const celebrationFill = $derived.by(() => {
 		if (!celebrate || blank) return null;
 		const boxes = cageOf ?? geometry(size).box;
-		const colours = colourRegions(boxes, size, size, CELEBRATION_COLOURS.length);
-		return boxes.map((b) => CELEBRATION_COLOURS[colours[b]]);
+		const slot = colourRegions(boxes, size, size, CELEBRATION_COLOURS.length);
+		return boxes.map((b) => CELEBRATION_COLOURS[slot[b]]);
 	});
 
 	/** Notes sit in a small grid; under the cage label in Calcudoku. */
@@ -263,7 +264,7 @@
 		{onpointerdown}
 		oncontextmenu={(e) => e.preventDefault()}
 	>
-		<rect x={pad} y={pad} width={size * cellSize} height={size * cellSize} fill="#ffffff" />
+		<rect x={pad} y={pad} width={size * cellSize} height={size * cellSize} fill={colours.surface} />
 		{#each grid as d, i (i)}
 			{@const x = pad + (i % size) * cellSize}
 			{@const y = pad + Math.floor(i / size) * cellSize}
@@ -283,14 +284,14 @@
 				<g
 					class="notes"
 					font-size={noteFont}
-					fill="#6b7280"
+					fill={colours.label}
 					text-anchor="middle"
 					dominant-baseline="central"
 				>
 					{#each digits as n (n)}
 						{#if board.notes[i] & bit(n)}
 							<text
-								fill={n === selectedDigit ? '#1d4ed8' : undefined}
+								fill={n === selectedDigit ? colours.entered : undefined}
 								font-weight={n === selectedDigit ? 700 : undefined}
 								x={x + (((n - 1) % noteCols) + 0.5) * (cellSize / noteCols)}
 								y={y +
@@ -319,7 +320,7 @@
 		{/if}
 
 		<!-- Thin cell lines -->
-		<g stroke="#4b5563" stroke-width="1" opacity="0.55">
+		<g stroke={colours.gridLine} stroke-width="1" opacity="0.55">
 			{#each { length: size - 1 } as _, k (k)}
 				<line
 					x1={pad + (k + 1) * cellSize}
@@ -337,7 +338,13 @@
 		</g>
 
 		<!-- Box or cage borders -->
-		<path d={boxLines} stroke="#111827" stroke-width="2.5" stroke-linecap="square" fill="none" />
+		<path
+			d={boxLines}
+			stroke={colours.ink}
+			stroke-width="2.5"
+			stroke-linecap="square"
+			fill="none"
+		/>
 		{#if calc}
 			<g class="cages" font-size={labelFont} font-weight="600" dominant-baseline="hanging">
 				{#each calc.cages as cage, k (k)}
@@ -345,7 +352,7 @@
 					<text
 						x={pad + (i % size) * cellSize + 3}
 						y={pad + Math.floor(i / size) * cellSize + 3}
-						fill={broken?.[k] ? errorColour : '#111827'}>{cageLabel(cage)}</text
+						fill={broken?.[k] ? errorColour : colours.ink}>{cageLabel(cage)}</text
 					>
 				{/each}
 			</g>
@@ -356,7 +363,7 @@
 			width={size * cellSize}
 			height={size * cellSize}
 			fill="none"
-			stroke="#111827"
+			stroke={colours.ink}
 			stroke-width="3"
 		/>
 
@@ -369,7 +376,7 @@
 					width={cellSize - 5}
 					height={cellSize - 5}
 					fill="none"
-					stroke="#2563eb"
+					stroke={colours.recent}
 					stroke-width="1.5"
 				/>
 			{/each}
@@ -377,7 +384,7 @@
 
 		{#if settings.showCoordinates && !blank}
 			<g
-				fill="#6b7280"
+				fill={colours.label}
 				font-size={Math.min(12, pad * 0.75)}
 				text-anchor="middle"
 				dominant-baseline="central"
@@ -397,7 +404,7 @@
 		<div class="mt-2 flex w-full gap-1 px-[3px]" role="toolbar" aria-label={t('games.sudoku.pad')}>
 			{#each digits as d (d)}
 				<button
-					class="relative flex-1 rounded-md border border-stone-300 bg-white font-semibold text-blue-700 shadow-sm active:bg-stone-100 disabled:opacity-40 dark:border-stone-600 dark:bg-stone-800 dark:text-blue-300"
+					class="relative flex-1 rounded-md border border-stone-300 bg-white font-semibold text-blue-700 shadow-sm active:bg-stone-100 disabled:opacity-60 dark:border-stone-600 dark:bg-stone-800 dark:text-blue-200"
 					style:height="{Math.min(56, cellSize * 0.95)}px"
 					style:font-size="{Math.min(28, cellSize * 0.5)}px"
 					class:opacity-40={settings.showRemaining && remaining[d] <= 0}
@@ -411,14 +418,14 @@
 					{d}
 					{#if settings.showRemaining}
 						<span
-							class="absolute top-0.5 right-1 text-[0.55em] font-normal text-stone-500 dark:text-stone-400"
+							class="absolute top-0.5 right-1 text-[0.55em] font-normal text-stone-600 dark:text-stone-300"
 							aria-hidden="true">{remaining[d]}</span
 						>
 					{/if}
 				</button>
 			{/each}
 			<button
-				class="flex-1 rounded-md border border-stone-300 bg-white text-stone-600 shadow-sm active:bg-stone-100 disabled:opacity-40 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-300"
+				class="flex-1 rounded-md border border-stone-300 bg-white text-stone-700 shadow-sm active:bg-stone-100 disabled:opacity-60 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200"
 				style:height="{Math.min(56, cellSize * 0.95)}px"
 				style:font-size="{Math.min(24, cellSize * 0.4)}px"
 				disabled={selected < 0}

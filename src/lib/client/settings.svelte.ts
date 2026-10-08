@@ -1,8 +1,31 @@
 import type { SettingInfo, Settings, TouchMode } from '../core/types';
 import { load, save } from './storage';
 
-/** Night mode applies to the whole site, so it lives outside the per-game settings. */
-export const theme = $state({ night: load<boolean>('night', false) });
+const DARK_SCHEME = '(prefers-color-scheme: dark)';
+
+/** The player's choice of night mode, null until they switch it. */
+const chosenNight = () => load<boolean | null>('night', null);
+
+const systemNight = () => typeof matchMedia === 'function' && matchMedia(DARK_SCHEME).matches;
+
+/**
+ * Night mode applies to the whole site, so it lives outside the per-game settings. Until the
+ * player switches it, it follows the system's colour scheme (app.html applies the same rule
+ * before the first paint).
+ */
+export const theme = $state({ night: chosenNight() ?? systemNight() });
+
+/** Keeps night mode in step with the system's colour scheme while the player has not chosen. */
+export function followSystemTheme(): () => void {
+	if (typeof matchMedia !== 'function') return () => {};
+	const scheme = matchMedia(DARK_SCHEME);
+	const follow = () => {
+		if (chosenNight() === null) theme.night = scheme.matches;
+	};
+	follow();
+	scheme.addEventListener('change', follow);
+	return () => scheme.removeEventListener('change', follow);
+}
 
 export function setNight(on: boolean) {
 	theme.night = on;

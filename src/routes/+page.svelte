@@ -87,7 +87,7 @@
 					href={gameUrl(game.id, s.dailyKey)}
 					class="mt-4 flex items-center gap-2 rounded-lg px-3 py-2 text-sm {s.dailyDone
 						? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200'
-						: 'bg-amber-50 text-amber-900 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-200'}"
+						: 'bg-amber-50 text-amber-900 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900'}"
 				>
 					<span aria-hidden="true">{s.dailyDone ? '✓' : '☀'}</span>
 					<span class="flex-1">{s.dailyDone ? t('home.dailyDone') : t('home.dailyOpen')}</span>
