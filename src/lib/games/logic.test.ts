@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { neighbours } from '../core/grid';
-import type { Variant } from '../core/variants';
+import { regularCounterpart, type Variant } from '../core/variants';
 import { pinwheelLogic, PINWHEEL_VARIANTS } from './pinwheel/logic';
 import { generatePinwheel } from './pinwheel/generator';
 import {
@@ -50,6 +50,23 @@ describe('variant lists', () => {
 				...['9e', '9n', '9h', 'daily', 'weekly', 'monthly'],
 				...['c5e', 'c5n', 'c5h', 'c7e', 'c7n', 'c7h', 'c9e', 'c9n', 'c9h']
 			]
+		});
+	});
+
+	// "New puzzle" on a special type continues with this regular one.
+	it('pairs every special with the regular type nearest in difficulty and size', () => {
+		const pairs = Object.fromEntries(
+			Object.values(GAME_LOGIC).map((logic) => [
+				logic.id,
+				logic.variants
+					.filter((v) => v.special)
+					.map((v) => regularCounterpart(logic.variants, v)?.key)
+			])
+		);
+		expect(pairs).toEqual({
+			tetroid: ['10n', '15h', '20h'],
+			pinwheel: ['10h', '15h', '15h'],
+			sudoku: ['9n', '9h', '9h']
 		});
 	});
 });

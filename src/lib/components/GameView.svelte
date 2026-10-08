@@ -186,7 +186,10 @@
 		try {
 			if (session.newPuzzleDiscards && !(await ask(confirmQuestion('newPuzzle', true)))) return;
 			share = null;
+			const before = session.variant.key;
 			await session.newPuzzle();
+			// A special type continues with a regular one.
+			if (session.variant.key !== before) replaceState(variantUrl(session.variant.key), {});
 		} finally {
 			newBusy = false;
 		}

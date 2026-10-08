@@ -189,9 +189,25 @@ describe('opening a puzzle', () => {
 		// An older special is kept apart from the current one.
 		await s.open('daily', { puzzleId: encodePuzzleId(DAILY, 7) });
 		expect(keys('save:')).toContain('save:tetroid:daily:archive');
-		// "New puzzle" on a special type goes back to the current one.
+		// "New puzzle" on an older special goes back to the current one.
 		await s.newPuzzle();
 		expect(s.puzzleId).toBe(encodePuzzleId(DAILY, today));
+	});
+
+	it('continues a special type with a regular puzzle of its size and difficulty', async () => {
+		const s = session();
+		await s.open('daily');
+		const started = game.emptyState(s.puzzle!);
+		started.marks[3] = SHADED;
+		s.move(started, ['3']);
+		const daily = s.puzzleId;
+		await s.newPuzzle();
+		expect(s.variant).toMatchObject({ key: '10n', width: 10, difficulty: 'normal' });
+		expect(s.variant.special).toBeUndefined();
+		// The special game is kept for later.
+		await s.open('daily');
+		expect(s.puzzleId).toBe(daily);
+		expect(s.state).toEqual(started);
 	});
 });
 

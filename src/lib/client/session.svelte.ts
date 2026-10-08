@@ -5,6 +5,7 @@ import {
 	encodePuzzleId,
 	periodKey,
 	randomSeed,
+	regularCounterpart,
 	SPECIAL_RETENTION_DAYS,
 	specialSeed,
 	type Variant
@@ -370,14 +371,19 @@ export class GameSession<P = unknown, S = unknown> {
 		if (!this.loading && !this.solved && currentPlayer()) this.syncFromServer(this.openToken);
 	}
 
+	/**
+	 * Start the next puzzle. A special type keeps its game: an older one leads back to the
+	 * current period, the current one on to the regular type of the same size and difficulty.
+	 */
 	async newPuzzle() {
 		if (this.loading) return;
-		if (!this.solved && this.past.length > 0) breakStreak(this.game.id, this.variant.key);
 		const v = this.variant;
 		if (v.special) {
-			await this.open(v.key);
+			const next = this.period ? regularCounterpart(this.game.variants, v) : v;
+			await this.open((next ?? v).key);
 			return;
 		}
+		if (!this.solved && this.past.length > 0) breakStreak(this.game.id, v.key);
 		const token = ++this.openToken;
 		this.pauseClock();
 		this.message = null;
