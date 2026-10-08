@@ -246,7 +246,8 @@
 	const labelFont = $derived(Math.max(8, cellSize * 0.24));
 </script>
 
-<svelte:window {onkeydown} />
+<!-- Capture phase: the board handles its keys before the game's shortcuts see them -->
+<svelte:window onkeydowncapture={onkeydown} />
 
 <div class="flex flex-col items-center" style:width="{width}px">
 	<!-- Only the svg itself is hit, like the other boards. -->

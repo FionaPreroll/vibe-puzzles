@@ -75,6 +75,9 @@ const de: Dictionary = {
 		done: 'Fertig',
 		startOver: 'Neu beginnen',
 		confirmStartOver: 'Wirklich? Das leert das Brett und startet die Zeit neu.',
+		confirmNewPuzzle: 'Neues Rätsel beginnen? Dein angefangenes Spiel dieser Art geht verloren.',
+		confirmReplace:
+			'Dieses Rätsel ersetzt dein angefangenes Spiel derselben Art, das dabei verloren geht. Trotzdem öffnen?',
 		print: 'Drucken…',
 		more: 'Weitere Aktionen',
 		share: 'Spielstand teilen',
@@ -89,7 +92,8 @@ const de: Dictionary = {
 		notCreated: 'Das Rätsel konnte nicht erstellt werden.',
 		retry: 'Erneut versuchen',
 		paused: 'Pausiert. Zum Fortsetzen klicken',
-		storageFull: 'Der Browserspeicher ist voll. Alte Spielstände löschen?',
+		storageFull:
+			'Der Browserspeicher ist voll. Die am längsten nicht gespielten angefangenen Spiele löschen, um Platz zu schaffen?',
 		board: 'Spielbrett'
 	},
 	session: {

@@ -5,9 +5,10 @@
 	import { currentPlayer, pullSave, pushSave, serverAvailable } from '../client/api';
 	import {
 		cleanupSpecialSaves,
-		clearOldSaves,
+		freeSaveSpace,
 		GameSession,
-		MAX_CHECKPOINTS
+		MAX_CHECKPOINTS,
+		type OpenOptions
 	} from '../client/session.svelte';
 	import {
 		GameSettings,
@@ -19,6 +20,7 @@
 	} from '../client/settings.svelte';
 	import { load, save, setQuotaHandler } from '../client/storage';
 	import { formatDuration } from '../core/time';
+	import { decodePuzzleId } from '../core/variants';
 	import { CELEBRATION_COLOURS } from '../core/grid';
 	import type { GameModule, TouchMode } from '../core/types';
 	import { t, tList, toolLabel, variantLabel } from '../i18n/index.svelte';
@@ -155,6 +157,7 @@
 
 	async function newPuzzle() {
 		if (newBusy) return;
+		if (session.newPuzzleDiscards && !confirm(t('game.confirmNewPuzzle'))) return;
 		newBusy = true;
 		share = null;
 		try {
@@ -167,6 +170,8 @@
 	function openById() {
 		const id = Number(idInput.replace(/[^0-9]/g, ''));
 		if (!id) return;
+		if (session.replacesGame(variant.key, { puzzleId: id }) && !confirm(t('game.confirmReplace')))
+			return;
 		idInput = '';
 		openVariant(variant.key, id);
 	}
@@ -248,9 +253,11 @@
 
 	onMount(() => {
 		cleanupSpecialSaves();
-		setQuotaHandler(() => {
-			if (confirm(t('game.storageFull'))) clearOldSaves();
-		});
+		// Storage full: solved games go first; unfinished ones only if the player agrees (asked once).
+		let agreed: boolean | null = null;
+		setQuotaHandler(() =>
+			freeSaveSpace(session.slot, () => (agreed ??= confirm(t('game.storageFull'))))
+		);
 		const params = new URL(location.href).searchParams;
 		// The very first visit of a game starts with its tutorial.
 		if (game.tutorial && params.size === 0 && !load<boolean>(`tutorialSeen:${game.id}`, false)) {
@@ -261,14 +268,16 @@
 			}
 		}
 		const id = Number(params.get('id')) || undefined;
-		session
-			.open(params.get('v') ?? game.variants[0].key, {
-				puzzleId: id,
-				shared: params.get('s') ?? undefined
-			})
-			.then(() => {
-				if (params.has('s') || params.has('id')) replaceState(variantUrl(session.variant.key), {});
-			});
+		let variantKey = params.get('v') ?? game.variants[0].key;
+		let opts: OpenOptions = { puzzleId: id, shared: params.get('s') ?? undefined };
+		// A link must not silently take the place of an unfinished game of its type.
+		if (id && session.replacesGame(variantKey, opts) && !confirm(t('game.confirmReplace'))) {
+			variantKey = game.variants[decodePuzzleId(id).variantIndex]?.key ?? variantKey;
+			opts = {};
+		}
+		session.open(variantKey, opts).then(() => {
+			if (params.has('s') || params.has('id')) replaceState(variantUrl(session.variant.key), {});
+		});
 
 		const media = matchMedia('(min-width: 1024px)');
 		const layout = () => {
@@ -348,6 +357,9 @@
 	// ---- Keyboard shortcuts --------------------------------------------------------------------
 
 	function onkeydown(e: KeyboardEvent) {
+		// The board saw the key first (capture phase) and used it, e.g. Shift+0, which is "=" on
+		// German keyboards, erases a Sudoku cell and must not also start a new puzzle.
+		if (e.defaultPrevented) return;
 		const target = e.target as HTMLElement | null;
 		if (
 			target &&

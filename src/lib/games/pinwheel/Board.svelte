@@ -618,8 +618,9 @@
 	});
 </script>
 
+<!-- Capture phase: the board handles its keys before the game's shortcuts see them -->
 <svelte:window
-	{onkeydown}
+	onkeydowncapture={onkeydown}
 	{onkeyup}
 	onblur={() => (shiftHeld = false)}
 	onscrollcapture={() => pending && !touch && (pending = null)}

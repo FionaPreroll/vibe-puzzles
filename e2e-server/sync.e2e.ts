@@ -25,6 +25,18 @@ async function shadedCells(page: Page): Promise<number[]> {
 	});
 }
 
+/**
+ * Open the game's settings. The button is part of the prerendered page, so a click before the
+ * page has hydrated does nothing: wait for the board, which only shows once the app runs.
+ */
+async function openSettings(page: Page) {
+	await expect(page.getByRole('grid', { name: 'Puzzle board' }).first()).toBeVisible({
+		timeout: 30_000
+	});
+	await page.getByRole('button', { name: 'Settings' }).click();
+	await expect(page.locator('dialog[open]')).toBeVisible();
+}
+
 test('a game continues on a second device linked with the sync code', async ({ browser }) => {
 	const phone = await device(browser);
 	const laptop = await device(browser);
@@ -102,13 +114,13 @@ test('settings follow the player to another device', async ({ browser }) => {
 	await expect(b.getByRole('button', { name: 'Sign out' })).toBeVisible();
 
 	await a.goto('/tetroid?v=6n');
-	await a.getByRole('button', { name: 'Settings' }).click();
+	await openSettings(a);
 	await a.getByLabel('Show board coordinates').check();
 	await a.waitForResponse(
 		(r) => r.url().includes('/api/saves/settings') && r.request().method() === 'PUT'
 	);
 
 	await b.goto('/tetroid?v=6n');
-	await b.getByRole('button', { name: 'Settings' }).click();
+	await openSettings(b);
 	await expect(b.getByLabel('Show board coordinates')).toBeChecked();
 });
