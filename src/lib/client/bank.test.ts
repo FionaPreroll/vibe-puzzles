@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PuzzleBank } from '../core/bank';
+import { CHUNK_SIZE, layoutType } from '../core/bank';
+import type { Variant } from '../core/variants';
 import { MemoryStorage } from '../../test/memory-storage';
 import { load, save } from './storage';
 
@@ -7,16 +8,25 @@ vi.mock('$app/paths', () => ({ asset: (path: string) => `/base${path}` }));
 
 type Bank = typeof import('./bank');
 
-const file: PuzzleBank = {
-	version: 1,
-	game: 'tetroid',
-	variant: '6n',
-	puzzles: [
-		{ id: 1, puzzle: 'a' },
-		{ id: 2, puzzle: 'b' },
-		{ id: 3, puzzle: 'c' }
-	]
+const regular = layoutType(
+	'tetroid',
+	'6n',
+	Array.from({ length: CHUNK_SIZE + 2 }, (_, k) => ({ id: k + 1, puzzle: `p${k + 1}` }))
+);
+const daily = layoutType(
+	'tetroid',
+	'daily',
+	[{ id: 7, period: '2026-10-08', puzzle: 'd' }],
+	'daily'
+);
+const files: Record<string, unknown> = { ...regular, ...daily };
+/** Answers collection requests from `files`; anything else is missing. */
+const serve = (url: string) => {
+	const file = files[url.replace(/^\/base\//, '')];
+	return file ? Response.json(file) : new Response('', { status: 404 });
 };
+const variant = (key: string, special?: Variant['special']) =>
+	({ key, label: key, width: 6, height: 6, difficulty: 'normal', special }) as Variant;
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -36,7 +46,7 @@ afterEach(() => {
 
 describe('puzzle source', () => {
 	it('defaults to both and ignores unknown values', async () => {
-		const bank = await setup(() => Response.json(file));
+		const bank = await setup(serve);
 		expect(bank.loadPuzzleSource()).toBe('mixed');
 		bank.savePuzzleSource('bank');
 		expect(bank.loadPuzzleSource()).toBe('bank');
@@ -46,48 +56,44 @@ describe('puzzle source', () => {
 });
 
 describe('collection', () => {
-	it('reads each file once from the assets', async () => {
-		const bank = await setup(() => Response.json(file));
-		expect(await bank.loadBank('tetroid', '6n')).toEqual(file);
-		expect(await bank.findInBank('tetroid', '6n', 2)).toBe('b');
-		expect(await bank.findInBank('tetroid', '6n', 9)).toBeNull();
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-		expect(fetchMock).toHaveBeenCalledWith('/base/puzzles/tetroid/6n.json');
+	it('finds a puzzle by ID, reading the index and its chunk once', async () => {
+		const bank = await setup(serve);
+		expect(await bank.findInBank('tetroid', variant('6n'), 102)).toBe('p102');
+		expect(await bank.findInBank('tetroid', variant('6n'), 101)).toBe('p101');
+		expect(await bank.findInBank('tetroid', variant('6n'), 999)).toBeNull();
+		expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+			'/base/puzzles/tetroid/6n/index.json',
+			'/base/puzzles/tetroid/6n/0001.json'
+		]);
 	});
 
-	it('keeps only the most recently used files in memory', async () => {
-		const bank = await setup(() => Response.json(file));
-		for (const v of ['6n', '6h', '8n', '8h']) await bank.loadBank('tetroid', v);
-		await bank.loadBank('tetroid', '6n');
-		await bank.loadBank('tetroid', '10n');
-		expect(fetchMock).toHaveBeenCalledTimes(5);
-		// 6n was used again, so 6h was dropped and is read once more.
-		await bank.loadBank('tetroid', '6n');
-		expect(fetchMock).toHaveBeenCalledTimes(5);
-		await bank.loadBank('tetroid', '6h');
-		expect(fetchMock).toHaveBeenCalledTimes(6);
+	it('finds the special puzzle of the current period only', async () => {
+		vi.useFakeTimers({ now: Date.UTC(2026, 9, 8, 12), toFake: ['Date'] });
+		const bank = await setup(serve);
+		expect(await bank.findInBank('tetroid', variant('daily', 'daily'), 7)).toBe('d');
+		expect(await bank.findInBank('tetroid', variant('daily', 'daily'), 8)).toBeNull();
+		vi.useRealTimers();
 	});
 
 	it('treats a missing file or no connection as an empty collection', async () => {
 		let bank = await setup(() => new Response('', { status: 404 }));
 		expect(await bank.pickFromBank('tetroid', '6n')).toBeNull();
-		expect(await bank.findInBank('tetroid', '6n', 1)).toBeNull();
+		expect(await bank.findInBank('tetroid', variant('6n'), 1)).toBeNull();
 		bank = await setup(() => Promise.reject(new TypeError('offline')));
-		expect(await bank.loadBank('tetroid', '6n')).toBeNull();
-	});
-
-	it('picks puzzles this device has not played and remembers them', async () => {
-		const bank = await setup(() => Response.json(file));
-		vi.spyOn(Math, 'random').mockReturnValue(0);
-		const picks = [];
-		for (let i = 0; i < 3; i++) picks.push((await bank.pickFromBank('tetroid', '6n'))?.id);
-		expect(picks).toEqual([1, 2, 3]);
-		expect(load('bankPlayed:tetroid:6n', [])).toEqual([1, 2, 3]);
 		expect(await bank.pickFromBank('tetroid', '6n')).toBeNull();
 	});
 
-	it('returns nothing for an empty file', async () => {
-		const bank = await setup(() => Response.json({ ...file, puzzles: [] }));
+	it('picks puzzles this device has not played and remembers them', async () => {
+		const bank = await setup(serve);
+		save(
+			'bankPlayed:tetroid:6n',
+			Array.from({ length: CHUNK_SIZE - 1 }, (_, k) => k + 1)
+		);
+		vi.spyOn(Math, 'random').mockReturnValue(0);
+		const picks = [];
+		for (let i = 0; i < 3; i++) picks.push((await bank.pickFromBank('tetroid', '6n'))?.id);
+		expect(picks).toEqual([100, 101, 102]);
+		expect(load<number[]>('bankPlayed:tetroid:6n', []).slice(-3)).toEqual([100, 101, 102]);
 		expect(await bank.pickFromBank('tetroid', '6n')).toBeNull();
 	});
 });

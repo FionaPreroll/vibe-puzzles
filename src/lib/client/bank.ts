@@ -1,6 +1,7 @@
 import { asset } from '$app/paths';
 import type { AssetPath } from '$app/types';
-import { bankPath, type PuzzleBank } from '../core/bank';
+import { Collection, type BankEntry } from '../core/bank';
+import type { Variant } from '../core/variants';
 import { load, save } from './storage';
 
 /** Where new puzzles come from: generated on this device, the collection, or either at random. */
@@ -18,43 +19,32 @@ export function savePuzzleSource(source: PuzzleSource) {
 }
 
 /**
- * The collection files read in this page, the most recently used last. Only a few stay in
- * memory: the collection keeps growing, and a long session visits many puzzle types.
+ * The collection as deployed with the app. A missing file, or no connection, counts as an empty
+ * collection; the caller then generates the puzzle on the device.
  */
-const banks = new Map<string, Promise<PuzzleBank | null>>();
-const MAX_BANKS = 4;
+export const collection = new Collection(
+	(path) =>
+		fetch(asset(`/${path}` as AssetPath))
+			.then((r) => (r.ok ? r.json() : null))
+			.catch(() => null),
+	8
+);
 
-export function loadBank<P>(game: string, variant: string): Promise<PuzzleBank<P> | null> {
-	const key = `${game}:${variant}`;
-	let bank = banks.get(key);
-	if (bank) banks.delete(key);
-	else {
-		bank = fetch(asset(`/${bankPath(game, variant)}` as AssetPath))
-			.then((r) => (r.ok ? (r.json() as Promise<PuzzleBank>) : null))
-			.catch(() => null);
-	}
-	banks.set(key, bank);
-	if (banks.size > MAX_BANKS) banks.delete(banks.keys().next().value!);
-	return bank as Promise<PuzzleBank<P> | null>;
-}
+/** How many played collection puzzles are remembered per type. */
+const PLAYED = 2000;
 
 /** A collection puzzle this device has not played yet, or null. */
-export async function pickFromBank<P>(
-	game: string,
-	variant: string
-): Promise<{ id: number; puzzle: P } | null> {
-	const bank = await loadBank<P>(game, variant);
-	if (!bank?.puzzles.length) return null;
+export async function pickFromBank<P>(game: string, variant: string): Promise<BankEntry<P> | null> {
 	const played = new Set(load<number[]>(`bankPlayed:${game}:${variant}`, []));
-	const fresh = bank.puzzles.filter((p) => !played.has(p.id));
-	if (!fresh.length) return null;
-	const pick = fresh[Math.floor(Math.random() * fresh.length)];
-	save(`bankPlayed:${game}:${variant}`, [...played, pick.id].slice(-2000));
+	const pick = await collection.pick<P>(game, variant, (id) => played.has(id));
+	if (pick) save(`bankPlayed:${game}:${variant}`, [...played, pick.id].slice(-PLAYED));
 	return pick;
 }
 
 /** The stored definition of a collection puzzle, to skip generating it. */
-export async function findInBank<P>(game: string, variant: string, id: number): Promise<P | null> {
-	const bank = await loadBank<P>(game, variant);
-	return bank?.puzzles.find((p) => p.id === id)?.puzzle ?? null;
+export async function findInBank<P>(game: string, variant: Variant, id: number): Promise<P | null> {
+	const entry = variant.special
+		? await collection.special<P>(game, variant.key, variant.special)
+		: await collection.find<P>(game, variant.key, id);
+	return entry?.id === id ? entry.puzzle : null;
 }

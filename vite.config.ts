@@ -56,7 +56,12 @@ export default defineConfig({
 		coverage: {
 			provider: 'v8',
 			// Svelte components are covered by the Playwright suites, which report no coverage.
-			include: ['src/**/*.{js,ts}', 'worker/**/*.ts', 'scripts/licenses.ts'],
+			include: [
+				'src/**/*.{js,ts}',
+				'worker/**/*.ts',
+				'scripts/licenses.ts',
+				'scripts/collection.ts'
+			],
 			exclude: ['src/test/**', '**/*.test.ts'],
 			reporter: ['text-summary', 'lcov']
 		},

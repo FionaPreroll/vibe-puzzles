@@ -107,9 +107,13 @@ test('caches a collection file when it is first used, not on install', async ({
 
 	await page.goto('/tetroid?v=8n');
 	await expect(page.getByText('(from the puzzle collection)')).toBeVisible({ timeout: 10_000 });
+	// The index of the type and the one chunk the puzzle came from.
 	await expect
-		.poll(async () => (await cached())['vibe-puzzles-collection'])
-		.toEqual(['/puzzles/tetroid/8n.json']);
+		.poll(async () => (await cached())['vibe-puzzles-collection']?.sort())
+		.toEqual([
+			expect.stringMatching(/^\/puzzles\/tetroid\/8n\/\d{4}\.json$/),
+			'/puzzles/tetroid/8n/index.json'
+		]);
 
 	// Offline, after a reload (so the page itself has nothing in memory), the next puzzle of that
 	// type still comes from the cached file.
