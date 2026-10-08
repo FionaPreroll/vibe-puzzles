@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { CELEBRATION_COLOURS, colourRegions, columnLabel } from '../../core/grid';
+	import { colours } from '../../core/palette';
 	import type { BoardProps } from '../../core/types';
 	import { analyze, CROSS, EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from './rules';
 	import { t } from '../../i18n/index.svelte';
@@ -20,10 +21,10 @@
 	}: BoardProps<TetroidPuzzle, TetroidState> = $props();
 
 	const TYPE_COLOURS: Record<string, string> = {
-		L: '#f3a5a5',
-		I: '#9dd2f3',
-		T: '#c7a6ec',
-		S: '#a9e3a0'
+		L: colours.tetrominoL,
+		I: colours.tetrominoI,
+		T: colours.tetrominoT,
+		S: colours.tetrominoS
 	};
 
 	const w = $derived(puzzle.width);
@@ -78,21 +79,21 @@
 		return segs.join('');
 	});
 
-	const errorColour = $derived(settings.blueErrors ? '#1e3a8a' : '#dc2626');
+	const errorColour = $derived(settings.blueErrors ? colours.blueErrorShade : colours.errorShade);
 
 	function fillOf(i: number): string {
 		const m = marks[i];
 		if (m === SHADED) {
 			if (settings.highlightErrors && a.errors[i]) return errorColour;
-			if (groupCells.has(i)) return '#8fa98a';
+			if (groupCells.has(i)) return colours.group;
 			const type = a.regionType[puzzle.regions[i]];
 			if (settings.colorTetrominoes && type) return TYPE_COLOURS[type];
-			return '#8c8c8c';
+			return colours.shaded;
 		}
 		if (settings.highlightBlock && current >= 0 && puzzle.regions[i] === puzzle.regions[current]) {
-			return '#dff3d6';
+			return colours.block;
 		}
-		return '#ffffff';
+		return colours.surface;
 	}
 
 	// ---- Input --------------------------------------------------------------------------------
@@ -362,8 +363,8 @@
 	/** Win animation: every region in its own colour for a moment. */
 	const celebrationFill = $derived.by(() => {
 		if (!celebrate || blank) return null;
-		const colours = colourRegions(puzzle.regions, w, h, CELEBRATION_COLOURS.length);
-		return Array.from({ length: w * h }, (_, i) => CELEBRATION_COLOURS[colours[puzzle.regions[i]]]);
+		const slot = colourRegions(puzzle.regions, w, h, CELEBRATION_COLOURS.length);
+		return Array.from({ length: w * h }, (_, i) => CELEBRATION_COLOURS[slot[puzzle.regions[i]]]);
 	});
 </script>
 
@@ -399,18 +400,23 @@
 	oncontextmenu={(e) => e.preventDefault()}
 	{ontouchstart}
 >
-	<rect x={pad} y={pad} width={w * cellSize} height={h * cellSize} fill="#ffffff" />
+	<rect x={pad} y={pad} width={w * cellSize} height={h * cellSize} fill={colours.surface} />
 	{#each marks as m, i (i)}
 		{@const x = pad + (i % w) * cellSize}
 		{@const y = pad + Math.floor(i / w) * cellSize}
 		<rect {x} {y} width={cellSize} height={cellSize} fill={fillOf(i)} />
 		{#if m === SHADED && settings.highlightErrors && a.errors[i]}
-			<circle cx={x + cellSize / 2} cy={y + cellSize / 2} r={cellSize * 0.1} fill="#ffffff" />
+			<circle
+				cx={x + cellSize / 2}
+				cy={y + cellSize / 2}
+				r={cellSize * 0.1}
+				fill={colours.surface}
+			/>
 		{:else if m === CROSS}
 			<path
 				d="M{x + cellSize * 0.3} {y + cellSize * 0.3}l{cellSize * 0.4} {cellSize *
 					0.4}m0 {-cellSize * 0.4}l{-cellSize * 0.4} {cellSize * 0.4}"
-				stroke="#dc2626"
+				stroke={colours.cross}
 				stroke-width={Math.max(1.5, cellSize * 0.06)}
 				stroke-linecap="round"
 			/>
@@ -432,7 +438,7 @@
 	{/if}
 
 	<!-- Thin cell lines -->
-	<g stroke="#4b5563" stroke-width="1" opacity="0.55">
+	<g stroke={colours.gridLine} stroke-width="1" opacity="0.55">
 		{#each { length: w - 1 } as _, c (c)}
 			<line
 				x1={pad + (c + 1) * cellSize}
@@ -454,7 +460,7 @@
 	<!-- Region borders -->
 	<path
 		d={borders}
-		stroke="#111827"
+		stroke={colours.ink}
 		stroke-width={settings.thickBorders ? 3.5 : 2.5}
 		stroke-linecap="square"
 		fill="none"
@@ -465,7 +471,7 @@
 		width={w * cellSize}
 		height={h * cellSize}
 		fill="none"
-		stroke="#111827"
+		stroke={colours.ink}
 		stroke-width={settings.thickBorders ? 4 : 3}
 	/>
 
@@ -478,7 +484,7 @@
 				width={cellSize - 5}
 				height={cellSize - 5}
 				fill="none"
-				stroke="#2563eb"
+				stroke={colours.recent}
 				stroke-width="1.5"
 			/>
 		{/each}
@@ -491,7 +497,7 @@
 			width={cellSize - 3}
 			height={cellSize - 3}
 			fill="none"
-			stroke="#f59e0b"
+			stroke={colours.cursor}
 			stroke-width="3"
 			rx="3"
 		/>
@@ -499,7 +505,7 @@
 
 	{#if settings.showCoordinates && !blank}
 		<g
-			fill="#6b7280"
+			fill={colours.label}
 			font-size={Math.min(12, pad * 0.75)}
 			text-anchor="middle"
 			dominant-baseline="central"

@@ -18,6 +18,7 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4.
 - Undo and redo, checkpoints, timers, error highlighting, zoom, keyboard and touch controls, print and share.
 - An interactive tutorial puzzle on the first visit of each game.
 - English and German, picked from the browser language and switchable in the header.
+- Night mode for the whole site including the boards; it follows the system's colour scheme until switched in the header. Screenshots and prints stay light.
 - Installable as an app (PWA) and playable offline after the first visit. Files of the puzzle collection are cached when a puzzle type first needs them and kept across app updates; offline, a type without a cached file gets puzzles generated on the device.
 - A growing collection of pre-generated puzzles (see below); players choose between the collection, puzzles generated on their device, or both.
 - Progress, settings and statistics are saved in the browser.
@@ -46,7 +47,7 @@ pnpm settings live in `pnpm-workspace.yaml`. pnpm runs the install scripts of de
 ## Project layout
 
 ```
-src/lib/core/         shared types, seeded RNG, puzzle IDs, settings
+src/lib/core/         shared types, seeded RNG, puzzle IDs, settings, board colours (palette.ts)
 src/lib/games/<id>/   one folder per game: rules, solver, generator, logic, Board.svelte, index.ts
 src/lib/games/logic.ts   registry of game logic (used by the client and the server)
 src/lib/games/index.ts   registry of game modules (logic plus UI)
