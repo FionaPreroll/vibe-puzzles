@@ -147,3 +147,31 @@ test('plays a puzzle from the collection when chosen', async ({ page }) => {
 	await expect(page.getByText('(from the puzzle collection)')).toBeVisible({ timeout: 10_000 });
 	await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible();
 });
+
+test('the zoom popover closes on a press outside it or on Escape', async ({ page }) => {
+	await page.goto('/tetroid?v=6n');
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
+	const button = page.getByRole('button', { name: 'Zoom' });
+	const slider = page.getByRole('slider', { name: 'Zoom' });
+
+	await button.click();
+	await expect(slider).toBeVisible();
+	// Using the slider keeps it open.
+	await slider.focus();
+	await slider.press('ArrowRight');
+	await expect(slider).toBeVisible();
+	await page
+		.getByText(/Puzzle ID/i)
+		.first()
+		.click();
+	await expect(slider).toBeHidden();
+
+	await button.click();
+	await expect(slider).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(slider).toBeHidden();
+	// The button still toggles it.
+	await button.click();
+	await button.click();
+	await expect(slider).toBeHidden();
+});
