@@ -15,7 +15,12 @@ export interface VariantStats {
 	lastPeriod?: string;
 	/** Special types: consecutive periods (days, weeks, months) solved. */
 	periodStreak?: number;
+	/** IDs of the puzzles solved, so that solving one again does not count twice. */
+	solvedIds?: number[];
 }
+
+/** How many solved puzzle IDs are remembered per type. */
+const SOLVED_IDS = 2000;
 
 /** The period before the current one, e.g. yesterday for daily puzzles. */
 export function previousPeriod(kind: SpecialKind, now = new Date()): string {
@@ -57,6 +62,10 @@ export function recordSolve(
 	kind?: SpecialKind
 ): VariantStats {
 	const s = getStats(game, variant);
+	// Starting over after a solve, or opening the same puzzle again, is no new solve. A server
+	// puzzle has no ID (0) until it is solved; the server never issues it twice.
+	if (puzzleId && s.solvedIds?.includes(puzzleId)) return s;
+	if (puzzleId) s.solvedIds = [...(s.solvedIds ?? []), puzzleId].slice(-SOLVED_IDS);
 	s.solved++;
 	s.streak++;
 	s.bestStreak = Math.max(s.bestStreak, s.streak);
