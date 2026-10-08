@@ -150,6 +150,34 @@ describe('opening a puzzle', () => {
 		const s = session();
 		await s.open('6n', { puzzleId: ID });
 		expect(s.message).toEqual({ kind: 'error', text: expect.stringContaining('boom') });
+		// Not stuck loading: the page offers to try again, which opens the same puzzle.
+		expect(s.loading).toBe(false);
+		expect(s.puzzle).toBeNull();
+		await s.retry();
+		expect(s.puzzleId).toBe(ID);
+		expect(s.puzzle).toEqual(puzzle);
+	});
+
+	it('keeps the current game when the next puzzle cannot be created', async () => {
+		const s = await opened();
+		s.move(shaded(3), ['3']);
+		vi.mocked(generate).mockRejectedValueOnce(new Error('boom'));
+		await s.newPuzzle();
+		expect(s.loading).toBe(false);
+		expect(s.puzzleId).toBe(ID);
+		expect(s.state?.marks[3]).toBe(SHADED);
+		expect(s.runningSince).not.toBeNull();
+	});
+
+	it('never saves the previous puzzle into the slot of another type', async () => {
+		const s = await opened();
+		s.move(shaded(3), ['3']);
+		vi.mocked(generate).mockRejectedValueOnce(new Error('boom'));
+		await s.open('6h');
+		expect(s.puzzle).toBeNull();
+		s.flush();
+		expect(load('save:tetroid:6h', null)).toBeNull();
+		expect(load<{ puzzleId: number } | null>('save:tetroid:6n', null)?.puzzleId).toBe(ID);
 	});
 
 	it('opens the special puzzle of the current period', async () => {

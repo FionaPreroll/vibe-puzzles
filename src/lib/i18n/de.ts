@@ -86,6 +86,8 @@ const de: Dictionary = {
 		brag: 'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst! Schaffst du es schneller?',
 		bragCopied: 'Ergebnis und Link kopiert. Füge sie ein, wo du sie teilen möchtest.',
 		creating: 'Rätsel wird erstellt…',
+		notCreated: 'Das Rätsel konnte nicht erstellt werden.',
+		retry: 'Erneut versuchen',
 		paused: 'Pausiert. Zum Fortsetzen klicken',
 		storageFull: 'Der Browserspeicher ist voll. Alte Spielstände löschen?',
 		board: 'Spielbrett'

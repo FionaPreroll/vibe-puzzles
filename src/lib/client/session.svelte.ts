@@ -78,6 +78,9 @@ export class GameSession<P = unknown, S = unknown> {
 	private active = true;
 	private period: string | undefined;
 	private saveKey = '';
+	/** Save key of the puzzle on the board; differs from `saveKey` while another one loads. */
+	private puzzleKey = '';
+	private lastOpen: [string, { puzzleId?: number; shared?: string }] = ['', {}];
 	private pushTimer: ReturnType<typeof setTimeout> | null = null;
 	private openToken = 0;
 	private touched = false;
@@ -104,6 +107,7 @@ export class GameSession<P = unknown, S = unknown> {
 	/** Open a variant: resume its saved game, or start the requested / a new puzzle. */
 	async open(variantKey: string, opts: { puzzleId?: number; shared?: string } = {}) {
 		const token = ++this.openToken;
+		this.lastOpen = [variantKey, opts];
 		let index = this.game.variants.findIndex((v) => v.key === variantKey);
 		if (opts.puzzleId != null) {
 			const decoded = decodePuzzleId(opts.puzzleId);
@@ -175,8 +179,11 @@ export class GameSession<P = unknown, S = unknown> {
 						: await generate<P>(this.game.id, variantIndex, seed);
 			}
 		} catch (e) {
-			if (token === this.openToken)
-				this.message = { kind: 'error', text: t('session.createFailed', { error: String(e) }) };
+			if (token !== this.openToken) return;
+			this.message = { kind: 'error', text: t('session.createFailed', { error: String(e) }) };
+			// The previous puzzle stays playable, unless it belongs to another slot (another type).
+			if (this.puzzleKey !== this.saveKey) this.clearPuzzle();
+			this.finishLoading(token);
 			return;
 		}
 		if (token !== this.openToken) return;
@@ -184,6 +191,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.ticket = ticket;
 		this.source = source;
 		this.puzzle = puzzle;
+		this.puzzleKey = this.saveKey;
 		const sharedState = shared ? this.game.decodeState(puzzle, shared) : null;
 		this.state = sharedState ?? this.game.emptyState(puzzle);
 		this.past = [];
@@ -251,6 +259,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.source = s.ticket ? 'server' : 'local';
 		this.changedAt = s.updatedAt;
 		this.puzzle = puzzle;
+		this.puzzleKey = this.saveKey;
 		this.state = s.state;
 		this.past = [];
 		this.future = [];
@@ -263,6 +272,26 @@ export class GameSession<P = unknown, S = unknown> {
 		this.playMs = s.playMs;
 		this.touched = false;
 		return true;
+	}
+
+	/** No puzzle on the board: loading one failed, see `retry`. */
+	private clearPuzzle() {
+		this.puzzle = null;
+		this.state = null;
+		this.puzzleKey = '';
+		this.puzzleId = 0;
+		this.ticket = null;
+		this.past = [];
+		this.future = [];
+		this.checkpoints = [];
+		this.currentCheckpoint = -1;
+		this.lastChange = new Set();
+		this.solved = false;
+	}
+
+	/** Open again what the last `open` asked for (after it failed). */
+	retry() {
+		return this.open(...this.lastOpen);
 	}
 
 	private finishLoading(token: number) {
@@ -434,7 +463,8 @@ export class GameSession<P = unknown, S = unknown> {
 	}
 
 	private resumeClock() {
-		if (this.runningSince != null || this.solved || this.loading || this.paused) return;
+		if (this.runningSince != null || !this.puzzle || this.solved || this.loading || this.paused)
+			return;
 		if (!this.active && !this.settings.values.hideTimer) return;
 		this.runningSince = Date.now();
 	}
@@ -576,7 +606,8 @@ export class GameSession<P = unknown, S = unknown> {
 
 	/** Save locally and, after a short pause, to the server. `changed` is false for a plain flush. */
 	persist(changed = true) {
-		if (!this.puzzle || !this.state || !this.saveKey) return;
+		// Never save the previous puzzle into the slot of one that is still loading.
+		if (!this.puzzle || !this.state || !this.saveKey || this.puzzleKey !== this.saveKey) return;
 		if (changed || !this.changedAt) this.changedAt = Date.now();
 		const running = this.runningSince != null ? Date.now() - this.runningSince : 0;
 		const data: SavedGame<S> = {

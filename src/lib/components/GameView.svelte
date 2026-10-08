@@ -743,6 +743,12 @@
 							</div>
 						{/if}
 					</div>
+				{:else if !session.loading}
+					<!-- Creating the puzzle failed; the message says why -->
+					<div class="grid min-h-48 place-items-center content-center gap-3 text-stone-500">
+						<p>{t('game.notCreated')}</p>
+						<button class="btn" onclick={() => session.retry()}>{t('game.retry')}</button>
+					</div>
 				{/if}
 			</div>
 			{#if session.message && toast && !wide}
