@@ -493,7 +493,10 @@ export class GameSession<P = unknown, S = unknown> {
 			this.variant.special
 		);
 		this.persist();
-		this.message = { kind: 'success', text: t('session.solved', { time: formatDuration(shown) }) };
+		this.message = {
+			kind: 'success',
+			text: t('session.solved', { time: formatDuration(shown, true) })
+		};
 
 		this.submitting = true;
 		try {
@@ -520,7 +523,7 @@ export class GameSession<P = unknown, S = unknown> {
 			this.message = {
 				kind: 'info',
 				text: t('session.uploadFailed', {
-					time: formatDuration(shown),
+					time: formatDuration(shown, true),
 					error: (e as Error).message
 				})
 			};
@@ -530,7 +533,7 @@ export class GameSession<P = unknown, S = unknown> {
 	}
 
 	private scoreText(res: ScoreResult, shown: number): string {
-		const time = formatDuration(res.timeMs ?? shown);
+		const time = formatDuration(res.timeMs ?? shown, true);
 		switch (res.code) {
 			case 'wrong':
 				return t('session.wrong');
@@ -551,7 +554,7 @@ export class GameSession<P = unknown, S = unknown> {
 				});
 				const best = res.bestMs != null && res.bestMs < (res.timeMs ?? Infinity);
 				return best
-					? `${text} ${t('session.yourBest', { time: formatDuration(res.bestMs!) })}`
+					? `${text} ${t('session.yourBest', { time: formatDuration(res.bestMs!, true) })}`
 					: text;
 			}
 			default:
