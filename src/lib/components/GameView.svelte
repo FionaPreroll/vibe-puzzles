@@ -2,7 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { goto, replaceState } from '$app/navigation';
-	import { currentPlayer, pullSave, pushSave, serverAvailable } from '../client/api';
+	import { currentPlayer, pullSave, pushSave, watchServer } from '../client/api';
 	import {
 		cleanupSpecialSaves,
 		freeSaveSpace,
@@ -306,14 +306,21 @@
 		window.addEventListener('pagehide', pagehide);
 		activity();
 
-		serverAvailable().then(async (ok) => {
+		// The server can also answer only later, e.g. when the device was offline at the start.
+		let answered = false;
+		const stopWatching = watchServer(async (ok) => {
+			if (answered && ok === hasServer) return;
+			const back = answered && ok;
+			answered = true;
 			hasServer = ok;
 			if (!ok || !currentPlayer()) return;
+			if (back) session.refreshFromServer();
 			const remote = await pullSave<StoredSettings>(`settings:${game.id}`);
 			if (remote) settings.merge(remote.data);
 		});
 
 		return () => {
+			stopWatching();
 			clearInterval(tick);
 			media.removeEventListener('change', layout);
 			document.removeEventListener('visibilitychange', visibility);

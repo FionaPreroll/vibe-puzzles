@@ -124,3 +124,28 @@ test('settings follow the player to another device', async ({ browser }) => {
 	await openSettings(b);
 	await expect(b.getByLabel('Show board coordinates')).toBeChecked();
 });
+
+test('a device that started offline uses the server once it is back', async ({ browser }) => {
+	const page = await device(browser);
+	// No answer from the server, as when the app is opened without a connection.
+	await page.route('**/api/health', (route) => route.abort('internetdisconnected'));
+	await page.goto('/player');
+	await expect(page.getByText('This deployment has no server')).toBeVisible();
+	await page.unroute('**/api/health');
+	await page.evaluate(() => window.dispatchEvent(new Event('online')));
+	await page.getByPlaceholder('Name').fill('Offline');
+	await page.getByRole('button', { name: 'Start' }).click();
+	await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
+
+	// A setting changed while offline reaches the server after reconnecting, without a reload.
+	await page.route('**/api/health', (route) => route.abort('internetdisconnected'));
+	await page.goto('/tetroid?v=6n');
+	await openSettings(page);
+	await page.getByLabel('Show board coordinates').check();
+	await page.unroute('**/api/health');
+	const pushed = page.waitForResponse(
+		(r) => r.url().includes('/api/saves/settings') && r.request().method() === 'PUT'
+	);
+	await page.evaluate(() => window.dispatchEvent(new Event('online')));
+	await pushed;
+});
