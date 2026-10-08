@@ -14,20 +14,43 @@ import {
 import { tetroidLogic, TETROID_VARIANTS } from './tetroid/logic';
 import { generateTetroid } from './tetroid/generator';
 import { CROSS, EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from './tetroid/rules';
+import { GAME_LOGIC } from './logic';
 
 const variant = (variants: Variant[], key: string) => variants.find((v) => v.key === key)!;
 
 describe('variant lists', () => {
-	it.each([
-		['tetroid', TETROID_VARIANTS],
-		['pinwheel', PINWHEEL_VARIANTS]
-	])('%s has unique keys, fits the puzzle ID slots and has one of each special', (_, variants) => {
-		expect(new Set(variants.map((v) => v.key)).size).toBe(variants.length);
-		expect(variants.length).toBeLessThanOrEqual(16);
-		for (const kind of ['daily', 'weekly', 'monthly']) {
-			expect(variants.filter((v) => v.special === kind)).toHaveLength(1);
+	it.each(Object.values(GAME_LOGIC).map((logic) => [logic.id, logic.variants] as const))(
+		'%s has unique keys, fits the puzzle ID slots and has one of each special',
+		(_, variants) => {
+			expect(new Set(variants.map((v) => v.key)).size).toBe(variants.length);
+			expect(variants.length).toBeLessThanOrEqual(16);
+			for (const kind of ['daily', 'weekly', 'monthly']) {
+				expect(variants.filter((v) => v.special === kind)).toHaveLength(1);
+			}
+			for (const v of variants) expect(v.width * v.height).toBeGreaterThan(0);
 		}
-		for (const v of variants) expect(v.width * v.height).toBeGreaterThan(0);
+	);
+
+	// A puzzle ID holds the variant's position in its list. Moving or inserting a variant changes
+	// the meaning of every ID (saves, links, leaderboards, the puzzle collection): only append.
+	it('keeps every variant at its position', () => {
+		const order = Object.fromEntries(
+			Object.values(GAME_LOGIC).map((logic) => [logic.id, logic.variants.map((v) => v.key)])
+		);
+		expect(order).toEqual({
+			tetroid: [
+				...['6n', '6h', '8n', '8h', '10n', '10h', '15n', '15h', '20n', '20h'],
+				...['daily', 'weekly', 'monthly']
+			],
+			pinwheel: [
+				...['5n', '5h', '7n', '7h', '10n', '10h', '15n', '15h'],
+				...['daily', 'weekly', 'monthly']
+			],
+			sudoku: [
+				...['9e', '9n', '9h', 'daily', 'weekly', 'monthly'],
+				...['c5e', 'c5n', 'c5h', 'c7e', 'c7n', 'c7h', 'c9e', 'c9n', 'c9h']
+			]
+		});
 	});
 });
 
