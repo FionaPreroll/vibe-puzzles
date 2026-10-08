@@ -30,7 +30,11 @@
 	bind:this={dialog}
 	{role}
 	aria-labelledby="{id}-title"
-	onclose={() => (open = false)}
+	onclose={() => {
+		// The close event comes a moment later; by then the dialog may have opened again (the next
+		// question right after an answer), and that one must stay.
+		if (!dialog?.open) open = false;
+	}}
 	onclick={(e) => e.target === dialog && (open = false)}
 	class="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-xl border border-stone-200 bg-white p-0 text-stone-900 shadow-xl backdrop:bg-black/40 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
 >

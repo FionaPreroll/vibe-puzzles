@@ -43,6 +43,23 @@ test('deleting a checkpoint asks first, with the × and with a right click', asy
 	await expect(first).toBeHidden();
 });
 
+test('a question asked right after an answer stays open', async ({ page }) => {
+	await openPuzzle(page);
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const box = (await board.boundingBox())!;
+	await page.mouse.click(box.x + box.width / 12, box.y + box.height / 12);
+	await page.getByRole('button', { name: 'New puzzle' }).click();
+	const dialog = page.getByRole('alertdialog');
+	await expect(dialog).toBeVisible();
+	// Cancel, then "+" before the browser has reported the dialog closed.
+	await page.evaluate(() => {
+		document.querySelector<HTMLElement>('[role=alertdialog] .btn')!.click();
+		setTimeout(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: '+' })));
+	});
+	await page.waitForTimeout(500);
+	await expect(dialog).toBeVisible();
+});
+
 test('"?" lists the keyboard shortcuts', async ({ page }) => {
 	await openPuzzle(page);
 	await page.keyboard.press('?');
