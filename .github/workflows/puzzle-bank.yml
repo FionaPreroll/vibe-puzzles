@@ -2,7 +2,8 @@ name: Grow puzzle collection
 
 # Adds freshly generated puzzles to static/puzzles once a week (or by hand), including the special
 # puzzles of the coming periods for the server (see README), and proposes them in a pull request
-# against main. Every puzzle is checked for a unique solution before it is committed.
+# against main that merges itself once CI passes. Every puzzle is checked for a unique solution
+# before it is committed.
 on:
   schedule:
     - cron: '17 3 * * 1'
@@ -74,6 +75,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Grow the puzzle collection"
+          echo "PROPOSED=true" >> "$GITHUB_ENV"
           if [ -n "$OPEN_PR" ]; then
             git push origin "HEAD:$BRANCH"
             gh pr comment "$OPEN_PR" --body "Added more puzzles: $RUN_URL"
@@ -81,5 +83,10 @@ jobs:
             # Without an open pull request the branch only holds merged or dropped puzzles.
             git push --force origin "HEAD:$BRANCH"
             gh pr create --base main --head "$BRANCH" --title "Grow the puzzle collection" \
-              --body "New puzzles from the \`Grow puzzle collection\` workflow ($RUN_URL). Every puzzle was checked for a unique solution, and \`bank.test.ts\` passed on the grown collection. Merging deploys them."
+              --body "New puzzles from the \`Grow puzzle collection\` workflow ($RUN_URL). Every puzzle was checked for a unique solution, and \`bank.test.ts\` passed on the grown collection. Merges itself once CI passes; merging deploys them."
           fi
+      # Merges once the required checks pass. Needs "Allow auto-merge" and a branch protection rule
+      # with required checks on main; CI only runs on the pull request with BANK_PR_TOKEN.
+      - name: Merge automatically once CI passes
+        if: env.PROPOSED == 'true'
+        run: gh pr merge "$BRANCH" --auto --merge
