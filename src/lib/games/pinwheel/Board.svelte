@@ -21,6 +21,7 @@
 		analyze,
 		CROSS,
 		frozenEdges,
+		innerDots,
 		hIndex,
 		isBlocked,
 		LINE,
@@ -99,6 +100,10 @@
 	});
 	const a = $derived(analyze(puzzle, shown));
 	const frozen = $derived(frozenEdges(puzzle, board, analyze(puzzle, board)));
+	/** Once solved, the dots inside galaxies go, leaving only the lines and centres. */
+	const hiddenDots = $derived(
+		!blank && a.complete.every(Boolean) ? innerDots(puzzle, shown, a) : new Set<number>()
+	);
 
 	const blocked = $derived.by(() => {
 		const out = new Set<string>();
@@ -696,11 +701,13 @@
 	<!-- Dots -->
 	<g fill="#374151">
 		{#each { length: (h + 1) * (w + 1) } as _, k (k)}
-			<circle
-				cx={px(k % (w + 1))}
-				cy={py(Math.floor(k / (w + 1)))}
-				r={Math.max(1.5, cellSize * 0.045)}
-			/>
+			{#if !hiddenDots.has(k)}
+				<circle
+					cx={px(k % (w + 1))}
+					cy={py(Math.floor(k / (w + 1)))}
+					r={Math.max(1.5, cellSize * 0.045)}
+				/>
+			{/if}
 		{/each}
 	</g>
 

@@ -151,6 +151,34 @@ export function isSolvedState(p: PinwheelPuzzle, s: PinwheelState): boolean {
 }
 
 /**
+ * Grid dots (index `i * (width + 1) + j`) inside a galaxy: all four cells around them belong to
+ * one region and no line touches them. A solved board hides them, as they mark nothing there.
+ */
+export function innerDots(p: PinwheelPuzzle, s: PinwheelState, a: PinwheelAnalysis): Set<number> {
+	const { width: w, height: h } = p;
+	const out = new Set<number>();
+	for (let i = 1; i < h; i++) {
+		for (let j = 1; j < w; j++) {
+			const r = a.region[(i - 1) * w + j - 1];
+			if (
+				a.region[(i - 1) * w + j] !== r ||
+				a.region[i * w + j - 1] !== r ||
+				a.region[i * w + j] !== r
+			) {
+				continue;
+			}
+			const touched =
+				s.h[hIndex(p, i, j - 1)] === LINE ||
+				s.h[hIndex(p, i, j)] === LINE ||
+				s.v[vIndex(p, i - 1, j)] === LINE ||
+				s.v[vIndex(p, i, j)] === LINE;
+			if (!touched) out.add(i * (w + 1) + j);
+		}
+	}
+	return out;
+}
+
+/**
  * Colour-based acceptance (spec 7.2): treat edges between differently coloured cells as lines.
  * Returns the state with those lines added if that solves the board, otherwise null.
  */
