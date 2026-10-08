@@ -424,7 +424,9 @@
 />
 
 <svelte:head>
-	<title>{game.name} · {label} · {t('app.name')}</title>
+	<!-- The prerendered page cannot know which puzzle a link opens (link previews in messengers
+	     show this title), so the puzzle type joins the title once a puzzle is loaded. -->
+	<title>{session.puzzle ? `${game.name} · ${label}` : game.name} · {t('app.name')}</title>
 </svelte:head>
 
 {#snippet toolButtons(compact: boolean)}
