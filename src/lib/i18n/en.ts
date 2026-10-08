@@ -105,6 +105,7 @@ const en = {
 		expired: 'Solved in {time}! Not ranked: the server no longer keeps this old puzzle.'
 	},
 	difficulty: {
+		easy: 'Easy',
 		normal: 'Normal',
 		hard: 'Hard'
 	},
@@ -124,7 +125,9 @@ const en = {
 		black: 'Black',
 		cross: 'Cross',
 		blank: 'Blank',
-		color: 'Colour'
+		color: 'Colour',
+		digit: 'Digit',
+		note: 'Note'
 	},
 	swatch: ['', 'Violet', 'Red', 'Yellow', 'Green', 'Blue'],
 	setting: {
@@ -149,7 +152,13 @@ const en = {
 		continuousLine: 'Draw continuous line',
 		symmetryHelper: 'Enable symmetry helper',
 		blackHoles: 'Black hole in completed galaxies',
-		autoColor: 'Auto colour completed galaxies'
+		autoColor: 'Auto colour completed galaxies',
+		markMistakes: 'Paint wrong digits red',
+		autoNotes: 'Fill in notes automatically',
+		autoRemoveNotes: 'Remove notes ruled out by a new digit',
+		highlightLines: 'Highlight row, column and box',
+		highlightSame: 'Highlight the same digit',
+		showRemaining: 'Show how many of each digit are left'
 	},
 	source: {
 		title: 'Where new puzzles come from',
@@ -293,6 +302,29 @@ const en = {
 				'A circle on a cell, an edge or a corner tells you where the middle of the region is.',
 				'Draw lines between the dots to separate the regions. The symmetry helper mirrors your lines for you.',
 				'Now split this board so that each region holds one circle and is symmetric around it.'
+			]
+		},
+		sudoku: {
+			tagline: 'Fill the grid so that no row, column or box repeats a digit.',
+			rules: [
+				'Fill every empty cell with a digit from 1 to 9.',
+				'Each row, each column and each 3×3 box with a thick border holds every digit exactly once.'
+			],
+			notes: [
+				'Small digits in a cell are notes: the digits you still consider possible there. They do not count for the solution.'
+			],
+			controlsMouse:
+				'Click a cell, then type a digit or use the number pad. Shift+digit adds or removes a note, Space switches between digits and notes. Backspace or 0 erases. Arrow keys move.',
+			controlsTouch:
+				'Tap a cell, then a digit on the number pad. Pick the Note tool to add or remove small notes instead. ⌫ erases.',
+			pad: 'Number pad',
+			erase: 'Erase',
+			left: '{count} left',
+			tutorial: [
+				'This small Sudoku uses the digits 1 to 4. Every row, column and 2×2 box needs each of them exactly once.',
+				'Look at the top row: 1, 2 and 4 are there already, so the empty cell must be a 3.',
+				'Not sure yet? Pick the Note tool and jot down small digits as reminders of what is still possible.',
+				'Now fill in all empty cells. Repeated digits turn red.'
 			]
 		}
 	}
