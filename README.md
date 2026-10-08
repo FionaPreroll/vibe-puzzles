@@ -64,6 +64,7 @@ migrations/           D1 schema
 2. Add the texts (tagline, rules, notes, control hints, tutorial steps) under `games.<id>` in every file in `src/lib/i18n/`.
 3. Register the logic in `src/lib/games/logic.ts` and the module in `src/lib/games/index.ts`.
 4. Generators must be deterministic for a seed and must not depend on time, so puzzle IDs work everywhere.
+5. Only ever append new puzzle types to a game's variant list (at most 16): a puzzle ID stores the type's position in the list, so moving or inserting one changes every ID, save, link and leaderboard entry. A unit test pins the order.
 
 ## Puzzle collection
 
