@@ -16,3 +16,10 @@ test('the About page lists every shipped library with its licence text', async (
 		await expect(text).toContainText('Copyright');
 	}
 });
+
+test('the backup schema link opens the JSON schema', async ({ page }) => {
+	await page.goto('/about');
+	await page.getByRole('link', { name: 'File format (JSON Schema)' }).click();
+	await expect(page).toHaveURL(/\/backup\.schema\.json$/);
+	await expect(page.locator('body')).toContainText('"$schema"');
+});
