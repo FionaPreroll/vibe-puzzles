@@ -6,6 +6,9 @@ name: Soak test
 on:
   schedule:
     - cron: '17 2 * * *'
+  # A short run on pull requests that change the soak test itself.
+  pull_request:
+    paths: ['e2e-load/**', 'playwright.load.config.ts', '.github/workflows/soak.yml']
   workflow_dispatch:
     inputs:
       actions:
@@ -19,8 +22,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: soak
-  cancel-in-progress: false
+  group: soak-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   soak:
@@ -30,7 +33,7 @@ jobs:
     # Same image as the browser tests in ci.yml; keep the tag in step with @playwright/test.
     container: mcr.microsoft.com/playwright:v1.63.0-noble
     env:
-      SOAK_ACTIONS: ${{ inputs.actions || '2000' }}
+      SOAK_ACTIONS: ${{ inputs.actions || (github.event_name == 'pull_request' && '400') || '2000' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
