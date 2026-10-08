@@ -73,6 +73,9 @@ const en = {
 		done: 'Done',
 		startOver: 'Start over',
 		confirmStartOver: 'Are you sure? This clears the board and restarts the timer.',
+		confirmNewPuzzle: 'Start a new puzzle? Your unfinished game of this type will be lost.',
+		confirmReplace:
+			'This puzzle replaces your unfinished game of the same type, which will be lost. Open it anyway?',
 		print: 'Print…',
 		more: 'More actions',
 		share: 'Share board',
@@ -87,7 +90,8 @@ const en = {
 		notCreated: 'The puzzle could not be created.',
 		retry: 'Try again',
 		paused: 'Paused. Click to resume',
-		storageFull: 'Your browser storage is full. Clear old saved games?',
+		storageFull:
+			'Your browser storage is full. Delete the unfinished games you played longest ago to make room?',
 		board: 'Puzzle board'
 	},
 	session: {

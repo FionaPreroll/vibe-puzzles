@@ -15,10 +15,10 @@ import { MemoryStorage } from '../../test/memory-storage';
 import * as api from './api';
 import * as bank from './bank';
 import { generate } from './generate';
-import { cleanupSpecialSaves, clearOldSaves, GameSession, MAX_CHECKPOINTS } from './session.svelte';
+import { cleanupSpecialSaves, freeSaveSpace, GameSession, MAX_CHECKPOINTS } from './session.svelte';
 import { GameSettings } from './settings.svelte';
 import { getStats } from './stats';
-import { keys, load, save } from './storage';
+import { keys, load, save, setQuotaHandler } from './storage';
 
 vi.mock('./api', () => ({
 	currentPlayer: vi.fn(() => null),
@@ -192,6 +192,45 @@ describe('opening a puzzle', () => {
 		// "New puzzle" on a special type goes back to the current one.
 		await s.newPuzzle();
 		expect(s.puzzleId).toBe(encodePuzzleId(DAILY, today));
+	});
+});
+
+describe('unfinished games', () => {
+	const OTHER = encodePuzzleId(0, SEED + 1);
+
+	it('knows when "New puzzle" would throw a started game away', async () => {
+		const s = await opened();
+		expect(s.newPuzzleDiscards).toBe(false);
+		s.move(shaded(3), ['3']);
+		expect(s.newPuzzleDiscards).toBe(true);
+		s.move(solvedState(), []);
+		expect(s.solved).toBe(true);
+		expect(s.newPuzzleDiscards).toBe(false);
+	});
+
+	it('counts a checkpoint as a start, but not a special type, which keeps its game', async () => {
+		const s = await opened();
+		s.addCheckpoint();
+		expect(s.newPuzzleDiscards).toBe(true);
+		const daily = session();
+		await daily.open('daily');
+		daily.move(shaded(3), ['3']);
+		expect(daily.newPuzzleDiscards).toBe(false);
+	});
+
+	it('knows when opening a puzzle would replace a started game of its type', async () => {
+		const s = await opened();
+		expect(s.replacesGame('6n', { puzzleId: OTHER })).toBe(false);
+		s.move(shaded(3), ['3']);
+		expect(s.replacesGame('6n', { puzzleId: OTHER })).toBe(true);
+		// The same puzzle continues; a shared position of it replaces the game.
+		expect(s.replacesGame('6n', { puzzleId: ID })).toBe(false);
+		expect(s.replacesGame('6n', { puzzleId: ID, shared: 'x' })).toBe(true);
+		// Other types keep their own game, and the type comes from the ID.
+		expect(s.replacesGame('6h', {})).toBe(false);
+		expect(s.replacesGame('6h', { puzzleId: OTHER })).toBe(true);
+		s.move(solvedState(), []);
+		expect(s.replacesGame('6n', { puzzleId: OTHER })).toBe(false);
 	});
 });
 
@@ -521,11 +560,52 @@ describe('cleaning up saves', () => {
 		]);
 	});
 
-	it('clears every save but the kept ones when storage is full', () => {
-		save('save:a', 1);
-		save('save:b', 2);
-		save('settings:x', 3);
-		clearOldSaves(['save:b']);
-		expect(keys('').sort()).toEqual(['save:b', 'settings:x']);
+	describe('when storage is full', () => {
+		const game = (updatedAt: number, solved = false) => ({ updatedAt, solved });
+
+		it('removes solved games first, without asking', () => {
+			save('save:a', game(1, true));
+			save('save:b', game(2));
+			save('save:current', game(3, true));
+			save('settings:x', 3);
+			const agree = vi.fn(() => true);
+			expect(freeSaveSpace('save:current', agree)).toBe(true);
+			expect(agree).not.toHaveBeenCalled();
+			expect(keys('').sort()).toEqual(['save:b', 'save:current', 'settings:x']);
+		});
+
+		it('then removes the unfinished game played longest ago, if the player agrees', () => {
+			save('save:new', game(30));
+			save('save:old', game(10));
+			save('save:current', game(1));
+			expect(freeSaveSpace('save:current', () => false)).toBe(false);
+			expect(keys('save:')).toHaveLength(3);
+			expect(freeSaveSpace('save:current', () => true)).toBe(true);
+			expect(keys('save:').sort()).toEqual(['save:current', 'save:new']);
+		});
+
+		it('never removes the game being played', () => {
+			save('save:current', game(1, true));
+			expect(freeSaveSpace('save:current', () => true)).toBe(false);
+			expect(keys('save:')).toEqual(['save:current']);
+		});
+
+		it('keeps the current game when a move does not fit', async () => {
+			const s = await opened();
+			save('save:tetroid:8n', game(1, true));
+			const storage = localStorage as unknown as MemoryStorage;
+			storage.full = true;
+			setQuotaHandler(() => {
+				const freed = freeSaveSpace(s.slot, () => true);
+				storage.full = !freed;
+				return freed;
+			});
+			s.move(shaded(3), ['3']);
+			expect(keys('save:')).toEqual(['save:tetroid:6n']);
+			expect(load<{ state: TetroidState } | null>('save:tetroid:6n', null)?.state.marks[3]).toBe(
+				SHADED
+			);
+			setQuotaHandler(() => false);
+		});
 	});
 });

@@ -42,6 +42,25 @@ describe('storage', () => {
 		expect(onQuota).toHaveBeenCalledTimes(1);
 	});
 
+	it('writes again once the quota handler made room', () => {
+		storage.full = true;
+		setQuotaHandler(() => {
+			storage.full = false;
+			return true;
+		});
+		expect(save('x', 1)).toBe(true);
+		expect(load('x', 0)).toBe(1);
+	});
+
+	it('stops retrying when making room does not help', () => {
+		const onQuota = vi.fn(() => true);
+		setQuotaHandler(onQuota);
+		storage.full = true;
+		expect(save('x', 1)).toBe(false);
+		expect(onQuota.mock.calls.length).toBeGreaterThan(1);
+		expect(onQuota.mock.calls.length).toBeLessThanOrEqual(21);
+	});
+
 	it('works without localStorage at all', () => {
 		vi.stubGlobal('localStorage', undefined);
 		expect(save('x', 1)).toBe(false);
