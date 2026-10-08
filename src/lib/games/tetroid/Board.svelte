@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { columnLabel } from '../../core/grid';
+	import { CELEBRATION_COLOURS, colourRegions, columnLabel } from '../../core/grid';
 	import type { BoardProps } from '../../core/types';
 	import { analyze, CROSS, EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from './rules';
 	import { t } from '../../i18n/index.svelte';
@@ -14,6 +14,7 @@
 		lastChange,
 		blank = false,
 		keyboard = false,
+		celebrate = false,
 		touchMode,
 		onmove
 	}: BoardProps<TetroidPuzzle, TetroidState> = $props();
@@ -357,6 +358,13 @@
 		if (e.key === 'Shift') shiftHeld = true;
 		onkeydown(e);
 	}
+
+	/** Win animation: every region in its own colour for a moment. */
+	const celebrationFill = $derived.by(() => {
+		if (!celebrate || blank) return null;
+		const colours = colourRegions(puzzle.regions, w, h, CELEBRATION_COLOURS.length);
+		return Array.from({ length: w * h }, (_, i) => CELEBRATION_COLOURS[colours[puzzle.regions[i]]]);
+	});
 </script>
 
 <svelte:window
@@ -407,6 +415,20 @@
 			/>
 		{/if}
 	{/each}
+
+	{#if celebrationFill}
+		<g class="celebrate-regions" aria-hidden="true">
+			{#each celebrationFill as fill, i (i)}
+				<rect
+					x={pad + (i % w) * cellSize}
+					y={pad + Math.floor(i / w) * cellSize}
+					width={cellSize}
+					height={cellSize}
+					{fill}
+				/>
+			{/each}
+		</g>
+	{/if}
 
 	<!-- Thin cell lines -->
 	<g stroke="#4b5563" stroke-width="1" opacity="0.55">

@@ -41,6 +41,8 @@ export interface BoardProps<P, S> {
 	blank?: boolean;
 	/** Whether the board reacts to the keyboard (only one instance per page). */
 	keyboard?: boolean;
+	/** The win animation is running: briefly colour the regions. */
+	celebrate?: boolean;
 	touchMode: TouchMode;
 	/** Apply a move. `changed` lists element keys for "Highlight last change". */
 	onmove: (next: S, changed: string[]) => void;

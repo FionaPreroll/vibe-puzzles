@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { specialPuzzleId, upcomingPeriods } from './bank';
-import { columnLabel, neighbours, packDigits, unpackDigits } from './grid';
+import { colourRegions, columnLabel, neighbours, packDigits, unpackDigits } from './grid';
 import { hashString, Rng } from './rng';
 import { COMMON_SETTINGS, withCommon } from './settings';
 import { formatDuration } from './time';
@@ -14,6 +14,20 @@ import {
 } from './variants';
 
 describe('grid', () => {
+	it('colours neighbouring regions differently', () => {
+		// 3×3: a ring of regions 0–3 around region 4.
+		const region = [0, 0, 1, 3, 4, 1, 3, 2, 2];
+		const colours = colourRegions(region, 3, 3, 8);
+		expect(colours).toHaveLength(5);
+		for (let i = 0; i < 9; i++) {
+			for (const j of neighbours(i, 3, 3)) {
+				if (region[i] !== region[j]) expect(colours[region[i]]).not.toBe(colours[region[j]]);
+			}
+		}
+		expect(new Set(colours).size).toBeGreaterThan(2);
+		expect(colourRegions([], 0, 0, 8)).toEqual([]);
+	});
+
 	it('lists orthogonal neighbours inside the grid only', () => {
 		// 3x2 grid: 0 1 2 / 3 4 5
 		expect(neighbours(0, 3, 2).sort()).toEqual([1, 3]);

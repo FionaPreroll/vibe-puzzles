@@ -84,7 +84,8 @@
 	position: absolute;
 	top: 50%;
 	left: 50%;
-	color: rgb(245 158 11);
+	color: var(--c, rgb(245 158 11));
+	text-shadow: 0 0 6px rgb(255 255 255 / 0.9);
 	font-size: 1.5rem;
 	opacity: 0;
 	animation: solved-burst 1.2s ease-out var(--d) forwards;
@@ -97,6 +98,49 @@
 	100% {
 		opacity: 0;
 		transform: translate(-50%, -50%) rotate(var(--a)) translateY(-160px) scale(1.2);
+	}
+}
+/* Confetti: falls from above the board to below it, drifting and tumbling. */
+.solved-burst .confetti {
+	position: absolute;
+	top: -6%;
+	left: var(--x);
+	width: 7px;
+	height: 11px;
+	border-radius: var(--r);
+	background: var(--c);
+	opacity: 0;
+	animation: confetti-fall 1.6s cubic-bezier(0.25, 0.6, 0.45, 1) var(--d) forwards;
+}
+@keyframes confetti-fall {
+	0% {
+		top: -6%;
+		opacity: 1;
+		transform: translateX(0) rotate(0);
+	}
+	80% {
+		opacity: 1;
+	}
+	100% {
+		top: 104%;
+		opacity: 0;
+		transform: translateX(var(--dx)) rotate(var(--turn));
+	}
+}
+/* The regions light up in colour for a moment. */
+.celebrate-regions {
+	opacity: 0;
+	pointer-events: none;
+	animation: celebrate-regions 1.8s ease-in-out forwards;
+}
+@keyframes celebrate-regions {
+	0%,
+	100% {
+		opacity: 0;
+	}
+	25%,
+	65% {
+		opacity: 0.55;
 	}
 }
 /* "New puzzle" after solving: a ring pulses a few times to point the way on. */
@@ -115,7 +159,9 @@
 	.next-up,
 	.solved-glow,
 	.solved-burst,
-	.solved-burst span {
+	.solved-burst span,
+	.solved-burst .confetti,
+	.celebrate-regions {
 		animation: none;
 	}
 }

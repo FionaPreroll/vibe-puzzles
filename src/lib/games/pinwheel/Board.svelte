@@ -15,7 +15,7 @@
 </script>
 
 <script lang="ts">
-	import { columnLabel, neighbours } from '../../core/grid';
+	import { CELEBRATION_COLOURS, colourRegions, columnLabel, neighbours } from '../../core/grid';
 	import type { BoardProps } from '../../core/types';
 	import {
 		analyze,
@@ -44,6 +44,7 @@
 		lastChange,
 		blank = false,
 		keyboard = false,
+		celebrate = false,
 		touchMode,
 		onmove
 	}: BoardProps<PinwheelPuzzle, PinwheelState> = $props();
@@ -603,6 +604,13 @@
 		if (settings.highlightErrors && a.centreError[k]) return errorColour;
 		return '#ffffff';
 	}
+
+	/** Win animation: every region in its own colour for a moment. */
+	const celebrationFill = $derived.by(() => {
+		if (!celebrate || blank) return null;
+		const colours = colourRegions(a.region, w, h, CELEBRATION_COLOURS.length);
+		return Array.from({ length: w * h }, (_, i) => CELEBRATION_COLOURS[colours[a.region[i]]]);
+	});
 </script>
 
 <svelte:window
@@ -645,6 +653,14 @@
 				<rect x={px(i % w)} y={py(Math.floor(i / w))} width={cellSize} height={cellSize} {fill} />
 			{/if}
 		{/each}
+	{/if}
+
+	{#if celebrationFill}
+		<g class="celebrate-regions" aria-hidden="true">
+			{#each celebrationFill as fill, i (i)}
+				<rect x={px(i % w)} y={py(Math.floor(i / w))} width={cellSize} height={cellSize} {fill} />
+			{/each}
+		</g>
 	{/if}
 
 	<!-- Faint grid -->
