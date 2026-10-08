@@ -245,7 +245,14 @@ async function session(page: Page, name: string, touch: boolean) {
 		const end = own[own.length - 1].resources;
 		const where = `${name}, ${game}, round ${own[WARMUP].round} → ${own[own.length - 1].round}`;
 		// Some growth is caches and lazily loaded code; a leak grows with every round.
-		expect(end.heapMB, `heap (${where})`).toBeLessThan(base.heapMB * 1.25 + 3);
+		// The heap varies a little from round to round, so compare the average of the first and
+		// the last third of the rounds. Loaded code and compiled functions account for some growth;
+		// keeping every puzzle collection ever opened in memory grew 2.5 MB in 2000 actions.
+		const heap = own.slice(WARMUP).map((r) => r.resources.heapMB);
+		const third = Math.max(1, Math.floor(heap.length / 3));
+		const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+		const [early, late] = [mean(heap.slice(0, third)), mean(heap.slice(-third))];
+		expect(late, `heap (${where})`).toBeLessThan(early * 1.1 + 1.5);
 		expect(end.nodes, `DOM nodes (${where})`).toBeLessThan(base.nodes * 1.1 + 200);
 		expect(end.detachedNodes, `detached nodes (${where})`).toBeLessThan(base.detachedNodes + 200);
 		expect(end.jsListeners, `listeners (${where})`).toBeLessThan(base.jsListeners * 1.1 + 50);
