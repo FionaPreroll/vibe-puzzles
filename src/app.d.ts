@@ -6,8 +6,9 @@ declare global {
 		version: string;
 		commit: string;
 		date: string;
-		licenses: { name: string; version: string; license: string }[];
 	};
+	/** Open source packages that ship with the app, with their licence texts (vite.config.ts). */
+	const __LICENSES__: import('../scripts/licenses').ShippedLicense[];
 
 	namespace App {
 		// interface Error {}

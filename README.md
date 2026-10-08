@@ -53,7 +53,7 @@ src/lib/i18n/         translations (en.ts is the reference, de.ts must have the 
 src/service-worker/   offline cache
 src/routes/           pages
 static/puzzles/       the puzzle collection, one JSON file per game and puzzle type
-scripts/              grow-puzzle-bank.ts
+scripts/              grow-puzzle-bank.ts, licenses.ts (licence notices of shipped packages)
 worker/               Cloudflare Worker: REST API and storage
 migrations/           D1 schema
 ```

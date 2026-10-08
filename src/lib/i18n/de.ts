@@ -252,6 +252,7 @@ const de: Dictionary = {
 		built: 'Erstellt',
 		source: 'Quellcode',
 		licenses: 'Lizenzen',
+		licenseText: 'Lizenztext von {name}',
 		licensesNote: 'Die App baut auf diesen Open-Source-Bibliotheken auf:',
 		puzzleTypes:
 			'Tetroid folgt den Regeln von LITS, Pinwheel denen von Tentai Show (Galaxies). Beides sind klassische Rätselarten aus Japan.',
