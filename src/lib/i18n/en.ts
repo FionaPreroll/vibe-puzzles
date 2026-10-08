@@ -84,6 +84,8 @@ const en = {
 		brag: 'I solved {game} {variant} (puzzle {id}) in {time}! Can you beat my time?',
 		bragCopied: 'Copied your result and the link. Paste it anywhere to share.',
 		creating: 'Creating puzzle…',
+		notCreated: 'The puzzle could not be created.',
+		retry: 'Try again',
 		paused: 'Paused. Click to resume',
 		storageFull: 'Your browser storage is full. Clear old saved games?',
 		board: 'Puzzle board'
