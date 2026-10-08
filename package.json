@@ -19,7 +19,9 @@
 		"cf:dev": "npm run build && wrangler d1 migrations apply DB --local && wrangler dev",
 		"cf:deploy": "npm run build && wrangler d1 migrations apply DB --remote && wrangler deploy",
 		"bank:grow": "tsx scripts/grow-puzzle-bank.ts",
-		"test:server": "playwright test -c playwright.server.config.ts"
+		"test:server": "playwright test -c playwright.server.config.ts",
+		"test:soak": "playwright test -c playwright.load.config.ts soak",
+		"test:perf": "vitest --run -c vitest.perf.config.ts && playwright test -c playwright.load.config.ts performance"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^5.20261007.1",

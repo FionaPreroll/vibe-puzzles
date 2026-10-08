@@ -284,7 +284,8 @@
 		document.addEventListener('visibilitychange', visibility);
 		window.addEventListener('focus', activity);
 		window.addEventListener('blur', activity);
-		window.addEventListener('pagehide', () => session.flush());
+		const pagehide = () => session.flush();
+		window.addEventListener('pagehide', pagehide);
 		activity();
 
 		serverAvailable().then(async (ok) => {
@@ -300,6 +301,7 @@
 			document.removeEventListener('visibilitychange', visibility);
 			window.removeEventListener('focus', activity);
 			window.removeEventListener('blur', activity);
+			window.removeEventListener('pagehide', pagehide);
 			session.flush();
 		};
 	});
