@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page, updated } from '$app/state';
 	import favicon from '#lib/assets/favicon.svg';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import { followSystemTheme, setNight, theme } from '#lib/client/settings.svelte.ts';
 	import { paletteCss } from '#lib/core/palette.ts';
 	import { i18n, initLocale, LOCALES, setLocale, t, type Locale } from '#lib/i18n/index.svelte.ts';
@@ -125,6 +126,8 @@
 	<a class="hover:underline" href={resolve('/about')}>{t('about.link')}</a>
 	· v{__BUILD__.version} ({__BUILD__.commit.slice(0, 7)})
 </footer>
+
+<ConfirmDialog />
 
 {#if updated.current && !updateDismissed}
 	<div

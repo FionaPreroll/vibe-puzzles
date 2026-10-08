@@ -3,10 +3,11 @@ import { specialPuzzleId, upcomingPeriods } from './bank';
 import { colourRegions, columnLabel, neighbours, packDigits, unpackDigits } from './grid';
 import { hashString, Rng } from './rng';
 import { COMMON_SETTINGS, withCommon } from './settings';
-import { formatDuration } from './time';
+import { formatCountdown, formatDuration } from './time';
 import {
 	decodePuzzleId,
 	encodePuzzleId,
+	nextPeriodStart,
 	periodKey,
 	randomSeed,
 	specialSeed,
@@ -145,6 +146,21 @@ describe('formatDuration', () => {
 	});
 });
 
+describe('formatCountdown', () => {
+	it.each([
+		[-1, '1 min'],
+		[1, '1 min'],
+		[60_000, '1 min'],
+		[60_001, '2 min'],
+		[59 * 60_000, '59 min'],
+		[3_600_000, '1 h 00 min'],
+		[5 * 3_600_000 + 7 * 60_000 - 500, '5 h 07 min'],
+		[24 * 3_600_000, '24 h 00 min']
+	])('formats %i ms as %s', (ms, text) => {
+		expect(formatCountdown(ms)).toBe(text);
+	});
+});
+
 describe('variants', () => {
 	it('round-trips puzzle IDs', () => {
 		for (const [variantIndex, seed] of [
@@ -184,6 +200,29 @@ describe('variants', () => {
 		// Sunday ends the ISO week.
 		expect(periodKey('weekly', new Date(Date.UTC(2026, 9, 11)))).toBe('2026-W41');
 		expect(periodKey('weekly', new Date(Date.UTC(2026, 9, 12)))).toBe('2026-W42');
+	});
+
+	it('finds when the next period starts', () => {
+		const utc = (...a: [number, number, number, number?]) => new Date(Date.UTC(...a));
+		// Wednesday 2026-10-07, one minute before midnight UTC.
+		const d = new Date(Date.UTC(2026, 9, 7, 23, 59));
+		expect(nextPeriodStart('daily', d)).toEqual(utc(2026, 9, 8));
+		expect(nextPeriodStart('weekly', d)).toEqual(utc(2026, 9, 12));
+		expect(nextPeriodStart('monthly', d)).toEqual(utc(2026, 10, 1));
+		// At midnight a new period has just started.
+		expect(nextPeriodStart('daily', utc(2026, 9, 8))).toEqual(utc(2026, 9, 9));
+		// Sunday ends the week, Monday starts the next one.
+		expect(nextPeriodStart('weekly', utc(2026, 9, 11, 12))).toEqual(utc(2026, 9, 12));
+		expect(nextPeriodStart('weekly', utc(2026, 9, 12))).toEqual(utc(2026, 9, 19));
+		// Across the end of the year.
+		expect(nextPeriodStart('daily', utc(2026, 11, 31, 5))).toEqual(utc(2027, 0, 1));
+		expect(nextPeriodStart('monthly', utc(2026, 11, 15))).toEqual(utc(2027, 0, 1));
+		// Each next start belongs to a new period.
+		for (const kind of ['daily', 'weekly', 'monthly'] as const) {
+			const next = nextPeriodStart(kind, d);
+			expect(periodKey(kind, next)).not.toBe(periodKey(kind, d));
+			expect(periodKey(kind, new Date(next.getTime() - 1))).toBe(periodKey(kind, d));
+		}
 	});
 
 	it('lists the coming periods of a special type', () => {

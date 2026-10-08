@@ -5,6 +5,7 @@ import en from './en';
 import {
 	i18n,
 	initLocale,
+	nextDailyText,
 	setLocale,
 	settingLabel,
 	t,
@@ -139,5 +140,18 @@ describe('labels', () => {
 		stubBrowser([]);
 		setLocale('de');
 		expect(toolHint('tetroid', 'rotate')).toBe(de.games.tetroid.toolHint.rotate);
+	});
+});
+
+describe('nextDailyText', () => {
+	it('counts down to midnight UTC and names the local time', () => {
+		const now = Date.UTC(2026, 9, 8, 21, 52, 30);
+		const at = new Date(Date.UTC(2026, 9, 9)).toLocaleTimeString('en', {
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+		expect(nextDailyText(now)).toBe(`New daily puzzle in 2 h 08 min, at ${at}`);
+		i18n.locale = 'de';
+		expect(nextDailyText(now)).toMatch(/^Neues Tagesrätsel in 2 h 08 min, um \d\d:00 Uhr$/);
 	});
 });

@@ -1,4 +1,5 @@
-import type { Variant } from '../core/variants';
+import { formatCountdown } from '../core/time';
+import { nextPeriodStart, type Variant } from '../core/variants';
 import de from './de';
 import en, { type Dictionary } from './en';
 
@@ -70,6 +71,16 @@ export function variantLabel(v: Variant): string {
 	if (v.special) return t(`special.${v.special}`);
 	const mode = v.mode ? `${t(`mode.${v.mode}`)} ` : '';
 	return `${mode}${v.width}×${v.height} ${t(`difficulty.${v.difficulty}`)}`;
+}
+
+/**
+ * When the next daily puzzle comes, e.g. "New daily puzzle in 5 h 07 min, at 02:00": it changes
+ * at midnight UTC, which is a different hour in every time zone.
+ */
+export function nextDailyText(now = Date.now()): string {
+	const next = nextPeriodStart('daily', new Date(now));
+	const at = next.toLocaleTimeString(i18n.locale, { hour: '2-digit', minute: '2-digit' });
+	return t('daily.next', { time: formatCountdown(next.getTime() - now), at });
 }
 
 function has(key: string): boolean {

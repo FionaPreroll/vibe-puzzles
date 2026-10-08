@@ -43,11 +43,29 @@ async function more(page: Page) {
 	if (await button.isVisible()) await button.click();
 }
 
+/**
+ * Agrees to the app's question, if it asks (before an unfinished game is lost). `always`: the
+ * action asks every time.
+ */
+async function agree(page: Page, always = false) {
+	const dialog = page.getByRole('alertdialog');
+	try {
+		await dialog.waitFor({ timeout: always ? 5000 : 500 });
+	} catch (e) {
+		if (always) throw e;
+		return;
+	}
+	// The buttons: Close (✕), Cancel and the action.
+	await dialog.getByRole('button').last().click();
+	await expect(dialog).toBeHidden();
+}
+
 /** Opens the game's solved puzzle by its ID and solves it, which plays the celebration. */
 async function solve(page: Page, game: Game) {
 	const p = SOLVED[game];
 	await page.getByLabel('Open puzzle by ID').fill(p.id);
 	await page.getByRole('button', { name: 'Open', exact: true }).click();
+	await agree(page);
 	await expect
 		.poll(async () =>
 			(await page.locator('.font-mono.select-all').textContent())?.replace(/\D/g, '')
@@ -65,9 +83,9 @@ async function solve(page: Page, game: Game) {
 					...[...p.v].flatMap((c, k) => (c === '1' ? [[k % 8, Math.floor(k / 8) + 0.5]] : []))
 				];
 	// A puzzle opened again keeps its progress; start over so that every click toggles on.
-	// (The session accepts the confirmation.)
 	await more(page);
 	await page.getByRole('button', { name: 'Start over' }).click();
+	await agree(page, true);
 	for (const [x, y] of clicks) await page.mouse.click(grid.x + x * cell, grid.y + y * cell);
 	await expect(page.locator('.solved-glow')).toHaveCount(1);
 	// Let the celebration finish.
@@ -90,14 +108,21 @@ async function settle(page: Page, cdp: CDPSession) {
 
 async function session(page: Page, name: string, touch: boolean) {
 	const errors: string[] = [];
-	page.on('pageerror', (e) => errors.push(e.message));
+	/** What the session was doing, so that an error says where it came from. */
+	let step = 'start';
+	page.on('pageerror', (e) => errors.push(`${e.message} (${step})`));
 	page.on('console', (m) => {
 		// Without the optional server, API calls fail; that is expected here.
 		if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) {
-			errors.push(m.text());
+			const at = m.location();
+			errors.push(`${m.text()} (${step}; ${at.url}:${at.lineNumber})`);
 		}
 	});
-	page.on('dialog', (d) => d.accept().catch(() => {}));
+	// The app asks in its own dialog, never with the browser's.
+	page.on('dialog', (d) => {
+		errors.push(`browser dialog: ${d.message()}`);
+		d.dismiss().catch(() => {});
+	});
 	await prepare(page);
 	await trackResources(page);
 	const cdp = await page.context().newCDPSession(page);
@@ -135,6 +160,7 @@ async function session(page: Page, name: string, touch: boolean) {
 		);
 		const before = await puzzleId();
 		await page.getByRole('button', { name: 'New puzzle' }).click();
+		await agree(page);
 		await expect(page.locator('.font-mono.select-all')).not.toHaveText(before ?? '', {
 			timeout: 30_000
 		});
@@ -205,11 +231,13 @@ async function session(page: Page, name: string, touch: boolean) {
 		const game = GAMES[round % 2];
 		if (round > 0) await switchGame(game);
 		for (let k = 1; k < ROUND; k++) {
+			step = `round ${round}, action ${k}`;
 			if (specials[k]) {
 				await specials[k]();
 				continue;
 			}
 			const kind = pick(['tap', 'tap', 'drag', 'drag', 'undo', 'redo']);
+			step += ` (${kind})`;
 			if (kind === 'tap') {
 				const p = await point();
 				if (touch) await page.touchscreen.tap(p.x, p.y);
@@ -229,6 +257,7 @@ async function session(page: Page, name: string, touch: boolean) {
 			}
 		}
 		// Every round of a game ends in the same state: its solved puzzle.
+		step = `round ${round}, solve`;
 		await menu(true);
 		await solve(page, game);
 		rounds.push({ round, game, resources: await settle(page, cdp) });

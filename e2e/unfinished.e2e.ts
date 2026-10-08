@@ -21,16 +21,27 @@ async function shadeFirstCell(page: Page) {
 	await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
 }
 
-/** Answer the next confirmation; returns its text once it was shown. */
-function answerNextDialog(page: Page, accept: boolean): Promise<string> {
-	return new Promise((resolve) => {
-		page.once('dialog', async (dialog) => {
-			const text = dialog.message();
-			await (accept ? dialog.accept() : dialog.dismiss());
-			resolve(text);
-		});
-	});
+/** Answer the confirmation in the app's dialog; returns its text. */
+async function answerDialog(page: Page, accept: boolean): Promise<string> {
+	const dialog = page.getByRole('alertdialog');
+	await expect(dialog).toBeVisible({ timeout: 30_000 });
+	const text = (await dialog.textContent()) ?? '';
+	// The safe choice has the focus.
+	await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+	// The buttons: Close (✕), Cancel and the action.
+	await (
+		accept ? dialog.getByRole('button').last() : dialog.getByRole('button', { name: 'Cancel' })
+	).click();
+	await expect(dialog).toBeHidden();
+	return text;
 }
+
+test.beforeEach(({ page }) => {
+	// The app asks in its own dialog, never with the browser's.
+	page.on('dialog', (dialog) => {
+		throw new Error(`unexpected browser dialog: ${dialog.message()}`);
+	});
+});
 
 test.beforeEach(async ({ page }) => {
 	await page.addInitScript(() => {
@@ -44,16 +55,14 @@ test('"New puzzle" asks before it throws a started game away', async ({ page }) 
 	await expect(puzzleId(page)).toHaveText('496,678,832', { timeout: 30_000 });
 	await shadeFirstCell(page);
 
-	const asked = answerNextDialog(page, false);
 	await page.getByRole('button', { name: 'New puzzle' }).click();
-	expect(await asked).toContain('unfinished game');
+	expect(await answerDialog(page, false)).toContain('unfinished game');
 	await expect(puzzleId(page)).toHaveText('496,678,832');
 	expect(await savedProgress(page)).toBe(true);
 
 	// The keyboard shortcut asks too.
-	const again = answerNextDialog(page, true);
 	await page.keyboard.press('+');
-	await again;
+	await answerDialog(page, true);
 	await expect(puzzleId(page)).not.toHaveText('496,678,832', { timeout: 30_000 });
 });
 
@@ -62,18 +71,16 @@ test('a link to another puzzle asks before it replaces a started game', async ({
 	await expect(puzzleId(page)).toHaveText('496,678,832', { timeout: 30_000 });
 	await shadeFirstCell(page);
 
-	const asked = answerNextDialog(page, false);
 	await page.goto(`/tetroid?id=${OTHER}`);
-	expect(await asked).toContain('replaces your unfinished game');
+	expect(await answerDialog(page, false)).toContain('replaces your unfinished game');
 	// Declined: the started game continues.
 	await expect(puzzleId(page)).toHaveText('496,678,832', { timeout: 30_000 });
 	expect(await savedProgress(page)).toBe(true);
 
 	// Opening it by ID asks as well; accepted, the other puzzle opens.
 	await page.getByRole('textbox', { name: 'Open puzzle by ID' }).fill(String(OTHER));
-	const confirmed = answerNextDialog(page, true);
 	await page.getByRole('button', { name: 'Open', exact: true }).click();
-	await confirmed;
+	await answerDialog(page, true);
 	await expect(puzzleId(page)).toHaveText(OTHER.toLocaleString('en-US'), { timeout: 30_000 });
 });
 
@@ -81,11 +88,6 @@ test('Shift+0 on a German keyboard ("=") erases in Sudoku and keeps the game', a
 	await page.goto('/sudoku?v=9n');
 	await expect(puzzleId(page)).toBeVisible({ timeout: 30_000 });
 	const id = await puzzleId(page).textContent();
-	let dialogs = 0;
-	page.on('dialog', (d) => {
-		dialogs++;
-		d.dismiss();
-	});
 
 	// Put a digit into the first empty cell.
 	const board = page.getByRole('grid', { name: 'Puzzle board' });
@@ -116,5 +118,5 @@ test('Shift+0 on a German keyboard ("=") erases in Sudoku and keeps the game', a
 	await expect.poll(text).toBe(before);
 	await page.waitForTimeout(500);
 	await expect(puzzleId(page)).toHaveText(id!);
-	expect(dialogs).toBe(0);
+	await expect(page.getByRole('alertdialog')).toHaveCount(0);
 });
