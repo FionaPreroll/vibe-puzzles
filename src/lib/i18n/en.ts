@@ -5,6 +5,45 @@ const en = {
 		close: 'Close',
 		language: 'Language'
 	},
+	/** Questions in the app's own dialog before something is lost. */
+	confirm: {
+		cancel: 'Cancel',
+		newPuzzle: {
+			title: 'Start a new puzzle?',
+			text: 'Your unfinished game of this type will be lost.',
+			ok: 'New puzzle'
+		},
+		replace: {
+			title: 'Replace your unfinished game?',
+			text: 'This puzzle replaces your unfinished game of the same type, which will be lost.',
+			ok: 'Open anyway'
+		},
+		startOver: {
+			title: 'Start over?',
+			text: 'This clears the board and restarts the timer.',
+			ok: 'Start over'
+		},
+		deleteCheckpoint: {
+			title: 'Delete checkpoint {n}?',
+			text: 'This cannot be undone.',
+			ok: 'Delete'
+		},
+		storageFull: {
+			title: 'Browser storage is full',
+			text: 'Delete the unfinished games you played longest ago to make room?',
+			ok: 'Delete old games'
+		},
+		signOut: {
+			title: 'Sign out on this device?',
+			text: 'Keep your sync code to sign back in.',
+			ok: 'Sign out'
+		},
+		import: {
+			title: 'Restore {count} entries from this backup?',
+			text: 'Entries with the same name are overwritten.',
+			ok: 'Restore'
+		}
+	},
 	nav: {
 		games: 'Games',
 		scores: 'Scores',
@@ -65,17 +104,12 @@ const en = {
 		add: 'Add',
 		loadCheckpoint: 'Load checkpoint {n} (right click deletes)',
 		deleteCheckpoint: 'Delete checkpoint {n}',
-		confirmDeleteCheckpoint: 'Delete checkpoint {n}?',
 		idLine: '{variant} · Puzzle ID',
 		idHidden: 'shown once solved',
 		idHiddenTitle: 'Ranked server puzzle',
 		fromBank: 'from the puzzle collection',
 		done: 'Done',
 		startOver: 'Start over',
-		confirmStartOver: 'Are you sure? This clears the board and restarts the timer.',
-		confirmNewPuzzle: 'Start a new puzzle? Your unfinished game of this type will be lost.',
-		confirmReplace:
-			'This puzzle replaces your unfinished game of the same type, which will be lost. Open it anyway?',
 		print: 'Print…',
 		more: 'More actions',
 		share: 'Share board',
@@ -90,9 +124,29 @@ const en = {
 		notCreated: 'The puzzle could not be created.',
 		retry: 'Try again',
 		paused: 'Paused. Click to resume',
-		storageFull:
-			'Your browser storage is full. Delete the unfinished games you played longest ago to make room?',
+		dismiss: 'Dismiss',
 		board: 'Puzzle board'
+	},
+	shortcuts: {
+		title: 'Keyboard shortcuts',
+		open: 'Keyboard shortcuts (?)',
+		general: 'Game',
+		undo: 'Undo',
+		redo: 'Redo',
+		newPuzzle: 'New puzzle',
+		done: 'Check the solution',
+		save: 'Save checkpoint',
+		add: 'Add a checkpoint',
+		colourTool: 'Colour tool and back',
+		escape: 'Close a menu or the zoom',
+		help: 'This list',
+		tools: 'Tools',
+		colours: 'Colours',
+		board: 'On the board',
+		or: 'or'
+	},
+	daily: {
+		next: 'New daily puzzle in {time}, at {at}'
 	},
 	session: {
 		createFailed: 'Could not create the puzzle: {error}',
@@ -220,7 +274,6 @@ const en = {
 		show: 'Show',
 		hide: 'Hide',
 		signOut: 'Sign out',
-		confirmSignOut: 'Sign out on this device? Keep your sync code to sign back in.',
 		unknownCode: 'Unknown sync code'
 	},
 	tutorial: {
@@ -269,8 +322,6 @@ const en = {
 		export: 'Export backup',
 		import: 'Import backup',
 		schema: 'File format (JSON Schema)',
-		confirmImport:
-			'Restore {count} entries from this backup? Entries with the same name are overwritten.',
 		imported: 'Restored {count} entries. Reloading…',
 		importFailed: 'This file cannot be restored: {error}.'
 	},

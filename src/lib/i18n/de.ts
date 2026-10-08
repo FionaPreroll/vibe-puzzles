@@ -7,6 +7,44 @@ const de: Dictionary = {
 		close: 'Schließen',
 		language: 'Sprache'
 	},
+	confirm: {
+		cancel: 'Abbrechen',
+		newPuzzle: {
+			title: 'Neues Rätsel beginnen?',
+			text: 'Dein angefangenes Spiel dieser Art geht verloren.',
+			ok: 'Neues Rätsel'
+		},
+		replace: {
+			title: 'Angefangenes Spiel ersetzen?',
+			text: 'Dieses Rätsel ersetzt dein angefangenes Spiel derselben Art, das dabei verloren geht.',
+			ok: 'Trotzdem öffnen'
+		},
+		startOver: {
+			title: 'Neu beginnen?',
+			text: 'Das leert das Brett und startet die Zeit neu.',
+			ok: 'Neu beginnen'
+		},
+		deleteCheckpoint: {
+			title: 'Zwischenstand {n} löschen?',
+			text: 'Das lässt sich nicht rückgängig machen.',
+			ok: 'Löschen'
+		},
+		storageFull: {
+			title: 'Der Browserspeicher ist voll',
+			text: 'Die am längsten nicht gespielten angefangenen Spiele löschen, um Platz zu schaffen?',
+			ok: 'Alte Spiele löschen'
+		},
+		signOut: {
+			title: 'Auf diesem Gerät abmelden?',
+			text: 'Mit dem Sync-Code kannst du dich wieder anmelden.',
+			ok: 'Abmelden'
+		},
+		import: {
+			title: '{count} Einträge aus dieser Sicherung wiederherstellen?',
+			text: 'Einträge mit gleichem Namen werden überschrieben.',
+			ok: 'Wiederherstellen'
+		}
+	},
 	nav: {
 		games: 'Spiele',
 		scores: 'Bestenliste',
@@ -67,17 +105,12 @@ const de: Dictionary = {
 		add: 'Neu',
 		loadCheckpoint: 'Zwischenstand {n} laden (Rechtsklick löscht)',
 		deleteCheckpoint: 'Zwischenstand {n} löschen',
-		confirmDeleteCheckpoint: 'Zwischenstand {n} löschen?',
 		idLine: '{variant} · Rätsel-ID',
 		idHidden: 'wird nach dem Lösen angezeigt',
 		idHiddenTitle: 'Gewertetes Server-Rätsel',
 		fromBank: 'aus der Rätselsammlung',
 		done: 'Fertig',
 		startOver: 'Neu beginnen',
-		confirmStartOver: 'Wirklich? Das leert das Brett und startet die Zeit neu.',
-		confirmNewPuzzle: 'Neues Rätsel beginnen? Dein angefangenes Spiel dieser Art geht verloren.',
-		confirmReplace:
-			'Dieses Rätsel ersetzt dein angefangenes Spiel derselben Art, das dabei verloren geht. Trotzdem öffnen?',
 		print: 'Drucken…',
 		more: 'Weitere Aktionen',
 		share: 'Spielstand teilen',
@@ -92,9 +125,29 @@ const de: Dictionary = {
 		notCreated: 'Das Rätsel konnte nicht erstellt werden.',
 		retry: 'Erneut versuchen',
 		paused: 'Pausiert. Zum Fortsetzen klicken',
-		storageFull:
-			'Der Browserspeicher ist voll. Die am längsten nicht gespielten angefangenen Spiele löschen, um Platz zu schaffen?',
+		dismiss: 'Schließen',
 		board: 'Spielbrett'
+	},
+	shortcuts: {
+		title: 'Tastenkürzel',
+		open: 'Tastenkürzel (?)',
+		general: 'Spiel',
+		undo: 'Rückgängig',
+		redo: 'Wiederholen',
+		newPuzzle: 'Neues Rätsel',
+		done: 'Lösung prüfen',
+		save: 'Zwischenstand speichern',
+		add: 'Neuen Zwischenstand anlegen',
+		colourTool: 'Farbwerkzeug und zurück',
+		escape: 'Menü oder Zoom schließen',
+		help: 'Diese Liste',
+		tools: 'Werkzeuge',
+		colours: 'Farben',
+		board: 'Auf dem Brett',
+		or: 'oder'
+	},
+	daily: {
+		next: 'Neues Tagesrätsel in {time}, um {at} Uhr'
 	},
 	session: {
 		createFailed: 'Das Rätsel konnte nicht erstellt werden: {error}',
@@ -220,7 +273,6 @@ const de: Dictionary = {
 		show: 'Zeigen',
 		hide: 'Ausblenden',
 		signOut: 'Abmelden',
-		confirmSignOut: 'Auf diesem Gerät abmelden? Mit dem Sync-Code kannst du dich wieder anmelden.',
 		unknownCode: 'Unbekannter Sync-Code'
 	},
 	tutorial: {
@@ -269,8 +321,6 @@ const de: Dictionary = {
 		export: 'Sicherung exportieren',
 		import: 'Sicherung importieren',
 		schema: 'Dateiformat (JSON-Schema)',
-		confirmImport:
-			'{count} Einträge aus dieser Sicherung wiederherstellen? Einträge mit gleichem Namen werden überschrieben.',
 		imported: '{count} Einträge wiederhergestellt. Seite wird neu geladen…',
 		importFailed: 'Diese Datei lässt sich nicht wiederherstellen: {error}.'
 	},

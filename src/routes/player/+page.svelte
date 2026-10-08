@@ -10,6 +10,7 @@
 		type Player
 	} from '#lib/client/api.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
+	import { ask } from '#lib/client/confirm.svelte.ts';
 
 	let hasServer = $state<boolean | null>(null);
 	let player = $state<Player | null>(null);
@@ -119,8 +120,14 @@
 		</section>
 		<button
 			class="btn"
-			onclick={() => {
-				if (confirm(t('player.confirmSignOut'))) {
+			onclick={async () => {
+				const question = {
+					title: t('confirm.signOut.title'),
+					text: t('confirm.signOut.text'),
+					confirm: t('confirm.signOut.ok'),
+					danger: true
+				};
+				if (await ask(question)) {
 					signOut();
 					player = null;
 				}

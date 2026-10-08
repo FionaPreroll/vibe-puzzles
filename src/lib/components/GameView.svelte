@@ -19,6 +19,8 @@
 		type StoredSettings
 	} from '../client/settings.svelte';
 	import { load, save, setQuotaHandler } from '../client/storage';
+	import { ask } from '../client/confirm.svelte';
+	import { trapFocus } from '../client/focus';
 	import { formatDuration } from '../core/time';
 	import { decodePuzzleId } from '../core/variants';
 	import { CELEBRATION_COLOURS } from '../core/grid';
@@ -27,6 +29,7 @@
 	import { t, tList, toolHint, toolLabel, variantLabel } from '../i18n/index.svelte';
 	import HoldButton from './HoldButton.svelte';
 	import SettingsDialog from './SettingsDialog.svelte';
+	import ShortcutsDialog from './ShortcutsDialog.svelte';
 	import VariantPicker from './VariantPicker.svelte';
 
 	let { game }: { game: GameModule } = $props();
@@ -42,6 +45,7 @@
 	let showSwatches = $state(false);
 	let touchMode = $state<TouchMode>(loadTouchMode());
 	let showSettings = $state(false);
+	let showShortcuts = $state(false);
 	let rulesHidden = $state(load<boolean>('rulesHidden', false));
 	let panelCollapsed = $state(false);
 	/** Phone layout: the side panel opens as a drawer. */
@@ -51,8 +55,13 @@
 	/** The zoom button and its popover; a press anywhere else closes the popover. */
 	let zoomBox: HTMLDivElement | undefined = $state();
 	let moreOpen = $state(false);
-	/** Phones show messages as a toast over the board, so they never push the layout around. */
+	/**
+	 * Phones show messages as a toast over the board, so they never push the layout around.
+	 * Errors stay until tapped away.
+	 */
 	let toast = $state(false);
+	/** The side panel, which keeps the focus while it is open as a drawer on phones. */
+	let aside: HTMLElement | undefined = $state();
 	let share = $state<{ link: string; image: string | null } | null>(null);
 	let idInput = $state('');
 	let newBusy = $state(false);
@@ -158,29 +167,46 @@
 		replaceState(variantUrl(session.variant.key), {});
 	}
 
+	/** Ask before an action that throws an unfinished game away. */
+	const askReplace = () => ask(confirmQuestion('replace', true));
+
+	/** A question from the `confirm` texts. */
+	function confirmQuestion(key: string, danger = false, values: Record<string, number> = {}) {
+		return {
+			title: t(`confirm.${key}.title`, values),
+			text: t(`confirm.${key}.text`, values),
+			confirm: t(`confirm.${key}.ok`, values),
+			danger
+		};
+	}
+
 	async function newPuzzle() {
 		if (newBusy) return;
-		if (session.newPuzzleDiscards && !confirm(t('game.confirmNewPuzzle'))) return;
 		newBusy = true;
-		share = null;
 		try {
+			if (session.newPuzzleDiscards && !(await ask(confirmQuestion('newPuzzle', true)))) return;
+			share = null;
 			await session.newPuzzle();
 		} finally {
 			newBusy = false;
 		}
 	}
 
-	function openById() {
+	async function openById() {
 		const id = Number(idInput.replace(/[^0-9]/g, ''));
 		if (!id) return;
-		if (session.replacesGame(variant.key, { puzzleId: id }) && !confirm(t('game.confirmReplace')))
-			return;
+		if (session.replacesGame(variant.key, { puzzleId: id }) && !(await askReplace())) return;
 		idInput = '';
 		openVariant(variant.key, id);
 	}
 
-	function startOver() {
-		if (confirm(t('game.confirmStartOver'))) session.startOver();
+	async function startOver() {
+		if (await ask(confirmQuestion('startOver', true))) session.startOver();
+	}
+
+	async function deleteCheckpoint(i: number) {
+		if (await ask(confirmQuestion('deleteCheckpoint', true, { n: i + 1 })))
+			session.deleteCheckpoint(i);
 	}
 
 	async function makeShare() {
@@ -258,9 +284,21 @@
 	onMount(() => {
 		cleanupSpecialSaves();
 		// Storage full: solved games go first; unfinished ones only if the player agrees (asked once).
+		// The write that ran out of room fails while the question is open; once the player agrees,
+		// the game is saved again, which makes the room.
 		let agreed: boolean | null = null;
+		let asked = false;
 		setQuotaHandler(() =>
-			freeSaveSpace(session.slot, () => (agreed ??= confirm(t('game.storageFull'))))
+			freeSaveSpace(session.slot, () => {
+				if (!asked) {
+					asked = true;
+					ask(confirmQuestion('storageFull', true)).then((ok) => {
+						agreed = ok;
+						if (ok) session.flush();
+					});
+				}
+				return agreed === true;
+			})
 		);
 		const params = new URL(location.href).searchParams;
 		// The very first visit of a game starts with its tutorial.
@@ -272,16 +310,18 @@
 			}
 		}
 		const id = Number(params.get('id')) || undefined;
-		let variantKey = params.get('v') ?? game.variants[0].key;
-		let opts: OpenOptions = { puzzleId: id, shared: params.get('s') ?? undefined };
-		// A link must not silently take the place of an unfinished game of its type.
-		if (id && session.replacesGame(variantKey, opts) && !confirm(t('game.confirmReplace'))) {
-			variantKey = game.variants[decodePuzzleId(id).variantIndex]?.key ?? variantKey;
-			opts = {};
-		}
-		session.open(variantKey, opts).then(() => {
+		const start = async () => {
+			let variantKey = params.get('v') ?? game.variants[0].key;
+			let opts: OpenOptions = { puzzleId: id, shared: params.get('s') ?? undefined };
+			// A link must not silently take the place of an unfinished game of its type.
+			if (id && session.replacesGame(variantKey, opts) && !(await askReplace())) {
+				variantKey = game.variants[decodePuzzleId(id).variantIndex]?.key ?? variantKey;
+				opts = {};
+			}
+			await session.open(variantKey, opts);
 			if (params.has('s') || params.has('id')) replaceState(variantUrl(session.variant.key), {});
-		});
+		};
+		start();
 
 		const media = matchMedia('(min-width: 1024px)');
 		const layout = () => {
@@ -352,10 +392,17 @@
 	});
 
 	$effect(() => {
-		if (!session.message) return void (toast = false);
+		const message = session.message;
+		if (!message) return void (toast = false);
 		toast = true;
+		if (message.kind === 'error') return;
 		const timer = setTimeout(() => (toast = false), 4000);
 		return () => clearTimeout(timer);
+	});
+
+	// The phone drawer keeps the keyboard focus while it is open and gives it back when closed.
+	$effect(() => {
+		if (menuOpen && !wide && aside) return trapFocus(aside, () => (menuOpen = false));
 	});
 
 	// ---- Keyboard shortcuts --------------------------------------------------------------------
@@ -374,6 +421,7 @@
 			return;
 		if (document.querySelector('dialog[open]')) return;
 		if (e.key === 'Escape' && menuOpen) return void (menuOpen = false);
+		if (e.key === '?') return void (showShortcuts = true);
 		const mod = e.ctrlKey || e.metaKey;
 		const key = e.key.toLowerCase();
 		if (mod && key === 's') {
@@ -525,6 +573,7 @@
 		></button>
 	{/if}
 	<aside
+		bind:this={aside}
 		class="panel shrink-0 lg:sticky lg:top-4 lg:block {panelCollapsed
 			? 'lg:w-14'
 			: 'lg:w-72'} lg:rounded-xl {menuOpen
@@ -583,6 +632,11 @@
 					<p class="mt-1 text-xs text-stone-500 dark:text-stone-400">
 						{t(`games.${game.id}.${isTouch ? 'controlsTouch' : 'controlsMouse'}`)}
 					</p>
+					{#if !isTouch}
+						<button class="link mt-1 text-xs" onclick={() => (showShortcuts = true)}
+							>{t('shortcuts.open')}</button
+						>
+					{/if}
 				{/if}
 			</section>
 
@@ -638,10 +692,22 @@
 					aria-label={t('game.zoom')}
 					title={t('game.zoom')}
 				>
-					<span aria-hidden="true">⌕</span><span class="hidden sm:inline">{t('game.zoom')}</span>
+					<!-- A magnifier with a plus: the "⌕" glyph alone was too small to recognise on phones -->
+					<svg viewBox="0 0 20 20" class="size-5" aria-hidden="true">
+						<circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2" />
+						<path
+							d="M12.5 12.5 17 17M6 8.5h5M8.5 6v5"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+						/>
+					</svg><span class="hidden sm:inline">{t('game.zoom')}</span>
 				</button>
 				{#if showZoom}
-					<div class="popover absolute top-full left-0 z-20 mt-1 flex w-72 items-center gap-2">
+					<div
+						class="popover absolute top-full left-0 z-20 mt-1 flex w-72 items-center gap-2"
+						{@attach (node) => trapFocus(node, () => (showZoom = false))}
+					>
 						<input
 							type="range"
 							min="30"
@@ -699,13 +765,12 @@
 			{/if}
 			<!-- In the toolbar row, so a message never pushes the board down -->
 			{#if session.message && wide}
-				<p
-					class="rounded-md px-3 py-1.5 text-sm {messageClass(session.message.kind)}"
-					role="status"
-				>
+				<p class="rounded-md px-3 py-1.5 text-sm {messageClass(session.message.kind)}">
 					{session.message.text}
 				</p>
 			{/if}
+			<!-- Always in the page: screen readers miss live regions added together with their text -->
+			<p class="sr-only" role="status">{session.message?.text ?? ''}</p>
 		</div>
 
 		<div bind:this={toolbarEnd}></div>
@@ -774,12 +839,14 @@
 				{/if}
 			</div>
 			{#if session.message && toast && !wide}
-				<div class="absolute inset-x-0 top-2 z-10 flex justify-center" role="status">
+				<div class="absolute inset-x-0 top-2 z-10 flex justify-center">
 					<button
-						class="max-w-[90%] rounded-md px-3 py-1.5 text-sm shadow-lg {messageClass(
+						class="flex max-w-[90%] items-start gap-2 rounded-md px-3 py-1.5 text-left text-sm shadow-lg {messageClass(
 							session.message.kind
 						)}"
-						onclick={() => (toast = false)}>{session.message.text}</button
+						title={t('game.dismiss')}
+						onclick={() => (toast = false)}
+						>{session.message.text}<span class="opacity-60" aria-hidden="true">✕</span></button
 					>
 				</div>
 			{/if}
@@ -824,7 +891,11 @@
 			{/if}
 
 			{#if settings.values.showCheckpoints}
-				<div class="mt-3 flex flex-wrap items-center gap-2" aria-label={t('game.checkpoints')}>
+				<div
+					class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3 lg:gap-x-2.5"
+					role="group"
+					aria-label={t('game.checkpoints')}
+				>
 					<button class="btn-sm" onclick={() => session.saveCheckpoint()} title="Ctrl+S"
 						>{t('game.save')}</button
 					>
@@ -839,15 +910,19 @@
 							<button
 								class="btn-sm min-w-9 {session.currentCheckpoint === i ? 'btn-active' : ''}"
 								onclick={() => session.loadCheckpoint(i)}
-								oncontextmenu={(e) => (e.preventDefault(), session.deleteCheckpoint(i))}
+								oncontextmenu={(e) => (e.preventDefault(), deleteCheckpoint(i))}
 								title={t('game.loadCheckpoint', { n: i + 1 })}>{i + 1}</button
 							>
+							<!-- The badge stays small, the button around it is a 32 px target on phones -->
 							<button
-								class="absolute -top-1.5 -right-1.5 grid size-4 place-items-center rounded-full bg-stone-300 text-[10px] leading-none dark:bg-stone-600"
+								class="group absolute -top-4 -right-4 grid size-8 place-items-center lg:-top-3 lg:-right-3 lg:size-6"
 								aria-label={t('game.deleteCheckpoint', { n: i + 1 })}
-								onclick={() =>
-									confirm(t('game.confirmDeleteCheckpoint', { n: i + 1 })) &&
-									session.deleteCheckpoint(i)}>×</button
+								title={t('game.deleteCheckpoint', { n: i + 1 })}
+								onclick={() => deleteCheckpoint(i)}
+								><span
+									class="grid size-5 place-items-center rounded-full bg-stone-300 text-xs leading-none group-hover:bg-rose-500 group-hover:text-white lg:size-4 lg:text-[10px] dark:bg-stone-600"
+									aria-hidden="true">×</span
+								></button
 							>
 						</span>
 					{/each}
@@ -919,7 +994,9 @@
 						></button>
 						<div
 							class="popover absolute right-0 bottom-full z-30 mb-1 flex w-48 flex-col p-1"
-							role="menu"
+							role="group"
+							aria-label={t('game.more')}
+							{@attach (node) => trapFocus(node, () => (moreOpen = false))}
 						>
 							{@render rareActions(true)}
 						</div>
@@ -974,6 +1051,8 @@
 		/>
 	</div>
 {/if}
+
+<ShortcutsDialog bind:open={showShortcuts} {game} tools={showTools} />
 
 <SettingsDialog
 	bind:open={showSettings}

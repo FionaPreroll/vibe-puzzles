@@ -2,7 +2,7 @@
 	import { getStats } from '../client/stats';
 	import type { GameModule } from '../core/types';
 	import { periodKey, type Variant } from '../core/variants';
-	import { t, variantLabel } from '../i18n/index.svelte';
+	import { nextDailyText, t, variantLabel } from '../i18n/index.svelte';
 
 	/**
 	 * Puzzle types as a size × difficulty table (one per rule set, e.g. Calcudoku in Sudoku) plus
@@ -34,6 +34,13 @@
 		if (v.special) return stats.lastPeriod === periodKey(v.special) ? '✓' : '';
 		return stats.streak >= 100 ? '★' : '';
 	}
+
+	/** For the countdown to the next daily puzzle. */
+	let now = $state(Date.now());
+	$effect(() => {
+		const tick = setInterval(() => (now = Date.now()), 30_000);
+		return () => clearInterval(tick);
+	});
 
 	const cell =
 		'w-full rounded-md px-2 py-1.5 text-sm hover:bg-stone-100 dark:hover:bg-stone-800 focus-visible:outline-2 focus-visible:outline-indigo-500';
@@ -91,4 +98,7 @@
 			</li>
 		{/each}
 	</ul>
+	{#if specials.some((v) => v.special === 'daily')}
+		<p class="mt-1 text-xs text-stone-500 dark:text-stone-400">{nextDailyText(now)}</p>
+	{/if}
 {/if}

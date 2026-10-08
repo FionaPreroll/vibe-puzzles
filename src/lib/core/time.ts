@@ -19,3 +19,11 @@ export function formatDuration(ms: number, precise = false): string {
 	}
 	return `${p2(m)}:${p2(s)}`;
 }
+
+/** Time left until something happens, in whole minutes rounded up: "5 h 07 min", "12 min". */
+export function formatCountdown(ms: number): string {
+	const minutes = Math.max(1, Math.ceil(ms / 60_000));
+	const h = Math.floor(minutes / 60);
+	const m = minutes % 60;
+	return h > 0 ? `${h} h ${String(m).padStart(2, '0')} min` : `${m} min`;
+}

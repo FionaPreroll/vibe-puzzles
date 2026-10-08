@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { asset } from '$app/paths';
 	import { createBackup, parseBackup, restoreBackup } from '#lib/client/backup.ts';
+	import { ask } from '#lib/client/confirm.svelte.ts';
 	import { i18n, t } from '#lib/i18n/index.svelte.ts';
 
 	const build = __BUILD__;
@@ -32,7 +33,13 @@
 		const parsed = parseBackup(await file.text());
 		if (!parsed.ok) return void (error = t('about.importFailed', { error: parsed.error }));
 		const count = Object.keys(parsed.backup.data).length;
-		if (!confirm(t('about.confirmImport', { count }))) return;
+		const agreed = await ask({
+			title: t('confirm.import.title', { count }),
+			text: t('confirm.import.text'),
+			confirm: t('confirm.import.ok'),
+			danger: true
+		});
+		if (!agreed) return;
 		restoreBackup(localStorage, parsed.backup);
 		done = t('about.imported', { count });
 		setTimeout(() => location.reload(), 800);

@@ -52,6 +52,16 @@ export function periodKey(kind: SpecialKind, date = new Date()): string {
 	return `${y}-${m}`;
 }
 
+/** When the next period of a special type starts (midnight UTC; weeks start on Monday). */
+export function nextPeriodStart(kind: SpecialKind, date = new Date()): Date {
+	const y = date.getUTCFullYear();
+	const m = date.getUTCMonth();
+	const d = date.getUTCDate();
+	if (kind === 'daily') return new Date(Date.UTC(y, m, d + 1));
+	if (kind === 'weekly') return new Date(Date.UTC(y, m, d + 8 - (date.getUTCDay() || 7)));
+	return new Date(Date.UTC(y, m + 1, 1));
+}
+
 /** Approximate lifetime of a special period's save, in days. */
 export const SPECIAL_RETENTION_DAYS: Record<SpecialKind, number> = {
 	daily: 31,

@@ -75,15 +75,11 @@ test('a backup exported on the About page brings a game in progress back', async
 	// A new device: nothing stored. The import asks first, then restores and reloads.
 	await page.evaluate(() => localStorage.clear());
 	await page.reload();
-	const asked = new Promise<string>((resolve) =>
-		page.once('dialog', async (dialog) => {
-			resolve(dialog.message());
-			await dialog.accept();
-		})
-	);
-	const reloaded = page.waitForEvent('load');
 	await importInput(page).setInputFiles(file);
-	expect(await asked).toContain(`Restore ${Object.keys(before).length} entries`);
+	const asked = page.getByRole('alertdialog');
+	await expect(asked).toContainText(`Restore ${Object.keys(before).length} entries`);
+	const reloaded = page.waitForEvent('load');
+	await asked.getByRole('button', { name: 'Restore' }).click();
 	await expect(page.getByRole('status')).toHaveText(
 		`Restored ${Object.keys(before).length} entries. Reloading…`
 	);
@@ -123,6 +119,7 @@ test('the About page refuses a file that is not a backup and keeps everything', 
 		});
 		await expect(page.getByRole('alert')).toContainText('This file cannot be restored');
 		await expect(page.getByRole('status')).toHaveCount(0);
+		await expect(page.getByRole('alertdialog')).toHaveCount(0);
 	}
 	expect(await stored(page)).toEqual(before);
 });
@@ -138,12 +135,13 @@ test('cancelling the import of a backup keeps everything', async ({ page }) => {
 		app: { version: '0.0.1', commit: 'abc1234' },
 		data: { night: 'true', 'tutorialSeen:tetroid': 'true' }
 	};
-	page.once('dialog', (dialog) => dialog.dismiss());
 	await importInput(page).setInputFiles({
 		name: 'backup.json',
 		mimeType: 'application/json',
 		buffer: Buffer.from(JSON.stringify(backup))
 	});
+	await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click();
+	await expect(page.getByRole('alertdialog')).toBeHidden();
 	await expect(page.getByRole('status')).toHaveCount(0);
 	expect(await stored(page)).toEqual(before);
 });
