@@ -1,10 +1,17 @@
+import { latinConflicts, type Cage } from './calc/rules';
+
 export interface SudokuPuzzle {
-	/** Grid size (also the number of digits): 4, 6 or 9. Width and height are equal. */
+	/** Grid size (also the number of digits). Width and height are equal. */
 	width: number;
 	height: number;
 	/** Given digit per cell, row by row; 0 = empty. */
 	givens: number[];
+	/** Calcudoku only: the cages. Such a grid has no boxes. */
+	cages?: Cage[];
 }
+
+/** Whether the puzzle has boxes (classic Sudoku) or just rows and columns (Calcudoku). */
+export const hasBoxes = (p: SudokuPuzzle) => !p.cages;
 
 export interface SudokuState {
 	/** Digit entered by the player per cell (0 = none). Always 0 on given cells. */
@@ -92,15 +99,29 @@ export function currentGrid(p: SudokuPuzzle, s: SudokuState): number[] {
 	return p.givens.map((g, i) => g || s.values[i]);
 }
 
+/** Cells sharing a row or column with cell `i`, without boxes. */
+function linePeers(size: number, i: number): number[] {
+	const r = Math.floor(i / size);
+	const c = i % size;
+	const out: number[] = [];
+	for (let k = 0; k < size; k++) {
+		if (k !== c) out.push(r * size + k);
+		if (k !== r) out.push(k * size + c);
+	}
+	return out;
+}
+
 /** Digits that can still go in cell `i` without repeating one in its row, column or box. */
-export function candidates(size: number, grid: readonly number[], i: number): number {
+export function candidates(size: number, grid: readonly number[], i: number, boxes = true): number {
 	let mask = allMask(size);
-	for (const j of geometry(size).peers[i]) if (grid[j]) mask &= ~bit(grid[j]);
+	const peers = boxes ? geometry(size).peers[i] : linePeers(size, i);
+	for (const j of peers) if (grid[j]) mask &= ~bit(grid[j]);
 	return mask;
 }
 
 /** Cells whose digit appears again in their row, column or box. */
-export function conflicts(size: number, grid: readonly number[]): boolean[] {
+export function conflicts(size: number, grid: readonly number[], boxes = true): boolean[] {
+	if (!boxes) return latinConflicts(size, grid);
 	const { peers } = geometry(size);
 	return grid.map((d, i) => d !== 0 && peers[i].some((j) => grid[j] === d));
 }
@@ -122,8 +143,8 @@ export function remainingDigits(p: SudokuPuzzle, s: SudokuState): number[] {
 }
 
 /** True when every cell holds a digit and no row, column or box repeats one. */
-export function isSolvedGrid(size: number, grid: readonly number[]): boolean {
-	return grid.every((d) => d >= 1 && d <= size) && !conflicts(size, grid).some(Boolean);
+export function isSolvedGrid(size: number, grid: readonly number[], boxes = true): boolean {
+	return grid.every((d) => d >= 1 && d <= size) && !conflicts(size, grid, boxes).some(Boolean);
 }
 
 /** Enter digit `d` (0 clears) in cell `i`. Given cells cannot change. */
@@ -145,7 +166,7 @@ export function toggleNote(p: SudokuPuzzle, s: SudokuState, i: number, d: number
 /** Note every digit that is still possible in each empty cell (replacing the notes there). */
 export function fillNotes(p: SudokuPuzzle, s: SudokuState): SudokuState {
 	const grid = currentGrid(p, s);
-	const notes = grid.map((d, i) => (d ? s.notes[i] : candidates(p.width, grid, i)));
+	const notes = grid.map((d, i) => (d ? s.notes[i] : candidates(p.width, grid, i, hasBoxes(p))));
 	return { ...s, notes };
 }
 
@@ -155,7 +176,7 @@ export function fillMissingNotes(p: SudokuPuzzle, s: SudokuState): SudokuState {
 	let changed = false;
 	const notes = s.notes.map((m, i) => {
 		if (m || grid[i]) return m;
-		const next = candidates(p.width, grid, i);
+		const next = candidates(p.width, grid, i, hasBoxes(p));
 		if (next) changed = true;
 		return next;
 	});
@@ -171,7 +192,7 @@ export function pruneNotes(p: SudokuPuzzle, s: SudokuState): SudokuState {
 	let changed = false;
 	const notes = s.notes.map((m, i) => {
 		if (!m || grid[i]) return m;
-		const next = m & candidates(p.width, grid, i);
+		const next = m & candidates(p.width, grid, i, hasBoxes(p));
 		if (next !== m) changed = true;
 		return next;
 	});

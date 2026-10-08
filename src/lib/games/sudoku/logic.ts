@@ -1,6 +1,9 @@
 import { packDigits, unpackDigits } from '../../core/grid';
 import type { GameLogic, Settings } from '../../core/types';
 import type { Variant } from '../../core/variants';
+import { generateCalc } from './calc/generator';
+import { isSolvedCalc, isValidCalcPuzzle } from './calc/rules';
+import { solveCalc } from './calc/solver';
 import { generateSudoku } from './generator';
 import {
 	allMask,
@@ -43,8 +46,31 @@ export const SUDOKU_VARIANTS: Variant[] = [
 		height: 9,
 		difficulty: 'hard',
 		special: 'monthly'
-	}
+	},
+	// Calcudoku ("Math Sudoku"): no boxes, cages with a target and an operation.
+	...[5, 7, 9].flatMap((n) =>
+		(['easy', 'normal', 'hard'] as const).map((difficulty): Variant => ({
+			key: `c${n}${difficulty[0]}`,
+			label: `Calcudoku ${n}x${n} ${difficulty[0].toUpperCase()}${difficulty.slice(1)}`,
+			width: n,
+			height: n,
+			difficulty,
+			mode: 'calc'
+		}))
+	)
 ];
+
+/** A Calcudoku puzzle in the shape the Sudoku board plays: no givens, the cages. */
+function generateCalcudoku(n: number, difficulty: Variant['difficulty'], seed: number) {
+	const { puzzle } = generateCalc(n, difficulty, seed);
+	return { width: n, height: n, givens: new Array(n * n).fill(0), cages: puzzle.cages };
+}
+
+/** Whether a full grid solves the puzzle: rows, columns and boxes or cages. */
+function solves(p: SudokuPuzzle, grid: number[]): boolean {
+	if (p.cages) return isSolvedCalc({ width: p.width, height: p.height, cages: p.cages }, grid);
+	return isSolvedGrid(p.width, grid);
+}
 
 const isIntArray = (a: unknown, n: number, max: number): a is number[] =>
 	Array.isArray(a) && a.length === n && a.every((x) => Number.isInteger(x) && x >= 0 && x <= max);
@@ -67,15 +93,31 @@ function unpackNotes(text: string, n: number): number[] {
 export const sudokuLogic: GameLogic<SudokuPuzzle, SudokuState> = {
 	id: 'sudoku',
 	variants: SUDOKU_VARIANTS,
-	generate: (v, seed) => generateSudoku(v.width, v.difficulty, seed).puzzle,
+	generate: (v, seed) =>
+		v.mode === 'calc'
+			? generateCalcudoku(v.width, v.difficulty, seed)
+			: generateSudoku(v.width, v.difficulty, seed).puzzle,
 	countSolutions(p, limit) {
-		const res = solveSudoku(p.givens, p.width, { limit, maxNodes: 2_000_000 });
+		const res = p.cages
+			? solveCalc(
+					{ width: p.width, height: p.height, cages: p.cages },
+					{ limit, maxNodes: 200_000 }
+				)
+			: solveSudoku(p.givens, p.width, { limit, maxNodes: 2_000_000 });
 		return { count: res.solutions.length, finished: res.finished };
 	},
 	isValidPuzzle(p: unknown, v): p is SudokuPuzzle {
 		if (!p || typeof p !== 'object') return false;
 		const q = p as SudokuPuzzle;
 		const size = v.width;
+		if (v.mode === 'calc') {
+			return (
+				v.height === size &&
+				isIntArray(q.givens, size * size, 0) &&
+				isValidCalcPuzzle({ width: q.width, height: q.height, cages: q.cages }, size)
+			);
+		}
+		if (q.cages !== undefined) return false;
 		if (!SIZES.includes(size) || q.width !== size || q.height !== size || v.height !== size) {
 			return false;
 		}
@@ -87,14 +129,14 @@ export const sudokuLogic: GameLogic<SudokuPuzzle, SudokuState> = {
 		if (settings.autoNotes) s = fillMissingNotes(p, s);
 		return settings.autoRemoveNotes ? pruneNotes(p, s) : s;
 	},
-	isSolved: (p, s) => isSolvedGrid(p.width, currentGrid(p, s)),
+	isSolved: (p, s) => solves(p, currentGrid(p, s)),
 	/** One digit per cell, givens included. */
 	answer: (p, s) => currentGrid(p, s).join(''),
 	verifyAnswer(p, answer) {
 		const n = p.givens.length;
 		if (answer.length !== n || !/^[1-9]+$/.test(answer)) return false;
 		const grid = [...answer].map(Number);
-		return p.givens.every((g, i) => !g || g === grid[i]) && isSolvedGrid(p.width, grid);
+		return p.givens.every((g, i) => !g || g === grid[i]) && solves(p, grid);
 	},
 	encodeState: (s) => `${packDigits(s.values)}.${packNotes(s.notes)}`,
 	decodeState(p, text) {

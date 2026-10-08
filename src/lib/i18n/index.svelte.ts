@@ -68,7 +68,8 @@ export function tList(key: string): string[] {
 /** Display name of a puzzle type, e.g. "10×10 Hard" or "Daily". */
 export function variantLabel(v: Variant): string {
 	if (v.special) return t(`special.${v.special}`);
-	return `${v.width}×${v.height} ${t(`difficulty.${v.difficulty}`)}`;
+	const mode = v.mode ? `${t(`mode.${v.mode}`)} ` : '';
+	return `${mode}${v.width}×${v.height} ${t(`difficulty.${v.difficulty}`)}`;
 }
 
 function has(key: string): boolean {

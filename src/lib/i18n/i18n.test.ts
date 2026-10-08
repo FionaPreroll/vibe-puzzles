@@ -115,6 +115,7 @@ describe('labels', () => {
 	it('names puzzle types', () => {
 		const base = { key: '6n', label: '', width: 6, height: 6 } as const;
 		expect(variantLabel({ ...base, difficulty: 'hard' })).toBe('6×6 Hard');
+		expect(variantLabel({ ...base, difficulty: 'easy', mode: 'calc' })).toBe('Calcudoku 6×6 Easy');
 		expect(variantLabel({ ...base, difficulty: 'normal', special: 'daily' })).toBe(
 			t('special.daily')
 		);

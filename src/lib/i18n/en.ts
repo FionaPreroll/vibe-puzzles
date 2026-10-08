@@ -115,6 +115,10 @@ const en = {
 		monthly: 'Monthly'
 	},
 	/** Short names for the narrow specials row of the puzzle type picker. */
+	/** Rule sets of a game other than its main one. */
+	mode: {
+		calc: 'Calcudoku'
+	},
 	specialShort: {
 		daily: 'Daily',
 		weekly: 'Weekly',
@@ -317,6 +321,16 @@ const en = {
 				'Click a cell, then type a digit or use the number pad. Shift+digit adds or removes a note, Space switches between digits and notes. Backspace or 0 erases. Arrow keys move.',
 			controlsTouch:
 				'Tap a cell, then a digit on the number pad. Pick the Note tool to add or remove small notes instead. ⌫ erases.',
+			modes: {
+				calc: {
+					rules: [
+						'Calcudoku ("Math Sudoku"): fill every cell with a digit from 1 to the grid size. Each row and each column holds every digit exactly once; there are no boxes.',
+						'Each cage with a thick border shows a result, then an operation. Its digits must give that result: "12+" adds up to 12, "60×" multiplies to 60.',
+						'"1−" and "5÷" cages have two cells: the larger digit minus or divided by the smaller one gives the result, e.g. 7 − 6 = 1 or 5 ÷ 1 = 5.',
+						'A cage with just a number holds that digit. Digits may repeat inside a cage, but never in a row or column.'
+					]
+				}
+			},
 			pad: 'Number pad',
 			erase: 'Erase',
 			left: '{count} left',

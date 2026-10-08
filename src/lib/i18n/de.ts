@@ -116,6 +116,9 @@ const de: Dictionary = {
 		weekly: 'Wochenrätsel',
 		monthly: 'Monatsrätsel'
 	},
+	mode: {
+		calc: 'Calcudoku'
+	},
 	specialShort: {
 		daily: 'Tag',
 		weekly: 'Woche',
@@ -319,6 +322,16 @@ const de: Dictionary = {
 				'Klicke ein Feld an und tippe eine Ziffer oder nutze das Zahlenfeld. Umschalt+Ziffer setzt oder entfernt eine Notiz, die Leertaste wechselt zwischen Ziffern und Notizen. Rücktaste oder 0 löscht. Pfeiltasten bewegen.',
 			controlsTouch:
 				'Tippe ein Feld an, dann eine Ziffer im Zahlenfeld. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
+			modes: {
+				calc: {
+					rules: [
+						'Calcudoku („Rechen-Sudoku“): Trage in jedes Feld eine Ziffer von 1 bis zur Gittergröße ein. Jede Zeile und jede Spalte enthält jede Ziffer genau einmal; Blöcke gibt es nicht.',
+						'Jeder dick umrandete Käfig zeigt ein Ergebnis und danach eine Rechenart. Seine Ziffern müssen dieses Ergebnis ergeben: „12+“ ergibt addiert 12, „60×“ multipliziert 60.',
+						'„1−“- und „5÷“-Käfige haben zwei Felder: Die größere Ziffer minus oder geteilt durch die kleinere ergibt das Ergebnis, z. B. 7 − 6 = 1 oder 5 ÷ 1 = 5.',
+						'Ein Käfig mit nur einer Zahl enthält genau diese Ziffer. Innerhalb eines Käfigs dürfen sich Ziffern wiederholen, aber nie in einer Zeile oder Spalte.'
+					]
+				}
+			},
 			pad: 'Zahlenfeld',
 			erase: 'Löschen',
 			left: 'noch {count}',

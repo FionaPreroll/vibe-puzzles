@@ -15,6 +15,8 @@
 		type SudokuPuzzle,
 		type SudokuState
 	} from './rules';
+	import { brokenCages, cageIndex, cageLabel, labelCell, type CalcPuzzle } from './calc/rules';
+	import { solveCalc } from './calc/solver';
 	import { solveSudoku } from './solver';
 
 	let {
@@ -34,6 +36,11 @@
 
 	const size = $derived(puzzle.width);
 	const box = $derived(boxShape(size));
+	/** Calcudoku: cages instead of boxes. */
+	const calc = $derived<CalcPuzzle | null>(
+		puzzle.cages ? { width: size, height: size, cages: puzzle.cages } : null
+	);
+	const cageOf = $derived(calc ? cageIndex(calc) : null);
 	const pad = $derived(settings.showCoordinates && !blank ? Math.max(14, cellSize * 0.6) : 3);
 	const width = $derived(size * cellSize + 2 * pad);
 	const height = $derived(size * cellSize + 2 * pad);
@@ -43,14 +50,16 @@
 	let selected = $state(-1);
 
 	const grid = $derived(blank ? puzzle.givens : currentGrid(puzzle, board));
-	const clashes = $derived(conflicts(size, grid));
+	const clashes = $derived(conflicts(size, grid, !calc));
 	const errorColour = $derived(settings.blueErrors ? '#1e3a8a' : '#dc2626');
 	const errorFill = $derived(settings.blueErrors ? '#dbeafe' : '#fee2e2');
 
 	/** The solution, only worked out when wrong digits are to be shown. */
 	const solution = $derived(
 		settings.markMistakes && !blank
-			? solveSudoku(puzzle.givens, size, { limit: 1 }).solutions[0]
+			? calc
+				? solveCalc(calc, { limit: 1 }).solutions[0]
+				: solveSudoku(puzzle.givens, size, { limit: 1 }).solutions[0]
 			: null
 	);
 	const wrong = $derived(solution ? mistakes(puzzle, board, solution) : null);
@@ -60,14 +69,22 @@
 	const selectedDigit = $derived(
 		settings.highlightSame && selected >= 0 && !blank ? grid[selected] : 0
 	);
-	/** Units (row, column, box) of the selected cell. */
+	/** Row, column and (without cages) box of a cell. */
+	const unitsOf = (i: number): number[] =>
+		calc ? [Math.floor(i / size), size + (i % size)] : geometry(size).unitsOf[i];
+	/** Units of the selected cell. */
 	const selectedUnits = $derived(
-		settings.highlightLines && selected >= 0 && !blank ? geometry(size).unitsOf[selected] : null
+		settings.highlightLines && selected >= 0 && !blank ? unitsOf(selected) : null
 	);
 
 	function inSelectedUnits(i: number): boolean {
-		return !!selectedUnits && geometry(size).unitsOf[i].some((u, k) => u === selectedUnits[k]);
+		return !!selectedUnits && unitsOf(i).some((u, k) => u === selectedUnits[k]);
 	}
+
+	/** Cages whose cells are all filled but miss their target. */
+	const broken = $derived(
+		calc && settings.highlightErrors && !blank ? brokenCages(calc, grid) : null
+	);
 
 	// Auto notes: a game without any notes gets them as soon as it is shown.
 	$effect(() => {
@@ -78,6 +95,22 @@
 
 	const boxLines = $derived.by(() => {
 		const segs: string[] = [];
+		if (cageOf) {
+			// Cage borders: wherever two neighbouring cells belong to different cages.
+			for (let i = 0; i < size * size; i++) {
+				const r = Math.floor(i / size);
+				const c = i % size;
+				const x = pad + c * cellSize;
+				const y = pad + r * cellSize;
+				if (c < size - 1 && cageOf[i] !== cageOf[i + 1]) {
+					segs.push(`M${x + cellSize} ${y}v${cellSize}`);
+				}
+				if (r < size - 1 && cageOf[i] !== cageOf[i + size]) {
+					segs.push(`M${x} ${y + cellSize}h${cellSize}`);
+				}
+			}
+			return segs.join('');
+		}
 		for (let c = box.w; c < size; c += box.w) {
 			segs.push(`M${pad + c * cellSize} ${pad}v${size * cellSize}`);
 		}
@@ -198,12 +231,19 @@
 	/** Win animation: every box in its own colour for a moment. */
 	const celebrationFill = $derived.by(() => {
 		if (!celebrate || blank) return null;
-		const boxes = geometry(size).box;
+		const boxes = cageOf ?? geometry(size).box;
 		const colours = colourRegions(boxes, size, size, CELEBRATION_COLOURS.length);
 		return boxes.map((b) => CELEBRATION_COLOURS[colours[b]]);
 	});
 
-	const noteFont = $derived(cellSize / (Math.max(box.w, box.h) + 0.6));
+	/** Notes sit in a small grid; under the cage label in Calcudoku. */
+	const noteCols = $derived(calc ? Math.ceil(Math.sqrt(size)) : box.w);
+	const noteRows = $derived(Math.ceil(size / noteCols));
+	const noteTop = $derived(calc ? cellSize * 0.26 : 0);
+	const noteFont = $derived(
+		Math.min(cellSize / (noteCols + 0.6), (cellSize - noteTop) / (noteRows + 0.6))
+	);
+	const labelFont = $derived(Math.max(8, cellSize * 0.24));
 </script>
 
 <svelte:window {onkeydown} />
@@ -231,8 +271,8 @@
 				<text
 					data-cell={i}
 					x={x + cellSize / 2}
-					y={y + cellSize / 2}
-					font-size={cellSize * 0.62}
+					y={y + (calc ? cellSize * 0.58 : cellSize / 2)}
+					font-size={cellSize * (calc ? 0.54 : 0.62)}
 					font-weight={puzzle.givens[i] ? 700 : 500}
 					fill={textColour(i)}
 					text-anchor="middle"
@@ -251,8 +291,10 @@
 							<text
 								fill={n === selectedDigit ? '#1d4ed8' : undefined}
 								font-weight={n === selectedDigit ? 700 : undefined}
-								x={x + (((n - 1) % box.w) + 0.5) * (cellSize / box.w)}
-								y={y + (Math.floor((n - 1) / box.w) + 0.5) * (cellSize / Math.ceil(size / box.w))}
+								x={x + (((n - 1) % noteCols) + 0.5) * (cellSize / noteCols)}
+								y={y +
+									noteTop +
+									(Math.floor((n - 1) / noteCols) + 0.5) * ((cellSize - noteTop) / noteRows)}
 								>{n}</text
 							>
 						{/if}
@@ -293,8 +335,20 @@
 			{/each}
 		</g>
 
-		<!-- Box borders -->
+		<!-- Box or cage borders -->
 		<path d={boxLines} stroke="#111827" stroke-width="2.5" stroke-linecap="square" fill="none" />
+		{#if calc}
+			<g class="cages" font-size={labelFont} font-weight="600" dominant-baseline="hanging">
+				{#each calc.cages as cage, k (k)}
+					{@const i = labelCell(cage)}
+					<text
+						x={pad + (i % size) * cellSize + 3}
+						y={pad + Math.floor(i / size) * cellSize + 3}
+						fill={broken?.[k] ? errorColour : '#111827'}>{cageLabel(cage)}</text
+					>
+				{/each}
+			</g>
+		{/if}
 		<rect
 			x={pad}
 			y={pad}
