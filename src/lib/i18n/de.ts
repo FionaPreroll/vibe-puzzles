@@ -254,7 +254,7 @@ const de: Dictionary = {
 		licenses: 'Lizenzen',
 		licensesNote: 'Die App baut auf diesen Open-Source-Bibliotheken auf:',
 		puzzleTypes:
-			'Tetroid folgt den Regeln von LITS, Pinwheel denen von Tentai Show (Galaxies). Beides sind klassische Rätselarten aus Japan.',
+			'Tetroid folgt den Regeln von LITS, Pinwheel denen von Tentai Show (Galaxies), beides klassische Rätselarten aus Japan. Sudoku und seine Spielart Calcudoku folgen ihren üblichen Regeln.',
 		privacy: 'Datenschutz',
 		privacyLocal:
 			'Deine Spiele, Statistiken und Einstellungen liegen nur in diesem Browser (Local Storage). Es gibt keine Cookies, kein Tracking und keine Werbung.',

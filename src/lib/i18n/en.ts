@@ -254,7 +254,7 @@ const en = {
 		licenses: 'Licences',
 		licensesNote: 'The app is built with these open source libraries:',
 		puzzleTypes:
-			'Tetroid follows the rules of LITS, Pinwheel those of Tentai Show (Galaxies). Both are classic puzzle types from Japan.',
+			'Tetroid follows the rules of LITS, Pinwheel those of Tentai Show (Galaxies), both classic puzzle types from Japan. Sudoku and its mode Calcudoku keep their usual rules.',
 		privacy: 'Privacy',
 		privacyLocal:
 			'Your games, stats and settings are stored only in this browser (local storage). There are no cookies, no tracking and no ads.',
