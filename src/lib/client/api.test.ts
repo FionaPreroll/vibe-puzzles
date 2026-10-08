@@ -9,7 +9,7 @@ type Handler = (url: URL, init: RequestInit) => Response | Promise<Response>;
 const player = { id: 'p1', name: 'Ada', token: 'secret' };
 let fetchMock: ReturnType<typeof vi.fn>;
 
-/** Fresh module (the health check is cached per page load) with a fake server. */
+/** Fresh module (it keeps the health check's answer) with a fake server. */
 async function setup(handler: Handler, opts: { signedIn?: boolean } = {}): Promise<Api> {
 	vi.resetModules();
 	vi.stubGlobal('localStorage', new MemoryStorage());
@@ -67,6 +67,110 @@ describe('server availability', () => {
 		expect(await api.serverPuzzles()).toBe(false);
 		api = await setup(() => new Response('<html>'));
 		expect(await api.serverAvailable()).toBe(false);
+	});
+
+	it('asks static hosting only once', async () => {
+		vi.useFakeTimers();
+		try {
+			const api = await setup(() => new Response('Not found', { status: 404 }));
+			expect(await api.serverAvailable()).toBe(false);
+			vi.advanceTimersByTime(api.HEALTH_RETRY_MS * 10);
+			expect(await api.serverAvailable()).toBe(false);
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('asks again a while after no answer or a server error', async () => {
+		vi.useFakeTimers();
+		try {
+			let up: Handler = offline;
+			const api = await setup((url, init) => up(url, init));
+			expect(await api.serverAvailable()).toBe(false);
+			// Within the retry time the failed answer stands.
+			up = server();
+			vi.advanceTimersByTime(api.HEALTH_RETRY_MS - 1);
+			expect(await api.serverAvailable()).toBe(false);
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+			vi.advanceTimersByTime(1);
+			expect(await api.serverAvailable()).toBe(true);
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+			// A server error counts like no answer.
+			const flaky = await setup(() => Response.json({ error: 'Server error' }, { status: 503 }));
+			expect(await flaky.serverAvailable()).toBe(false);
+			vi.advanceTimersByTime(api.HEALTH_RETRY_MS);
+			await flaky.serverAvailable();
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	describe('in the browser', () => {
+		let doc: EventTarget & { visibilityState: DocumentVisibilityState };
+
+		beforeEach(() => {
+			doc = Object.assign(new EventTarget(), { visibilityState: 'visible' as const });
+		});
+
+		/** Like setup, with a window and document that get the reconnect listeners. */
+		async function setupBrowser(handler: Handler): Promise<{ api: Api; win: EventTarget }> {
+			const api = await setup(handler);
+			const win = new EventTarget();
+			vi.stubGlobal('window', win);
+			vi.stubGlobal('document', doc);
+			return { api, win };
+		}
+
+		it('asks again when the device comes back online and tells the watchers', async () => {
+			let up: Handler = offline;
+			const { api, win } = await setupBrowser((url, init) => up(url, init));
+			const seen: boolean[] = [];
+			const stop = api.watchServer((ok) => seen.push(ok));
+			await vi.waitFor(() => expect(seen).toEqual([false]));
+			up = server();
+			win.dispatchEvent(new Event('online'));
+			await vi.waitFor(() => expect(seen).toEqual([false, true]));
+			expect(await api.serverAvailable()).toBe(true);
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+			// Stopped watchers hear nothing, and an answer that stands is not asked again.
+			stop();
+			win.dispatchEvent(new Event('online'));
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+		});
+
+		it('asks again when the page is shown, not while it is hidden', async () => {
+			let up: Handler = offline;
+			const { api } = await setupBrowser((url, init) => up(url, init));
+			expect(await api.serverAvailable()).toBe(false);
+			up = server();
+			doc.visibilityState = 'hidden';
+			doc.dispatchEvent(new Event('visibilitychange'));
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+			doc.visibilityState = 'visible';
+			doc.dispatchEvent(new Event('visibilitychange'));
+			expect(await api.serverAvailable()).toBe(true);
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+		});
+
+		it('keeps a clear answer when the device goes offline later', async () => {
+			let up: Handler = server();
+			vi.useFakeTimers({ toFake: ['Date'] });
+			try {
+				const { api } = await setupBrowser((url, init) => up(url, init));
+				const seen: boolean[] = [];
+				api.watchServer((ok) => seen.push(ok));
+				await vi.waitFor(() => expect(seen).toEqual([true]));
+				// Failed requests later on are handled where they happen.
+				up = offline;
+				vi.setSystemTime(Date.now() + api.HEALTH_RETRY_MS * 10);
+				expect(await api.serverAvailable()).toBe(true);
+				expect(fetchMock).toHaveBeenCalledTimes(1);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
 	});
 });
 

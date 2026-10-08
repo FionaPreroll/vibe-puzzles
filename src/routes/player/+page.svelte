@@ -5,8 +5,8 @@
 		linkDevice,
 		register,
 		rename,
-		serverAvailable,
 		signOut,
+		watchServer,
 		type Player
 	} from '#lib/client/api.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
@@ -22,7 +22,7 @@
 	onMount(() => {
 		player = currentPlayer();
 		name = player?.name ?? '';
-		serverAvailable().then((ok) => (hasServer = ok));
+		return watchServer((ok) => (hasServer = ok));
 	});
 
 	async function run(action: () => Promise<Player | void>) {
