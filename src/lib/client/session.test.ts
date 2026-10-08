@@ -349,7 +349,9 @@ describe('solving', () => {
 				competitive: true
 			})
 		);
-		expect(s.message?.text).toBe('Solved in 00:30! Rank 2 of 9 on 6×6 Normal. Your best is 00:20.');
+		expect(s.message?.text).toBe(
+			'Solved in 00:30! Rank 2 of 9 on 6×6 Normal. Your best is 00:20.000.'
+		);
 		expect(getStats('tetroid', '6n').solved).toBe(1);
 		expect(s.elapsed(Date.now() + 1000)).toBe(30_000);
 		expect(s.personal(Date.now() + 1000)).toBe(30_000);

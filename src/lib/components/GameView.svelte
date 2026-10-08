@@ -192,7 +192,7 @@
 			game: game.name,
 			variant: label,
 			id: session.puzzleId.toLocaleString('en-US'),
-			time: formatDuration(clock)
+			time: formatDuration(clock, true)
 		});
 		if (navigator.share) {
 			try {
@@ -630,7 +630,8 @@
 					class="min-w-20 rounded-md bg-white px-3 py-1.5 text-center font-mono tabular-nums shadow-sm dark:bg-stone-800"
 					aria-label={t('game.timer')}
 				>
-					{formatDuration(clock)}
+					<!-- Milliseconds only once solved: a running clock should not make anyone nervous -->
+					{formatDuration(clock, session.solved)}
 				</span>
 				{#if settings.values.personalTimer && !session.solved}
 					<button class="btn" onclick={() => session.setManualPause(!session.manualPause)}>

@@ -118,6 +118,17 @@ describe('formatDuration', () => {
 	])('formats %i ms as %s', (ms, text) => {
 		expect(formatDuration(ms)).toBe(text);
 	});
+
+	it.each([
+		[0, '00:00.000'],
+		[7_042.6, '00:07.042'],
+		[29_999, '00:29.999'],
+		[30_000, '00:30'],
+		[61_000, '01:01'],
+		[-5000, '00:00']
+	])('formats %i ms precisely as %s', (ms, text) => {
+		expect(formatDuration(ms, true)).toBe(text);
+	});
 });
 
 describe('variants', () => {
