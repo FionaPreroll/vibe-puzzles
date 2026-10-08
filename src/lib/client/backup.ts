@@ -6,6 +6,8 @@
 export const BACKUP_FORMAT = 'vibe-puzzles-backup';
 export const BACKUP_VERSION = 1;
 const PREFIX = 'vp:';
+/** An RFC 3339 date-time, the schema's `date-time` format. */
+const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/i;
 
 export interface Backup {
 	$schema?: string;
@@ -54,6 +56,8 @@ export function parseBackup(text: string): ParseResult {
 	if (raw.format !== BACKUP_FORMAT) return { ok: false, error: 'not a Vibe Puzzles backup' };
 	if (raw.version !== BACKUP_VERSION) return { ok: false, error: `unknown version ${raw.version}` };
 	if (typeof raw.exportedAt !== 'string') return { ok: false, error: 'missing exportedAt' };
+	if (!DATE_TIME.test(raw.exportedAt) || Number.isNaN(Date.parse(raw.exportedAt)))
+		return { ok: false, error: 'bad exportedAt' };
 	if (
 		!isObject(raw.app) ||
 		typeof raw.app.version !== 'string' ||
