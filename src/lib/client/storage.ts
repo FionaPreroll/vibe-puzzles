@@ -2,10 +2,16 @@
 
 const PREFIX = 'vp:';
 
-/** Called when a write fails because storage is full. */
-let onQuota: (() => void) | null = null;
+/**
+ * Called when a write fails because storage is full. Returning true means it made room, and the
+ * write is tried again.
+ */
+let onQuota: (() => boolean | void) | null = null;
 
-export function setQuotaHandler(handler: () => void) {
+/** How often one write may be retried after the quota handler made room. */
+const QUOTA_RETRIES = 20;
+
+export function setQuotaHandler(handler: () => boolean | void) {
 	onQuota = handler;
 }
 
@@ -29,12 +35,15 @@ export function load<T>(key: string, fallback: T): T {
 export function save(key: string, value: unknown): boolean {
 	const s = store();
 	if (!s) return false;
-	try {
-		s.setItem(PREFIX + key, JSON.stringify(value));
-		return true;
-	} catch (e) {
-		if (e instanceof DOMException && /quota/i.test(e.name + e.message)) onQuota?.();
-		return false;
+	const text = JSON.stringify(value);
+	for (let retry = 0; ; retry++) {
+		try {
+			s.setItem(PREFIX + key, text);
+			return true;
+		} catch (e) {
+			const quota = e instanceof DOMException && /quota/i.test(e.name + e.message);
+			if (!quota || onQuota?.() !== true || retry >= QUOTA_RETRIES) return false;
+		}
 	}
 }
 

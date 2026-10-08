@@ -41,6 +41,12 @@ export interface Message {
 
 export const MAX_CHECKPOINTS = 10;
 
+/** What to open: a puzzle by ID, optionally with a shared position (encoded state). */
+export interface OpenOptions {
+	puzzleId?: number;
+	shared?: string;
+}
+
 /**
  * One game in progress: puzzle, player state, history, checkpoints, timers, persistence and
  * submission. Game specifics come from the GameModule.
@@ -78,6 +84,9 @@ export class GameSession<P = unknown, S = unknown> {
 	private active = true;
 	private period: string | undefined;
 	private saveKey = '';
+	/** Save key of the puzzle on the board; differs from `saveKey` while another one loads. */
+	private puzzleKey = '';
+	private lastOpen: [string, OpenOptions] = ['', {}];
 	private pushTimer: ReturnType<typeof setTimeout> | null = null;
 	private openToken = 0;
 	private touched = false;
@@ -86,6 +95,11 @@ export class GameSession<P = unknown, S = unknown> {
 		readonly game: GameModule<P, S>,
 		readonly settings: GameSettings
 	) {}
+
+	/** Storage key of the game on the board. */
+	get slot(): string {
+		return this.saveKey;
+	}
 
 	get variant(): Variant {
 		return this.game.variants[this.variantIndex];
@@ -102,39 +116,19 @@ export class GameSession<P = unknown, S = unknown> {
 	// ---- Loading ----------------------------------------------------------------------------
 
 	/** Open a variant: resume its saved game, or start the requested / a new puzzle. */
-	async open(variantKey: string, opts: { puzzleId?: number; shared?: string } = {}) {
+	async open(variantKey: string, opts: OpenOptions = {}) {
 		const token = ++this.openToken;
-		let index = this.game.variants.findIndex((v) => v.key === variantKey);
-		if (opts.puzzleId != null) {
-			const decoded = decodePuzzleId(opts.puzzleId);
-			if (this.game.variants[decoded.variantIndex]) index = decoded.variantIndex;
-		}
-		if (index < 0) index = 0;
+		this.lastOpen = [variantKey, opts];
+		const target = this.target(variantKey, opts);
 		this.pauseClock();
-		this.variantIndex = index;
-		const v = this.variant;
+		this.variantIndex = target.index;
 		this.loading = true;
 		this.message = null;
-
-		let puzzleId = opts.puzzleId;
-		this.period = undefined;
-		if (v.special) {
-			const current = encodePuzzleId(
-				index,
-				specialSeed(this.game.id, v.special, periodKey(v.special))
-			);
-			if (puzzleId == null || puzzleId === current) {
-				puzzleId = current;
-				this.period = periodKey(v.special);
-			}
-		}
-		this.saveKey = `save:${this.game.id}:${v.key}${this.period ? `:${this.period}` : ''}`;
-		if (v.special && !this.period) this.saveKey = `save:${this.game.id}:${v.key}:archive`;
+		this.period = target.period;
+		this.saveKey = target.saveKey;
 
 		const local = load<SavedGame<S> | null>(this.saveKey, null);
-		const resumable = (s: SavedGame<S> | null) =>
-			!!s && !s.solved && (puzzleId == null || s.puzzleId === puzzleId) && !opts.shared;
-		if (resumable(local) && this.restore(local!)) {
+		if (this.resumable(local, target.puzzleId, opts) && this.restore(local!)) {
 			this.finishLoading(token);
 			this.syncFromServer(token);
 			return;
@@ -142,8 +136,60 @@ export class GameSession<P = unknown, S = unknown> {
 		// A requested regular puzzle is played locally; new and current special ones may come
 		// from the server.
 		const fromServer = !opts.shared && (opts.puzzleId == null || !!this.period);
-		await this.start(fromServer ? null : puzzleId!, token, opts.shared);
+		await this.start(fromServer ? null : target.puzzleId!, token, opts.shared);
 		this.syncFromServer(token);
+	}
+
+	/** The variant, puzzle, special period and save slot that `open` would use. */
+	private target(variantKey: string, opts: OpenOptions) {
+		let index = this.game.variants.findIndex((v) => v.key === variantKey);
+		if (opts.puzzleId != null) {
+			const decoded = decodePuzzleId(opts.puzzleId);
+			if (this.game.variants[decoded.variantIndex]) index = decoded.variantIndex;
+		}
+		if (index < 0) index = 0;
+		const v = this.game.variants[index];
+		let puzzleId = opts.puzzleId;
+		let period: string | undefined;
+		if (v.special) {
+			const current = encodePuzzleId(
+				index,
+				specialSeed(this.game.id, v.special, periodKey(v.special))
+			);
+			if (puzzleId == null || puzzleId === current) {
+				puzzleId = current;
+				period = periodKey(v.special);
+			}
+		}
+		const slot = period ?? (v.special ? 'archive' : undefined);
+		const saveKey = `save:${this.game.id}:${v.key}${slot ? `:${slot}` : ''}`;
+		return { index, puzzleId, period, saveKey };
+	}
+
+	/** Whether `open` continues this saved game rather than starting the requested one. */
+	private resumable(s: SavedGame<S> | null, puzzleId: number | undefined, opts: OpenOptions) {
+		return !!s && !s.solved && (puzzleId == null || s.puzzleId === puzzleId) && !opts.shared;
+	}
+
+	/**
+	 * Whether opening this (e.g. a link or a puzzle ID) would replace an unfinished game: every
+	 * puzzle type keeps one game, and the requested puzzle would take its place.
+	 */
+	replacesGame(variantKey: string, opts: OpenOptions): boolean {
+		const { index, puzzleId, saveKey } = this.target(variantKey, opts);
+		const saved = load<SavedGame<S> | null>(saveKey, null);
+		if (!saved || saved.solved || this.resumable(saved, puzzleId, opts)) return false;
+		if (!this.game.isValidPuzzle(saved.puzzle, this.game.variants[index])) return false;
+		return this.hasProgress(saved);
+	}
+
+	/** Whether "New puzzle" would throw away a started game (special types keep theirs). */
+	get newPuzzleDiscards(): boolean {
+		if (this.variant.special || this.solved || this.loading || !this.puzzle || !this.state) {
+			return false;
+		}
+		const empty = this.game.emptyState(this.puzzle);
+		return this.checkpoints.length > 0 || JSON.stringify(this.state) !== JSON.stringify(empty);
 	}
 
 	/** Start a fresh game of `puzzleId`, or of a new puzzle (from the server if it issues them). */
@@ -175,8 +221,11 @@ export class GameSession<P = unknown, S = unknown> {
 						: await generate<P>(this.game.id, variantIndex, seed);
 			}
 		} catch (e) {
-			if (token === this.openToken)
-				this.message = { kind: 'error', text: t('session.createFailed', { error: String(e) }) };
+			if (token !== this.openToken) return;
+			this.message = { kind: 'error', text: t('session.createFailed', { error: String(e) }) };
+			// The previous puzzle stays playable, unless it belongs to another slot (another type).
+			if (this.puzzleKey !== this.saveKey) this.clearPuzzle();
+			this.finishLoading(token);
 			return;
 		}
 		if (token !== this.openToken) return;
@@ -184,6 +233,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.ticket = ticket;
 		this.source = source;
 		this.puzzle = puzzle;
+		this.puzzleKey = this.saveKey;
 		const sharedState = shared ? this.game.decodeState(puzzle, shared) : null;
 		this.state = sharedState ?? this.game.emptyState(puzzle);
 		this.past = [];
@@ -251,6 +301,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.source = s.ticket ? 'server' : 'local';
 		this.changedAt = s.updatedAt;
 		this.puzzle = puzzle;
+		this.puzzleKey = this.saveKey;
 		this.state = s.state;
 		this.past = [];
 		this.future = [];
@@ -263,6 +314,26 @@ export class GameSession<P = unknown, S = unknown> {
 		this.playMs = s.playMs;
 		this.touched = false;
 		return true;
+	}
+
+	/** No puzzle on the board: loading one failed, see `retry`. */
+	private clearPuzzle() {
+		this.puzzle = null;
+		this.state = null;
+		this.puzzleKey = '';
+		this.puzzleId = 0;
+		this.ticket = null;
+		this.past = [];
+		this.future = [];
+		this.checkpoints = [];
+		this.currentCheckpoint = -1;
+		this.lastChange = new Set();
+		this.solved = false;
+	}
+
+	/** Open again what the last `open` asked for (after it failed). */
+	retry() {
+		return this.open(...this.lastOpen);
 	}
 
 	private finishLoading(token: number) {
@@ -434,7 +505,8 @@ export class GameSession<P = unknown, S = unknown> {
 	}
 
 	private resumeClock() {
-		if (this.runningSince != null || this.solved || this.loading || this.paused) return;
+		if (this.runningSince != null || !this.puzzle || this.solved || this.loading || this.paused)
+			return;
 		if (!this.active && !this.settings.values.hideTimer) return;
 		this.runningSince = Date.now();
 	}
@@ -576,7 +648,8 @@ export class GameSession<P = unknown, S = unknown> {
 
 	/** Save locally and, after a short pause, to the server. `changed` is false for a plain flush. */
 	persist(changed = true) {
-		if (!this.puzzle || !this.state || !this.saveKey) return;
+		// Never save the previous puzzle into the slot of one that is still loading.
+		if (!this.puzzle || !this.state || !this.saveKey || this.puzzleKey !== this.saveKey) return;
 		if (changed || !this.changedAt) this.changedAt = Date.now();
 		const running = this.runningSince != null ? Date.now() - this.runningSince : 0;
 		const data: SavedGame<S> = {
@@ -621,7 +694,22 @@ export function cleanupSpecialSaves() {
 	}
 }
 
-/** Remove every saved game except the given keys (storage full). */
-export function clearOldSaves(keep: string[] = []) {
-	for (const key of keys('save:')) if (!keep.includes(key)) remove(key);
+/**
+ * Make room when storage is full, never touching `keep` (the game being played): first remove the
+ * saves of solved games, which are never resumed; then, once `agree` says so, the unfinished game
+ * that changed longest ago. Returns whether anything was removed.
+ */
+export function freeSaveSpace(keep: string, agree: () => boolean): boolean {
+	const others = keys('save:')
+		.filter((key) => key !== keep)
+		.map((key) => ({ key, save: load<SavedGame | null>(key, null) }));
+	const solved = others.filter((o) => !o.save || o.save.solved);
+	if (solved.length) {
+		for (const o of solved) remove(o.key);
+		return true;
+	}
+	if (!others.length || !agree()) return false;
+	const age = (o: (typeof others)[number]) => o.save?.updatedAt ?? 0;
+	remove(others.reduce((oldest, o) => (age(o) < age(oldest) ? o : oldest)).key);
+	return true;
 }
