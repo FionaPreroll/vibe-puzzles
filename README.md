@@ -74,6 +74,8 @@ migrations/           D1 schema
 
 ## Deployment
 
+Both deploy workflows only publish the newest commit of their branch: a newer push cancels a run that is still in progress, and each run checks again right before going live, so a run for an older commit never replaces a newer site.
+
 ### GitHub Pages (static, no server features)
 
 1. In the repository settings under **Pages**, set the source to **GitHub Actions**.
