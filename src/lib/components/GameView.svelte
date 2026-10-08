@@ -66,13 +66,36 @@
 	let belowHeight = $state(0);
 	/** Page offset of the board area's top, measured from the toolbar. */
 	let boardTop = $state(200);
+	/** Everything on the page below the board area: tools, buttons, paddings and the footer. */
+	let afterBoard = $state(120);
+	let pageRoot: HTMLDivElement | undefined = $state();
+	let gameColumn: HTMLElement | undefined = $state();
 
-	$effect(() => {
-		// Re-measure when anything above the board changes size.
-		void [viewportHeight, wide, toolbarHeight, areaWidth];
-		if (!toolbarEnd) return;
+	function measure() {
+		if (!toolbarEnd || !boardArea || !pageRoot || !gameColumn) return;
 		// Board area: mt-3 plus the scroll container's py-1.
 		boardTop = toolbarEnd.getBoundingClientRect().top + window.scrollY + 16;
+		// Up to the page's end, but not where a longer side panel reaches beyond the game column.
+		const root = pageRoot.getBoundingClientRect().bottom;
+		const rootContent = root - parseFloat(getComputedStyle(pageRoot).paddingBottom);
+		const column = gameColumn.getBoundingClientRect().bottom;
+		afterBoard =
+			document.body.getBoundingClientRect().bottom -
+			boardArea.getBoundingClientRect().bottom -
+			Math.max(0, rootContent - column);
+	}
+
+	$effect(() => {
+		// Re-measure when anything around the board changes size.
+		void [viewportHeight, wide, toolbarHeight, areaWidth, belowHeight];
+		measure();
+	});
+
+	onMount(() => {
+		// The page's own parts (footer, banners) can change size too.
+		const observer = new ResizeObserver(() => measure());
+		observer.observe(document.body);
+		return () => observer.disconnect();
 	});
 
 	const variant = $derived(session.variant);
@@ -88,10 +111,9 @@
 		if (!p || !areaWidth) return 36;
 		// The boards' padding in cells: up to 0.2 per side (Pinwheel), more with coordinates.
 		const margin = settings.values.showCoordinates ? 1.3 : 0.4;
-		// Everything above and below the board, the page's bottom padding and, on phones, the
-		// fixed tool bar.
-		const phoneBar = !wide && !settings.values.hideControls ? 80 : 0;
-		const chrome = boardTop + 4 + belowHeight + 24 + phoneBar;
+		// Everything above and below the board (on phones that includes the room kept free for the
+		// fixed tool bar).
+		const chrome = boardTop + 4 + afterBoard;
 		const byWidth = areaWidth / (p.width + margin);
 		const byHeight = Math.max(240, viewportHeight - chrome) / (p.height + margin);
 		return Math.max(16, Math.min(96, Math.floor(Math.min(byWidth, byHeight))));
@@ -454,6 +476,7 @@
 {/snippet}
 
 <div
+	bind:this={pageRoot}
 	class="screen-only flex flex-col gap-6 lg:flex-row lg:items-start {showTools
 		? 'pb-24 lg:pb-0'
 		: ''}"
@@ -549,7 +572,7 @@
 	</aside>
 
 	<!-- Game column -->
-	<section class="min-w-0 flex-1">
+	<section bind:this={gameColumn} class="min-w-0 flex-1">
 		<!-- Phone: game and puzzle type, opens the drawer -->
 		<button
 			class="mb-2 flex w-full items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 text-left shadow-sm lg:hidden dark:border-stone-800 dark:bg-stone-900"
