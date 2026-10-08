@@ -81,7 +81,8 @@
 					onchange={importBackup}
 				/>
 			</label>
-			<a class="link text-sm" href={schemaUrl}>{t('about.schema')}</a>
+			<!-- A static file, not a page: without the reload the router looks for a game of that name. -->
+			<a class="link text-sm" href={schemaUrl} data-sveltekit-reload>{t('about.schema')}</a>
 		</div>
 		{#if error}<p class="mt-2 text-sm text-rose-600 dark:text-rose-400" role="alert">
 				{error}
