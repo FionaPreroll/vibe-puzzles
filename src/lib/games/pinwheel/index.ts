@@ -12,7 +12,7 @@ export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState> = {
 	name: 'Pinwheel',
 	icon: '✺',
 	tools: [
-		{ id: 'rotate', label: 'Rotate', icon: '⟳', key: '1' },
+		{ id: 'rotate', label: 'Cycle', icon: '⇄', key: '1' },
 		{ id: 'black', label: 'Line', icon: '╱', key: '2' },
 		{ id: 'cross', label: 'Cross', icon: '✕', key: '3' },
 		{ id: 'blank', label: 'Blank', icon: '⌫', key: '4' },

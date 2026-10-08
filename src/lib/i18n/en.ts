@@ -131,7 +131,7 @@ const en = {
 		monthly: 'Monthly'
 	},
 	tool: {
-		rotate: 'Rotate',
+		rotate: 'Cycle',
 		black: 'Black',
 		cross: 'Cross',
 		blank: 'Blank',
@@ -284,6 +284,13 @@ const en = {
 				'No 2×2 block may be fully shaded.'
 			],
 			notes: ['So the possible shapes are L, I, T and S. The square O is ruled out by rule 4.'],
+			toolHint: {
+				rotate:
+					'Each click on a cell steps it from empty to shaded to cross and back. Right click goes the other way.',
+				black: 'Click a cell to shade it, click again to clear it. Right click sets a cross.',
+				cross: 'Click a cell to mark it with a cross: it stays unshaded. Click again to remove it.',
+				blank: 'Clears every cell you click or drag over.'
+			},
 			controlsMouse:
 				'Click a cell to shade it, right click to place a cross. Drag to paint several cells. Keys 1–4 pick a tool.',
 			controlsTouch:
@@ -304,6 +311,15 @@ const en = {
 			],
 			notes: [],
 			tool: { black: 'Line' },
+			toolHint: {
+				rotate:
+					'Each click on an edge steps it from empty to line to cross and back. Right click goes the other way.',
+				black: 'Click an edge to draw a line, click again to remove it. Right click sets a cross.',
+				cross:
+					'Click an edge to mark it with a cross: no line goes there. Click again to remove it.',
+				blank: 'Clears every edge you click or drag over.',
+				color: 'Colours a cell in the chosen colour. Click a coloured cell to clear it.'
+			},
 			controlsMouse:
 				'Click between dots to draw a line, right click to set a cross, Shift+click to colour a cell. Right click a circle to lock a finished region.',
 			controlsTouch:
