@@ -108,11 +108,14 @@ async function settle(page: Page, cdp: CDPSession) {
 
 async function session(page: Page, name: string, touch: boolean) {
 	const errors: string[] = [];
-	page.on('pageerror', (e) => errors.push(e.message));
+	/** What the session was doing, so that an error says where it came from. */
+	let step = 'start';
+	page.on('pageerror', (e) => errors.push(`${e.message} (${step})`));
 	page.on('console', (m) => {
 		// Without the optional server, API calls fail; that is expected here.
 		if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) {
-			errors.push(m.text());
+			const at = m.location();
+			errors.push(`${m.text()} (${step}; ${at.url}:${at.lineNumber})`);
 		}
 	});
 	// The app asks in its own dialog, never with the browser's.
@@ -228,11 +231,13 @@ async function session(page: Page, name: string, touch: boolean) {
 		const game = GAMES[round % 2];
 		if (round > 0) await switchGame(game);
 		for (let k = 1; k < ROUND; k++) {
+			step = `round ${round}, action ${k}`;
 			if (specials[k]) {
 				await specials[k]();
 				continue;
 			}
 			const kind = pick(['tap', 'tap', 'drag', 'drag', 'undo', 'redo']);
+			step += ` (${kind})`;
 			if (kind === 'tap') {
 				const p = await point();
 				if (touch) await page.touchscreen.tap(p.x, p.y);
@@ -252,6 +257,7 @@ async function session(page: Page, name: string, touch: boolean) {
 			}
 		}
 		// Every round of a game ends in the same state: its solved puzzle.
+		step = `round ${round}, solve`;
 		await menu(true);
 		await solve(page, game);
 		rounds.push({ round, game, resources: await settle(page, cdp) });
