@@ -216,6 +216,9 @@
 	async function screenshot(): Promise<string | null> {
 		const svg = boardArea?.querySelector('svg');
 		if (!svg) return null;
+		// Sizes from now: opening the share panel can shrink the board before the image loads.
+		const width = svg.width.baseVal.value;
+		const height = svg.height.baseVal.value;
 		const clone = svg.cloneNode(true) as SVGSVGElement;
 		clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 		const url = URL.createObjectURL(new Blob([clone.outerHTML], { type: 'image/svg+xml' }));
@@ -227,8 +230,8 @@
 				img.src = url;
 			});
 			const canvas = document.createElement('canvas');
-			canvas.width = svg.width.baseVal.value;
-			canvas.height = svg.height.baseVal.value;
+			canvas.width = width;
+			canvas.height = height;
 			const ctx = canvas.getContext('2d')!;
 			ctx.fillStyle = '#ffffff';
 			ctx.fillRect(0, 0, canvas.width, canvas.height);
