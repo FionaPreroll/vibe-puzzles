@@ -68,7 +68,9 @@ migrations/           D1 schema
 
 ## Puzzle collection
 
-`static/puzzles/<game>/<type>.json` holds pre-generated puzzles with their IDs. The `Grow puzzle collection` workflow runs weekly (or by hand, with the number of new puzzles per type and a time limit) on `dev`. It first stores the special puzzles of the coming periods, then adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution before it is committed, so the collection keeps growing. The unit tests check every stored puzzle again. In the settings, players choose where new puzzles come from: the collection, their device, or both at random (the default). The collection also saves generating time when a puzzle is opened by an ID it contains.
+`static/puzzles/<game>/<type>.json` holds pre-generated puzzles with their IDs. The `Grow puzzle collection` workflow runs weekly (or by hand, with the number of new puzzles per type and a time limit) and proposes the new puzzles in a pull request against `main` from the branch `feature/grow_puzzle_collection`; while that pull request is open, later runs add to it. It first stores the special puzzles of the coming periods, then adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution before it is committed, so the collection keeps growing. The unit tests check every stored puzzle again. The workflow needs **Allow GitHub Actions to create and approve pull requests** (repository settings, Actions, General). Pull requests opened with the default token start no other workflows, so CI does not run on them; a fine-grained token with contents and pull requests write access in the repository secret `BANK_PR_TOKEN` fixes that.
+
+In the settings, players choose where new puzzles come from: the collection, their device, or both at random (the default). The collection also saves generating time when a puzzle is opened by an ID it contains.
 
 ## Branches and pull requests
 

@@ -1,8 +1,8 @@
 name: Grow puzzle collection
 
-# Adds freshly generated puzzles to static/puzzles on dev once a week (or by hand), including the
-# special puzzles of the coming periods for the server (see README). Every puzzle
-# is checked for a unique solution before it is committed.
+# Adds freshly generated puzzles to static/puzzles once a week (or by hand), including the special
+# puzzles of the coming periods for the server (see README), and proposes them in a pull request
+# against main. Every puzzle is checked for a unique solution before it is committed.
 on:
   schedule:
     - cron: '17 3 * * 1'
@@ -26,13 +26,32 @@ jobs:
   grow:
     runs-on: ubuntu-latest
     timeout-minutes: 330
-    # Pushes the new puzzles to dev.
+    # Pushes the new puzzles to their own branch and opens (or updates) a pull request.
     permissions:
       contents: write
+      pull-requests: write
+    env:
+      BRANCH: feature/grow_puzzle_collection
+      # Pull requests opened with the default token start no other workflows, so CI does not run
+      # on them. A token in the BANK_PR_TOKEN secret (contents and pull requests: write) avoids that.
+      GH_TOKEN: ${{ secrets.BANK_PR_TOKEN || github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: main
+          token: ${{ secrets.BANK_PR_TOKEN || github.token }}
+      # Puzzles of an earlier run that still wait for review: keep adding to that pull request.
+      - name: Continue an open pull request
+        run: |
+          open=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number')
+          echo "OPEN_PR=$open" >> "$GITHUB_ENV"
+          if [ -n "$open" ]; then
+            git fetch --depth=1 origin "$BRANCH"
+            git checkout -B "$BRANCH" FETCH_HEAD
+          else
+            git checkout -B "$BRANCH"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -43,7 +62,9 @@ jobs:
           PER_VARIANT: ${{ inputs.per_variant || '5' }}
           MAX_MINUTES: ${{ inputs.max_minutes || '30' }}
       - run: npx vitest --run src/lib/games/bank.test.ts
-      - name: Commit new puzzles
+      - name: Commit new puzzles and propose them
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           git add static/puzzles
           if git diff --cached --quiet; then
@@ -53,5 +74,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Grow the puzzle collection"
-          git pull --rebase origin dev
-          git push origin HEAD:dev
+          if [ -n "$OPEN_PR" ]; then
+            git push origin "HEAD:$BRANCH"
+            gh pr comment "$OPEN_PR" --body "Added more puzzles: $RUN_URL"
+          else
+            # Without an open pull request the branch only holds merged or dropped puzzles.
+            git push --force origin "HEAD:$BRANCH"
+            gh pr create --base main --head "$BRANCH" --title "Grow the puzzle collection" \
+              --body "New puzzles from the \`Grow puzzle collection\` workflow ($RUN_URL). Every puzzle was checked for a unique solution, and \`bank.test.ts\` passed on the grown collection. Merging deploys them."
+          fi
