@@ -98,3 +98,22 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	await clickCell(page, 9, Math.floor(givenCells[0] / 9), givenCells[0] % 9);
 	await expect(board.locator('rect[fill="#bfdbfe"]').first()).toBeVisible();
 });
+
+test('the Sudoku screenshot shows the whole board', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
+	await page.setViewportSize({ width: 1100, height: 800 });
+	await page.goto('/sudoku?v=9n');
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await expect(board.locator('text').first()).toBeVisible({ timeout: 30_000 });
+	const width = Number(await board.getAttribute('width'));
+	await page.getByRole('button', { name: 'Share' }).click();
+	const link = page.locator('a[href^="data:image/png"]');
+	await expect(link).toBeAttached();
+	const size = await link.evaluate(async (a: HTMLAnchorElement) => {
+		const img = new Image();
+		img.src = a.href;
+		await img.decode();
+		return [img.naturalWidth, img.naturalHeight];
+	});
+	expect(size).toEqual([width, width]);
+});
