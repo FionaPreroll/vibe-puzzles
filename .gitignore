@@ -1,5 +1,8 @@
 node_modules
 
+# This project uses pnpm (pnpm-lock.yaml); npm's lockfile must not come back.
+package-lock.json
+
 # Output
 .output
 .vercel

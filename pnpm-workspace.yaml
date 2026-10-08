@@ -1,0 +1,10 @@
+# pnpm settings (pnpm reads only auth and registry settings from .npmrc).
+
+# Fail the install when a package does not support the running Node version.
+engineStrict: true
+
+# Dependencies whose install scripts may run; pnpm fails the install on any other one that has
+# scripts. Both check or link the platform binary they ship.
+allowBuilds:
+  esbuild: true
+  workerd: true

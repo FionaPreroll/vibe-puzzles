@@ -26,15 +26,17 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
+      # Installs the pnpm version from the packageManager field in package.json.
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Set D1 database ID
         run: sed -i "s/00000000-0000-0000-0000-000000000000/${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}/" wrangler.jsonc
       # Build first, so the check below happens right before anything goes live.
-      - run: npm run build
+      - run: pnpm build
       - id: latest
         name: Check that this is still the newest commit
         env:
@@ -47,6 +49,6 @@ jobs:
             echo "latest=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Not deploying ${{ github.sha }}: ${{ github.ref_name }} is now at $head."
           fi
-      # The same as `npm run cf:deploy` after its build.
+      # The same as `pnpm cf:deploy` after its build.
       - if: steps.latest.outputs.latest == 'true'
-        run: npx wrangler d1 migrations apply DB --remote && npx wrangler deploy
+        run: pnpm exec wrangler d1 migrations apply DB --remote && pnpm exec wrangler deploy

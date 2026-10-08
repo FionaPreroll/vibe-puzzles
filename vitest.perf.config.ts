@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-/** Generator and solver timings, kept out of the regular unit tests: `npm run test:perf`. */
+/** Generator and solver timings, kept out of the regular unit tests: `pnpm test:perf`. */
 export default defineConfig({
 	test: {
 		include: ['perf/**/*.perf.ts'],

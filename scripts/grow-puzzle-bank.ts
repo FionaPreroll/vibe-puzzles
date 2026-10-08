@@ -6,7 +6,7 @@
  * SPECIAL_PERIODS_AHEAD first. Regular types then grow in turns, one puzzle each, so that every
  * type gets its share when the time limit ends the run.
  *
- *   npx tsx scripts/grow-puzzle-bank.ts [--per-variant N] [--max-minutes M] [--game ID]
+ *   pnpm bank:grow [--per-variant N] [--max-minutes M] [--game ID]
  *     [--variants KEY,KEY]
  *
  * --game limits the run to one game, e.g. to seed the collection of a new game; --variants

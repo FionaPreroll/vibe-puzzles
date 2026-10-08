@@ -53,16 +53,18 @@ jobs:
           else
             git checkout -B "$BRANCH"
           fi
+      # Installs the pnpm version from the packageManager field in package.json.
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run bank:grow -- --per-variant "$PER_VARIANT" --max-minutes "$MAX_MINUTES"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm bank:grow --per-variant "$PER_VARIANT" --max-minutes "$MAX_MINUTES"
         env:
           PER_VARIANT: ${{ inputs.per_variant || '5' }}
           MAX_MINUTES: ${{ inputs.max_minutes || '30' }}
-      - run: npx vitest --run src/lib/games/bank.test.ts
+      - run: pnpm exec vitest --run src/lib/games/bank.test.ts
       - name: Commit new puzzles and propose them
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
