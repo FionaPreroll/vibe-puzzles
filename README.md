@@ -63,6 +63,7 @@ migrations/              D1 schema
 e2e/                     browser tests
 e2e-server/              browser tests against the server
 e2e-load/, perf/         soak and performance tests
+docs/                    technical documentation (generators.md: how puzzles and their difficulty are made)
 ```
 
 ### Adding a game
@@ -71,7 +72,7 @@ e2e-load/, perf/         soak and performance tests
 2. Take every board colour from `src/lib/core/palette.ts` (`colours.<name>`), never a colour literal: that is how boards follow night mode and keep screenshots and prints light. A unit test rejects colour literals in boards and checks the contrast of the palette's colour pairs in both themes.
 3. Add the texts (tagline, rules, notes, control hints, tutorial steps) under `games.<id>` in every file in `src/lib/i18n/`.
 4. Register the logic in `src/lib/games/logic.ts` and the module in `src/lib/games/index.ts`.
-5. Generators must be deterministic for a seed and must not depend on time, so puzzle IDs work everywhere.
+5. Generators must be deterministic for a seed and must not depend on time, so puzzle IDs work everywhere. [docs/generators.md](docs/generators.md) describes how the existing generators build unique puzzles and grade their difficulty.
 6. Only ever append new puzzle types to a game's variant list (at most 16): a puzzle ID stores the type's position in the list, so moving or inserting one changes every ID, save, link and leaderboard entry. A unit test pins the order.
 
 ## Puzzle collection
