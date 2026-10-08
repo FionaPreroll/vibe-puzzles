@@ -40,19 +40,71 @@ const api = () => `${resolve('/').replace(/\/$/, '')}/api`;
 interface Health {
 	ok: boolean;
 	serverPuzzles: boolean;
+	/** No answer (offline, or a server error), so asking again later may give a different one. */
+	retry: boolean;
 }
+const UNREACHABLE: Health = { ok: false, serverPuzzles: false, retry: true };
+
+/**
+ * How long an unanswered health check counts. A clear answer (a server, or static hosting without
+ * one) counts for the life of the page.
+ */
+export const HEALTH_RETRY_MS = 30_000;
+
 let health: Promise<Health> | null = null;
+let result: Health | null = null;
+let checkedAt = 0;
+const watchers = new Set<(ok: boolean) => void>();
 
 function checkHealth(): Promise<Health> {
-	health ??= fetch(`${api()}/health`)
-		.then((r) => (r.ok ? r.json() : null))
-		.then((body) => ({ ok: body?.ok === true, serverPuzzles: body?.serverPuzzles === true }))
-		.catch(() => ({ ok: false, serverPuzzles: false }));
+	if (result?.retry && Date.now() - checkedAt >= HEALTH_RETRY_MS) health = null;
+	if (!health) {
+		listenForReconnect();
+		const previous = result;
+		result = null;
+		checkedAt = Date.now();
+		health = fetch(`${api()}/health`)
+			.then(async (r): Promise<Health> => {
+				if (r.status >= 500) return UNREACHABLE;
+				const body = r.ok ? await r.json().catch(() => null) : null;
+				return { ok: body?.ok === true, serverPuzzles: body?.serverPuzzles === true, retry: false };
+			})
+			.catch(() => UNREACHABLE)
+			.then((h) => {
+				result = h;
+				if (previous && previous.ok !== h.ok) for (const w of watchers) w(h.ok);
+				return h;
+			});
+	}
 	return health;
+}
+
+/** Ask again as soon as the device is back online or the page is shown, if nobody answered. */
+let listening = false;
+function listenForReconnect() {
+	if (listening || typeof window === 'undefined') return;
+	listening = true;
+	const recheck = () => {
+		if (!result?.retry || document.visibilityState === 'hidden') return;
+		health = null;
+		void checkHealth();
+	};
+	window.addEventListener('online', recheck);
+	document.addEventListener('visibilitychange', recheck);
 }
 
 export async function serverAvailable(): Promise<boolean> {
 	return (await checkHealth()).ok;
+}
+
+/**
+ * Tell `listener` whether the server is available, then again whenever that changes (for example
+ * when a device that started offline gets a connection). Returns a function that stops it.
+ */
+export function watchServer(listener: (ok: boolean) => void): () => void {
+	watchers.add(listener);
+	void serverAvailable().then((ok) => watchers.has(listener) && listener(ok));
+	return () => void watchers.delete(listener);
 }
 
 /** Whether new puzzles come from the server (needs a registered player). */

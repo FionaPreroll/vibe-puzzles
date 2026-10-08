@@ -5,24 +5,21 @@
 A collection of logic puzzles that runs in the browser, in English and German. Every puzzle has a unique solution; puzzles are generated on the device or taken from a pre-generated collection.
 
 - **Tetroid**: shade one tetromino in every region so that all shaded cells connect, no 2×2 block is shaded and equal tetrominoes never touch.
-- **Pinwheel**: divide the grid into regions that are point-symmetric around their centre dot.
-- **Sudoku**: fill the 9×9 grid so that every row, column and 3×3 box holds the digits 1 to 9 once, with notes and three difficulty levels.
+- **Pinwheel**: divide the grid into regions with one circle each, every region point-symmetric around its circle.
+- **Sudoku**: fill the 9×9 grid so that every row, column and 3×3 box holds the digits 1 to 9 once.
 - **Calcudoku**, a mode of Sudoku: 5×5, 7×7 or 9×9 without boxes; every row and column holds each digit once, and the digits of each cage give its target with its operation (+, −, ×, ÷).
 
-Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4.
+Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4. The optional server runs on Cloudflare Workers with D1.
 
 ## Features
 
-- Deterministic generators: a puzzle ID (shown under the board) always produces the same puzzle on every device.
-- Normal and hard puzzles in several sizes (Sudoku and Calcudoku also easy), plus daily, weekly and monthly specials.
-- Undo and redo, checkpoints, timers, error highlighting, zoom, keyboard and touch controls, print and share.
-- An interactive tutorial puzzle on the first visit of each game.
-- English and German, picked from the browser language and switchable in the header.
-- Night mode for the whole site including the boards; it follows the system's colour scheme until switched in the header. Screenshots and prints stay light.
-- Installable as an app (PWA) and playable offline after the first visit. Files of the puzzle collection are cached when a puzzle type first needs them and kept across app updates; offline, a type without a cached file gets puzzles generated on the device.
-- A growing collection of pre-generated puzzles (see below); players choose between the collection, puzzles generated on their device, or both.
-- Progress, settings and statistics are saved in the browser.
-- Optional server (Cloudflare Workers with D1): anonymous players, game sync across devices with a sync code, and leaderboards.
+- **Puzzles**: deterministic generators, so a puzzle ID (shown under the board) gives the same puzzle on every device. Normal and hard puzzles in several sizes (Sudoku and Calcudoku also easy), plus daily, weekly and monthly specials.
+- **Playing**: undo and redo, checkpoints, notes (Sudoku), timers, error highlighting, zoom, keyboard and touch controls, print and share. An interactive tutorial puzzle on the first visit of each game.
+- **Puzzle collection**: a growing set of pre-generated puzzles (see [Puzzle collection](#puzzle-collection)). Players choose between the collection, puzzles generated on their device, or both at random (the default).
+- **Appearance**: English and German, picked from the browser language and switchable in the header. Night mode for the whole site including the boards; it follows the system's colour scheme until switched in the header. Screenshots and prints stay light.
+- **Offline**: installable as an app (PWA) and playable offline after the first visit. Files of the puzzle collection are cached when a puzzle type first needs them and kept across app updates; offline, a type without a cached file gets puzzles generated on the device.
+- **Your data**: progress, settings and statistics (solves, streaks, best and average times) stay in the browser. The About page exports them to a backup file and imports it again; the file format is published as a JSON Schema (`static/backup.schema.json`).
+- **Optional server**: anonymous players with a name, games and settings synced across devices with a sync code, server-issued puzzles and online leaderboards. Without it, everything else works the same.
 
 ## Development
 
@@ -32,49 +29,78 @@ Requires Node 24 and pnpm. The pnpm version is pinned in the `packageManager` fi
 pnpm install
 pnpm dev            # dev server without the API
 pnpm cf:dev         # build and run with the API and a local D1 database
-pnpm lint           # prettier and eslint
-pnpm check          # svelte-check and worker type check
-pnpm test           # unit tests
-pnpm test:e2e       # browser tests (run `pnpm exec playwright install chromium` once)
-pnpm test:server    # browser tests against the server: two devices syncing a game
+pnpm lint           # prettier and eslint (pnpm format fixes the formatting)
+pnpm check          # svelte-check and type checks of the worker and service worker
+pnpm test           # unit tests (pnpm test:unit watches, pnpm test:coverage measures coverage)
+pnpm test:e2e       # browser tests
+pnpm test:server    # browser tests against the server: sync between devices, settings, offline start
 pnpm test:soak      # long play sessions (desktop, phone): nothing leaks (SOAK_ACTIONS=600, SOAK_SEED)
 pnpm test:perf      # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
 pnpm bank:grow      # add puzzles to the collection (--per-variant N --max-minutes M)
 ```
+
+The browser tests need Chromium: run `pnpm exec playwright install chromium` once, or point `CHROMIUM_PATH` at an installed Chromium.
 
 pnpm settings live in `pnpm-workspace.yaml`. pnpm runs the install scripts of dependencies only when they are listed under `allowBuilds` there, and fails the install for any other dependency that has one; decide for each new one whether it needs its script.
 
 ## Project layout
 
 ```
-src/lib/core/         shared types, seeded RNG, puzzle IDs, settings, board colours (palette.ts)
-src/lib/games/<id>/   one folder per game: rules, solver, generator, logic, Board.svelte, index.ts
+src/lib/core/            shared types, seeded RNG, puzzle IDs, settings, collection format, board colours
+src/lib/games/<id>/      one folder per game: rules, solver, generator, logic, Board.svelte, index.ts
 src/lib/games/logic.ts   registry of game logic (used by the client and the server)
 src/lib/games/index.ts   registry of game modules (logic plus UI)
-src/lib/client/       browser-side storage, API client, game session, generator web worker
-src/lib/components/   game shell, tutorial and dialogs
-src/lib/i18n/         translations (en.ts is the reference, de.ts must have the same keys)
-src/service-worker/   offline cache
-src/routes/           pages
-static/puzzles/       the puzzle collection, one folder per game and puzzle type
-scripts/              grow-puzzle-bank.ts, licenses.ts (licence notices of shipped packages)
-worker/               Cloudflare Worker: REST API and storage
-migrations/           D1 schema
+src/lib/client/          browser-side storage, backup, API client, game session, generator web worker
+src/lib/components/      game shell, tutorial and dialogs
+src/lib/i18n/            translations (en.ts is the reference, de.ts must have the same keys)
+src/service-worker/      offline cache
+src/routes/              pages: home, games, statistics (scores), player, about
+static/puzzles/          the puzzle collection, one folder per game and puzzle type
+static/backup.schema.json   JSON Schema of the backup file
+scripts/                 grow-puzzle-bank.ts, collection.ts (collection files), licenses.ts (licence notices)
+worker/                  Cloudflare Worker: REST API and storage
+migrations/              D1 schema
+e2e/                     browser tests
+e2e-server/              browser tests against the server
+e2e-load/, perf/         soak and performance tests
+docs/                    technical documentation (generators.md: how puzzles and their difficulty are made)
 ```
 
 ### Adding a game
 
 1. Create `src/lib/games/<id>/` with a `logic.ts` exporting a `GameLogic` (variants, generator, solution counter, state encoding, answer check) and an `index.ts` exporting a `GameModule` (name, tools, settings, an optional tutorial puzzle and a `Board.svelte` component).
-2. Add the texts (tagline, rules, notes, control hints, tutorial steps) under `games.<id>` in every file in `src/lib/i18n/`.
-3. Register the logic in `src/lib/games/logic.ts` and the module in `src/lib/games/index.ts`.
-4. Generators must be deterministic for a seed and must not depend on time, so puzzle IDs work everywhere.
-5. Only ever append new puzzle types to a game's variant list (at most 16): a puzzle ID stores the type's position in the list, so moving or inserting one changes every ID, save, link and leaderboard entry. A unit test pins the order.
+2. Take every board colour from `src/lib/core/palette.ts` (`colours.<name>`), never a colour literal: that is how boards follow night mode and keep screenshots and prints light. A unit test rejects colour literals in boards and checks the contrast of the palette's colour pairs in both themes.
+3. Add the texts (tagline, rules, notes, control hints, tutorial steps) under `games.<id>` in every file in `src/lib/i18n/`.
+4. Register the logic in `src/lib/games/logic.ts` and the module in `src/lib/games/index.ts`.
+5. Generators must be deterministic for a seed and must not depend on time, so puzzle IDs work everywhere. [docs/generators.md](docs/generators.md) describes how the existing generators build unique puzzles and grade their difficulty.
+6. Only ever append new puzzle types to a game's variant list (at most 16): a puzzle ID stores the type's position in the list, so moving or inserting one changes every ID, save, link and leaderboard entry. A unit test pins the order.
 
 ## Puzzle collection
 
-`static/puzzles/<game>/<type>/` holds pre-generated puzzles with their IDs. A regular type is split into chunks of 100 puzzles (`0000.json`, `0001.json`, …) in the order they were added, with an `index.json` listing the IDs of each chunk; new puzzles fill the last chunk, so full chunks never change, and opening a puzzle loads only the index and one chunk. Special types keep one file per month (daily) or year (weekly, monthly), e.g. `daily/2026-10.json`. `scripts/collection.ts` reads and writes this layout. The `Grow puzzle collection` workflow runs weekly (or by hand, with the number of new puzzles per type and a time limit) and proposes the new puzzles in a pull request against `main` from the branch `feature/grow_puzzle_collection`; while that pull request is open, later runs add to it, and it merges itself once CI passes (auto-merge). It first stores the special puzzles of the coming periods, then adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution before it is committed, so the collection keeps growing. The unit tests check every stored puzzle again: on `main` all of them, in a pull request only the collection files it changes, unless it changes the game logic (`src/lib/games`, `src/lib/core`); locally, `BANK_TEST_SINCE=origin/main pnpm test` does the same. The workflow needs **Allow GitHub Actions to create and approve pull requests** (repository settings, Actions, General). Pull requests opened with the default token start no other workflows, so CI does not run on them; a fine-grained token with contents and pull requests write access in the repository secret `BANK_PR_TOKEN` fixes that. Auto-merge needs **Allow auto-merge** (repository settings, General) and a branch protection rule on `main` whose required status checks it waits for.
+### Layout
 
-In the settings, players choose where new puzzles come from: the collection, their device, or both at random (the default). The collection also saves generating time when a puzzle is opened by an ID it contains.
+`static/puzzles/<game>/<type>/` holds pre-generated puzzles with their IDs; `scripts/collection.ts` reads and writes this layout.
+
+- A regular type is split into chunks of 100 puzzles (`0000.json`, `0001.json`, …) in the order they were added, with an `index.json` listing the IDs of each chunk. New puzzles fill the last chunk, so full chunks never change, and opening a puzzle loads only the index and one chunk.
+- Special types keep one file per month (daily) or year (weekly, monthly), e.g. `daily/2026-10.json`.
+
+The collection also saves generating time when a puzzle is opened by an ID it contains.
+
+### Growing it
+
+The `Grow puzzle collection` workflow runs every Monday, or by hand with the number of new puzzles per type and a time limit.
+
+1. It stores the special puzzles of the coming periods first.
+2. Then it adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution before it is stored.
+3. It proposes the new puzzles in a pull request against `main` from the branch `feature/grow_puzzle_collection`. While that pull request is open, later runs add to it, and it merges itself once CI passes (auto-merge).
+
+The unit tests check every stored puzzle again: on `main` all of them, in a pull request only the collection files it changes, unless it changes the game logic (`src/lib/games`, `src/lib/core`). Locally, `BANK_TEST_SINCE=origin/main pnpm test` does the same.
+
+### Repository settings it needs
+
+- **Allow GitHub Actions to create and approve pull requests** (Settings, Actions, General).
+- A fine-grained token with contents and pull requests write access in the repository secret `BANK_PR_TOKEN`. Pull requests opened with the default token start no other workflows, so CI would not run on them.
+- **Allow auto-merge** (Settings, General) and a branch protection rule on `main` with required status checks for auto-merge to wait for.
 
 ## Branches and pull requests
 
@@ -82,8 +108,13 @@ In the settings, players choose where new puzzles come from: the collection, the
 - `dev` is optional, for testing.
 - Every feature or fix gets its own branch off `origin/main` (`feature/<name_in_snake_case>`, or `fix/<name>`) and one pull request against `main`. Keep each pull request to one feature or fix.
 - A change that builds on an open pull request (or touches the same lines) branches off that pull request's branch and uses it as its base; the description names the pull request it builds on. Once the base is merged, the pull request is retargeted to `main`.
-- CI runs lint, type checks, unit tests and browser tests on every push and pull request, whatever its base.
-- The `Soak test` workflow plays a long session every night (or by hand) and checks that nothing leaks: memory, DOM nodes (also detached ones), listeners, timers, animation frames, observers, object URLs, workers and storage. A failed night opens an issue; the run's artifacts hold the measurements of every round.
+
+## Continuous integration
+
+- **CI** runs on every push to `main` and `dev` and on every pull request, whatever its base: lint and type checks, unit tests with coverage (reported to Codecov), browser tests and the server tests. Coverage counts the TypeScript modules; Svelte components and the service worker are covered by the browser tests.
+- **Soak test** plays a long session every night (or by hand) and checks that nothing leaks: memory, DOM nodes (also detached ones), listeners, timers, animation frames, observers, object URLs, workers and storage. A failed night opens an issue, or comments on the one still open; the run's artifacts hold the measurements of every round.
+- **Grow puzzle collection**: see [Growing it](#growing-it).
+- **Deploy to GitHub Pages** and **Deploy to Cloudflare Workers**: see [Deployment](#deployment).
 
 ## Deployment
 
@@ -104,7 +135,11 @@ One-time setup:
 2. Add the repository secrets `CLOUDFLARE_API_TOKEN` (with Workers and D1 edit permissions), `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_D1_DATABASE_ID` (the ID printed in step 1).
 3. Set the repository variable `CLOUDFLARE_DEPLOY` to `true` to deploy on every push to `main`, or run the `Deploy to Cloudflare Workers` workflow by hand.
 
-#### Server puzzles
+To deploy from a local machine instead, put the database ID into `wrangler.jsonc` and run `pnpm cf:deploy`.
+
+## Server
+
+### Server puzzles
 
 The Cloudflare deployment hands out puzzles from the server (`SERVER_PUZZLES` is `"true"` in `wrangler.jsonc`). The server never generates a puzzle itself: it only uses the pre-generated collection in `static/puzzles`, which is deployed with the app. That keeps every request well within the CPU limits of the Workers free plan.
 
@@ -118,8 +153,6 @@ Because the collection is public, a determined player can look a puzzle up in it
 
 The server deletes old tickets once a day (a cron trigger in `wrangler.jsonc`): unsolved ones 45 days after they were issued, solved ones 7 days after the solve. A game whose ticket is gone can still be solved, but is not ranked.
 
-To deploy from a local machine instead, put the database ID into `wrangler.jsonc` and run `pnpm cf:deploy`.
-
 ### API
 
 | Method         | Path              | Purpose                                        |
@@ -131,4 +164,8 @@ To deploy from a local machine instead, put the database ID into `wrangler.jsonc
 | POST           | `/api/scores`     | Submit a solve; the server verifies the answer |
 | GET            | `/api/scores`     | Leaderboard for a game and variant             |
 
-Players authenticate with a random token (the sync code); only its SHA-256 hash is stored. Requests that add rows to the database are rate limited on Cloudflare (`ratelimits` in `wrangler.jsonc`): registering a player to 5 per minute per client address, `POST /api/puzzles` to 30 per minute per player; above that the API answers 429. Submitted answers are always checked on the server. Without `SERVER_PUZZLES` the solve times come from the client, so leaderboards are easy to cheat; with it, times are measured by the server, though a player can still feed a puzzle to a solver program.
+### Security
+
+- Players authenticate with a random token (the sync code); only its SHA-256 hash is stored.
+- Requests that add rows to the database are rate limited on Cloudflare (`ratelimits` in `wrangler.jsonc`): registering a player to 5 per minute per client address, `POST /api/puzzles` to 30 per minute per player. Above that the API answers 429.
+- Submitted answers are always checked on the server. Without `SERVER_PUZZLES` the solve times come from the client, so leaderboards are easy to cheat; with it, times are measured by the server, though a player can still feed a puzzle to a solver program.

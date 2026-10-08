@@ -2,12 +2,7 @@
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { replaceState } from '$app/navigation';
-	import {
-		currentPlayer,
-		leaderboard,
-		serverAvailable,
-		type Leaderboard
-	} from '#lib/client/api.ts';
+	import { currentPlayer, leaderboard, watchServer, type Leaderboard } from '#lib/client/api.ts';
 	import { getStats, type VariantStats } from '#lib/client/stats.ts';
 	import { formatDuration } from '#lib/core/time.ts';
 	import { encodePuzzleId, periodKey, specialSeed } from '#lib/core/variants.ts';
@@ -31,7 +26,7 @@
 			gameId = g.id;
 			if (g.variants.some((v) => v.key === q.get('v'))) variantKey = q.get('v')!;
 		}
-		serverAvailable().then((ok) => (hasServer = ok));
+		return watchServer((ok) => (hasServer = ok));
 	});
 
 	$effect(() => {
