@@ -612,12 +612,14 @@
 	onscrollcapture={() => pending && !touch && (pending = null)}
 />
 
+<!-- Only the svg itself is hit: a touch keeps its target even when the shape under the finger
+     is redrawn mid-drag (a removed target would swallow the rest of the gesture). -->
 <svg
 	bind:this={svg}
 	{width}
 	{height}
 	viewBox="0 0 {width} {height}"
-	class="block select-none"
+	class="block select-none [&_*]:pointer-events-none"
 	style:touch-action={touchMode === 'draw'
 		? 'none'
 		: touchMode === 'pan'
