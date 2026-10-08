@@ -460,7 +460,7 @@
 	<!-- Region borders -->
 	<path
 		d={borders}
-		stroke={colours.ink}
+		stroke={colours.line}
 		stroke-width={settings.thickBorders ? 3.5 : 2.5}
 		stroke-linecap="square"
 		fill="none"
@@ -471,7 +471,7 @@
 		width={w * cellSize}
 		height={h * cellSize}
 		fill="none"
-		stroke={colours.ink}
+		stroke={colours.line}
 		stroke-width={settings.thickBorders ? 4 : 3}
 	/>
 

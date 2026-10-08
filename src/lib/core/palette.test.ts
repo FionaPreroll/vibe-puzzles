@@ -22,7 +22,8 @@ const SHADES: ColourName[] = [
 	'tetrominoS'
 ];
 const MARKS: [ColourName, ColourName[]][] = [
-	['ink', ['paper', 'faint', ...NOTES, 'errorCell', 'blueErrorCell', ...SHADES]],
+	['ink', ['paper']],
+	['line', ['surface', 'paper', 'faint', ...NOTES, 'errorCell', 'blueErrorCell']],
 	['dot', ['paper', ...NOTES]],
 	['cross', ['surface', 'paper', ...NOTES]],
 	['shaded', ['surface']],
@@ -30,13 +31,19 @@ const MARKS: [ColourName, ColourName[]][] = [
 	['recent', ['surface', 'paper']],
 	['cursor', ['surface', 'paper']]
 ];
+/**
+ * Region borders over shaded Tetroid cells: the fill already marks those cells, and at night the
+ * lines stay dim enough not to glare, so the borders need only stand out clearly.
+ */
+const BORDERS: [ColourName, ColourName[]][] = [['line', SHADES]];
 
 describe('board palette', () => {
 	for (const [theme, palette] of Object.entries(PALETTES)) {
 		it(`${theme}: text and marks stand out from their background`, () => {
 			for (const [minimum, pairs] of [
 				[4.5, TEXT],
-				[3, MARKS]
+				[3, MARKS],
+				[2.5, BORDERS]
 			] as const) {
 				for (const [front, backs] of pairs) {
 					for (const back of backs) {
