@@ -11,6 +11,12 @@ on:
 permissions:
   contents: read
 
+# Only the newest commit may go live: a newer push cancels a run still in progress, and the
+# job checks again right before deploying (e.g. when an old run is re-run).
+concurrency:
+  group: cloudflare-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     if: github.event_name == 'workflow_dispatch' || vars.CLOUDFLARE_DEPLOY == 'true'
@@ -27,4 +33,20 @@ jobs:
       - run: npm ci
       - name: Set D1 database ID
         run: sed -i "s/00000000-0000-0000-0000-000000000000/${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}/" wrangler.jsonc
-      - run: npm run cf:deploy
+      # Build first, so the check below happens right before anything goes live.
+      - run: npm run build
+      - id: latest
+        name: Check that this is still the newest commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/${{ github.repository }}/commits/${{ github.ref_name }}" --jq .sha)
+          if [ "$head" = "${{ github.sha }}" ]; then
+            echo "latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "latest=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Not deploying ${{ github.sha }}: ${{ github.ref_name }} is now at $head."
+          fi
+      # The same as `npm run cf:deploy` after its build.
+      - if: steps.latest.outputs.latest == 'true'
+        run: npx wrangler d1 migrations apply DB --remote && npx wrangler deploy
