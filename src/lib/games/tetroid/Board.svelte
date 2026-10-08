@@ -241,7 +241,9 @@
 		if (!touch) return;
 		const t = e.touches[0];
 		if (touch.drawing) {
-			e.preventDefault();
+			// Not when the browser is already scrolling (e.g. a hold that started drawing late):
+			// that event cannot be cancelled, and trying it logs an error.
+			if (e.cancelable) e.preventDefault();
 			const p = toCell(t.clientX, t.clientY);
 			dragTo(p.x, p.y);
 		} else if (Math.hypot(t.clientX - touch.x, t.clientY - touch.y) > 3) {
