@@ -1,14 +1,29 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GAME_LOGIC } from '../games/logic';
 
-/** Messages the fake worker received. */
-const posted: unknown[] = [];
+/** Messages the fake workers received, and how many workers were stopped. */
+const posted: { job: number; game: string; variant: number; seed: number }[] = [];
+let terminated = 0;
 
 vi.mock('./generator.worker?worker', () => ({
 	default: class {
 		onmessage: ((e: MessageEvent) => void) | null = null;
+		onerror: ((e: ErrorEvent) => void) | null = null;
+		/** Busy with a job that never ends, like a real worker running one job at a time. */
+		stuck = false;
+		terminate() {
+			terminated++;
+		}
 		postMessage(msg: { job: number; game: string; variant: number; seed: number }) {
 			posted.push(msg);
+			// "hang" never answers (nor do later jobs); "crash" takes the worker down.
+			if (msg.game === 'hang') this.stuck = true;
+			if (this.stuck) return;
+			if (msg.game === 'crash') {
+				const error = { message: 'Boom', preventDefault() {} } as unknown as ErrorEvent;
+				setTimeout(() => this.onerror?.(error));
+				return;
+			}
 			const logic = GAME_LOGIC[msg.game];
 			// Answer asynchronously like a real worker; an unknown game fails.
 			setTimeout(() => {
@@ -27,8 +42,10 @@ const expected = (seed: number) =>
 	GAME_LOGIC.pinwheel.generate(GAME_LOGIC.pinwheel.variants[0], seed);
 
 afterEach(() => {
+	vi.useRealTimers();
 	vi.unstubAllGlobals();
 	posted.length = 0;
+	terminated = 0;
 });
 
 describe('generate', () => {
@@ -61,5 +78,53 @@ describe('generate', () => {
 		// The oldest entry fell out of the cache of eight.
 		await generate('pinwheel', 0, 1);
 		expect(posted).toHaveLength(12);
+	});
+
+	it('fails every waiting job when the worker crashes, and starts a new worker next time', async () => {
+		vi.resetModules();
+		vi.stubGlobal('Worker', class {});
+		const { generate } = await import('./generate');
+		const crash = generate('crash', 0, 1);
+		const waiting = generate('pinwheel', 0, 13);
+		await expect(crash).rejects.toThrow('Boom');
+		await expect(waiting).rejects.toThrow('Boom');
+		expect(terminated).toBe(1);
+		expect(await generate('pinwheel', 0, 13)).toEqual(expected(13));
+	});
+
+	it('gives up on a job that hangs and moves the other jobs to a new worker', async () => {
+		vi.resetModules();
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		vi.stubGlobal('Worker', class {});
+		const { generate, GENERATE_TIMEOUT_MS } = await import('./generate');
+		const hang = generate('hang', 0, 1);
+		hang.catch(() => undefined);
+		// Queued behind the hanging job, so the first worker never answers it.
+		posted.length = 0;
+		const queued = generate('pinwheel', 0, 14);
+		const sent = posted.splice(0);
+		expect(sent).toHaveLength(1);
+		await vi.advanceTimersByTimeAsync(GENERATE_TIMEOUT_MS);
+		await expect(hang).rejects.toThrow('too long');
+		expect(terminated).toBe(1);
+		// The new worker got the queued job again and answers it.
+		expect(posted).toEqual(sent);
+		await vi.runAllTimersAsync();
+		expect(await queued).toEqual(expected(14));
+	});
+
+	it('generates on the main thread when a worker cannot be started', async () => {
+		vi.resetModules();
+		vi.doMock('./generator.worker?worker', () => ({
+			default: class {
+				constructor() {
+					throw new Error('Blocked');
+				}
+			}
+		}));
+		vi.stubGlobal('Worker', class {});
+		const { generate } = await import('./generate');
+		expect(await generate('pinwheel', 0, 15)).toEqual(expected(15));
+		vi.doUnmock('./generator.worker?worker');
 	});
 });
