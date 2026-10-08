@@ -47,6 +47,8 @@
 	let menuOpen = $state(false);
 	let now = $state(Date.now());
 	let showZoom = $state(false);
+	/** The zoom button and its popover; a press anywhere else closes the popover. */
+	let zoomBox: HTMLDivElement | undefined = $state();
 	let moreOpen = $state(false);
 	/** Phones show messages as a toast over the board, so they never push the layout around. */
 	let toast = $state(false);
@@ -360,6 +362,8 @@
 		// The board saw the key first (capture phase) and used it, e.g. Shift+0, which is "=" on
 		// German keyboards, erases a Sudoku cell and must not also start a new puzzle.
 		if (e.defaultPrevented) return;
+		// Before the input check: the zoom slider has focus while its popover is open.
+		if (e.key === 'Escape' && showZoom) return void (showZoom = false);
 		const target = e.target as HTMLElement | null;
 		if (
 			target &&
@@ -434,6 +438,9 @@
 
 <svelte:window
 	{onkeydown}
+	onpointerdown={(e) => {
+		if (showZoom && !zoomBox?.contains(e.target as Node)) showZoom = false;
+	}}
 	onpointermove={onpanmove}
 	onpointerup={() => (pan = null)}
 	bind:innerHeight={viewportHeight}
@@ -621,7 +628,7 @@
 				? 'sticky top-0 z-10 bg-stone-50/95 py-2 backdrop-blur dark:bg-stone-950/95'
 				: ''}"
 		>
-			<div class="relative">
+			<div class="relative" bind:this={zoomBox}>
 				<button
 					class="btn"
 					onclick={() => (showZoom = !showZoom)}
