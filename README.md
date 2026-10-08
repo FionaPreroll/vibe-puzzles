@@ -7,13 +7,14 @@ A collection of logic puzzles that runs in the browser, in English and German. E
 - **Tetroid**: shade one tetromino in every region so that all shaded cells connect, no 2×2 block is shaded and equal tetrominoes never touch.
 - **Pinwheel**: divide the grid into regions that are point-symmetric around their centre dot.
 - **Sudoku**: fill the 9×9 grid so that every row, column and 3×3 box holds the digits 1 to 9 once, with notes and three difficulty levels.
+- **Calcudoku**, a mode of Sudoku: 5×5, 7×7 or 9×9 without boxes; every row and column holds each digit once, and the digits of each cage give its target with its operation (+, −, ×, ÷).
 
 Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4.
 
 ## Features
 
 - Deterministic generators: a puzzle ID (shown under the board) always produces the same puzzle on every device.
-- Normal and hard difficulty in several sizes, plus daily, weekly and monthly specials.
+- Normal and hard puzzles in several sizes (Sudoku and Calcudoku also easy), plus daily, weekly and monthly specials.
 - Undo and redo, checkpoints, timers, error highlighting, zoom, keyboard and touch controls, print and share.
 - An interactive tutorial puzzle on the first visit of each game.
 - English and German, picked from the browser language and switchable in the header.
