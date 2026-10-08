@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
+	import { latestUnfinished } from '#lib/client/resume.ts';
 	import type { SavedGame } from '#lib/client/session.svelte.ts';
 	import { currentPeriodStreak, getStats } from '#lib/client/stats.ts';
-	import { keys, load } from '#lib/client/storage.ts';
+	import { load } from '#lib/client/storage.ts';
 	import { periodKey } from '#lib/core/variants.ts';
 	import { GAMES } from '#lib/games/index.ts';
 	import { t, variantLabel } from '#lib/i18n/index.svelte.ts';
@@ -19,14 +20,9 @@
 	let status = $state<Record<string, GameStatus>>({});
 
 	onMount(() => {
-		// The most recently played unsolved game.
-		for (const key of keys('save:')) {
-			const save = load<SavedGame | null>(key, null);
-			const game = GAMES.find((g) => g.id === key.split(':')[1]);
-			if (!save || save.solved || !game) continue;
-			if (!game.variants.some((v) => v.key === save.variant)) continue;
-			if (!resume || save.updatedAt > resume.save.updatedAt) resume = { game, save };
-		}
+		const latest = latestUnfinished();
+		const game = latest && GAMES.find((g) => g.id === latest.gameId);
+		if (game) resume = { game, save: latest!.save };
 		for (const game of GAMES) {
 			const daily = game.variants.find((v) => v.special === 'daily');
 			const stats = daily ? getStats(game.id, daily.key) : null;
