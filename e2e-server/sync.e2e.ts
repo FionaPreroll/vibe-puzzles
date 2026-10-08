@@ -80,7 +80,7 @@ test('a game continues on a second device linked with the sync code', async ({ b
 
 	// Laptop: the same game opens there.
 	await laptop.goto('/tetroid?v=6n');
-	await expect(laptop.getByText('Continued your game from another device.')).toBeVisible({
+	await expect(laptop.getByRole('status')).toHaveText('Continued your game from another device.', {
 		timeout: 15_000
 	});
 	expect(await savedGame(laptop)).toMatchObject({

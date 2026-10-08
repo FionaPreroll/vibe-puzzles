@@ -43,11 +43,29 @@ async function more(page: Page) {
 	if (await button.isVisible()) await button.click();
 }
 
+/**
+ * Agrees to the app's question, if it asks (before an unfinished game is lost). `always`: the
+ * action asks every time.
+ */
+async function agree(page: Page, always = false) {
+	const dialog = page.getByRole('alertdialog');
+	try {
+		await dialog.waitFor({ timeout: always ? 5000 : 500 });
+	} catch (e) {
+		if (always) throw e;
+		return;
+	}
+	// The buttons: Close (✕), Cancel and the action.
+	await dialog.getByRole('button').last().click();
+	await expect(dialog).toBeHidden();
+}
+
 /** Opens the game's solved puzzle by its ID and solves it, which plays the celebration. */
 async function solve(page: Page, game: Game) {
 	const p = SOLVED[game];
 	await page.getByLabel('Open puzzle by ID').fill(p.id);
 	await page.getByRole('button', { name: 'Open', exact: true }).click();
+	await agree(page);
 	await expect
 		.poll(async () =>
 			(await page.locator('.font-mono.select-all').textContent())?.replace(/\D/g, '')
@@ -65,9 +83,9 @@ async function solve(page: Page, game: Game) {
 					...[...p.v].flatMap((c, k) => (c === '1' ? [[k % 8, Math.floor(k / 8) + 0.5]] : []))
 				];
 	// A puzzle opened again keeps its progress; start over so that every click toggles on.
-	// (The session accepts the confirmation.)
 	await more(page);
 	await page.getByRole('button', { name: 'Start over' }).click();
+	await agree(page, true);
 	for (const [x, y] of clicks) await page.mouse.click(grid.x + x * cell, grid.y + y * cell);
 	await expect(page.locator('.solved-glow')).toHaveCount(1);
 	// Let the celebration finish.
@@ -97,7 +115,11 @@ async function session(page: Page, name: string, touch: boolean) {
 			errors.push(m.text());
 		}
 	});
-	page.on('dialog', (d) => d.accept().catch(() => {}));
+	// The app asks in its own dialog, never with the browser's.
+	page.on('dialog', (d) => {
+		errors.push(`browser dialog: ${d.message()}`);
+		d.dismiss().catch(() => {});
+	});
 	await prepare(page);
 	await trackResources(page);
 	const cdp = await page.context().newCDPSession(page);
@@ -135,6 +157,7 @@ async function session(page: Page, name: string, touch: boolean) {
 		);
 		const before = await puzzleId();
 		await page.getByRole('button', { name: 'New puzzle' }).click();
+		await agree(page);
 		await expect(page.locator('.font-mono.select-all')).not.toHaveText(before ?? '', {
 			timeout: 30_000
 		});
