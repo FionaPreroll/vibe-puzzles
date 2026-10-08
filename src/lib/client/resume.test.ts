@@ -38,6 +38,7 @@ describe('the game to continue', () => {
 		save('save:pinwheel:5n', game('5n', { updatedAt: 5 }));
 		save('save:tetroid:6n', game('6n', { updatedAt: 9, solved: true }));
 		save('save:pinwheel:7n', game('7n', { updatedAt: 7 }));
+		save('save:pinwheel:5h', game('5h', { updatedAt: 2 }));
 		expect(latestUnfinished(NOW)).toMatchObject({ gameId: 'pinwheel', save: { variant: '7n' } });
 	});
 
