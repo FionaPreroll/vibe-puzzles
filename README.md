@@ -18,7 +18,7 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4.
 - Undo and redo, checkpoints, timers, error highlighting, zoom, keyboard and touch controls, print and share.
 - An interactive tutorial puzzle on the first visit of each game.
 - English and German, picked from the browser language and switchable in the header.
-- Installable as an app (PWA) and playable offline after the first visit.
+- Installable as an app (PWA) and playable offline after the first visit. Files of the puzzle collection are cached when a puzzle type first needs them and kept across app updates; offline, a type without a cached file gets puzzles generated on the device.
 - A growing collection of pre-generated puzzles (see below); players choose between the collection, puzzles generated on their device, or both.
 - Progress, settings and statistics are saved in the browser.
 - Optional server (Cloudflare Workers with D1): anonymous players, game sync across devices with a sync code, and leaderboards.
