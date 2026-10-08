@@ -23,7 +23,7 @@
 	import { decodePuzzleId } from '../core/variants';
 	import { CELEBRATION_COLOURS } from '../core/grid';
 	import type { GameModule, TouchMode } from '../core/types';
-	import { t, tList, toolLabel, variantLabel } from '../i18n/index.svelte';
+	import { t, tList, toolHint, toolLabel, variantLabel } from '../i18n/index.svelte';
 	import HoldButton from './HoldButton.svelte';
 	import SettingsDialog from './SettingsDialog.svelte';
 	import VariantPicker from './VariantPicker.svelte';
@@ -448,6 +448,7 @@
 {#snippet toolButtons(compact: boolean)}
 	{#each game.tools as tl (tl.id)}
 		{@const name = toolLabel(game.id, tl)}
+		{@const hint = toolHint(game.id, tl.id)}
 		{@const swatch =
 			game.toolOptions?.tool === tl.id
 				? game.toolOptions.values.find((o) => o.value === toolOption)?.color
@@ -457,7 +458,7 @@
 				? `flex min-w-14 flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-xs ${tool === tl.id ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100' : 'text-stone-600 dark:text-stone-300'}`
 				: `btn ${tool === tl.id ? 'btn-active' : ''}`}
 			aria-pressed={tool === tl.id}
-			title="{name} ({tl.key})"
+			title="{name} ({tl.key}){hint ? `: ${hint}` : ''}"
 			onclick={() => {
 				if (game.toolOptions?.tool === tl.id && tool === tl.id) showSwatches = !showSwatches;
 				else if (game.toolOptions?.tool === tl.id && compact) showSwatches = true;

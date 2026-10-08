@@ -82,6 +82,12 @@ export function toolLabel(gameId: string, tool: { id: string; label: string }): 
 	return has(`tool.${tool.id}`) ? t(`tool.${tool.id}`) : tool.label;
 }
 
+/** What a tool does, for its tooltip; empty when the game has no hint for it. */
+export function toolHint(gameId: string, toolId: string): string {
+	const key = `games.${gameId}.toolHint.${toolId}`;
+	return typeof lookup(en, key) === 'string' ? t(key) : '';
+}
+
 export function settingLabel(setting: { key: string; label: string }): string {
 	return has(`setting.${setting.key}`) ? t(`setting.${setting.key}`) : setting.label;
 }

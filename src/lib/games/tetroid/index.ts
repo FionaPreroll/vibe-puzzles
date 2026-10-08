@@ -10,7 +10,7 @@ export const tetroid: GameModule<TetroidPuzzle, TetroidState> = {
 	name: 'Tetroid',
 	icon: '▙',
 	tools: [
-		{ id: 'rotate', label: 'Rotate', icon: '⟳', key: '1' },
+		{ id: 'rotate', label: 'Cycle', icon: '⇄', key: '1' },
 		{ id: 'black', label: 'Black', icon: '■', key: '2' },
 		{ id: 'cross', label: 'Cross', icon: '✕', key: '3' },
 		{ id: 'blank', label: 'Blank', icon: '□', key: '4' }
