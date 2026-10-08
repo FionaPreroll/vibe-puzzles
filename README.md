@@ -71,9 +71,11 @@ migrations/           D1 schema
 
 ## Branches and pull requests
 
-- `main` is the stable branch and is deployed.
-- `dev` is the integration branch for testing.
-- Work happens on `feature/feature_name` branches with pull requests against `dev`. CI runs lint, type checks, unit tests and browser tests on every push and pull request.
+- `main` is the stable branch and is deployed. Nobody pushes to it directly.
+- `dev` is optional, for testing.
+- Every feature or fix gets its own branch off `origin/main` (`feature/<name_in_snake_case>`, or `fix/<name>`) and one pull request against `main`. Keep each pull request to one feature or fix.
+- A change that builds on an open pull request (or touches the same lines) branches off that pull request's branch and uses it as its base; the description names the pull request it builds on. Once the base is merged, the pull request is retargeted to `main`.
+- CI runs lint, type checks, unit tests and browser tests on every push and pull request, whatever its base.
 - The `Soak test` workflow plays a long session every night (or by hand) and checks that nothing leaks: memory, DOM nodes (also detached ones), listeners, timers, animation frames, observers, object URLs, workers and storage. A failed night opens an issue; the run's artifacts hold the measurements of every round.
 
 ## Deployment
