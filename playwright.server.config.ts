@@ -6,7 +6,7 @@ export default defineConfig({
 	testMatch: '**/*.e2e.ts',
 	workers: 1,
 	webServer: {
-		command: 'npm run cf:dev -- --port 8788',
+		command: 'pnpm cf:dev --port 8788',
 		port: 8788,
 		timeout: 180_000,
 		env: { WRANGLER_SEND_METRICS: 'false' }

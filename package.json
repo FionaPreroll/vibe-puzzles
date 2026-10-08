@@ -3,6 +3,7 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
+	"packageManager": "pnpm@12.10.1",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
@@ -16,8 +17,8 @@
 		"test": "vitest --run",
 		"test:coverage": "vitest --run --coverage",
 		"test:e2e": "playwright test",
-		"cf:dev": "npm run build && wrangler d1 migrations apply DB --local && wrangler dev",
-		"cf:deploy": "npm run build && wrangler d1 migrations apply DB --remote && wrangler deploy",
+		"cf:dev": "pnpm build && wrangler d1 migrations apply DB --local && wrangler dev",
+		"cf:deploy": "pnpm build && wrangler d1 migrations apply DB --remote && wrangler deploy",
 		"bank:grow": "tsx scripts/grow-puzzle-bank.ts",
 		"test:server": "playwright test -c playwright.server.config.ts",
 		"test:soak": "playwright test -c playwright.load.config.ts soak",

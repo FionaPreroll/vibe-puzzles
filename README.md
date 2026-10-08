@@ -26,21 +26,23 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4.
 
 ## Development
 
-Requires Node 24 (npm 11).
+Requires Node 24 and pnpm. The pnpm version is pinned in the `packageManager` field of `package.json`; any installed pnpm (e.g. from `npm install -g pnpm`) switches to it on its own.
 
 ```sh
-npm install
-npm run dev        # dev server without the API
-npm run cf:dev     # build and run with the API and a local D1 database
-npm run lint       # prettier and eslint
-npm run check      # svelte-check and worker type check
-npm test           # unit tests
-npm run test:e2e   # browser tests (run `npx playwright install chromium` once)
-npm run test:server # browser tests against the server: two devices syncing a game
-npm run test:soak  # long play sessions (desktop, phone): nothing leaks (SOAK_ACTIONS=600, SOAK_SEED)
-npm run test:perf  # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
-npm run bank:grow  # add puzzles to the collection (--per-variant N --max-minutes M)
+pnpm install
+pnpm dev            # dev server without the API
+pnpm cf:dev         # build and run with the API and a local D1 database
+pnpm lint           # prettier and eslint
+pnpm check          # svelte-check and worker type check
+pnpm test           # unit tests
+pnpm test:e2e       # browser tests (run `pnpm exec playwright install chromium` once)
+pnpm test:server    # browser tests against the server: two devices syncing a game
+pnpm test:soak      # long play sessions (desktop, phone): nothing leaks (SOAK_ACTIONS=600, SOAK_SEED)
+pnpm test:perf      # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
+pnpm bank:grow      # add puzzles to the collection (--per-variant N --max-minutes M)
 ```
+
+pnpm settings live in `pnpm-workspace.yaml`. pnpm runs the install scripts of dependencies only when they are listed under `allowBuilds` there, and fails the install for any other dependency that has one; decide for each new one whether it needs its script.
 
 ## Project layout
 
@@ -70,7 +72,7 @@ migrations/           D1 schema
 
 ## Puzzle collection
 
-`static/puzzles/<game>/<type>/` holds pre-generated puzzles with their IDs. A regular type is split into chunks of 100 puzzles (`0000.json`, `0001.json`, …) in the order they were added, with an `index.json` listing the IDs of each chunk; new puzzles fill the last chunk, so full chunks never change, and opening a puzzle loads only the index and one chunk. Special types keep one file per month (daily) or year (weekly, monthly), e.g. `daily/2026-10.json`. `scripts/collection.ts` reads and writes this layout. The `Grow puzzle collection` workflow runs weekly (or by hand, with the number of new puzzles per type and a time limit) and proposes the new puzzles in a pull request against `main` from the branch `feature/grow_puzzle_collection`; while that pull request is open, later runs add to it, and it merges itself once CI passes (auto-merge). It first stores the special puzzles of the coming periods, then adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution before it is committed, so the collection keeps growing. The unit tests check every stored puzzle again: on `main` all of them, in a pull request only the collection files it changes, unless it changes the game logic (`src/lib/games`, `src/lib/core`); locally, `BANK_TEST_SINCE=origin/main npm test` does the same. The workflow needs **Allow GitHub Actions to create and approve pull requests** (repository settings, Actions, General). Pull requests opened with the default token start no other workflows, so CI does not run on them; a fine-grained token with contents and pull requests write access in the repository secret `BANK_PR_TOKEN` fixes that. Auto-merge needs **Allow auto-merge** (repository settings, General) and a branch protection rule on `main` whose required status checks it waits for.
+`static/puzzles/<game>/<type>/` holds pre-generated puzzles with their IDs. A regular type is split into chunks of 100 puzzles (`0000.json`, `0001.json`, …) in the order they were added, with an `index.json` listing the IDs of each chunk; new puzzles fill the last chunk, so full chunks never change, and opening a puzzle loads only the index and one chunk. Special types keep one file per month (daily) or year (weekly, monthly), e.g. `daily/2026-10.json`. `scripts/collection.ts` reads and writes this layout. The `Grow puzzle collection` workflow runs weekly (or by hand, with the number of new puzzles per type and a time limit) and proposes the new puzzles in a pull request against `main` from the branch `feature/grow_puzzle_collection`; while that pull request is open, later runs add to it, and it merges itself once CI passes (auto-merge). It first stores the special puzzles of the coming periods, then adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution before it is committed, so the collection keeps growing. The unit tests check every stored puzzle again: on `main` all of them, in a pull request only the collection files it changes, unless it changes the game logic (`src/lib/games`, `src/lib/core`); locally, `BANK_TEST_SINCE=origin/main pnpm test` does the same. The workflow needs **Allow GitHub Actions to create and approve pull requests** (repository settings, Actions, General). Pull requests opened with the default token start no other workflows, so CI does not run on them; a fine-grained token with contents and pull requests write access in the repository secret `BANK_PR_TOKEN` fixes that. Auto-merge needs **Allow auto-merge** (repository settings, General) and a branch protection rule on `main` whose required status checks it waits for.
 
 In the settings, players choose where new puzzles come from: the collection, their device, or both at random (the default). The collection also saves generating time when a puzzle is opened by an ID it contains.
 
@@ -98,7 +100,7 @@ Without a server the app keeps everything in the browser; the player page and th
 
 One-time setup:
 
-1. Create the database: `npx wrangler d1 create vibe-puzzles`.
+1. Create the database: `pnpm exec wrangler d1 create vibe-puzzles`.
 2. Add the repository secrets `CLOUDFLARE_API_TOKEN` (with Workers and D1 edit permissions), `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_D1_DATABASE_ID` (the ID printed in step 1).
 3. Set the repository variable `CLOUDFLARE_DEPLOY` to `true` to deploy on every push to `main`, or run the `Deploy to Cloudflare Workers` workflow by hand.
 
@@ -116,7 +118,7 @@ Because the collection is public, a determined player can look a puzzle up in it
 
 The server deletes old tickets once a day (a cron trigger in `wrangler.jsonc`): unsolved ones 45 days after they were issued, solved ones 7 days after the solve. A game whose ticket is gone can still be solved, but is not ranked.
 
-To deploy from a local machine instead, put the database ID into `wrangler.jsonc` and run `npm run cf:deploy`.
+To deploy from a local machine instead, put the database ID into `wrangler.jsonc` and run `pnpm cf:deploy`.
 
 ### API
 
