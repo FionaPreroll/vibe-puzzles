@@ -34,7 +34,7 @@ npm run check      # svelte-check and worker type check
 npm test           # unit tests
 npm run test:e2e   # browser tests (run `npx playwright install chromium` once)
 npm run test:server # browser tests against the server: two devices syncing a game
-npm run test:soak  # long play session: no errors, no growing memory (SOAK_ACTIONS=600)
+npm run test:soak  # long play sessions (desktop, phone): nothing leaks (SOAK_ACTIONS=600, SOAK_SEED)
 npm run test:perf  # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
 npm run bank:grow  # add puzzles to the collection (--per-variant N --max-minutes M)
 ```
@@ -73,6 +73,7 @@ migrations/           D1 schema
 - `main` is the stable branch and is deployed.
 - `dev` is the integration branch for testing.
 - Work happens on `feature/feature_name` branches with pull requests against `dev`. CI runs lint, type checks, unit tests and browser tests on every push and pull request.
+- The `Soak test` workflow plays a long session every night (or by hand) and checks that nothing leaks: memory, DOM nodes (also detached ones), listeners, timers, animation frames, observers, object URLs, workers and storage. A failed night opens an issue; the run's artifacts hold the measurements of every round.
 
 ## Deployment
 

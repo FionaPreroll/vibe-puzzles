@@ -37,6 +37,12 @@ const GAMES = ['tetroid', 'pinwheel'] as const;
 
 type Game = (typeof GAMES)[number];
 
+/** Rare actions sit in a "More actions" menu on narrow screens and in plain sight on wide ones. */
+async function more(page: Page) {
+	const button = page.getByRole('button', { name: 'More actions' });
+	if (await button.isVisible()) await button.click();
+}
+
 /** Opens the game's solved puzzle by its ID and solves it, which plays the celebration. */
 async function solve(page: Page, game: Game) {
 	const p = SOLVED[game];
@@ -60,7 +66,7 @@ async function solve(page: Page, game: Game) {
 				];
 	// A puzzle opened again keeps its progress; start over so that every click toggles on.
 	// (The session accepts the confirmation.)
-	await page.getByRole('button', { name: 'More actions' }).click();
+	await more(page);
 	await page.getByRole('button', { name: 'Start over' }).click();
 	for (const [x, y] of clicks) await page.mouse.click(grid.x + x * cell, grid.y + y * cell);
 	await expect(page.locator('.solved-glow')).toHaveCount(1);
@@ -71,11 +77,14 @@ async function solve(page: Page, game: Game) {
 /** Waits until no generator job and no animation frame is pending, then measures. */
 async function settle(page: Page, cdp: CDPSession) {
 	await expect
-		.poll(async () => {
-			const r = await resources(page, cdp);
-			return r.jobs === 0 && r.frames === 0;
-		})
-		.toBe(true);
+		.poll(
+			async () => {
+				const { jobs, frames } = await resources(page, cdp);
+				return { jobs, frames };
+			},
+			{ timeout: 15_000 }
+		)
+		.toEqual({ jobs: 0, frames: 0 });
 	return resources(page, cdp);
 }
 
@@ -150,7 +159,7 @@ async function session(page: Page, name: string, touch: boolean) {
 			// Sizes only: a special stays the same puzzle on "New puzzle".
 			const types = page
 				.getByRole('navigation', { name: 'Puzzle type' })
-				.getByRole('button', { name: /^(Normal|Hard)$/ });
+				.getByRole('button', { name: /^\d+×\d+ (Normal|Hard)$/ });
 			await types.nth(Math.floor(rnd() * (await types.count()))).click();
 			if (touch && (await page.getByRole('button', { name: 'Close menu' }).last().isVisible())) {
 				await menu(false);
@@ -177,7 +186,7 @@ async function session(page: Page, name: string, touch: boolean) {
 		},
 		65: async () => {
 			// The share panel renders a screenshot of the board.
-			await page.getByRole('button', { name: 'More actions' }).click();
+			await more(page);
 			await page.getByRole('button', { name: 'Share', exact: true }).click();
 			await page.getByRole('button', { name: 'Close share panel' }).click();
 		},
