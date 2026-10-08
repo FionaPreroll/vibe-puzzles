@@ -5,6 +5,7 @@ import {
 	analyze,
 	emptyPinwheelState,
 	hIndex,
+	innerDots,
 	isBlocked,
 	isSolvedState,
 	LINE,
@@ -35,6 +36,16 @@ const owner = SOLUTION.split('').map((ch) => ch.charCodeAt(0) - 65);
 describe('rules', () => {
 	it('accepts the solution lines', () => {
 		expect(isSolvedState(example, linesFromAssignment(example, owner))).toBe(true);
+	});
+
+	it('finds the dots inside galaxies that no line touches', () => {
+		const solved = linesFromAssignment(example, owner);
+		// Dot (row 2, col 1) and dot (row 4, col 2) lie inside galaxy E.
+		expect([...innerDots(example, solved, analyze(example, solved))].sort()).toEqual([13, 26]);
+		// A stray line ending at a dot keeps it.
+		const stray = { ...solved, h: solved.h.slice() };
+		stray.h[hIndex(example, 2, 0)] = LINE;
+		expect([...innerDots(example, stray, analyze(example, stray))]).toEqual([26]);
 	});
 
 	it('shows no errors on a fresh board', () => {
