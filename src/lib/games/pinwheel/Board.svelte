@@ -1,16 +1,18 @@
 <script lang="ts" module>
+	import { colours } from '../../core/palette';
+
 	/** Note colours 1–9 (spec 10.2). Index 0 = none. */
 	export const NOTE_COLOURS = [
 		'',
-		'#cdbaf2',
-		'#f6b4b4',
-		'#f7e48d',
-		'#bce6ad',
-		'#acd6f6',
-		'#f5b9da',
-		'#d4d4d4',
-		'#b4ebda',
-		'#f9d1a8'
+		colours.note1,
+		colours.note2,
+		colours.note3,
+		colours.note4,
+		colours.note5,
+		colours.note6,
+		colours.note7,
+		colours.note8,
+		colours.note9
 	];
 </script>
 
@@ -71,7 +73,7 @@
 	);
 	const width = $derived(w * cellSize + 2 * pad);
 	const height = $derived(h * cellSize + 2 * pad);
-	const errorColour = $derived(settings.blueErrors ? '#60a5fa' : '#ef4444');
+	const errorColour = $derived(settings.blueErrors ? colours.blueErrorCell : colours.errorCell);
 
 	let pending = $state<Pending | null>(null);
 	let cursor = $state<Dot | null>(null);
@@ -157,7 +159,7 @@
 
 	function cellFill(i: number): string {
 		if (helper && (helper.cell === i || helper.mirror === i)) {
-			return helper.mirror < 0 ? errorColour : '#fde68a';
+			return helper.mirror < 0 ? errorColour : colours.selection;
 		}
 		if (settings.highlightErrors && a.cellError[i]) return errorColour;
 		const auto = autoColours.get(a.region[i]);
@@ -601,20 +603,20 @@
 	}
 
 	function centreFill(k: number) {
-		if (blank) return '#ffffff';
-		if (helper?.k === k) return '#fde68a';
-		if (board.locks[k]) return '#9ca3af';
+		if (blank) return colours.surface;
+		if (helper?.k === k) return colours.selection;
+		if (board.locks[k]) return colours.faint;
 		const complete = a.complete[a.centreRegion[k]];
-		if (settings.blackHoles && complete) return '#111827';
+		if (settings.blackHoles && complete) return colours.ink;
 		if (settings.highlightErrors && a.centreError[k]) return errorColour;
-		return '#ffffff';
+		return colours.surface;
 	}
 
 	/** Win animation: every region in its own colour for a moment. */
 	const celebrationFill = $derived.by(() => {
 		if (!celebrate || blank) return null;
-		const colours = colourRegions(a.region, w, h, CELEBRATION_COLOURS.length);
-		return Array.from({ length: w * h }, (_, i) => CELEBRATION_COLOURS[colours[a.region[i]]]);
+		const slot = colourRegions(a.region, w, h, CELEBRATION_COLOURS.length);
+		return Array.from({ length: w * h }, (_, i) => CELEBRATION_COLOURS[slot[a.region[i]]]);
 	});
 </script>
 
@@ -649,7 +651,7 @@
 	oncontextmenu={(e) => e.preventDefault()}
 	{ontouchstart}
 >
-	<rect x={px(0)} y={py(0)} width={w * cellSize} height={h * cellSize} fill="#fffdf4" />
+	<rect x={px(0)} y={py(0)} width={w * cellSize} height={h * cellSize} fill={colours.paper} />
 
 	<!-- Cell fills -->
 	{#if !blank}
@@ -671,7 +673,7 @@
 
 	<!-- Faint grid -->
 	{#if settings.showGrid || blank}
-		<g stroke="#9ca3af" stroke-width="1" stroke-dasharray="2 3" opacity="0.6">
+		<g stroke={colours.faint} stroke-width="1" stroke-dasharray="2 3" opacity="0.6">
 			{#each { length: w - 1 } as _, j (j)}
 				<line x1={px(j + 1)} y1={py(0)} x2={px(j + 1)} y2={py(h)} />
 			{/each}
@@ -688,7 +690,7 @@
 				<path
 					data-line={key}
 					d={edgePath(e)}
-					stroke={frozen.has(key) ? '#9ca3af' : '#1f2937'}
+					stroke={frozen.has(key) ? colours.faint : colours.ink}
 					stroke-width={lineWidth}
 					stroke-linecap="round"
 				/>
@@ -697,7 +699,7 @@
 				{@const s = cellSize * 0.1}
 				<path
 					d="M{m.x - s} {m.y - s}l{2 * s} {2 * s}m0 {-2 * s}l{-2 * s} {2 * s}"
-					stroke="#dc2626"
+					stroke={colours.cross}
 					stroke-width="1.8"
 					stroke-linecap="round"
 				/>
@@ -711,12 +713,12 @@
 		width={w * cellSize}
 		height={h * cellSize}
 		fill="none"
-		stroke="#1f2937"
+		stroke={colours.ink}
 		stroke-width={lineWidth}
 	/>
 
 	<!-- Dots -->
-	<g fill="#374151">
+	<g fill={colours.dot}>
 		{#each { length: (h + 1) * (w + 1) } as _, k (k)}
 			{#if !hiddenDots.has(k)}
 				<circle
@@ -729,7 +731,7 @@
 	</g>
 
 	{#if !blank && settings.highlightLastChange}
-		<g fill="none" stroke="#2563eb" stroke-width="1.5">
+		<g fill="none" stroke={colours.recent} stroke-width="1.5">
 			{#each [...lastChange] as key (key)}
 				{#if key.startsWith('c:')}
 					{@const i = Number(key.slice(2))}
@@ -762,8 +764,8 @@
 			r={cellSize * 0.2}
 			fill={centreFill(k)}
 			stroke={!blank && settings.highlightLastChange && lastChange.has(`g:${k}`)
-				? '#2563eb'
-				: '#1f2937'}
+				? colours.recent
+				: colours.ink}
 			stroke-width="2"
 		/>
 	{/each}
@@ -774,14 +776,14 @@
 			cy={py(cursor.i)}
 			r={cellSize * 0.18}
 			fill="none"
-			stroke="#f59e0b"
+			stroke={colours.cursor}
 			stroke-width="3"
 		/>
 	{/if}
 
 	{#if settings.showCoordinates && !blank}
 		<g
-			fill="#6b7280"
+			fill={colours.label}
 			font-size={Math.min(12, pad * 0.75)}
 			text-anchor="middle"
 			dominant-baseline="central"

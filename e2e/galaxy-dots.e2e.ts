@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { colours as palette } from '../src/lib/core/palette';
 
 // Pinwheel 7×7 Normal #1027244002 from the bundled bank and its solution lines, as 0/1 per
 // horizontal edge (row-major, 8 rows of 7) and vertical edge (7 rows of 8).
@@ -15,7 +16,7 @@ test('solving hides the dots inside the galaxies', async ({ page }) => {
 	const board = page.locator('.overflow-x-auto svg[role="grid"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
-	const dots = board.locator('g[fill="#374151"] circle');
+	const dots = board.locator(`g[fill="${palette.dot}"] circle`);
 	await expect(dots).toHaveCount(64);
 
 	// The first rect is the 7×7 grid; a click on an edge draws its line.

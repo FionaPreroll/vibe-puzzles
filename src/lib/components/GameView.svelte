@@ -22,6 +22,7 @@
 	import { formatDuration } from '../core/time';
 	import { decodePuzzleId } from '../core/variants';
 	import { CELEBRATION_COLOURS } from '../core/grid';
+	import { lightColours } from '../core/palette';
 	import type { GameModule, TouchMode } from '../core/types';
 	import { t, tList, toolHint, toolLabel, variantLabel } from '../i18n/index.svelte';
 	import HoldButton from './HoldButton.svelte';
@@ -219,7 +220,7 @@
 		}
 	}
 
-	/** Render the board SVG into a PNG data URL. */
+	/** Render the board SVG into a PNG data URL, in the light colours whatever the theme. */
 	async function screenshot(): Promise<string | null> {
 		const svg = boardArea?.querySelector('svg');
 		if (!svg) return null;
@@ -228,7 +229,8 @@
 		const height = svg.height.baseVal.value;
 		const clone = svg.cloneNode(true) as SVGSVGElement;
 		clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-		const url = URL.createObjectURL(new Blob([clone.outerHTML], { type: 'image/svg+xml' }));
+		const markup = lightColours(clone.outerHTML);
+		const url = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
 		try {
 			const img = new Image();
 			await new Promise((resolve, reject) => {
@@ -951,9 +953,9 @@
 	</section>
 </div>
 
-<!-- Printed: the empty puzzle only -->
+<!-- Printed: the empty puzzle only, in the light colours -->
 {#if session.puzzle && session.state}
-	<div class="print-only">
+	<div class="print-only board-light">
 		<p class="mb-2 text-sm">
 			{game.name} · {label}{session.puzzleId ? ` · ${t('game.puzzleId')} ${session.puzzleId}` : ''}
 		</p>

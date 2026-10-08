@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { colours as palette } from '../src/lib/core/palette';
 
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
@@ -19,7 +20,7 @@ async function swipe(page: Page, a: Point, b: Point) {
 // swipe starts right on one of them, which it then redraws under the finger.
 for (const [game, variant, id, row, prep, mark] of [
 	['pinwheel', '5n', 612979536, 0.405, 1, 'path[data-line]'],
-	['tetroid', '6n', 496678832, 0.08, 2, 'path[stroke="#dc2626"]']
+	['tetroid', '6n', 496678832, 0.08, 2, `path[stroke="${palette.cross}"]`]
 ] as const) {
 	test(`a touch drag on ${game} that starts on a mark reaches the game state`, async ({ page }) => {
 		await page.addInitScript((g) => {

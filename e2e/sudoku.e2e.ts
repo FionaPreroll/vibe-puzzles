@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { colours as palette } from '../src/lib/core/palette';
 
 /** Click the centre of cell (r, c) of a size×size board. */
 async function clickCell(page: Page, size: number, r: number, c: number) {
@@ -92,11 +93,11 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 		await pad.getByRole('button', { name: String(d), exact: true }).click();
 		colours.push((await board.locator(`text[data-cell="${cell}"]`).getAttribute('fill'))!);
 	}
-	expect(colours.filter((c) => c === '#dc2626')).toHaveLength(8);
+	expect(colours.filter((c) => c === palette.error)).toHaveLength(8);
 
 	// Same digit: selecting a given highlights every cell with its digit.
 	await clickCell(page, 9, Math.floor(givenCells[0] / 9), givenCells[0] % 9);
-	await expect(board.locator('rect[fill="#bfdbfe"]').first()).toBeVisible();
+	await expect(board.locator(`rect[fill="${palette.sameDigit}"]`).first()).toBeVisible();
 });
 
 test('the Sudoku screenshot shows the whole board', async ({ page }) => {
@@ -138,11 +139,11 @@ test('Calcudoku shows cages with their results and checks rows and columns', asy
 	await page.keyboard.press('3');
 	await clickCell(page, 5, 0, 4);
 	await page.keyboard.press('3');
-	await expect(board.locator('text[data-cell="0"]')).toHaveAttribute('fill', '#dc2626');
-	await expect(board.locator('text[data-cell="4"]')).toHaveAttribute('fill', '#dc2626');
+	await expect(board.locator('text[data-cell="0"]')).toHaveAttribute('fill', palette.error);
+	await expect(board.locator('text[data-cell="4"]')).toHaveAttribute('fill', palette.error);
 	// Not in a different row and column: there are no boxes.
 	await page.keyboard.press('3');
 	await clickCell(page, 5, 1, 1);
 	await page.keyboard.press('3');
-	await expect(board.locator('text[data-cell="6"]')).toHaveAttribute('fill', '#1d4ed8');
+	await expect(board.locator('text[data-cell="6"]')).toHaveAttribute('fill', palette.entered);
 });
