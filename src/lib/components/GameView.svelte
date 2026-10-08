@@ -322,7 +322,11 @@
 			celebrate = true;
 			const timer = setTimeout(() => (celebrate = false), 1800);
 			wasSolved = solved;
-			return () => clearTimeout(timer);
+			// A new puzzle (or anything else ending the solved state) also ends the celebration.
+			return () => {
+				clearTimeout(timer);
+				celebrate = false;
+			};
 		}
 		wasSolved = solved;
 	});
