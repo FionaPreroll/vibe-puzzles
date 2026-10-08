@@ -373,7 +373,7 @@
 	{width}
 	{height}
 	viewBox="0 0 {width} {height}"
-	class="block touch-manipulation select-none [&_*]:pointer-events-none"
+	class="block touch-manipulation outline-none select-none [&_*]:pointer-events-none"
 	style:touch-action={touchMode === 'draw'
 		? 'none'
 		: touchMode === 'pan'

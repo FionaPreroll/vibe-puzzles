@@ -86,7 +86,8 @@
 	const fitCell = $derived.by(() => {
 		const p = session.puzzle as { width: number; height: number } | null;
 		if (!p || !areaWidth) return 36;
-		const margin = settings.values.showCoordinates ? 1.3 : 0.2;
+		// The boards' padding in cells: up to 0.2 per side (Pinwheel), more with coordinates.
+		const margin = settings.values.showCoordinates ? 1.3 : 0.4;
 		// Everything above and below the board, the page's bottom padding and, on phones, the
 		// fixed tool bar.
 		const phoneBar = !wide && !settings.values.hideControls ? 80 : 0;
@@ -798,12 +799,15 @@
 				>
 			{/snippet}
 			<div class="mt-3 flex flex-wrap gap-2">
-				<!-- Once solved, "New puzzle" takes over as the main action -->
-				<button
-					class="btn {session.solved ? '' : 'btn-primary'}"
-					onclick={() => session.submit()}
-					disabled={session.solved || session.loading}>{t('game.done')}</button
-				>
+				<!-- Once solved, "New puzzle" takes over as the main action and "Share success" takes
+				     the place of "Done", so the row keeps its size and the board does not move -->
+				{#if !session.solved}
+					<button
+						class="btn btn-primary"
+						onclick={() => session.submit()}
+						disabled={session.loading}>{t('game.done')}</button
+					>
+				{/if}
 				<button
 					class="btn {session.solved ? 'btn-primary next-up' : ''}"
 					onclick={newPuzzle}
