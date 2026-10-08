@@ -12,6 +12,7 @@ import {
 	fillMissingNotes,
 	fillNotes,
 	geometry,
+	hasBoxes,
 	isSolvedGrid,
 	mistakes,
 	placeDigit,
@@ -20,6 +21,7 @@ import {
 	toggleNote,
 	type SudokuPuzzle
 } from './rules';
+import { solveCalc } from './calc/solver';
 import { Level, ratePuzzle, solveSudoku } from './solver';
 
 const parse = (text: string) => [...text.replace(/\s/g, '')].map((ch) => (ch === '.' ? 0 : +ch));
@@ -308,5 +310,63 @@ describe('logic', () => {
 		expect(sudokuLogic.isValidState(easy, null)).toBe(false);
 		expect(sudokuLogic.isValidState(easy, { ...s, notes: s.notes.map(() => 512) })).toBe(false);
 		expect(sudokuLogic.isValidState(easy, { ...s, values: s.values.slice(1) })).toBe(false);
+	});
+
+	describe('Calcudoku mode', () => {
+		const v = SUDOKU_VARIANTS.find((x) => x.key === 'c5n')!;
+		const p = sudokuLogic.generate(v, 3);
+		const solution = solveCalc({ width: 5, height: 5, cages: p.cages! }, { limit: 1 }).solutions[0];
+
+		it('has cages and no givens', () => {
+			expect(v).toMatchObject({ mode: 'calc', width: 5, difficulty: 'normal' });
+			expect(p.givens.every((g) => g === 0)).toBe(true);
+			expect(p.cages!.length).toBeGreaterThan(5);
+			expect(hasBoxes(p)).toBe(false);
+			expect(hasBoxes(easy)).toBe(true);
+		});
+
+		it('validates puzzles against the variant', () => {
+			expect(sudokuLogic.isValidPuzzle(p, v)).toBe(true);
+			expect(sudokuLogic.isValidPuzzle(p, nine)).toBe(false);
+			expect(sudokuLogic.isValidPuzzle(easy, v)).toBe(false);
+			expect(sudokuLogic.isValidPuzzle({ ...p, givens: p.givens.map((_, i) => +!i) }, v)).toBe(
+				false
+			);
+			expect(sudokuLogic.isValidPuzzle({ ...p, cages: p.cages!.slice(1) }, v)).toBe(false);
+			expect(sudokuLogic.isValidPuzzle(p, { ...v, height: 7 })).toBe(false);
+		});
+
+		it('checks rows, columns and cages, not boxes', () => {
+			const s = emptySudokuState(p);
+			expect(sudokuLogic.isSolved(p, { ...s, values: solution })).toBe(true);
+			const answer = solution.join('');
+			expect(sudokuLogic.verifyAnswer(p, answer)).toBe(true);
+			// Another Latin square misses the cages.
+			const shifted = solution.map((d) => (d % 5) + 1);
+			expect(sudokuLogic.isSolved(p, { ...s, values: shifted })).toBe(false);
+			expect(sudokuLogic.verifyAnswer(p, shifted.join(''))).toBe(false);
+		});
+
+		it('fills and prunes notes by rows and columns only', () => {
+			const placed = placeDigit(p, emptySudokuState(p), 0, 3);
+			const filled = fillNotes(p, placed);
+			// Cell 6 shares neither row nor column with cell 0, so 3 stays possible (no boxes).
+			expect(digitsOf(filled.notes[6])).toEqual([1, 2, 3, 4, 5]);
+			expect(digitsOf(filled.notes[1])).toEqual([1, 2, 4, 5]);
+			expect(digitsOf(filled.notes[5])).toEqual([1, 2, 4, 5]);
+			expect(candidates(5, placed.values, 6, false)).toBe(31);
+			expect(conflicts(5, [1, 0, 0, 0, 0, 0, 1, ...new Array(18).fill(0)], false)[0]).toBe(false);
+			expect(conflicts(5, [1, 0, 0, 0, 0, 1, ...new Array(19).fill(0)], false)[0]).toBe(true);
+			expect(isSolvedGrid(5, solution, false)).toBe(true);
+		});
+
+		it('keeps notes for all digits of a 9×9 grid', () => {
+			const big = sudokuLogic.generate(
+				SUDOKU_VARIANTS.find((x) => x.key === 'c9e')!,
+				1
+			);
+			const s = fillNotes(big, emptySudokuState(big));
+			expect(sudokuLogic.decodeState(big, sudokuLogic.encodeState(s))).toEqual(s);
+		});
 	});
 });

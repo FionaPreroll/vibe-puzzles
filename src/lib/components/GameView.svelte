@@ -549,7 +549,10 @@
 				</div>
 				{#if !rulesHidden}
 					<ol class="mt-2 list-decimal space-y-1.5 pl-5 text-sm">
-						{#each tList(`games.${game.id}.rules`) as rule, i (i)}<li>{rule}</li>{/each}
+						{#each tList(variant.mode ? `games.${game.id}.modes.${variant.mode}.rules` : `games.${game.id}.rules`) as rule, i (i)}<li
+							>
+								{rule}
+							</li>{/each}
 					</ol>
 					{#each tList(`games.${game.id}.notes`) as note, i (i)}
 						<p class="mt-2 text-xs text-stone-500 dark:text-stone-400">{note}</p>

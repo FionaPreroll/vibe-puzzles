@@ -20,6 +20,9 @@ const BUDGET: Record<number, number> = {
 	20: 20000
 };
 
+/** Rule sets that take longer than the game's main one, as a factor on the size's budget. */
+const MODE_FACTOR: Record<string, number> = { calc: 4 };
+
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 
 for (const [id, logic] of Object.entries(GAME_LOGIC)) {
@@ -37,7 +40,9 @@ for (const [id, logic] of Object.entries(GAME_LOGIC)) {
 				console.log(
 					`${id} ${variant.key}: median ${Math.round(ms)} ms (${times.map(Math.round).join(', ')})`
 				);
-				expect(ms).toBeLessThan(BUDGET[variant.width] * SCALE);
+				expect(ms).toBeLessThan(
+					BUDGET[variant.width] * (MODE_FACTOR[variant.mode ?? ''] ?? 1) * SCALE
+				);
 			});
 		}
 	});

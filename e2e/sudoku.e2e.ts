@@ -117,3 +117,32 @@ test('the Sudoku screenshot shows the whole board', async ({ page }) => {
 	});
 	expect(size).toEqual([width, width]);
 });
+
+test('Calcudoku shows cages with their results and checks rows and columns', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
+	await page.goto('/sudoku?v=c5e');
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const labels = board.locator('g.cages text');
+	await expect(labels.first()).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByRole('button', { name: 'Calcudoku 5×5 Easy' })).toHaveAttribute(
+		'aria-current',
+		'true'
+	);
+	// Every cage shows its result, then its operation (none for a single cell).
+	for (const label of await labels.allTextContents()) expect(label).toMatch(/^\d+[+−×÷]?$/);
+	// No givens: the board starts empty.
+	await expect(board.locator('text[data-cell]')).toHaveCount(0);
+
+	// The same digit twice in a row is a mistake, wherever the cages are.
+	await clickCell(page, 5, 0, 0);
+	await page.keyboard.press('3');
+	await clickCell(page, 5, 0, 4);
+	await page.keyboard.press('3');
+	await expect(board.locator('text[data-cell="0"]')).toHaveAttribute('fill', '#dc2626');
+	await expect(board.locator('text[data-cell="4"]')).toHaveAttribute('fill', '#dc2626');
+	// Not in a different row and column: there are no boxes.
+	await page.keyboard.press('3');
+	await clickCell(page, 5, 1, 1);
+	await page.keyboard.press('3');
+	await expect(board.locator('text[data-cell="6"]')).toHaveAttribute('fill', '#1d4ed8');
+});

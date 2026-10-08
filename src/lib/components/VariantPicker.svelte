@@ -4,7 +4,10 @@
 	import { periodKey, type Variant } from '../core/variants';
 	import { t, variantLabel } from '../i18n/index.svelte';
 
-	/** Puzzle types as a size × difficulty table plus the specials with their status. */
+	/**
+	 * Puzzle types as a size × difficulty table (one per rule set, e.g. Calcudoku in Sudoku) plus
+	 * the specials with their status.
+	 */
 	let {
 		game,
 		current,
@@ -13,11 +16,17 @@
 
 	const regular = $derived(game.variants.filter((v) => !v.special));
 	const specials = $derived(game.variants.filter((v) => v.special));
-	const sizes = $derived([...new Set(regular.map((v) => `${v.width}×${v.height}`))]);
+	const modes = $derived([...new Set(regular.map((v) => v.mode ?? ''))]);
 	const difficulties = $derived([...new Set(regular.map((v) => v.difficulty))]);
+	const sizesOf = (mode: string) => [
+		...new Set(regular.filter((v) => (v.mode ?? '') === mode).map((v) => `${v.width}×${v.height}`))
+	];
 
-	function find(size: string, difficulty: string) {
-		return regular.find((v) => `${v.width}×${v.height}` === size && v.difficulty === difficulty);
+	function find(mode: string, size: string, difficulty: string) {
+		return regular.find(
+			(v) =>
+				(v.mode ?? '') === mode && `${v.width}×${v.height}` === size && v.difficulty === difficulty
+		);
 	}
 
 	function marker(v: Variant) {
@@ -32,30 +41,33 @@
 		'bg-indigo-50 font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300';
 </script>
 
-<table class="w-full table-fixed text-center">
-	<tbody>
-		{#each sizes as size (size)}
-			<tr>
-				<th class="py-0.5 text-left text-sm font-medium tabular-nums">{size}</th>
-				{#each difficulties as d (d)}
-					{@const v = find(size, d)}
-					<td class="p-0.5">
-						{#if v}
-							<button
-								class="{cell} {v.key === current ? active : ''}"
-								aria-label={variantLabel(v)}
-								aria-current={v.key === current ? 'true' : undefined}
-								onclick={() => onpick(v.key)}
-							>
-								{t(`difficulty.${d}`)}<span class="ml-1 text-amber-500">{marker(v)}</span>
-							</button>
-						{/if}
-					</td>
-				{/each}
-			</tr>
-		{/each}
-	</tbody>
-</table>
+{#each modes as mode (mode)}
+	{#if mode}<h3 class="section-title mt-3">{t(`mode.${mode}`)}</h3>{/if}
+	<table class="w-full table-fixed text-center">
+		<tbody>
+			{#each sizesOf(mode) as size (size)}
+				<tr>
+					<th class="py-0.5 text-left text-sm font-medium tabular-nums">{size}</th>
+					{#each difficulties as d (d)}
+						{@const v = find(mode, size, d)}
+						<td class="p-0.5">
+							{#if v}
+								<button
+									class="{cell} {v.key === current ? active : ''}"
+									aria-label={variantLabel(v)}
+									aria-current={v.key === current ? 'true' : undefined}
+									onclick={() => onpick(v.key)}
+								>
+									{t(`difficulty.${d}`)}<span class="ml-1 text-amber-500">{marker(v)}</span>
+								</button>
+							{/if}
+						</td>
+					{/each}
+				</tr>
+			{/each}
+		</tbody>
+	</table>
+{/each}
 
 {#if specials.length}
 	<h3 class="section-title mt-3">{t('game.specials')}</h3>

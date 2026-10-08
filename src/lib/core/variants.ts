@@ -11,6 +11,8 @@ export interface Variant {
 	height: number;
 	difficulty: Difficulty;
 	special?: SpecialKind;
+	/** A rule set other than the game's main one, e.g. 'calc' for Calcudoku in Sudoku. */
+	mode?: string;
 }
 
 const SEED_SPACE = 1 << 26;
