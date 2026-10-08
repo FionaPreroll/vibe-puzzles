@@ -62,6 +62,7 @@ describe('board palette', () => {
 		expect(lightColours(markup)).toBe('<rect fill="#fee2e2" stroke="#f3a5a5"/>');
 		expect(lightColours(`<g fill="${colours.note9}"/>`)).toBe('<g fill="#f9d1a8"/>');
 		expect(lightColours('fill="var(--other)"')).toBe('fill="var(--other)"');
+		expect(lightColours('fill="var(--board-unknown)"')).toBe('fill="var(--board-unknown)"');
 	});
 
 	it('measures contrast as WCAG does', () => {

@@ -82,6 +82,13 @@ describe('night mode from the system', () => {
 		expect(scheme.listeners.size).toBe(0);
 	});
 
+	it('starts from the system when the app loads', async () => {
+		stubScheme(true);
+		vi.resetModules();
+		const fresh = await import('./settings.svelte');
+		expect(fresh.theme.night).toBe(true);
+	});
+
 	it('does nothing without matchMedia (server rendering, tests)', () => {
 		setNight(false);
 		followSystemTheme()();
