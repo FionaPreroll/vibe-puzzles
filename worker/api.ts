@@ -22,7 +22,12 @@ export interface ApiOptions {
 	 * keeps every request within the CPU limits of Cloudflare Workers.
 	 */
 	bank?: BankLoader;
+	/** Limits on requests that create rows: registering by client address, puzzles by player. */
+	limits?: { register?: Limiter; puzzles?: Limiter };
 }
+
+/** Whether a request with this key may go ahead (false once the key used up its allowance). */
+export type Limiter = (key: string) => Promise<boolean>;
 
 /**
  * JSON API of the optional server. All game rules are verified with the same logic the client
@@ -115,9 +120,16 @@ async function pickFromBank(
 	return pool.length ? pool[Math.floor(secureRandom() * pool.length)] : null;
 }
 
+async function checkLimit(limiter: Limiter | undefined, key: string) {
+	if (limiter && !(await limiter(key))) {
+		throw new HttpError(429, 'Too many requests, please try again in a minute');
+	}
+}
+
 /** Hand out a puzzle to a player and remember it; the ID of regular puzzles stays secret. */
 async function issuePuzzle(req: Request, store: Store, options: ApiOptions) {
 	const player = await auth(req, store);
+	await checkLimit(options.limits?.puzzles, player.id);
 	const b = await body(req);
 	const game = String(b.game);
 	const logic = GAME_LOGIC[game];
@@ -354,6 +366,7 @@ export async function handleApi(
 
 		if (path === '/player') {
 			if (method === 'POST') {
+				await checkLimit(options.limits?.register, req.headers.get('cf-connecting-ip') ?? '');
 				const name = cleanName((await body(req)).name);
 				const id = crypto.randomUUID();
 				const token = newToken();

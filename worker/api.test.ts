@@ -49,6 +49,21 @@ describe('api', () => {
 		expect((await api('POST', '/player', { name: '' })).status).toBe(400);
 	});
 
+	it('limits registering by client address', async () => {
+		const keys: string[] = [];
+		const register = async (key: string) => (keys.push(key), keys.length <= 2);
+		const api = client({ limits: { register } });
+		expect((await api('POST', '/player', { name: 'A' })).status).toBe(201);
+		expect((await api('POST', '/player', { name: 'B' })).status).toBe(201);
+		const third = await api('POST', '/player', { name: 'C' });
+		expect(third).toMatchObject({
+			status: 429,
+			body: { error: expect.stringContaining('minute') }
+		});
+		// The test requests carry no Cloudflare client address.
+		expect(keys).toEqual(['', '', '']);
+	});
+
 	it('keeps the newest save', async () => {
 		const api = client();
 		const { token } = (await api('POST', '/player', { name: 'A' })).body as { token: string };
@@ -263,6 +278,22 @@ describe('api', () => {
 				api('POST', '/puzzles', { game: 'tetroid', variant }, token);
 			return { api, token, issue };
 		}
+
+		it('limits puzzles per player', async () => {
+			const used = new Map<string, number>();
+			const puzzles = async (key: string) => {
+				used.set(key, (used.get(key) ?? 0) + 1);
+				return used.get(key)! <= 1;
+			};
+			const api = client({ serverPuzzles: true, bank, limits: { puzzles } });
+			const token = (await api('POST', '/player', { name: 'A' })).body.token as string;
+			const other = (await api('POST', '/player', { name: 'B' })).body.token as string;
+			const issue = (t: string) => api('POST', '/puzzles', { game: 'tetroid', variant: '6n' }, t);
+			expect((await issue(token)).status).toBe(201);
+			expect((await issue(token)).status).toBe(429);
+			// Every player has an allowance of their own.
+			expect((await issue(other)).status).toBe(201);
+		});
 
 		it('hands out every puzzle of a type before repeating one', async () => {
 			const { issue } = await setup();
