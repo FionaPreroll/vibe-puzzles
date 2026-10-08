@@ -850,7 +850,7 @@
 				>
 			{/snippet}
 			<div class="mt-3 flex flex-wrap gap-2">
-				<!-- Once solved, "New puzzle" takes over as the main action and "Share my time" takes
+				<!-- Once solved, "New puzzle" takes over as the main action and "Share success" takes
 				     the place of "Done", so the row keeps its size and the board does not move -->
 				{#if !session.solved}
 					<button

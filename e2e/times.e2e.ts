@@ -9,7 +9,7 @@ test('a quick solve shows milliseconds only once it is done', async ({ page }) =
 	await page.addInitScript(() => {
 		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
 		localStorage.setItem('vp:puzzleSource', '"bank"');
-		// Catch what "Share my time" would hand to the messenger.
+		// Catch what "Share success" would hand to the messenger.
 		Object.defineProperty(navigator, 'share', {
 			value: async (data: ShareData) => {
 				(window as unknown as { shared: ShareData }).shared = data;
@@ -37,7 +37,7 @@ test('a quick solve shows milliseconds only once it is done', async ({ page }) =
 
 	await expect(timer).toHaveText(PRECISE);
 	await expect(page.getByRole('status').first()).toContainText(PRECISE);
-	await page.getByRole('button', { name: 'Share my time' }).click();
+	await page.getByRole('button', { name: 'Share success' }).click();
 	const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
 	expect(shared.text).toMatch(PRECISE);
 	expect(shared.text).toContain((await timer.textContent())!.trim());
