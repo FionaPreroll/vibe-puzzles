@@ -92,6 +92,17 @@ describe('stats', () => {
 		expect(getStats('tetroid', '8n').solved).toBe(0);
 	});
 
+	it('counts a puzzle solved again only once', () => {
+		recordSolve('tetroid', '6n', 1, 5000);
+		const again = recordSolve('tetroid', '6n', 1, 2000);
+		expect(again).toMatchObject({ solved: 1, streak: 1, bestMs: 5000, totalMs: 5000 });
+		expect(again.recent).toHaveLength(1);
+		// The same puzzle in another type is another solve; server puzzles have no ID yet.
+		expect(recordSolve('tetroid', '8n', 1, 1000).solved).toBe(1);
+		recordSolve('tetroid', '6n', 0, 1000);
+		expect(recordSolve('tetroid', '6n', 0, 1000).solved).toBe(3);
+	});
+
 	it('keeps the best streak after a break', () => {
 		recordSolve('pinwheel', '5n', 1, 1000);
 		recordSolve('pinwheel', '5n', 2, 1000);
@@ -111,6 +122,17 @@ describe('stats', () => {
 		expect(recent).toHaveLength(20);
 		expect(recent[0].puzzleId).toBe(25);
 		expect(recent.at(-1)!.puzzleId).toBe(6);
+	});
+
+	it('remembers the latest 2000 solved puzzle IDs', () => {
+		save('stats:tetroid:6n', {
+			solved: 2000,
+			solvedIds: Array.from({ length: 2000 }, (_, k) => k + 1)
+		});
+		const s = recordSolve('tetroid', '6n', 2001, 1000);
+		expect(s.solvedIds).toHaveLength(2000);
+		expect(s.solvedIds![0]).toBe(2);
+		expect(recordSolve('tetroid', '6n', 1, 1000).solved).toBe(2002);
 	});
 
 	it('finds the previous period', () => {
