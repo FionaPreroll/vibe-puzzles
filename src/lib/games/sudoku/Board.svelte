@@ -340,7 +340,7 @@
 		<!-- Box or cage borders -->
 		<path
 			d={boxLines}
-			stroke={colours.ink}
+			stroke={colours.line}
 			stroke-width="2.5"
 			stroke-linecap="square"
 			fill="none"
@@ -363,7 +363,7 @@
 			width={size * cellSize}
 			height={size * cellSize}
 			fill="none"
-			stroke={colours.ink}
+			stroke={colours.line}
 			stroke-width="3"
 		/>
 

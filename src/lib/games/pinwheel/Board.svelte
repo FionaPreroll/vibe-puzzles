@@ -690,7 +690,7 @@
 				<path
 					data-line={key}
 					d={edgePath(e)}
-					stroke={frozen.has(key) ? colours.faint : colours.ink}
+					stroke={frozen.has(key) ? colours.faint : colours.line}
 					stroke-width={lineWidth}
 					stroke-linecap="round"
 				/>
@@ -713,7 +713,7 @@
 		width={w * cellSize}
 		height={h * cellSize}
 		fill="none"
-		stroke={colours.ink}
+		stroke={colours.line}
 		stroke-width={lineWidth}
 	/>
 
@@ -765,7 +765,7 @@
 			fill={centreFill(k)}
 			stroke={!blank && settings.highlightLastChange && lastChange.has(`g:${k}`)
 				? colours.recent
-				: colours.ink}
+				: colours.line}
 			stroke-width="2"
 		/>
 	{/each}

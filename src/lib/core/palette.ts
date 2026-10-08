@@ -9,8 +9,10 @@ const LIGHT = {
 	surface: '#ffffff',
 	/** Pinwheel's paper behind the grid. */
 	paper: '#fffdf4',
-	/** Region and box borders, given digits, cage labels, Pinwheel lines and centres. */
+	/** Given digits, cage labels and Pinwheel's black holes. */
 	ink: '#111827',
+	/** Region and box borders, the frame, Pinwheel's lines and centres. */
+	line: '#111827',
 	/** Thin lines between cells. */
 	gridLine: '#4b5563',
 	/** Pinwheel's dotted grid, frozen lines and locked centres. */
@@ -75,9 +77,11 @@ const DARK: Palette = {
 	surface: '#1c1917',
 	paper: '#1c1917',
 	ink: '#e7e5e4',
-	gridLine: '#a8a29e',
+	// Lines dimmer than the digits: bright lines glare on a dark board at night.
+	line: '#b5afa9',
+	gridLine: '#8a847e',
 	faint: '#57534e',
-	dot: '#d6d3d1',
+	dot: '#b5afa9',
 	label: '#c4beb9',
 	entered: '#93c5fd',
 	selection: '#713f12',
@@ -91,16 +95,16 @@ const DARK: Palette = {
 	errorFill: '#4c0519',
 	blueError: '#dbeafe',
 	blueErrorFill: '#1e40af',
-	errorCell: '#b91c1c',
+	errorCell: '#a81b1b',
 	blueErrorCell: '#1d4ed8',
-	errorShade: '#dc2626',
-	blueErrorShade: '#2563eb',
-	shaded: '#78716c',
-	group: '#5b7a55',
-	tetrominoL: '#a35c5c',
-	tetrominoI: '#4f7fa0',
-	tetrominoT: '#7d62a6',
-	tetrominoS: '#5a8752',
+	errorShade: '#cb2222',
+	blueErrorShade: '#235fe2',
+	shaded: '#6e6763',
+	group: '#53704e',
+	tetrominoL: '#985656',
+	tetrominoI: '#436d8a',
+	tetrominoT: '#765c9d',
+	tetrominoS: '#4b7245',
 	note1: '#4c3a75',
 	note2: '#7a3535',
 	note3: '#6b5a14',
