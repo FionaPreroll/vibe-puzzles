@@ -13,6 +13,10 @@ export default defineConfig({
 	webServer: { command: 'npm run build && npm run preview', port: 4173 },
 	use: {
 		baseURL: 'http://localhost:4173',
+		// For the CI artifacts: what the page looked like when a long run failed.
+		screenshot: 'only-on-failure',
+		// A step that cannot happen fails instead of waiting for the whole test timeout.
+		actionTimeout: 30_000,
 		launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined }
 	}
 });

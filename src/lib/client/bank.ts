@@ -17,17 +17,24 @@ export function savePuzzleSource(source: PuzzleSource) {
 	save('puzzleSource', source);
 }
 
+/**
+ * The collection files read in this page, the most recently used last. Only a few stay in
+ * memory: the collection keeps growing, and a long session visits many puzzle types.
+ */
 const banks = new Map<string, Promise<PuzzleBank | null>>();
+const MAX_BANKS = 4;
 
 export function loadBank<P>(game: string, variant: string): Promise<PuzzleBank<P> | null> {
 	const key = `${game}:${variant}`;
 	let bank = banks.get(key);
-	if (!bank) {
+	if (bank) banks.delete(key);
+	else {
 		bank = fetch(asset(`/${bankPath(game, variant)}` as AssetPath))
 			.then((r) => (r.ok ? (r.json() as Promise<PuzzleBank>) : null))
 			.catch(() => null);
-		banks.set(key, bank);
 	}
+	banks.set(key, bank);
+	if (banks.size > MAX_BANKS) banks.delete(banks.keys().next().value!);
 	return bank as Promise<PuzzleBank<P> | null>;
 }
 

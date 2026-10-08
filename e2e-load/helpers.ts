@@ -1,4 +1,4 @@
-import type { CDPSession, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 /** Skip the tutorial and take puzzles from the bundled bank, as the regular e2e tests do. */
 export async function prepare(page: Page) {
@@ -10,18 +10,6 @@ export async function prepare(page: Page) {
 
 /** The game board on a game page (not the small boards in rules or dialogs). */
 export const board = (page: Page) => page.locator('.overflow-x-auto svg[role="grid"]');
-
-/** Heap after a full garbage collection, DOM nodes and event listeners of the page. */
-export async function metrics(cdp: CDPSession) {
-	await cdp.send('HeapProfiler.collectGarbage');
-	const { metrics } = await cdp.send('Performance.getMetrics');
-	const get = (name: string) => metrics.find((m) => m.name === name)?.value ?? 0;
-	return {
-		heapMB: Math.round((get('JSHeapUsedSize') / 2 ** 20) * 10) / 10,
-		nodes: get('Nodes'),
-		listeners: get('JSEventListeners')
-	};
-}
 
 /** A small seeded random generator, so a failing run can be repeated exactly. */
 export function random(seed: number) {
