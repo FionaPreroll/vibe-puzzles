@@ -107,6 +107,7 @@ const de: Dictionary = {
 		expired: 'Gelöst in {time}! Nicht gewertet: Der Server hebt dieses alte Rätsel nicht mehr auf.'
 	},
 	difficulty: {
+		easy: 'Leicht',
 		normal: 'Normal',
 		hard: 'Schwer'
 	},

@@ -105,6 +105,7 @@ const en = {
 		expired: 'Solved in {time}! Not ranked: the server no longer keeps this old puzzle.'
 	},
 	difficulty: {
+		easy: 'Easy',
 		normal: 'Normal',
 		hard: 'Hard'
 	},

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateSudoku } from './generator';
+import { EASY_GIVENS, generateSudoku } from './generator';
 import { SUDOKU_VARIANTS, sudokuLogic } from './logic';
 import {
 	bit,
@@ -164,6 +164,7 @@ describe('solver', () => {
 
 describe('generator', () => {
 	it.each([
+		['easy', 9],
 		['normal', 9],
 		['hard', 9],
 		['normal', 6],
@@ -178,10 +179,24 @@ describe('generator', () => {
 			// Givens are point-symmetric.
 			expect(puzzle.givens.every((g, i) => !g === !puzzle.givens[n - 1 - i])).toBe(true);
 			if (size === 9) {
-				expect(ratePuzzle(puzzle, Level.Singles).solved).toBe(difficulty === 'normal');
+				expect(ratePuzzle(puzzle, Level.Singles).solved).toBe(difficulty !== 'hard');
 				expect(ratePuzzle(puzzle).solved).toBe(true);
 			}
 		}
+	});
+
+	it('keeps more givens on easy than on normal', () => {
+		for (const seed of [1, 2, 3]) {
+			const easyCount = generateSudoku(9, 'easy', seed).puzzle.givens.filter(Boolean).length;
+			const normalCount = generateSudoku(9, 'normal', seed).puzzle.givens.filter(Boolean).length;
+			expect(easyCount).toBeGreaterThanOrEqual(EASY_GIVENS);
+			expect(easyCount).toBeLessThanOrEqual(EASY_GIVENS + 1);
+			expect(normalCount).toBeLessThan(EASY_GIVENS);
+		}
+		// Smaller grids keep a proportional share.
+		expect(
+			generateSudoku(6, 'easy', 1).puzzle.givens.filter(Boolean).length
+		).toBeGreaterThanOrEqual(16);
 	});
 
 	it('is deterministic per seed', () => {

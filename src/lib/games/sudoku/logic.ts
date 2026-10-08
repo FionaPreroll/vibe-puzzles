@@ -16,6 +16,7 @@ import {
 import { solveSudoku } from './solver';
 
 export const SUDOKU_VARIANTS: Variant[] = [
+	{ key: '9e', label: '9x9 Easy', width: 9, height: 9, difficulty: 'easy' },
 	{ key: '9n', label: '9x9 Normal', width: 9, height: 9, difficulty: 'normal' },
 	{ key: '9h', label: '9x9 Hard', width: 9, height: 9, difficulty: 'hard' },
 	{
