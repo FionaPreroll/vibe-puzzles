@@ -34,6 +34,8 @@ npm run check      # svelte-check and worker type check
 npm test           # unit tests
 npm run test:e2e   # browser tests (run `npx playwright install chromium` once)
 npm run test:server # browser tests against the server: two devices syncing a game
+npm run test:soak  # long play session: no errors, no growing memory (SOAK_ACTIONS=600)
+npm run test:perf  # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
 npm run bank:grow  # add puzzles to the collection (--per-variant N --max-minutes M)
 ```
 
