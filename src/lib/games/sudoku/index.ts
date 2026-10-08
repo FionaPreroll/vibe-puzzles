@@ -14,7 +14,14 @@ export const sudoku: GameModule<SudokuPuzzle, SudokuState> = {
 		{ id: 'note', label: 'Note', icon: '✎', key: 'n' }
 	],
 	defaultTool: () => 'digit',
-	settings: withCommon([]),
+	settings: withCommon([
+		{ key: 'markMistakes', label: 'Paint wrong digits red', default: false },
+		{ key: 'autoNotes', label: 'Fill in notes automatically', default: false },
+		{ key: 'autoRemoveNotes', label: 'Remove notes ruled out by a new digit', default: false },
+		{ key: 'highlightLines', label: 'Highlight row, column and box', default: true },
+		{ key: 'highlightSame', label: 'Highlight the same digit', default: true },
+		{ key: 'showRemaining', label: 'Show how many of each digit are left', default: true }
+	]),
 	tutorial: { puzzle: SUDOKU_TUTORIAL, start: emptySudokuState },
 	board: Board,
 	padRows: 1.2

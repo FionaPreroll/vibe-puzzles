@@ -152,7 +152,13 @@ const en = {
 		continuousLine: 'Draw continuous line',
 		symmetryHelper: 'Enable symmetry helper',
 		blackHoles: 'Black hole in completed galaxies',
-		autoColor: 'Auto colour completed galaxies'
+		autoColor: 'Auto colour completed galaxies',
+		markMistakes: 'Paint wrong digits red',
+		autoNotes: 'Fill in notes automatically',
+		autoRemoveNotes: 'Remove notes ruled out by a new digit',
+		highlightLines: 'Highlight row, column and box',
+		highlightSame: 'Highlight the same digit',
+		showRemaining: 'Show how many of each digit are left'
 	},
 	source: {
 		title: 'Where new puzzles come from',
@@ -313,6 +319,7 @@ const en = {
 				'Tap a cell, then a digit on the number pad. Pick the Note tool to add or remove small notes instead. ⌫ erases.',
 			pad: 'Number pad',
 			erase: 'Erase',
+			left: '{count} left',
 			tutorial: [
 				'This small Sudoku uses the digits 1 to 4. Every row, column and 2×2 box needs each of them exactly once.',
 				'Look at the top row: 1, 2 and 4 are there already, so the empty cell must be a 3.',

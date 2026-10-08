@@ -153,7 +153,13 @@ const de: Dictionary = {
 		continuousLine: 'Durchgehende Linie zeichnen',
 		symmetryHelper: 'Symmetriehilfe',
 		blackHoles: 'Schwarzes Loch in fertigen Galaxien',
-		autoColor: 'Fertige Galaxien automatisch einfärben'
+		autoColor: 'Fertige Galaxien automatisch einfärben',
+		markMistakes: 'Falsche Ziffern rot färben',
+		autoNotes: 'Notizen automatisch eintragen',
+		autoRemoveNotes: 'Notizen entfernen, die eine neue Ziffer ausschließt',
+		highlightLines: 'Zeile, Spalte und Block hervorheben',
+		highlightSame: 'Gleiche Ziffer hervorheben',
+		showRemaining: 'Anzeigen, wie oft jede Ziffer noch fehlt'
 	},
 	source: {
 		title: 'Woher neue Rätsel kommen',
@@ -315,6 +321,7 @@ const de: Dictionary = {
 				'Tippe ein Feld an, dann eine Ziffer im Zahlenfeld. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
 			pad: 'Zahlenfeld',
 			erase: 'Löschen',
+			left: 'noch {count}',
 			tutorial: [
 				'Dieses kleine Sudoku nutzt die Ziffern 1 bis 4. Jede Zeile, Spalte und jeder 2×2-Block braucht jede davon genau einmal.',
 				'Sieh dir die oberste Zeile an: 1, 2 und 4 stehen schon da, also muss in das leere Feld eine 3.',

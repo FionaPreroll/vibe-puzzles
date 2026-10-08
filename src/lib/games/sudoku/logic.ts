@@ -7,6 +7,7 @@ import {
 	conflicts,
 	currentGrid,
 	emptySudokuState,
+	fillMissingNotes,
 	isSolvedGrid,
 	pruneNotes,
 	SIZES,
@@ -82,7 +83,10 @@ export const sudokuLogic: GameLogic<SudokuPuzzle, SudokuState> = {
 		return q.givens.some(Boolean) && !conflicts(size, q.givens).some(Boolean);
 	},
 	emptyState: emptySudokuState,
-	afterMove: (p, s, settings: Settings) => (settings.autoRemoveNotes ? pruneNotes(p, s) : s),
+	afterMove(p, s, settings: Settings) {
+		if (settings.autoNotes) s = fillMissingNotes(p, s);
+		return settings.autoRemoveNotes ? pruneNotes(p, s) : s;
+	},
 	isSolved: (p, s) => isSolvedGrid(p.width, currentGrid(p, s)),
 	/** One digit per cell, givens included. */
 	answer: (p, s) => currentGrid(p, s).join(''),

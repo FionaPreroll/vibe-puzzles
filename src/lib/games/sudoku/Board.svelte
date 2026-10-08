@@ -8,11 +8,14 @@
 		conflicts,
 		currentGrid,
 		geometry,
+		mistakes,
 		placeDigit,
+		remainingDigits,
 		toggleNote,
 		type SudokuPuzzle,
 		type SudokuState
 	} from './rules';
+	import { solveSudoku } from './solver';
 
 	let {
 		puzzle,
@@ -42,6 +45,36 @@
 	const grid = $derived(blank ? puzzle.givens : currentGrid(puzzle, board));
 	const clashes = $derived(conflicts(size, grid));
 	const errorColour = $derived(settings.blueErrors ? '#1e3a8a' : '#dc2626');
+	const errorFill = $derived(settings.blueErrors ? '#dbeafe' : '#fee2e2');
+
+	/** The solution, only worked out when wrong digits are to be shown. */
+	const solution = $derived(
+		settings.markMistakes && !blank
+			? solveSudoku(puzzle.givens, size, { limit: 1 }).solutions[0]
+			: null
+	);
+	const wrong = $derived(solution ? mistakes(puzzle, board, solution) : null);
+	const remaining = $derived(blank ? [] : remainingDigits(puzzle, board));
+
+	/** Digit in the selected cell, for "Highlight the same digit". */
+	const selectedDigit = $derived(
+		settings.highlightSame && selected >= 0 && !blank ? grid[selected] : 0
+	);
+	/** Units (row, column, box) of the selected cell. */
+	const selectedUnits = $derived(
+		settings.highlightLines && selected >= 0 && !blank ? geometry(size).unitsOf[selected] : null
+	);
+
+	function inSelectedUnits(i: number): boolean {
+		return !!selectedUnits && geometry(size).unitsOf[i].some((u, k) => u === selectedUnits[k]);
+	}
+
+	// Auto notes: a game without any notes gets them as soon as it is shown.
+	$effect(() => {
+		if (!settings.autoNotes || !keyboard || blank || readonly) return;
+		if (board.notes.some(Boolean) || !grid.some((d) => !d)) return;
+		onmove(board, []);
+	});
 
 	const boxLines = $derived.by(() => {
 		const segs: string[] = [];
@@ -57,13 +90,15 @@
 	function fillOf(i: number): string {
 		if (blank) return '#ffffff';
 		if (i === selected) return '#fde68a';
-		if (settings.highlightErrors && clashes[i]) return settings.blueErrors ? '#dbeafe' : '#fee2e2';
+		if ((settings.highlightErrors && clashes[i]) || wrong?.[i]) return errorFill;
+		if (selectedDigit && grid[i] === selectedDigit) return '#bfdbfe';
+		if (inSelectedUnits(i)) return '#e5edf8';
 		return '#ffffff';
 	}
 
 	function textColour(i: number): string {
 		if (puzzle.givens[i]) return '#111827';
-		if (settings.highlightErrors && clashes[i]) return errorColour;
+		if ((settings.highlightErrors && clashes[i]) || wrong?.[i]) return errorColour;
 		return '#1d4ed8';
 	}
 
@@ -194,6 +229,7 @@
 			<rect {x} {y} width={cellSize} height={cellSize} fill={fillOf(i)} />
 			{#if d}
 				<text
+					data-cell={i}
 					x={x + cellSize / 2}
 					y={y + cellSize / 2}
 					font-size={cellSize * 0.62}
@@ -213,6 +249,8 @@
 					{#each digits as n (n)}
 						{#if board.notes[i] & bit(n)}
 							<text
+								fill={n === selectedDigit ? '#1d4ed8' : undefined}
+								font-weight={n === selectedDigit ? 700 : undefined}
 								x={x + (((n - 1) % box.w) + 0.5) * (cellSize / box.w)}
 								y={y + (Math.floor((n - 1) / box.w) + 0.5) * (cellSize / Math.ceil(size / box.w))}
 								>{n}</text
@@ -304,13 +342,25 @@
 		<div class="mt-2 flex w-full gap-1 px-[3px]" role="toolbar" aria-label={t('games.sudoku.pad')}>
 			{#each digits as d (d)}
 				<button
-					class="flex-1 rounded-md border border-stone-300 bg-white font-semibold text-blue-700 shadow-sm active:bg-stone-100 disabled:opacity-40 dark:border-stone-600 dark:bg-stone-800 dark:text-blue-300"
+					class="relative flex-1 rounded-md border border-stone-300 bg-white font-semibold text-blue-700 shadow-sm active:bg-stone-100 disabled:opacity-40 dark:border-stone-600 dark:bg-stone-800 dark:text-blue-300"
 					style:height="{Math.min(56, cellSize * 0.95)}px"
 					style:font-size="{Math.min(28, cellSize * 0.5)}px"
+					class:opacity-40={settings.showRemaining && remaining[d] <= 0}
 					disabled={selected < 0}
 					onpointerdown={(e) => e.preventDefault()}
-					onclick={() => enter(d, tool === 'note')}>{d}</button
+					title={settings.showRemaining
+						? t('games.sudoku.left', { count: remaining[d] })
+						: undefined}
+					onclick={() => enter(d, tool === 'note')}
 				>
+					{d}
+					{#if settings.showRemaining}
+						<span
+							class="absolute top-0.5 right-1 text-[0.55em] font-normal text-stone-500 dark:text-stone-400"
+							aria-hidden="true">{remaining[d]}</span
+						>
+					{/if}
+				</button>
 			{/each}
 			<button
 				class="flex-1 rounded-md border border-stone-300 bg-white text-stone-600 shadow-sm active:bg-stone-100 disabled:opacity-40 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-300"

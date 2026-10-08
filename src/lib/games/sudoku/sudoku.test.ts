@@ -9,6 +9,7 @@ import {
 	currentGrid,
 	digitsOf,
 	emptySudokuState,
+	fillMissingNotes,
 	fillNotes,
 	geometry,
 	isSolvedGrid,
@@ -103,6 +104,15 @@ describe('rules', () => {
 		// Cell 2 holds a digit: its notes stay as they were.
 		expect(filled.notes[2]).toBe(7);
 		expect(digitsOf(filled.notes[3])).toEqual([2, 6]);
+	});
+
+	it('fills notes only where a cell has none', () => {
+		let s = toggleNote(easy, emptySudokuState(easy), 3, 6);
+		s = fillMissingNotes(easy, s);
+		expect(digitsOf(s.notes[3])).toEqual([6]);
+		expect(digitsOf(s.notes[2])).toEqual([1, 2, 4]);
+		expect(s.notes[0]).toBe(0);
+		expect(fillMissingNotes(easy, s)).toBe(s);
 	});
 
 	it('removes notes that a placed digit rules out', () => {
@@ -249,6 +259,24 @@ describe('logic', () => {
 		const s = placeDigit(easy, toggleNote(easy, emptySudokuState(easy), 3, 2), 2, 2);
 		expect(sudokuLogic.afterMove!(easy, s, {})).toBe(s);
 		expect(sudokuLogic.afterMove!(easy, s, { autoRemoveNotes: true }).notes[3]).toBe(0);
+	});
+
+	it('fills in notes after a move when asked to, also after erasing a digit', () => {
+		const start = emptySudokuState(easy);
+		const filled = sudokuLogic.afterMove!(easy, start, { autoNotes: true });
+		expect(filled).toEqual(fillNotes(easy, start));
+		// A digit in cell 2 rules out 4 elsewhere only with note removal on.
+		const placed = placeDigit(easy, filled, 2, 4);
+		expect(digitsOf(sudokuLogic.afterMove!(easy, placed, { autoNotes: true }).notes[11])).toContain(
+			4
+		);
+		const both = { autoNotes: true, autoRemoveNotes: true };
+		const pruned = sudokuLogic.afterMove!(easy, placed, both);
+		expect(digitsOf(pruned.notes[11])).not.toContain(4);
+		// Erasing the digit keeps the cell's old notes.
+		expect(sudokuLogic.afterMove!(easy, placeDigit(easy, pruned, 2, 0), both).notes[2]).toBe(
+			filled.notes[2]
+		);
 	});
 
 	it('encodes and decodes states', () => {

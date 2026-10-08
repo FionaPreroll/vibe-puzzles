@@ -149,6 +149,19 @@ export function fillNotes(p: SudokuPuzzle, s: SudokuState): SudokuState {
 	return { ...s, notes };
 }
 
+/** Note every possible digit in the empty cells that have no notes yet (auto notes). */
+export function fillMissingNotes(p: SudokuPuzzle, s: SudokuState): SudokuState {
+	const grid = currentGrid(p, s);
+	let changed = false;
+	const notes = s.notes.map((m, i) => {
+		if (m || grid[i]) return m;
+		const next = candidates(p.width, grid, i);
+		if (next) changed = true;
+		return next;
+	});
+	return changed ? { ...s, notes } : s;
+}
+
 /**
  * Remove small digits that a big digit in the same row, column or box rules out. Notes in cells
  * that hold a digit are kept, so they come back when the digit is cleared.
