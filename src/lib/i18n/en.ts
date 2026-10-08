@@ -80,7 +80,7 @@ const en = {
 		shareLink: 'Link to your progress:',
 		screenshot: 'Screenshot (PNG)',
 		closeShare: 'Close share panel',
-		shareSolve: 'Share success',
+		shareSolve: 'Share my time',
 		brag: 'I solved {game} {variant} (puzzle {id}) in {time}! Can you beat my time?',
 		bragCopied: 'Copied your result and the link. Paste it anywhere to share.',
 		creating: 'Creating puzzle…',

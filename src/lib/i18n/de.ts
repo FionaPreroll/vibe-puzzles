@@ -82,7 +82,7 @@ const de: Dictionary = {
 		shareLink: 'Link zu deinem Spielstand:',
 		screenshot: 'Bildschirmfoto (PNG)',
 		closeShare: 'Teilen schließen',
-		shareSolve: 'Erfolg teilen',
+		shareSolve: 'Meine Zeit teilen',
 		brag: 'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst! Schaffst du es schneller?',
 		bragCopied: 'Ergebnis und Link kopiert. Füge sie ein, wo du sie teilen möchtest.',
 		creating: 'Rätsel wird erstellt…',
