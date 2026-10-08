@@ -116,7 +116,8 @@
 		// fixed tool bar).
 		const chrome = boardTop + 4 + afterBoard;
 		const byWidth = areaWidth / (p.width + margin);
-		const byHeight = Math.max(240, viewportHeight - chrome) / (p.height + margin);
+		const byHeight =
+			Math.max(240, viewportHeight - chrome) / (p.height + margin + (game.padRows ?? 0));
 		return Math.max(16, Math.min(96, Math.floor(Math.min(byWidth, byHeight))));
 	});
 	const cellSize = $derived(Math.max(8, Math.round(fitCell * zoom)));

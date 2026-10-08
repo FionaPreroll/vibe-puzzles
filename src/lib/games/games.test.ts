@@ -6,13 +6,9 @@ import { GAME_LOGIC } from './logic';
 
 const keysOf = (items: { key: string }[]) => items.map((i) => i.key);
 
-/** Games whose logic (and puzzle collection) landed before their board. */
-const LOGIC_ONLY = ['sudoku'];
-
 describe('game registry', () => {
 	it('lists every game with logic, and finds games by ID', () => {
-		const withBoard = Object.keys(GAME_LOGIC).filter((id) => !LOGIC_ONLY.includes(id));
-		expect(GAMES.map((g) => g.id).sort()).toEqual(withBoard.sort());
+		expect(GAMES.map((g) => g.id).sort()).toEqual(Object.keys(GAME_LOGIC).sort());
 		expect(gameById('tetroid')?.name).toBe('Tetroid');
 		expect(gameById('nope')).toBeUndefined();
 	});

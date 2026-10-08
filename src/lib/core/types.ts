@@ -94,6 +94,8 @@ export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	toolOptions?: { tool: string; values: ToolOption[]; default: number };
 	settings: SettingInfo[];
 	board: Component<BoardProps<P, S>>;
+	/** Board height in cells beyond the grid (e.g. a number pad below it), for fitting the screen. */
+	padRows?: number;
 	/** Small static preview for the home page. */
 	icon: string;
 	/** A small hand-picked first puzzle for the interactive tutorial (texts in the translations). */

@@ -6,6 +6,7 @@ A collection of logic puzzles that runs in the browser, in English and German. E
 
 - **Tetroid**: shade one tetromino in every region so that all shaded cells connect, no 2×2 block is shaded and equal tetrominoes never touch.
 - **Pinwheel**: divide the grid into regions that are point-symmetric around their centre dot.
+- **Sudoku**: fill the 9×9 grid so that every row, column and 3×3 box holds the digits 1 to 9 once, with notes and three difficulty levels.
 
 Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4.
 
