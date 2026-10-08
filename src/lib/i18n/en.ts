@@ -75,7 +75,7 @@ const en = {
 		confirmStartOver: 'Are you sure? This clears the board and restarts the timer.',
 		print: 'Print…',
 		more: 'More actions',
-		share: 'Share',
+		share: 'Share board',
 		newPuzzle: 'New puzzle',
 		shareLink: 'Link to your progress:',
 		screenshot: 'Screenshot (PNG)',

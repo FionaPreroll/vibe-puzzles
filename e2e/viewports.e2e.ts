@@ -159,10 +159,10 @@ for (const screen of SCREENS) {
 				await expect(page.getByRole('menu')).toBeVisible();
 				await expect(page.getByRole('menu').getByRole('button')).toHaveText([
 					'Start over',
-					'Share',
+					'Share board',
 					'Print…'
 				]);
-				await page.getByRole('menu').getByRole('button', { name: 'Share' }).click();
+				await page.getByRole('menu').getByRole('button', { name: 'Share board' }).click();
 				await expect(page.getByText('Link to your progress:')).toBeVisible();
 				await expectNoSideScroll(page);
 			}

@@ -77,7 +77,7 @@ const de: Dictionary = {
 		confirmStartOver: 'Wirklich? Das leert das Brett und startet die Zeit neu.',
 		print: 'Drucken…',
 		more: 'Weitere Aktionen',
-		share: 'Teilen',
+		share: 'Spielstand teilen',
 		newPuzzle: 'Neues Rätsel',
 		shareLink: 'Link zu deinem Spielstand:',
 		screenshot: 'Bildschirmfoto (PNG)',

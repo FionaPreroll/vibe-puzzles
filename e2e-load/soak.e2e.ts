@@ -187,7 +187,7 @@ async function session(page: Page, name: string, touch: boolean) {
 		65: async () => {
 			// The share panel renders a screenshot of the board.
 			await more(page);
-			await page.getByRole('button', { name: 'Share', exact: true }).click();
+			await page.getByRole('button', { name: 'Share board' }).click();
 			await page.getByRole('button', { name: 'Close share panel' }).click();
 		},
 		75: async () => {
