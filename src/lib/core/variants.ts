@@ -76,17 +76,19 @@ export function specialSeed(gameId: string, kind: SpecialKind, period: string): 
 
 /**
  * The regular type closest to a special one: same rules, then the same difficulty, then the
- * nearest size. "New puzzle" on a special type continues here.
+ * nearest size. "New puzzle" on a special type continues here (or stays, if there is none).
  */
-export function regularCounterpart(variants: Variant[], special: Variant): Variant | undefined {
+export function regularCounterpart(variants: Variant[], special: Variant): Variant {
 	const regular = variants.filter((v) => !v.special && v.mode === special.mode);
 	const area = (v: Variant) => v.width * v.height;
 	const score = (v: Variant) => [
 		v.difficulty === special.difficulty ? 0 : 1,
 		Math.abs(area(v) - area(special))
 	];
-	return regular.sort((a, b) => {
-		const [x, y] = [score(a), score(b)];
-		return x[0] - y[0] || x[1] - y[1];
-	})[0];
+	return (
+		regular.sort((a, b) => {
+			const [x, y] = [score(a), score(b)];
+			return x[0] - y[0] || x[1] - y[1];
+		})[0] ?? special
+	);
 }

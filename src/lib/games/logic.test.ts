@@ -60,7 +60,7 @@ describe('variant lists', () => {
 				logic.id,
 				logic.variants
 					.filter((v) => v.special)
-					.map((v) => regularCounterpart(logic.variants, v)?.key)
+					.map((v) => regularCounterpart(logic.variants, v).key)
 			])
 		);
 		expect(pairs).toEqual({
@@ -68,6 +68,11 @@ describe('variant lists', () => {
 			pinwheel: ['10h', '15h', '15h'],
 			sudoku: ['9n', '9h', '9h']
 		});
+	});
+
+	it('keeps a special type that has no regular one', () => {
+		const daily = PINWHEEL_VARIANTS.find((v) => v.special === 'daily')!;
+		expect(regularCounterpart([daily], daily)).toBe(daily);
 	});
 });
 

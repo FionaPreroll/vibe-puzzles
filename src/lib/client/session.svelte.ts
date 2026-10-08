@@ -379,8 +379,7 @@ export class GameSession<P = unknown, S = unknown> {
 		if (this.loading) return;
 		const v = this.variant;
 		if (v.special) {
-			const next = this.period ? regularCounterpart(this.game.variants, v) : v;
-			await this.open((next ?? v).key);
+			await this.open(this.period ? regularCounterpart(this.game.variants, v).key : v.key);
 			return;
 		}
 		if (!this.solved && this.past.length > 0) breakStreak(this.game.id, v.key);
