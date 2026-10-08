@@ -55,9 +55,15 @@ export default defineConfig({
 		expect: { requireAssertions: true },
 		coverage: {
 			provider: 'v8',
-			// Svelte components are covered by the Playwright suites, which report no coverage.
-			include: ['src/**/*.{js,ts}', 'worker/**/*.ts', 'scripts/licenses.ts'],
-			exclude: ['src/test/**', '**/*.test.ts'],
+			// Svelte components and the service worker, which runs only in the browser, are covered
+			// by the Playwright suites, which report no coverage.
+			include: [
+				'src/**/*.{js,ts}',
+				'worker/**/*.ts',
+				'scripts/licenses.ts',
+				'scripts/collection.ts'
+			],
+			exclude: ['src/test/**', 'src/service-worker/**', '**/*.test.ts'],
 			reporter: ['text-summary', 'lcov']
 		},
 		projects: [

@@ -214,7 +214,7 @@ export class GameSession<P = unknown, S = unknown> {
 				const { variantIndex, seed } = decodePuzzleId(puzzleId);
 				const v = this.game.variants[variantIndex];
 				// A puzzle from the collection needs no generating (big ones take a while).
-				const stored = v ? await findInBank<P>(this.game.id, v.key, puzzleId) : null;
+				const stored = v ? await findInBank<P>(this.game.id, v, puzzleId) : null;
 				puzzle =
 					stored && this.game.isValidPuzzle(stored, v)
 						? stored

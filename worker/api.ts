@@ -1,5 +1,5 @@
 import { GAME_LOGIC } from '../src/lib/games/logic';
-import type { BankEntry, PuzzleBank } from '../src/lib/core/bank';
+import type { BankEntry, Collection } from '../src/lib/core/bank';
 import type { Variant } from '../src/lib/core/variants';
 import {
 	decodePuzzleId,
@@ -8,7 +8,6 @@ import {
 	randomSeed,
 	specialSeed
 } from '../src/lib/core/variants';
-import type { BankLoader } from './bank';
 import type { Scope, Store } from './store';
 
 export interface ApiOptions {
@@ -21,7 +20,7 @@ export interface ApiOptions {
 	 * Take server puzzles from the pre-generated collection instead of generating them, which
 	 * keeps every request within the CPU limits of Cloudflare Workers.
 	 */
-	bank?: BankLoader;
+	collection?: Collection;
 	/** Limits on requests that create rows: registering by client address, puzzles by player. */
 	limits?: { register?: Limiter; puzzles?: Limiter };
 }
@@ -109,15 +108,18 @@ function scopeOf(game: string, variantKey: string, puzzleId: number | null): Sco
 const secureRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
 
 /** A random puzzle from the collection, preferring ones the player has not had yet. */
-async function pickFromBank(
-	bank: PuzzleBank,
+async function pickFromCollection(
+	collection: Collection,
+	game: string,
+	variant: string,
 	playerId: string,
 	store: Store
 ): Promise<BankEntry | null> {
-	const played = await store.playedPuzzles(playerId, bank.game, bank.variant);
-	const fresh = bank.puzzles.filter((p) => !played.has(p.id));
-	const pool = fresh.length ? fresh : bank.puzzles;
-	return pool.length ? pool[Math.floor(secureRandom() * pool.length)] : null;
+	const played = await store.playedPuzzles(playerId, game, variant);
+	return (
+		(await collection.pick(game, variant, (id) => played.has(id), secureRandom)) ??
+		(await collection.pick(game, variant, undefined, secureRandom))
+	);
 }
 
 async function checkLimit(limiter: Limiter | undefined, key: string) {
@@ -138,13 +140,10 @@ async function issuePuzzle(req: Request, store: Store, options: ApiOptions) {
 	const variant = logic.variants[index];
 	let puzzleId: number;
 	let puzzle: unknown;
-	if (options.bank) {
-		const bank = await options.bank(game, variant.key);
-		const entry = !bank
-			? null
-			: variant.special
-				? bank.puzzles.find((p) => p.period === periodKey(variant.special!))
-				: await pickFromBank(bank, player.id, store);
+	if (options.collection) {
+		const entry = variant.special
+			? await options.collection.special(game, variant.key, variant.special)
+			: await pickFromCollection(options.collection, game, variant.key, player.id, store);
 		if (!entry || !logic.isValidPuzzle(entry.puzzle, variant)) {
 			throw new HttpError(503, 'No pre-generated puzzle available');
 		}

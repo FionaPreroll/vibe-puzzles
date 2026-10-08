@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { specialPuzzleId, type PuzzleBank } from '../src/lib/core/bank';
+import { Collection, layoutType, specialPuzzleId } from '../src/lib/core/bank';
 import { decodePuzzleId, encodePuzzleId, periodKey } from '../src/lib/core/variants';
 import { generateTetroid } from '../src/lib/games/tetroid/generator';
 import type { TetroidPuzzle } from '../src/lib/games/tetroid/rules';
 import { solveTetroid } from '../src/lib/games/tetroid/solver';
 import { cleanupTickets, handleApi, TICKET_RETENTION_DAYS, type ApiOptions } from './api';
-import type { BankLoader } from './bank';
 import { MemoryStore } from './store';
 
 function client(options: ApiOptions = {}, store = new MemoryStore()) {
@@ -244,35 +243,21 @@ describe('api', () => {
 		const dailyId = specialPuzzleId('tetroid', 10, 'daily', today);
 		const daily = generateTetroid(10, 10, 'normal', decodePuzzleId(dailyId).seed).puzzle;
 		const other = generateTetroid(6, 6, 'normal', 77).puzzle;
-		const banks: Record<string, PuzzleBank> = {
-			'tetroid:6n': {
-				version: 1,
-				game: 'tetroid',
-				variant: '6n',
-				puzzles: [
-					{ id: puzzleId, puzzle },
-					{ id: encodePuzzleId(0, 77), puzzle: other }
-				]
-			},
-			'tetroid:daily': {
-				version: 1,
-				game: 'tetroid',
-				variant: 'daily',
-				puzzles: [{ id: dailyId, period: today, puzzle: daily }]
-			},
-			'tetroid:8n': { version: 1, game: 'tetroid', variant: '8n', puzzles: [] },
-			// A broken file must not be handed out.
-			'tetroid:8h': {
-				version: 1,
-				game: 'tetroid',
-				variant: '8h',
-				puzzles: [{ id: 1, puzzle: { width: 3 } }]
-			}
+		const entries6n = [
+			{ id: puzzleId, puzzle },
+			{ id: encodePuzzleId(0, 77), puzzle: other }
+		];
+		const files: Record<string, unknown> = {
+			...layoutType('tetroid', '6n', entries6n),
+			...layoutType('tetroid', 'daily', [{ id: dailyId, period: today, puzzle: daily }], 'daily'),
+			...layoutType('tetroid', '8n', []),
+			// A broken puzzle must not be handed out.
+			...layoutType('tetroid', '8h', [{ id: 1, puzzle: { width: 3 } }])
 		};
-		const bank: BankLoader = async (game, variant) => banks[`${game}:${variant}`] ?? null;
+		const collection = new Collection(async (path) => files[path] ?? null);
 
 		async function setup() {
-			const api = client({ serverPuzzles: true, bank });
+			const api = client({ serverPuzzles: true, collection });
 			const token = (await api('POST', '/player', { name: 'A' })).body.token as string;
 			const issue = (variant: string) =>
 				api('POST', '/puzzles', { game: 'tetroid', variant }, token);
@@ -285,7 +270,7 @@ describe('api', () => {
 				used.set(key, (used.get(key) ?? 0) + 1);
 				return used.get(key)! <= 1;
 			};
-			const api = client({ serverPuzzles: true, bank, limits: { puzzles } });
+			const api = client({ serverPuzzles: true, collection, limits: { puzzles } });
 			const token = (await api('POST', '/player', { name: 'A' })).body.token as string;
 			const other = (await api('POST', '/player', { name: 'B' })).body.token as string;
 			const issue = (t: string) => api('POST', '/puzzles', { game: 'tetroid', variant: '6n' }, t);
@@ -329,7 +314,7 @@ describe('api', () => {
 				token
 			);
 			expect(res.body).toMatchObject({ ok: true, rank: 1 });
-			expect(banks['tetroid:6n'].puzzles.map((p) => p.id)).toContain(res.body.puzzleId);
+			expect(entries6n.map((p) => p.id)).toContain(res.body.puzzleId);
 		});
 	});
 });

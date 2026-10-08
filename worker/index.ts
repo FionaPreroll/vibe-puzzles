@@ -1,5 +1,5 @@
 import { cleanupTickets, handleApi, type Limiter } from './api';
-import { assetBank } from './bank';
+import { assetCollection } from './bank';
 import { D1Store } from './store';
 
 export interface Env {
@@ -24,7 +24,7 @@ export default {
 			return handleApi(req, new D1Store(env.DB), {
 				serverPuzzles: env.SERVER_PUZZLES === 'true',
 				// The deployed server never generates puzzles itself: it hands out pre-generated ones.
-				bank: assetBank(env.ASSETS),
+				collection: assetCollection(env.ASSETS),
 				limits: { register: limiter(env.REGISTER_LIMIT), puzzles: limiter(env.PUZZLE_LIMIT) }
 			});
 		return env.ASSETS.fetch(req);

@@ -1,33 +1,35 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { PuzzleBank } from '../src/lib/core/bank';
-import { assetBank } from './bank';
+import { indexPath, layoutType } from '../src/lib/core/bank';
+import { assetCollection } from './bank';
 
-const file: PuzzleBank = { version: 1, game: 'g', variant: 'v', puzzles: [{ id: 1, puzzle: {} }] };
+const files: Record<string, unknown> = layoutType('g', 'v', [{ id: 1, puzzle: { a: 1 } }]);
 
-describe('assetBank', () => {
-	it('reads collection files from the static assets once', async () => {
-		const fetch = vi.fn(async (req: Request) =>
-			new URL(req.url).pathname === '/puzzles/g/v.json'
-				? Response.json(file)
-				: new Response('', { status: 404 })
-		);
-		const bank = assetBank({ fetch } as never);
-		expect(await bank('g', 'v')).toEqual(file);
-		expect(await bank('g', 'v')).toEqual(file);
-		expect(fetch).toHaveBeenCalledTimes(1);
-		expect(await bank('g', 'missing')).toBeNull();
+/** Static assets that serve `files`. */
+const assets = () => ({
+	fetch: vi.fn(async (req: Request) => {
+		const file = files[new URL(req.url).pathname.slice(1)];
+		return file ? Response.json(file) : new Response('', { status: 404 });
+	})
+});
+
+describe('assetCollection', () => {
+	it('reads collection files from the static assets, keeping them per instance', async () => {
+		const a = assets();
+		const collection = assetCollection(a as never);
+		expect(await collection.find('g', 'v', 1)).toEqual({ id: 1, puzzle: { a: 1 } });
+		expect(await collection.find('g', 'v', 1)).toEqual({ id: 1, puzzle: { a: 1 } });
+		expect(a.fetch).toHaveBeenCalledTimes(2); // the index and one chunk
+		expect(assetCollection(a as never)).toBe(collection);
+		expect(await collection.index('g', 'missing')).toBeNull();
 	});
 
-	it('tries again after a failure', async () => {
+	it('starts over for other assets and tries a failed file again', async () => {
 		const fetch = vi
 			.fn()
 			.mockRejectedValueOnce(new Error('offline'))
-			.mockResolvedValueOnce(new Response('', { status: 500 }))
-			.mockResolvedValue(Response.json(file));
-		const bank = assetBank({ fetch } as never);
-		await expect(bank('g', 'retry')).rejects.toThrow('offline');
-		expect(await bank('g', 'retry')).toBeNull();
-		expect(await bank('g', 'retry')).toEqual(file);
-		expect(fetch).toHaveBeenCalledTimes(3);
+			.mockResolvedValue(Response.json(files[indexPath('g', 'v')]));
+		const collection = assetCollection({ fetch } as never);
+		await expect(collection.index('g', 'v')).rejects.toThrow('offline');
+		expect(await collection.index('g', 'v')).toMatchObject({ chunks: [[1]] });
 	});
 });

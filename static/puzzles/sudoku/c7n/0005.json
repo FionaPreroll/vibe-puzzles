@@ -1,0 +1,8 @@
+{
+	"version": 2,
+	"game": "sudoku",
+	"variant": "c7n",
+	"puzzles": [
+		{"id":428319162,"puzzle":{"width":7,"height":7,"givens":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"cages":[{"cells":[6,13,19,20],"op":"*","target":96},{"cells":[11,18],"op":"/","target":2},{"cells":[10,17,24],"op":"+","target":13},{"cells":[2,9],"op":"+","target":4},{"cells":[35,42],"op":"*","target":12},{"cells":[25,26,33],"op":"*","target":90},{"cells":[14,15],"op":"/","target":5},{"cells":[32,39],"op":"*","target":28},{"cells":[37,44],"op":"-","target":2},{"cells":[16,23,30],"op":"*","target":48},{"cells":[0,1],"op":"-","target":3},{"cells":[3,4],"op":"-","target":2},{"cells":[45,46,47],"op":"+","target":14},{"cells":[5,12],"op":"/","target":3},{"cells":[31,38],"op":"/","target":3},{"cells":[34,41,48],"op":"*","target":30},{"cells":[21,22],"op":"-","target":1},{"cells":[40],"op":"=","target":1},{"cells":[28,29,36,43],"op":"+","target":13},{"cells":[7,8],"op":"+","target":13},{"cells":[27],"op":"=","target":7}]}}
+	]
+}

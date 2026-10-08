@@ -78,6 +78,62 @@ test('works offline after the first visit', async ({ page, context }) => {
 	await context.setOffline(false);
 });
 
+test('caches a collection file when it is first used, not on install', async ({
+	page,
+	context
+}) => {
+	await page.goto('/');
+	await page.evaluate(async () => {
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+		await navigator.serviceWorker.ready;
+		if (!navigator.serviceWorker.controller) {
+			await new Promise((r) => navigator.serviceWorker.addEventListener('controllerchange', r));
+		}
+	});
+	const cached = () =>
+		page.evaluate(async () => {
+			const urls: Record<string, string[]> = {};
+			for (const name of await caches.keys()) {
+				const keys = await (await caches.open(name)).keys();
+				urls[name] = keys
+					.map((r) => new URL(r.url).pathname)
+					.filter((p) => p.includes('/puzzles/'));
+			}
+			return urls;
+		});
+	// The install leaves the collection out.
+	expect(Object.values(await cached()).flat()).toEqual([]);
+
+	await page.goto('/tetroid?v=8n');
+	await expect(page.getByText('(from the puzzle collection)')).toBeVisible({ timeout: 10_000 });
+	// The index of the type and the one chunk the puzzle came from.
+	await expect
+		.poll(async () => (await cached())['vibe-puzzles-collection']?.sort())
+		.toEqual([
+			expect.stringMatching(/^\/puzzles\/tetroid\/8n\/\d{4}\.json$/),
+			'/puzzles/tetroid/8n/index.json'
+		]);
+	const [chunk, index] = (await cached())['vibe-puzzles-collection'].sort();
+
+	// Offline, the service worker answers with the cached files; a file that was never needed is
+	// missing (the game then generates the puzzle on the device).
+	await context.setOffline(true);
+	const loads = (path: string) =>
+		page.evaluate(
+			(p) =>
+				fetch(p).then(
+					(r) => r.ok,
+					() => false
+				),
+			path
+		);
+	expect(await loads(index)).toBe(true);
+	expect(await loads(chunk)).toBe(true);
+	expect(await loads('/puzzles/tetroid/6n/index.json')).toBe(false);
+	await context.setOffline(false);
+});
+
 test('has an install manifest', async ({ request }) => {
 	const manifest = await (await request.get('/manifest.webmanifest')).json();
 	expect(manifest.icons.length).toBeGreaterThan(1);

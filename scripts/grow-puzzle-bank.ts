@@ -12,18 +12,16 @@
  * --game limits the run to one game, e.g. to seed the collection of a new game; --variants
  * limits it further to some puzzle types, e.g. new ones.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
 import {
-	bankPath,
 	SPECIAL_PERIODS_AHEAD,
 	specialPuzzleId,
 	upcomingPeriods,
-	type PuzzleBank
+	type BankEntry
 } from '../src/lib/core/bank';
 import type { GameLogic } from '../src/lib/core/types';
 import { decodePuzzleId, encodePuzzleId, randomSeed } from '../src/lib/core/variants';
 import { GAME_LOGIC } from '../src/lib/games/logic';
+import { readType, writeType } from './collection';
 
 const args = process.argv.slice(2);
 const option = (name: string, fallback: number) => {
@@ -41,19 +39,15 @@ const secureRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 
 interface Slot {
 	logic: GameLogic;
 	index: number;
-	file: string;
-	bank: PuzzleBank;
+	puzzles: BankEntry[];
 	known: Set<number>;
 	added: number;
 }
 
 function open(logic: GameLogic, index: number): Slot {
 	const variant = logic.variants[index];
-	const file = join('static', bankPath(logic.id, variant.key));
-	const bank: PuzzleBank = existsSync(file)
-		? JSON.parse(readFileSync(file, 'utf8'))
-		: { version: 1, game: logic.id, variant: variant.key, puzzles: [] };
-	return { logic, index, file, bank, known: new Set(bank.puzzles.map((p) => p.id)), added: 0 };
+	const puzzles = readType('static', logic.id, variant.key, variant.special);
+	return { logic, index, puzzles, known: new Set(puzzles.map((p) => p.id)), added: 0 };
 }
 
 /** Adds the puzzle with this ID if it has a unique solution. */
@@ -65,7 +59,7 @@ function add(slot: Slot, id: number, period?: string): boolean {
 		console.warn(`skipped ${slot.logic.id} ${variant.key} #${id}: not uniquely solvable`);
 		return false;
 	}
-	slot.bank.puzzles.push(period ? { id, period, puzzle } : { id, puzzle });
+	slot.puzzles.push(period ? { id, period, puzzle } : { id, puzzle });
 	slot.known.add(id);
 	slot.added++;
 	return true;
@@ -73,18 +67,9 @@ function add(slot: Slot, id: number, period?: string): boolean {
 
 function write(slot: Slot) {
 	if (slot.added === 0) return;
-	const { bank } = slot;
-	if (bank.puzzles.some((p) => p.period)) {
-		bank.puzzles.sort((a, b) => (a.period ?? '').localeCompare(b.period ?? ''));
-	}
-	mkdirSync(dirname(slot.file), { recursive: true });
-	// One puzzle per line keeps diffs small as the collection grows.
-	const lines = bank.puzzles.map((p) => `\t\t${JSON.stringify(p)}`).join(',\n');
-	writeFileSync(
-		slot.file,
-		`{\n\t"version": 1,\n\t"game": "${bank.game}",\n\t"variant": "${bank.variant}",\n\t"puzzles": [\n${lines}\n\t]\n}\n`
-	);
-	console.log(`${bank.game} ${bank.variant}: +${slot.added} (${bank.puzzles.length} total)`);
+	const variant = slot.logic.variants[slot.index];
+	writeType('static', slot.logic.id, variant.key, slot.puzzles, variant.special);
+	console.log(`${slot.logic.id} ${variant.key}: +${slot.added} (${slot.puzzles.length} total)`);
 }
 
 const specials: Slot[] = [];

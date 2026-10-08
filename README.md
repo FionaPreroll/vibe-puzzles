@@ -18,7 +18,7 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4.
 - Undo and redo, checkpoints, timers, error highlighting, zoom, keyboard and touch controls, print and share.
 - An interactive tutorial puzzle on the first visit of each game.
 - English and German, picked from the browser language and switchable in the header.
-- Installable as an app (PWA) and playable offline after the first visit.
+- Installable as an app (PWA) and playable offline after the first visit. Files of the puzzle collection are cached when a puzzle type first needs them and kept across app updates; offline, a type without a cached file gets puzzles generated on the device.
 - A growing collection of pre-generated puzzles (see below); players choose between the collection, puzzles generated on their device, or both.
 - Progress, settings and statistics are saved in the browser.
 - Optional server (Cloudflare Workers with D1): anonymous players, game sync across devices with a sync code, and leaderboards.
@@ -53,7 +53,7 @@ src/lib/components/   game shell, tutorial and dialogs
 src/lib/i18n/         translations (en.ts is the reference, de.ts must have the same keys)
 src/service-worker/   offline cache
 src/routes/           pages
-static/puzzles/       the puzzle collection, one JSON file per game and puzzle type
+static/puzzles/       the puzzle collection, one folder per game and puzzle type
 scripts/              grow-puzzle-bank.ts, licenses.ts (licence notices of shipped packages)
 worker/               Cloudflare Worker: REST API and storage
 migrations/           D1 schema
@@ -69,7 +69,7 @@ migrations/           D1 schema
 
 ## Puzzle collection
 
-`static/puzzles/<game>/<type>.json` holds pre-generated puzzles with their IDs. The `Grow puzzle collection` workflow runs weekly (or by hand, with the number of new puzzles per type and a time limit) and proposes the new puzzles in a pull request against `main` from the branch `feature/grow_puzzle_collection`; while that pull request is open, later runs add to it, and it merges itself once CI passes (auto-merge). It first stores the special puzzles of the coming periods, then adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution before it is committed, so the collection keeps growing. The unit tests check every stored puzzle again. The workflow needs **Allow GitHub Actions to create and approve pull requests** (repository settings, Actions, General). Pull requests opened with the default token start no other workflows, so CI does not run on them; a fine-grained token with contents and pull requests write access in the repository secret `BANK_PR_TOKEN` fixes that. Auto-merge needs **Allow auto-merge** (repository settings, General) and a branch protection rule on `main` whose required status checks it waits for.
+`static/puzzles/<game>/<type>/` holds pre-generated puzzles with their IDs. A regular type is split into chunks of 100 puzzles (`0000.json`, `0001.json`, …) in the order they were added, with an `index.json` listing the IDs of each chunk; new puzzles fill the last chunk, so full chunks never change, and opening a puzzle loads only the index and one chunk. Special types keep one file per month (daily) or year (weekly, monthly), e.g. `daily/2026-10.json`. `scripts/collection.ts` reads and writes this layout. The `Grow puzzle collection` workflow runs weekly (or by hand, with the number of new puzzles per type and a time limit) and proposes the new puzzles in a pull request against `main` from the branch `feature/grow_puzzle_collection`; while that pull request is open, later runs add to it, and it merges itself once CI passes (auto-merge). It first stores the special puzzles of the coming periods, then adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution before it is committed, so the collection keeps growing. The unit tests check every stored puzzle again: on `main` all of them, in a pull request only the collection files it changes, unless it changes the game logic (`src/lib/games`, `src/lib/core`); locally, `BANK_TEST_SINCE=origin/main npm test` does the same. The workflow needs **Allow GitHub Actions to create and approve pull requests** (repository settings, Actions, General). Pull requests opened with the default token start no other workflows, so CI does not run on them; a fine-grained token with contents and pull requests write access in the repository secret `BANK_PR_TOKEN` fixes that. Auto-merge needs **Allow auto-merge** (repository settings, General) and a branch protection rule on `main` whose required status checks it waits for.
 
 In the settings, players choose where new puzzles come from: the collection, their device, or both at random (the default). The collection also saves generating time when a puzzle is opened by an ID it contains.
 

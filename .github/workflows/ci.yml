@@ -36,12 +36,19 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The merge commit of a pull request and its base, to see what the pull request changes.
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run test:coverage
+        env:
+          # Pull requests solve again only the collection puzzles they change (bank.test.ts);
+          # pushes to main check the whole collection.
+          BANK_TEST_SINCE: ${{ github.event_name == 'pull_request' && 'HEAD^1' || '' }}
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
