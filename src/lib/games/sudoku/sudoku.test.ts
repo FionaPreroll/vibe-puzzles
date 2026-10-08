@@ -230,12 +230,14 @@ describe('generator', () => {
 });
 
 describe('logic', () => {
-	it('generates valid puzzles for every variant', () => {
-		SUDOKU_VARIANTS.forEach((v, k) => {
+	// One test per variant: a 9×9 Calcudoku alone can take a few seconds on a slow CI runner
+	// (perf/generate.perf.ts holds the speed budgets), so each gets more than the 5 s default.
+	SUDOKU_VARIANTS.forEach((v, k) => {
+		it(`generates a valid ${v.key} puzzle`, () => {
 			const p = sudokuLogic.generate(v, 10 + k);
 			expect(sudokuLogic.isValidPuzzle(p, v)).toBe(true);
 			expect(sudokuLogic.countSolutions(p, 2)).toEqual({ count: 1, finished: true });
-		});
+		}, 30_000);
 	});
 
 	it('rejects malformed puzzles', () => {
