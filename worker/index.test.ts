@@ -20,6 +20,19 @@ describe('worker', () => {
 		expect(e.ASSETS.fetch).toHaveBeenCalledTimes(1);
 	});
 
+	it('limits registering with the REGISTER_LIMIT binding, keyed by client address', async () => {
+		const limit = vi.fn(async () => ({ success: false }));
+		const e = { ...env(), REGISTER_LIMIT: { limit } } as unknown as Env;
+		const req = new Request('https://example.test/api/player', {
+			method: 'POST',
+			headers: { 'cf-connecting-ip': '203.0.113.7' },
+			body: JSON.stringify({ name: 'A' })
+		});
+		const res = await worker.fetch(req as never, e, {} as ExecutionContext);
+		expect(res.status).toBe(429);
+		expect(limit).toHaveBeenCalledWith({ key: '203.0.113.7' });
+	});
+
 	it('switches server puzzles on with the SERVER_PUZZLES variable', async () => {
 		const res = await call('https://example.test/api/health', env('true'));
 		expect(await res.json()).toEqual({ ok: true, serverPuzzles: true });
