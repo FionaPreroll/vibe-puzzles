@@ -1,10 +1,24 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { readType, typeDir } from '../../../scripts/collection';
-import { layoutType, serialize, specialPuzzleId } from '../core/bank';
+import { filesToCheck, readType, typeDir } from '../../../scripts/collection';
+import { layoutType, serialize, specialPuzzleId, type BankFile } from '../core/bank';
 import { decodePuzzleId } from '../core/variants';
 import { GAME_LOGIC } from './logic';
+
+/**
+ * With BANK_TEST_SINCE set to a commit (CI on pull requests), solving puzzles again is limited to
+ * the collection files changed since then, unless the game logic changed (see filesToCheck). The
+ * cheap checks of layout, format and IDs always cover the whole collection.
+ */
+const since = process.env.BANK_TEST_SINCE;
+const changed = since
+	? execFileSync('git', ['diff', '--name-only', since, 'HEAD'], { encoding: 'utf8' })
+			.split('\n')
+			.filter(Boolean)
+	: null;
+const solveAgain = filesToCheck(changed);
 
 /** Every puzzle in the collection must be valid, belong to its file and have one solution. */
 describe('puzzle collection', () => {
@@ -31,13 +45,19 @@ describe('puzzle collection', () => {
 
 				const ids = puzzles.map((p) => p.id);
 				expect(new Set(ids).size).toBe(ids.length);
-				for (const { id, puzzle, period } of puzzles) {
+				for (const { id, period } of puzzles) {
 					expect(decodePuzzleId(id).variantIndex, `#${id}`).toBe(index);
 					// A special puzzle must be the one every player gets for its period.
 					if (kind) expect(id, `#${id}`).toBe(specialPuzzleId(logic.id, index, kind, period!));
 					else expect(period, `#${id}`).toBeUndefined();
-					expect(logic.isValidPuzzle(puzzle, variant), `#${id}`).toBe(true);
-					expect(logic.countSolutions(puzzle, 2), `#${id}`).toEqual({ count: 1, finished: true });
+				}
+
+				for (const [path, file] of Object.entries(files)) {
+					if (!('puzzles' in file) || !solveAgain(join('static', path))) continue;
+					for (const { id, puzzle } of (file as BankFile).puzzles) {
+						expect(logic.isValidPuzzle(puzzle, variant), `#${id}`).toBe(true);
+						expect(logic.countSolutions(puzzle, 2), `#${id}`).toEqual({ count: 1, finished: true });
+					}
 				}
 			}, 120_000);
 		});

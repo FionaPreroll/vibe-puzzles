@@ -65,3 +65,18 @@ export function writeType(
 		if (!kept.has(join(dir, f))) rmSync(join(dir, f));
 	}
 }
+
+/** Changes that can make stored puzzles invalid: the game logic and the shared core. */
+const LOGIC = /^src\/lib\/(games|core)\//;
+
+/**
+ * Which collection files need their puzzles checked again (validity, one solution), given the
+ * paths a change touches; null (no list) means all of them. A change to the game logic can
+ * invalidate any stored puzzle, so it checks everything; otherwise only the collection files
+ * the change adds or edits. Paths are relative to the repository, e.g. `static/puzzles/...`.
+ */
+export function filesToCheck(changed: string[] | null): (path: string) => boolean {
+	if (!changed || changed.some((path) => LOGIC.test(path))) return () => true;
+	const touched = new Set(changed);
+	return (path) => touched.has(path);
+}

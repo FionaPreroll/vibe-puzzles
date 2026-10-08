@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CHUNK_SIZE } from '../src/lib/core/bank';
-import { readType, typeDir, writeType } from './collection';
+import { filesToCheck, readType, typeDir, writeType } from './collection';
 
 let root = '';
 
@@ -49,5 +49,23 @@ describe('collection files', () => {
 		writeType(root, 'g', 'v', entries(2));
 		expect(readdirSync(typeDir(root, 'g', 'v')).sort()).toEqual(['0000.json', 'index.json']);
 		expect(existsSync(join(typeDir(root, 'g', 'v'), '0001.json'))).toBe(false);
+	});
+});
+
+describe('filesToCheck', () => {
+	const chunk = 'static/puzzles/tetroid/6n/0011.json';
+	const other = 'static/puzzles/tetroid/6n/0000.json';
+
+	it('checks everything without a list of changes or when game logic changed', () => {
+		expect(filesToCheck(null)(other)).toBe(true);
+		expect(filesToCheck(['src/lib/games/tetroid/solver.ts', chunk])(other)).toBe(true);
+		expect(filesToCheck(['src/lib/core/grid.ts'])(other)).toBe(true);
+	});
+
+	it('checks only the collection files a change touches otherwise', () => {
+		const check = filesToCheck(['README.md', chunk, 'static/puzzles/tetroid/6n/index.json']);
+		expect(check(chunk)).toBe(true);
+		expect(check(other)).toBe(false);
+		expect(filesToCheck(['src/lib/client/bank.ts'])(other)).toBe(false);
 	});
 });
