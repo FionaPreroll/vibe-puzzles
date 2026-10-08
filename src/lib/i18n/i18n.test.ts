@@ -9,6 +9,7 @@ import {
 	settingLabel,
 	t,
 	tList,
+	toolHint,
 	toolLabel,
 	variantLabel
 } from './index.svelte';
@@ -130,5 +131,13 @@ describe('labels', () => {
 		expect(toolLabel('pinwheel', { id, label: 'x' })).toBe(shared[1]);
 		// A game can rename a shared tool.
 		expect(toolLabel('pinwheel', { id: 'black', label: 'x' })).toBe(en.games.pinwheel.tool.black);
+	});
+
+	it('explains tools in their tooltip hints', () => {
+		expect(toolHint('pinwheel', 'rotate')).toBe(en.games.pinwheel.toolHint.rotate);
+		expect(toolHint('sudoku', 'digit')).toBe('');
+		stubBrowser([]);
+		setLocale('de');
+		expect(toolHint('tetroid', 'rotate')).toBe(de.games.tetroid.toolHint.rotate);
 	});
 });

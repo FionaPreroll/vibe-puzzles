@@ -284,6 +284,15 @@ const de: Dictionary = {
 				'Kein 2×2-Block darf ganz schattiert sein.'
 			],
 			notes: ['Mögliche Formen sind also L, I, T und S. Das Quadrat O fällt durch Regel 4 weg.'],
+			toolHint: {
+				rotate:
+					'Jeder Klick auf eine Zelle schaltet weiter: leer, schattiert, Kreuz und wieder leer. Rechtsklick schaltet rückwärts.',
+				black:
+					'Klick schattiert eine Zelle, ein zweiter Klick leert sie. Rechtsklick setzt ein Kreuz.',
+				cross:
+					'Klick markiert eine Zelle mit einem Kreuz: Sie bleibt unschattiert. Ein zweiter Klick entfernt es.',
+				blank: 'Leert jede Zelle, die du anklickst oder überstreichst.'
+			},
 			controlsMouse:
 				'Klicke eine Zelle zum Schattieren, Rechtsklick setzt ein Kreuz. Ziehen markiert mehrere Zellen. Tasten 1–4 wählen ein Werkzeug.',
 			controlsTouch:
@@ -304,6 +313,16 @@ const de: Dictionary = {
 			],
 			notes: [],
 			tool: { black: 'Linie' },
+			toolHint: {
+				rotate:
+					'Jeder Klick auf eine Kante schaltet weiter: leer, Linie, Kreuz und wieder leer. Rechtsklick schaltet rückwärts.',
+				black:
+					'Klick auf eine Kante zieht eine Linie, ein zweiter Klick entfernt sie. Rechtsklick setzt ein Kreuz.',
+				cross:
+					'Klick markiert eine Kante mit einem Kreuz: Dort kommt keine Linie hin. Ein zweiter Klick entfernt es.',
+				blank: 'Leert jede Kante, die du anklickst oder überstreichst.',
+				color: 'Färbt eine Zelle in der gewählten Farbe. Klick auf eine gefärbte Zelle leert sie.'
+			},
 			controlsMouse:
 				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen. Rechtsklick setzt ein Kreuz, Shift+Klick färbt eine Zelle. Rechtsklick auf einen Kreis sperrt einen fertigen Bereich.',
 			controlsTouch:
