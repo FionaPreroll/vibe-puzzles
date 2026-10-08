@@ -1,6 +1,6 @@
 import { hashString } from './rng';
 
-export type Difficulty = 'normal' | 'hard';
+export type Difficulty = 'easy' | 'normal' | 'hard';
 export type SpecialKind = 'daily' | 'weekly' | 'monthly';
 
 export interface Variant {

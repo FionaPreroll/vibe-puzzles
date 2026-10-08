@@ -6,7 +6,9 @@
  * SPECIAL_PERIODS_AHEAD first. Regular types then grow in turns, one puzzle each, so that every
  * type gets its share when the time limit ends the run.
  *
- *   npx tsx scripts/grow-puzzle-bank.ts [--per-variant N] [--max-minutes M]
+ *   npx tsx scripts/grow-puzzle-bank.ts [--per-variant N] [--max-minutes M] [--game ID]
+ *
+ * --game limits the run to one game, e.g. to seed the collection of a new game.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -27,6 +29,7 @@ const option = (name: string, fallback: number) => {
 	return i >= 0 ? Number(args[i + 1]) : fallback;
 };
 const perVariant = option('per-variant', 5);
+const onlyGame = args.includes('--game') ? args[args.indexOf('--game') + 1] : undefined;
 const deadline = Date.now() + option('max-minutes', 20) * 60_000;
 const secureRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
 
@@ -82,6 +85,7 @@ function write(slot: Slot) {
 const specials: Slot[] = [];
 const regulars: Slot[] = [];
 for (const logic of Object.values(GAME_LOGIC)) {
+	if (onlyGame && logic.id !== onlyGame) continue;
 	logic.variants.forEach((v, index) => (v.special ? specials : regulars).push(open(logic, index)));
 }
 

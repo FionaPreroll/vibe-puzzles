@@ -116,7 +116,8 @@
 		// fixed tool bar).
 		const chrome = boardTop + 4 + afterBoard;
 		const byWidth = areaWidth / (p.width + margin);
-		const byHeight = Math.max(240, viewportHeight - chrome) / (p.height + margin);
+		const byHeight =
+			Math.max(240, viewportHeight - chrome) / (p.height + margin + (game.padRows ?? 0));
 		return Math.max(16, Math.min(96, Math.floor(Math.min(byWidth, byHeight))));
 	});
 	const cellSize = $derived(Math.max(8, Math.round(fitCell * zoom)));
@@ -424,7 +425,9 @@
 />
 
 <svelte:head>
-	<title>{game.name} · {label} · {t('app.name')}</title>
+	<!-- The prerendered page cannot know which puzzle a link opens (link previews in messengers
+	     show this title), so the puzzle type joins the title once a puzzle is loaded. -->
+	<title>{session.puzzle ? `${game.name} · ${label}` : game.name} · {t('app.name')}</title>
 </svelte:head>
 
 {#snippet toolButtons(compact: boolean)}

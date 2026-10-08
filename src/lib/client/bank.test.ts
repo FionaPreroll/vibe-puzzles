@@ -55,6 +55,19 @@ describe('collection', () => {
 		expect(fetchMock).toHaveBeenCalledWith('/base/puzzles/tetroid/6n.json');
 	});
 
+	it('keeps only the most recently used files in memory', async () => {
+		const bank = await setup(() => Response.json(file));
+		for (const v of ['6n', '6h', '8n', '8h']) await bank.loadBank('tetroid', v);
+		await bank.loadBank('tetroid', '6n');
+		await bank.loadBank('tetroid', '10n');
+		expect(fetchMock).toHaveBeenCalledTimes(5);
+		// 6n was used again, so 6h was dropped and is read once more.
+		await bank.loadBank('tetroid', '6n');
+		expect(fetchMock).toHaveBeenCalledTimes(5);
+		await bank.loadBank('tetroid', '6h');
+		expect(fetchMock).toHaveBeenCalledTimes(6);
+	});
+
 	it('treats a missing file or no connection as an empty collection', async () => {
 		let bank = await setup(() => new Response('', { status: 404 }));
 		expect(await bank.pickFromBank('tetroid', '6n')).toBeNull();

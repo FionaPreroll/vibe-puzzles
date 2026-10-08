@@ -107,6 +107,7 @@ const de: Dictionary = {
 		expired: 'Gelöst in {time}! Nicht gewertet: Der Server hebt dieses alte Rätsel nicht mehr auf.'
 	},
 	difficulty: {
+		easy: 'Leicht',
 		normal: 'Normal',
 		hard: 'Schwer'
 	},
@@ -125,7 +126,9 @@ const de: Dictionary = {
 		black: 'Schwarz',
 		cross: 'Kreuz',
 		blank: 'Leeren',
-		color: 'Farbe'
+		color: 'Farbe',
+		digit: 'Ziffer',
+		note: 'Notiz'
 	},
 	swatch: ['', 'Violett', 'Rot', 'Gelb', 'Grün', 'Blau'],
 	setting: {
@@ -150,7 +153,13 @@ const de: Dictionary = {
 		continuousLine: 'Durchgehende Linie zeichnen',
 		symmetryHelper: 'Symmetriehilfe',
 		blackHoles: 'Schwarzes Loch in fertigen Galaxien',
-		autoColor: 'Fertige Galaxien automatisch einfärben'
+		autoColor: 'Fertige Galaxien automatisch einfärben',
+		markMistakes: 'Falsche Ziffern rot färben',
+		autoNotes: 'Notizen automatisch eintragen',
+		autoRemoveNotes: 'Notizen entfernen, die eine neue Ziffer ausschließt',
+		highlightLines: 'Zeile, Spalte und Block hervorheben',
+		highlightSame: 'Gleiche Ziffer hervorheben',
+		showRemaining: 'Anzeigen, wie oft jede Ziffer noch fehlt'
 	},
 	source: {
 		title: 'Woher neue Rätsel kommen',
@@ -294,6 +303,30 @@ const de: Dictionary = {
 				'Ein Kreis auf einer Zelle, einer Kante oder einer Ecke zeigt dir, wo die Mitte des Bereichs liegt.',
 				'Ziehe Linien zwischen den Punkten, um die Bereiche zu trennen. Die Symmetriehilfe spiegelt deine Linien automatisch.',
 				'Jetzt teile dieses Brett so, dass jeder Bereich einen Kreis enthält und um ihn symmetrisch ist.'
+			]
+		},
+		sudoku: {
+			tagline:
+				'Fülle das Gitter so, dass sich in keiner Zeile, Spalte und keinem Block eine Ziffer wiederholt.',
+			rules: [
+				'Trage in jedes leere Feld eine Ziffer von 1 bis 9 ein.',
+				'Jede Zeile, jede Spalte und jeder dick umrandete 3×3-Block enthält jede Ziffer genau einmal.'
+			],
+			notes: [
+				'Kleine Ziffern in einem Feld sind Notizen: die Ziffern, die dort noch möglich sind. Für die Lösung zählen sie nicht.'
+			],
+			controlsMouse:
+				'Klicke ein Feld an und tippe eine Ziffer oder nutze das Zahlenfeld. Umschalt+Ziffer setzt oder entfernt eine Notiz, die Leertaste wechselt zwischen Ziffern und Notizen. Rücktaste oder 0 löscht. Pfeiltasten bewegen.',
+			controlsTouch:
+				'Tippe ein Feld an, dann eine Ziffer im Zahlenfeld. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
+			pad: 'Zahlenfeld',
+			erase: 'Löschen',
+			left: 'noch {count}',
+			tutorial: [
+				'Dieses kleine Sudoku nutzt die Ziffern 1 bis 4. Jede Zeile, Spalte und jeder 2×2-Block braucht jede davon genau einmal.',
+				'Sieh dir die oberste Zeile an: 1, 2 und 4 stehen schon da, also muss in das leere Feld eine 3.',
+				'Noch unsicher? Nimm das Notiz-Werkzeug und notiere kleine Ziffern als Erinnerung, was noch möglich ist.',
+				'Jetzt fülle alle leeren Felder. Doppelte Ziffern werden rot.'
 			]
 		}
 	}
