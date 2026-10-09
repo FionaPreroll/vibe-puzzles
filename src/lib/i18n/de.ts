@@ -61,7 +61,7 @@ const de: Dictionary = {
 		dailyOpen: 'Tagesrätsel wartet',
 		dailyDone: 'Tagesrätsel gelöst',
 		streak: 'Serie {count}',
-		newHere: 'Neu hier? Jedes Tutorial dauert eine Minute.',
+		newHere: 'Neu hier? Jedes Tutorial dauert nur wenige Minuten.',
 		learn: '{game} lernen',
 		play: 'Spielen',
 		daily: 'Täglich',
