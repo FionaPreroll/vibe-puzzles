@@ -701,7 +701,7 @@
 
 		<div
 			bind:offsetHeight={toolbarHeight}
-			class="flex flex-wrap items-center gap-2 {settings.values.stickyToolbar
+			class="flex flex-wrap items-center gap-1.5 sm:gap-2 {settings.values.stickyToolbar
 				? 'sticky top-0 z-10 bg-stone-50/95 py-2 backdrop-blur dark:bg-stone-950/95'
 				: ''}"
 		>
@@ -778,7 +778,7 @@
 			     360px the row has no room for it: it sits in the "more" menu there -->
 			{#if game.hint && !session.solved}
 				<button
-					class="btn max-[359px]:hidden"
+					class="btn max-[359px]:hidden max-sm:px-2"
 					onclick={() => session.showHint()}
 					disabled={session.readonly}
 					aria-label={t('game.hint')}
