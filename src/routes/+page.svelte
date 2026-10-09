@@ -105,6 +105,21 @@
 					{t(`games.${game.id}.tagline`)}
 				</p>
 			</a>
+			{#if s?.tutorials.length}
+				<!-- Second to Play: a hint with quiet buttons, above the daily puzzle and Play -->
+				<div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+					<span class="text-stone-600 dark:text-stone-400">{t('home.newHere')}</span>
+					{#each s.tutorials as r (r.mode ?? '')}
+						<a
+							class="btn-sm"
+							href={r.mode
+								? resolve('/[game]/tutorial/[mode]', { game: game.id, mode: r.mode })
+								: resolve('/[game]/tutorial', { game: game.id })}
+							>{t('home.learn', { game: r.mode ? t(`mode.${r.mode}`) : game.name })}</a
+						>
+					{/each}
+				</div>
+			{/if}
 			{#if daily && !s}
 				<!-- Placeholder until the stats are read -->
 				<div class="mt-4 animate-pulse text-sm" aria-hidden="true">
@@ -128,17 +143,8 @@
 				</a>
 				<p class="mt-1 text-xs text-stone-500 dark:text-stone-400">{nextDailyText(now)}</p>
 			{/if}
-			<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+			<div class="mt-3">
 				<a class="btn btn-primary" href={gameUrl(game.id)}>{t('home.play')}</a>
-				{#each s?.tutorials ?? [] as r (r.mode ?? '')}
-					<a
-						class="link text-sm"
-						href={r.mode
-							? resolve('/[game]/tutorial/[mode]', { game: game.id, mode: r.mode })
-							: resolve('/[game]/tutorial', { game: game.id })}
-						>{t('home.tutorial', { game: r.mode ? t(`mode.${r.mode}`) : game.name })}</a
-					>
-				{/each}
 			</div>
 		</li>
 	{/each}

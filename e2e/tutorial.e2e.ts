@@ -96,7 +96,7 @@ test('the Tetroid tutorial teaches one rule per step', async ({ page }) => {
 
 test('the home page links both Sudoku tutorials, and Calcudoku has its own', async ({ page }) => {
 	await page.goto('/');
-	await page.getByRole('link', { name: 'New here? Learn Calcudoku in a minute' }).click();
+	await page.getByRole('link', { name: 'Learn Calcudoku', exact: true }).click();
 	await expect(page).toHaveURL(/\/sudoku\/tutorial\/calc$/);
 	await expect(page.getByRole('heading', { name: 'Calcudoku tutorial' })).toBeVisible();
 	const next = page.getByRole('button', { name: 'Next' });
@@ -139,9 +139,7 @@ test('the home page links both Sudoku tutorials, and Calcudoku has its own', asy
 
 	// The solved Calcudoku tutorial leaves the home page; the Sudoku one stays.
 	await page.goto('/');
-	await expect(
-		page.getByRole('link', { name: 'New here? Learn Sudoku in a minute' })
-	).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Learn Sudoku', exact: true })).toBeVisible();
 	await expect(page.getByRole('link', { name: /Learn Calcudoku/ })).toHaveCount(0);
 });
 
