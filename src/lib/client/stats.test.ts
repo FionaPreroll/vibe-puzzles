@@ -92,6 +92,12 @@ describe('stats', () => {
 		expect(getStats('tetroid', '8n').solved).toBe(0);
 	});
 
+	it('counts a solve with a hint, but not its time as the best', () => {
+		recordSolve('tetroid', '6n', 1, 5000);
+		const s = recordSolve('tetroid', '6n', 2, 1000, undefined, undefined, true);
+		expect(s).toMatchObject({ solved: 2, streak: 2, bestMs: 5000 });
+	});
+
 	it('counts a puzzle solved again only once', () => {
 		recordSolve('tetroid', '6n', 1, 5000);
 		const again = recordSolve('tetroid', '6n', 1, 2000);

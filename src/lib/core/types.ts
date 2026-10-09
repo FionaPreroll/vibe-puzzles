@@ -72,6 +72,16 @@ export interface TutorialStep<P, S> {
 
 export type TouchMode = 'auto' | 'draw' | 'pan';
 
+/** What the hint button shows for the current position. */
+export interface Hint {
+	/** Wrong marks, cells that follow from the marks, or a place to start case analysis. */
+	kind: 'mistake' | 'step' | 'stuck';
+	/** Elements to point at, in the board's `lastChange` keys. */
+	spotlight: string[];
+	/** Translation keys of the sentences that explain it, shown one after the other. */
+	text: string[];
+}
+
 /** Pure game logic, shared by the client and the optional server. */
 export interface GameLogic<P = unknown, S = unknown> {
 	id: string;
@@ -124,4 +134,6 @@ export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	tutorial?: GameTutorial<P, S>;
 	/** Tutorials for a mode, e.g. Calcudoku in Sudoku (texts under `games.<id>.modes.<mode>`). */
 	modeTutorials?: Record<string, GameTutorial<P, S>>;
+	/** The next step from the player's position, or null when there is none (solved). */
+	hint?(puzzle: P, state: S): Hint | null;
 }

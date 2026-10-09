@@ -2,6 +2,7 @@ import { withCommon } from '../../core/settings';
 import { TETROID_TUTORIAL, TETROID_TUTORIAL_STEPS, tetroidTutorialStart } from './tutorial';
 import type { GameModule } from '../../core/types';
 import Board from './Board.svelte';
+import { tetroidHint } from './hint';
 import { tetroidLogic } from './logic';
 import type { TetroidPuzzle, TetroidState } from './rules';
 
@@ -29,5 +30,15 @@ export const tetroid: GameModule<TetroidPuzzle, TetroidState> = {
 		start: tetroidTutorialStart,
 		steps: TETROID_TUTORIAL_STEPS
 	},
-	board: Board
+	board: Board,
+	hint(puzzle, state) {
+		const hint = tetroidHint(puzzle, state);
+		if (!hint) return null;
+		const spotlight = hint.cells.map(String);
+		if (hint.kind === 'mistake') return { kind: 'mistake', spotlight, text: ['game.hintMistake'] };
+		if (hint.kind === 'stuck')
+			return { kind: 'stuck', spotlight, text: ['games.tetroid.hints.stuck'] };
+		const key = (k: string) => `games.tetroid.hints.${k}`;
+		return { kind: 'step', spotlight, text: [key(hint.technique), key(hint.mark)] };
+	}
 };

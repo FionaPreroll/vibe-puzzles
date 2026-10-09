@@ -26,7 +26,7 @@ export interface ScoreEntry {
 
 export interface ScoreResult {
 	ok: boolean;
-	code?: 'wrong' | 'repeat' | 'personal' | 'local' | 'ranked' | 'expired';
+	code?: 'wrong' | 'repeat' | 'personal' | 'local' | 'hinted' | 'ranked' | 'expired';
 	message: string;
 	timeMs?: number;
 	bestMs?: number;
@@ -206,6 +206,8 @@ export interface Submission {
 	timeMs: number;
 	playMs: number;
 	competitive: boolean;
+	/** A hint was used: not ranked. */
+	hinted?: boolean;
 	/** Set for puzzles issued by the server. */
 	ticket?: string;
 }

@@ -21,6 +21,7 @@
 		[['X', 'Shift+Z', `${mod}+Y`], t('shortcuts.redo')],
 		[['Enter'], t('shortcuts.done')],
 		[['+'], t('shortcuts.newPuzzle')],
+		...(game.hint ? [[['H'], t('shortcuts.hint')]] : []),
 		[[`${mod}+S`], t('shortcuts.save')],
 		[[`${mod}+Shift+S`], t('shortcuts.add')],
 		...(game.toolOptions && tools ? [[[']'], t('shortcuts.colourTool')]] : []),

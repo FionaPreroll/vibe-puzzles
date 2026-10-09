@@ -95,6 +95,9 @@ const de: Dictionary = {
 		resume: 'Weiter',
 		undo: 'Rückgängig',
 		redo: 'Wiederholen',
+		hint: 'Tipp',
+		hintTitle: 'Tipp (H): zeigt den nächsten Schritt. Das Spiel gilt dann als mit Hilfe gelöst.',
+		hintMistake: 'Die markierten Zellen stimmen nicht mit der Lösung überein.',
 		tools: 'Werkzeuge',
 		colour: 'Farbe {name}',
 		touch: 'Touch-Bedienung',
@@ -135,6 +138,7 @@ const de: Dictionary = {
 		general: 'Spiel',
 		undo: 'Rückgängig',
 		redo: 'Wiederholen',
+		hint: 'Tipp',
 		newPuzzle: 'Neues Rätsel',
 		done: 'Lösung prüfen',
 		save: 'Zwischenstand speichern',
@@ -164,6 +168,7 @@ const de: Dictionary = {
 		yourBest: 'Deine Bestzeit ist {time}.',
 		unrankedPersonal: 'Gelöst in {time}! Persönliche Zeit: nicht gewertet.',
 		unrankedLocal: 'Gelöst in {time}! Nicht gewertet: Nur Rätsel vom Server kommen in die Wertung.',
+		unrankedHinted: 'Gelöst in {time}, mit Tipp: nicht gewertet.',
 		expired: 'Gelöst in {time}! Nicht gewertet: Der Server hebt dieses alte Rätsel nicht mehr auf.'
 	},
 	difficulty: {
@@ -350,6 +355,23 @@ const de: Dictionary = {
 				'Klicke eine Zelle zum Schattieren, Rechtsklick setzt ein Kreuz. Ziehen markiert mehrere Zellen. Tasten 1–4 wählen ein Werkzeug.',
 			controlsTouch:
 				'Tippe eine Zelle an, um zwischen schattiert, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Zellen.',
+			hints: {
+				region:
+					'Schau, welche Tetrominos in diesen Bereich noch passen, nach seiner Form und deinen Markierungen.',
+				sameShape:
+					'Streiche Tetrominos, die ein gleiches berühren würden: Alles, was im Nachbarbereich noch passt, hat diese Form.',
+				square: 'Streiche Tetrominos, die einen schattierten 2×2-Block vervollständigen würden.',
+				neighbour:
+					'Streiche Tetrominos, die mit allem kollidieren, was im Nachbarbereich noch passt: Jede Möglichkeit dort würde eine gleiche Form berühren oder einen 2×2-Block vervollständigen.',
+				lookAhead:
+					'Streiche Tetrominos, die die schattierten Zellen trennen würden: Frag dich, ob noch alles zusammenhängen könnte, wenn das Tetromino dort läge.',
+				shade:
+					'Jedes Tetromino, das in diesem Bereich übrig bleibt, bedeckt die markierten Zellen: Schattiere sie.',
+				cross:
+					'Kein Tetromino, das in diesem Bereich übrig bleibt, bedeckt die markierten Zellen: Sie bleiben leer.',
+				stuck:
+					'Hier entscheidet keine Regel eine Zelle. Schwere Rätsel brauchen eine Fallunterscheidung: Leg im Kopf ein Tetromino in den markierten Bereich und verfolge es, bis eine Regel bricht.'
+			},
 			tutorial: [
 				{
 					text: 'Jeder dick umrandete Bereich braucht genau ein Tetromino: vier schattierte Zellen, die mit ihren Seiten aneinanderstoßen. Es gibt vier Formen, I, L, T und S, die auch gedreht oder gespiegelt sein dürfen. Der Bereich oben links ist schon fertig: Er enthält ein S, und Kreuze markieren seine leeren Zellen. Schau dir das Brett erst einmal nur an: Ab Schritt 2 schattierst du.'

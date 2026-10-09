@@ -111,6 +111,8 @@ Specials use these levels too: Sudoku and Tetroid daily normal, weekly and month
 
 With `branch: false` the solver stops after propagation; otherwise it branches on the region with the fewest placements left.
 
+**Hints** (`tetroidHint` in `hint.ts`) use the same deductions one at a time, starting from the player's marks: placements that contradict a cross or miss a shaded cell are gone first. Then the simplest technique that rules out any placement runs, in this order: same shape touching, 2×2 block, a mix of both against a neighbouring region, look-ahead. After each round the hint looks for empty cells that all remaining placements of their region cover (shade) or none covers (cross), and names the region whose eliminations needed the simplest technique. Connectivity on its own is left out: the look-ahead covers it. Marks that disagree with the solution come first; when nothing follows, the hint names the region with the fewest placements as a place to start case analysis. Following the hints solves every normal puzzle, because they run the same propagation that grades it.
+
 ## Pinwheel
 
 `generatePinwheel(width, height, difficulty, seed)` in `src/lib/games/pinwheel/generator.ts`. Centres can sit on a cell, an edge or a corner (coordinates in half cells).
