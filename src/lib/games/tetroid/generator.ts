@@ -406,9 +406,9 @@ function makeLogical(layout: Layout, rng: Rng): boolean {
 }
 
 /**
- * Attempts (each a new planted solution) at a puzzle of the requested difficulty. Normal ones
- * nearly always succeed at the first; about one hard attempt in five succeeds on 6×6, more on
- * bigger boards.
+ * Attempts (each a new planted solution) at a puzzle of the requested difficulty. About three
+ * normal attempts in five succeed on 6×6; of the unique hard attempts about one in four succeeds
+ * on 6×6 and one in two on 10×10.
  */
 const ATTEMPTS = 100;
 
