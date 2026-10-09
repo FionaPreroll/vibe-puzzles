@@ -9,8 +9,11 @@ export interface GeneratedSudoku {
 	solution: number[];
 }
 
-/** Attempts at a hard puzzle before settling for the hardest one found. */
-const HARD_ATTEMPTS = 30;
+/**
+ * Attempts at a hard puzzle before settling for the hardest one found. About one attempt in eight
+ * needs more than singles, so 200 practically never run out (30 did for about 1 seed in 60).
+ */
+const HARD_ATTEMPTS = 200;
 /** Easy puzzles keep this many givens, so there are always several obvious next steps. */
 export const EASY_GIVENS = 36;
 

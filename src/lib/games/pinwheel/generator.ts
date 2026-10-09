@@ -175,6 +175,13 @@ function makeUnique(w: number, h: number, galaxies: Galaxy[], rng: Rng): boolean
 }
 
 /**
+ * Attempts (each a new partition) before settling for the first unique puzzle. Puzzles that need
+ * case analysis are rare on small boards (on 5×5 about one unique partition in 500), but an
+ * attempt there takes a fraction of a millisecond; on bigger boards most attempts fit.
+ */
+const ATTEMPTS = 10_000;
+
+/**
  * Generate a puzzle with a unique solution; deterministic for a given seed.
  * Normal puzzles can be solved by propagation alone, hard puzzles need case analysis.
  */
@@ -186,7 +193,7 @@ export function generatePinwheel(
 ): GeneratedPinwheel {
 	const rng = new Rng(seed);
 	let fallback: GeneratedPinwheel | null = null;
-	for (let attempt = 0; attempt < 100; attempt++) {
+	for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
 		const galaxies = partition(width, height, rng);
 		if (!makeUnique(width, height, galaxies, rng)) continue;
 		// Sort centres in reading order so the puzzle does not reveal how it was built.
@@ -200,7 +207,6 @@ export function generatePinwheel(
 		const easy = new PinwheelSolver(puzzle).solve({ branch: false }).solutions.length === 1;
 		if (easy === (difficulty === 'normal')) return result;
 		fallback ??= result;
-		if (attempt >= 8) return fallback;
 	}
 	if (fallback) return fallback;
 	throw new Error('generation failed');

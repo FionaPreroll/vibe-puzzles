@@ -207,6 +207,15 @@ describe('generator', () => {
 		}
 	});
 
+	it('keeps searching for a hard puzzle where 30 attempts found none', () => {
+		// Seeds whose first 30 attempts all ended up solvable by singles.
+		for (const seed of [386, 481]) {
+			const { puzzle } = generateSudoku(9, 'hard', seed);
+			expect(ratePuzzle(puzzle, Level.Singles).solved, `seed ${seed}`).toBe(false);
+			expect(ratePuzzle(puzzle).solved, `seed ${seed}`).toBe(true);
+		}
+	});
+
 	it('keeps more givens on easy than on normal', () => {
 		for (const seed of [1, 2, 3]) {
 			const easyCount = generateSudoku(9, 'easy', seed).puzzle.givens.filter(Boolean).length;

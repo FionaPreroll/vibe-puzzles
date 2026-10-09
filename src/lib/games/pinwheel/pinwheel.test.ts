@@ -125,6 +125,25 @@ describe('generator', () => {
 			expect(isSolvedState(a.puzzle, linesFromAssignment(a.puzzle, a.solution))).toBe(true);
 		}
 	});
+
+	// Normal puzzles must be solvable by propagation alone, hard ones must need case analysis,
+	// also on small boards where such puzzles are rare.
+	it.each([
+		[5, 'normal'],
+		[5, 'hard'],
+		[7, 'hard'],
+		[10, 'hard']
+	] as const)(
+		'makes %ix%i %s puzzles of their difficulty',
+		(size, difficulty) => {
+			for (let seed = 1; seed <= 6; seed++) {
+				const { puzzle } = generatePinwheel(size, size, difficulty, seed);
+				const logic = solvePinwheel(puzzle, { branch: false });
+				expect(logic.solutions.length === 1, `seed ${seed}`).toBe(difficulty === 'normal');
+			}
+		},
+		30_000
+	);
 });
 
 describe('tutorial', () => {

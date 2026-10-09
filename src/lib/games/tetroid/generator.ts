@@ -274,10 +274,11 @@ const NODE_BUDGET = 1500;
  * Reshape regions until the planted solution is the only one. Moving an unshaded cell to a
  * neighbouring region never invalidates the planted solution. Alternatives that change a single
  * region are cheap to detect and are removed first; the full solver then checks for combined
- * alternatives. When a region cannot be fixed by moving cells, its planted tetromino is swapped
- * for one of its alternatives, which changes the pockets around it.
+ * alternatives (unless `search` is false, which leaves them to makeLogical). When a region
+ * cannot be fixed by moving cells, its planted tetromino is swapped for one of its alternatives,
+ * which changes the pockets around it.
  */
-function makeUnique(layout: Layout, rng: Rng): boolean {
+function makeUnique(layout: Layout, rng: Rng, search = true): boolean {
 	const { n, regions, solution } = layout;
 	const alts = Array.from({ length: layout.regionCount }, (_, r) => layout.alternatives(r).length);
 	const recount = () => alts.forEach((_, r) => (alts[r] = layout.alternatives(r).length));
@@ -332,6 +333,7 @@ function makeUnique(layout: Layout, rng: Rng): boolean {
 			replant(shading);
 			continue;
 		}
+		if (!search) return true;
 		const puzzle = { width: layout.w, height: layout.h, regions: Array.from(regions) };
 		const res = new TetroidSolver(puzzle).solve({ limit: 2, maxNodes: NODE_BUDGET });
 		if (!res.finished) return false;
@@ -351,11 +353,71 @@ function makeUnique(layout: Layout, rng: Rng): boolean {
 }
 
 /**
+ * Reshape regions until propagation alone (with the look-ahead) solves the puzzle, which also
+ * proves the solution unique. Where propagation gets stuck, a region has placements left besides
+ * its planted tetromino; each of them covers an unshaded cell of the region, and moving such a
+ * cell to a neighbouring region rules them out. Cells that most stuck placements share go first,
+ * and moves that open a new alternative in the receiving region are avoided. When every such
+ * cell holds its region together, another cell of a stuck region moves first, preferably one
+ * next to them, which frees them for a later move.
+ */
+function makeLogical(layout: Layout, rng: Rng): boolean {
+	const { n, regions, solution } = layout;
+	// Recently left (cell, region) pairs, as in makeUnique.
+	const tabu: number[] = [];
+	const bestMove = (weight: (i: number) => number, useTabu: boolean) => {
+		let best: { cell: number; target: number; score: number } | null = null;
+		for (let i = 0; i < n; i++) {
+			const w = weight(i);
+			if (solution[i] || w < 0 || !layout.staysConnected(i)) continue;
+			for (const j of layout.nb[i]) {
+				const target = regions[j];
+				if (target === regions[i] || (useTabu && tabu.includes(i * 4096 + target))) continue;
+				const score = 4 * layout.alternativesThrough(i, target) - w + rng.next() * 0.5;
+				if (!best || score < best.score) best = { cell: i, target, score };
+			}
+		}
+		return best;
+	};
+
+	for (let iter = 0; iter < n; iter++) {
+		const model = new TetroidModel({ width: layout.w, height: layout.h, regions: [...regions] });
+		// Propagation never rules out the planted solution, so there is no contradiction.
+		const dom = new TetroidSolver(model).propagated()!;
+		// Per cell, the stuck placements (not the planted ones) that cover it.
+		const open = new Int32Array(n);
+		let stuck = false;
+		model.placements.forEach((pl, k) => {
+			if (!dom.alive[k] || dom.size[pl.region] === 1) return;
+			stuck = true;
+			for (const i of pl.cells) if (!solution[i]) open[i]++;
+		});
+		if (!stuck) return true;
+		const stuckCell = (i: number) => (open[i] > 0 ? open[i] : -1);
+		const nearStuck = (i: number) =>
+			dom.size[regions[i]] > 1 ? layout.nb[i].filter((j) => open[j] > 0).length : -1;
+		const m = bestMove(stuckCell, true) ?? bestMove(nearStuck, true) ?? bestMove(nearStuck, false);
+		if (!m) return false;
+		tabu.push(m.cell * 4096 + regions[m.cell]);
+		if (tabu.length > 12) tabu.shift();
+		regions[m.cell] = m.target;
+	}
+	return false;
+}
+
+/**
+ * Attempts (each a new planted solution) at a puzzle of the requested difficulty. About three
+ * normal attempts in five succeed on 6×6; of the unique hard attempts about one in four succeeds
+ * on 6×6 and one in two on 10×10.
+ */
+const ATTEMPTS = 100;
+
+/**
  * Generate a puzzle with a unique solution. Deterministic for a given seed: budgets are counted
  * in search nodes and iterations, never in time.
  *
- * Normal puzzles can be solved by deduction alone (no guessing); hard puzzles need more than the
- * basic deductions (connectivity look-ahead or trial and error).
+ * Normal puzzles can be solved by deduction alone (propagation with the connectivity look-ahead,
+ * no guessing); regions are reshaped until they are. Hard puzzles cannot be solved that way.
  */
 export function generateTetroid(
 	width: number,
@@ -365,19 +427,25 @@ export function generateTetroid(
 ): GeneratedTetroid {
 	const rng = new Rng(seed);
 	let fallback: GeneratedTetroid | null = null;
-	for (let attempt = 0; attempt < 100; attempt++) {
+	for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
 		const layout = new Layout(width, height);
 		plant(layout, rng);
 		growRegions(layout, rng);
+		const result = (): GeneratedTetroid => ({
+			puzzle: { width, height, regions: Array.from(layout.regions) },
+			solution: Array.from(layout.solution)
+		});
+		if (difficulty === 'normal') {
+			// makeLogical finishes whatever makeUnique leaves (the planted solution stays valid
+			// even when it gives up). A normal puzzle never falls back to one that needs guessing.
+			makeUnique(layout, rng, false);
+			if (makeLogical(layout, rng)) return result();
+			continue;
+		}
 		if (!makeUnique(layout, rng)) continue;
-		const puzzle: TetroidPuzzle = { width, height, regions: Array.from(layout.regions) };
-		const result = { puzzle, solution: Array.from(layout.solution) };
-		const model = new TetroidModel(puzzle);
-		const solvedBy = (advanced: boolean) =>
-			new TetroidSolver(model).solve({ branch: false, advanced }).solutions.length === 1;
-		if (solvedBy(true) === (difficulty === 'normal')) return result;
-		fallback ??= result;
-		if (attempt >= 4) return fallback;
+		const { puzzle } = result();
+		if (new TetroidSolver(puzzle).solve({ branch: false }).solutions.length === 0) return result();
+		fallback ??= result();
 	}
 	if (fallback) return fallback;
 	throw new Error('generation failed');

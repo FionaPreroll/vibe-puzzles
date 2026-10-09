@@ -10,7 +10,7 @@ import {
 	type TetroidPuzzle
 } from './rules';
 import { classify, SHAPES } from './shapes';
-import { solveTetroid } from './solver';
+import { solveTetroid, TetroidSolver } from './solver';
 
 // Worked example of the spec (section 2).
 const REGIONS = ['AAABBB', 'ACCDBB', 'ACDDBE', 'ACDDBE', 'ACDBBE', 'ACDDDE'];
@@ -137,6 +137,14 @@ describe('solver', () => {
 		expect(res.solutions).toHaveLength(1);
 		expect(Array.from(res.solutions[0])).toEqual(solved);
 	});
+
+	it('tells what propagation leaves, or null on a contradiction', () => {
+		const dom = new TetroidSolver(example).propagated()!;
+		expect(Array.from(dom.size)).toEqual([1, 1, 1, 1, 1]);
+		expect(dom.alive.reduce((a, b) => a + b, 0)).toBe(5);
+		// A region of three cells holds no tetromino.
+		expect(new TetroidSolver({ width: 3, height: 1, regions: [0, 0, 0] }).propagated()).toBeNull();
+	});
 });
 
 describe('generator', () => {
@@ -159,6 +167,25 @@ describe('generator', () => {
 			expect([...counts.values()].every((c) => c >= 4)).toBe(true);
 		}
 	});
+
+	// Normal puzzles must be solvable by deduction alone, hard ones must not be.
+	it.each([
+		[6, 'normal'],
+		[6, 'hard'],
+		[8, 'normal'],
+		[8, 'hard'],
+		[10, 'normal']
+	] as const)(
+		'makes %ix%i %s puzzles of their difficulty',
+		(size, difficulty) => {
+			for (let seed = 1; seed <= 6; seed++) {
+				const { puzzle } = generateTetroid(size, size, difficulty, seed);
+				const logic = solveTetroid(puzzle, { branch: false });
+				expect(logic.solutions.length === 1, `seed ${seed}`).toBe(difficulty === 'normal');
+			}
+		},
+		30_000
+	);
 });
 
 describe('tutorial', () => {
