@@ -4,16 +4,25 @@
 	import { GameSettings } from '../client/settings.svelte';
 	import { save } from '../client/storage';
 	import type { GameModule } from '../core/types';
+	import {
+		findTutorial,
+		tutorialDoneKey,
+		tutorialNextVariant,
+		tutorialTextKey
+	} from '../games/tutorials';
 	import { t, tSteps, toolLabel } from '../i18n/index.svelte';
 
 	/**
 	 * Interactive first puzzle: a few short steps next to a small hand-picked board that the
 	 * player solves with the real controls. With `tutorial.steps` the steps are guided: some are
-	 * only read, others are a task on the board that has to be done before going on.
+	 * only read, others are a task on the board that has to be done before going on. A `mode`
+	 * picks that mode's tutorial instead, e.g. Calcudoku in Sudoku.
 	 */
-	let { game }: { game: GameModule } = $props();
+	let { game, mode }: { game: GameModule; mode?: string } = $props();
 
-	const tutorial = untrack(() => game.tutorial!);
+	const ref = untrack(() => findTutorial(game, mode)!);
+	const tutorial = ref.tutorial;
+	const name = $derived(mode ? t(`mode.${mode}`) : game.name);
 	const settings = untrack(() => new GameSettings(game.id, game.settings));
 	const isTouch = typeof window !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 	const Board = $derived(game.board);
@@ -24,7 +33,7 @@
 	let lastChange = $state.raw<ReadonlySet<string>>(new Set());
 	let step = $state(0);
 
-	const steps = $derived(tSteps(`games.${game.id}.tutorial`));
+	const steps = $derived(tSteps(tutorialTextKey(ref)));
 	const last = $derived(step === steps.length - 1);
 	const guide = $derived(tutorial.steps?.[step]);
 	const taskDone = $derived(!!guide?.done?.(tutorial.puzzle, current));
@@ -44,7 +53,7 @@
 	);
 
 	$effect(() => {
-		if (solved) save(`tutorialDone:${game.id}`, true);
+		if (solved) save(tutorialDoneKey(ref), true);
 	});
 
 	function move(next: typeof current, changed: string[]) {
@@ -65,11 +74,14 @@
 		history = history.slice(0, -1);
 	}
 
-	const playUrl = $derived(resolve('/[game]', { game: game.id }));
+	const playUrl = $derived.by(() => {
+		const v = tutorialNextVariant(ref);
+		return `${resolve('/[game]', { game: game.id })}${v ? `?v=${v}` : ''}`;
+	});
 </script>
 
 <svelte:head>
-	<title>{t('tutorial.title', { game: game.name })} · {t('app.name')}</title>
+	<title>{t('tutorial.title', { game: name })} · {t('app.name')}</title>
 </svelte:head>
 
 <div class="mx-auto grid max-w-4xl gap-6 md:grid-cols-[1fr_minmax(0,22rem)] md:items-start">
@@ -112,7 +124,7 @@
 	<aside class="panel order-1 md:order-2" aria-live="polite">
 		<h1 class="text-xl font-bold tracking-tight">
 			<span aria-hidden="true">{game.icon}</span>
-			{t('tutorial.title', { game: game.name })}
+			{t('tutorial.title', { game: name })}
 		</h1>
 		{#if solved}
 			<p class="mt-4 text-lg font-semibold text-emerald-700 dark:text-emerald-400">

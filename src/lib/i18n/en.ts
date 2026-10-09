@@ -446,6 +446,33 @@ const en = {
 						'Each cage with a thick border shows a result, then an operation. Its digits must give that result: "12+" adds up to 12, "60×" multiplies to 60.',
 						'"1−" and "5÷" cages have two cells: the larger digit minus or divided by the smaller one gives the result, e.g. 7 − 6 = 1 or 5 ÷ 1 = 5.',
 						'A cage with just a number holds that digit. Digits may repeat inside a cage, but never in a row or column.'
+					],
+					tutorial: [
+						{
+							text: 'Calcudoku is a Sudoku without boxes: each row and each column holds the digits 1 to 4 exactly once. Instead of given digits, the grid has cages, groups of cells with a thick border. Just look for now: you start filling in step 3.'
+						},
+						{
+							text: 'The label in a cage\'s corner is a result and an operation. The digits in the cage must give that result: "7+" means they add up to 7, "18×" (marked) that they multiply to 18. In a "3−" or "2÷" cage, the larger of its two digits minus or divided by the smaller one gives the result.'
+						},
+						{
+							text: 'A cage with one cell and just a number holds that digit. That is your free start.',
+							task: 'Enter the digit of the cell at the top right: select the cell, then tap the digit on the number pad or type it.',
+							done: 'Done: one cell, one digit.'
+						},
+						{
+							text: 'The "3−" cage below it needs two digits that differ by 3. From 1 to 4, only 4 and 1 do. Which goes where? The right column already has its 4.',
+							task: 'Fill in the "3−" cage.',
+							done: 'Right: the 1 goes on the right, because that column already has a 4.'
+						},
+						{
+							text: 'The "7+" cage on the left of the third row needs 3 and 4, but nothing tells you the order yet. That is what notes are for: small digits that keep both options open.',
+							task: 'Pick the Note tool (✎) and note 3 and 4 in both cells of the "7+" cage.',
+							done: 'Good: the order will come out later.'
+						},
+						{
+							text: 'Digits may repeat inside a cage, as long as they sit in different rows and columns: "18×" is 2 × 3 × 3. Repeated digits in a row or column turn red, and so does the label of a full cage that misses its result.',
+							task: 'Fill in all the other cells on your own.'
+						}
 					]
 				}
 			},

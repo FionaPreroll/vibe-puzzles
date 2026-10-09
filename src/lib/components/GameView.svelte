@@ -664,7 +664,13 @@
 				<a class="link" href="{resolve('/scores')}?game={game.id}&v={variant.key}"
 					>{t('game.scoresLink')}</a
 				>
-				{#if game.tutorial}
+				{#if variant.mode && game.modeTutorials?.[variant.mode]}
+					<a
+						class="link"
+						href={resolve('/[game]/tutorial/[mode]', { game: game.id, mode: variant.mode })}
+						>{t('game.tutorial')}</a
+					>
+				{:else if game.tutorial}
 					<a class="link" href={resolve('/[game]/tutorial', { game: game.id })}
 						>{t('game.tutorial')}</a
 					>

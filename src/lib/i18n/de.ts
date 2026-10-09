@@ -449,6 +449,33 @@ const de: Dictionary = {
 						'Jeder dick umrandete Käfig zeigt ein Ergebnis und danach eine Rechenart. Seine Ziffern müssen dieses Ergebnis ergeben: „12+“ ergibt addiert 12, „60×“ multipliziert 60.',
 						'„1−“- und „5÷“-Käfige haben zwei Felder: Die größere Ziffer minus oder geteilt durch die kleinere ergibt das Ergebnis, z. B. 7 − 6 = 1 oder 5 ÷ 1 = 5.',
 						'Ein Käfig mit nur einer Zahl enthält genau diese Ziffer. Innerhalb eines Käfigs dürfen sich Ziffern wiederholen, aber nie in einer Zeile oder Spalte.'
+					],
+					tutorial: [
+						{
+							text: 'Calcudoku ist ein Sudoku ohne Blöcke: Jede Zeile und jede Spalte enthält die Ziffern 1 bis 4 genau einmal. Statt vorgegebener Ziffern hat das Gitter Käfige, dick umrandete Gruppen von Zellen. Schau dir das Gitter erst einmal nur an: Ab Schritt 3 trägst du ein.'
+						},
+						{
+							text: 'Die Beschriftung in der Ecke eines Käfigs ist ein Ergebnis und eine Rechenart. Die Ziffern im Käfig müssen dieses Ergebnis ergeben: „7+“ heißt, sie ergeben zusammen 7, „18×“ (markiert), dass ihr Produkt 18 ist. In einem „3−“- oder „2÷“-Käfig ergibt die größere seiner beiden Ziffern minus oder geteilt durch die kleinere das Ergebnis.'
+						},
+						{
+							text: 'Ein Käfig mit nur einer Zelle und nur einer Zahl enthält genau diese Ziffer. Das ist dein geschenkter Anfang.',
+							task: 'Trage die Ziffer der Zelle oben rechts ein: Zelle auswählen, dann die Ziffer im Zahlenfeld antippen oder auf der Tastatur tippen.',
+							done: 'Geschafft: eine Zelle, eine Ziffer.'
+						},
+						{
+							text: 'Der „3−“-Käfig darunter braucht zwei Ziffern mit dem Abstand 3. Von 1 bis 4 passen nur 4 und 1. Welche kommt wohin? Die rechte Spalte hat ihre 4 schon.',
+							task: 'Fülle den „3−“-Käfig aus.',
+							done: 'Richtig: Die 1 kommt nach rechts, weil diese Spalte schon eine 4 hat.'
+						},
+						{
+							text: 'Der „7+“-Käfig links in der dritten Zeile braucht 3 und 4, aber die Reihenfolge verrät noch nichts. Dafür gibt es Notizen: kleine Ziffern, die beide Möglichkeiten offenhalten.',
+							task: 'Wähle das Werkzeug Notiz (✎) und notiere 3 und 4 in beiden Zellen des „7+“-Käfigs.',
+							done: 'Gut: Die Reihenfolge ergibt sich später.'
+						},
+						{
+							text: 'Ziffern dürfen sich in einem Käfig wiederholen, solange sie in verschiedenen Zeilen und Spalten stehen: „18×“ ist 2 × 3 × 3. Doppelte Ziffern in einer Zeile oder Spalte werden rot, ebenso die Beschriftung eines vollen Käfigs, der sein Ergebnis verfehlt.',
+							task: 'Fülle alle übrigen Zellen allein aus.'
+						}
 					]
 				}
 			},
