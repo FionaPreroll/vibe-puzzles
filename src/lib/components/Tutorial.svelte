@@ -100,6 +100,7 @@
 				keyboard={true}
 				touchMode="auto"
 				onmove={move}
+				ontool={(next) => (tool = next)}
 			/>
 		</div>
 		<div
