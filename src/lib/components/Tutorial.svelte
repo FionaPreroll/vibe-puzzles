@@ -14,7 +14,7 @@
 
 	/**
 	 * Interactive first puzzle: a few short steps next to a small hand-picked board that the
-	 * player solves with the real controls. With `tutorial.steps` the steps are guided: some are
+	 * player solves with the real controls. The steps are guided: some are
 	 * only read, others are a task on the board that has to be done before going on. A `mode`
 	 * picks that mode's tutorial instead, e.g. Calcudoku in Sudoku.
 	 */
@@ -35,7 +35,7 @@
 
 	const steps = $derived(tSteps(tutorialTextKey(ref)));
 	const last = $derived(step === steps.length - 1);
-	const guide = $derived(tutorial.steps?.[step]);
+	const guide = $derived(tutorial.steps[step]);
 	const taskDone = $derived(!!guide?.done?.(tutorial.puzzle, current));
 	const canGoOn = $derived(!guide?.done || taskDone);
 	const spotlight = $derived(new Set(guide?.spotlight ?? []));
@@ -152,8 +152,6 @@
 				<p class="mt-2 text-sm text-stone-500 dark:text-stone-400">
 					{t(`games.${game.id}.${isTouch ? 'controlsTouch' : 'controlsMouse'}`)}
 				</p>
-			{:else if !tutorial.steps}
-				<p class="mt-2 text-sm text-stone-500 dark:text-stone-400">{t('tutorial.tryIt')}</p>
 			{/if}
 			<div class="mt-4 flex flex-wrap gap-2">
 				<button class="btn" onclick={() => step--} disabled={step === 0}

@@ -74,11 +74,10 @@ export interface TutorialText {
 	done?: string;
 }
 
-/** Tutorial steps: plain texts or texts with a task. */
+/** Tutorial steps: a text each, and a task for the steps done on the board. */
 export function tSteps(key: string): TutorialText[] {
 	const value = lookup(DICTIONARIES[i18n.locale], key) ?? lookup(en, key);
-	if (!Array.isArray(value)) return [];
-	return value.map((v) => (typeof v === 'string' ? { text: v } : (v as TutorialText)));
+	return Array.isArray(value) ? (value as TutorialText[]) : [];
 }
 
 /** Display name of a puzzle type, e.g. "10×10 Hard" or "Daily". */

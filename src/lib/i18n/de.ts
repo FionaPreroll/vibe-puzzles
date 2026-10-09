@@ -282,7 +282,6 @@ const de: Dictionary = {
 		back: 'Zurück',
 		finish: 'Ein echtes Rätsel spielen',
 		skip: 'Tutorial überspringen',
-		tryIt: 'Probier es auf dem Brett aus.',
 		yourTurn: 'Du bist dran',
 		showMe: 'Zeig es mir',
 		wellDone: 'Gut gemacht!',
@@ -483,10 +482,28 @@ const de: Dictionary = {
 			erase: 'Löschen',
 			left: 'noch {count}',
 			tutorial: [
-				'Dieses kleine Sudoku nutzt die Ziffern 1 bis 4. Jede Zeile, Spalte und jeder 2×2-Block braucht jede davon genau einmal.',
-				'Sieh dir die oberste Zeile an: 1, 2 und 4 stehen schon da, also muss in das leere Feld eine 3.',
-				'Noch unsicher? Nimm das Notiz-Werkzeug und notiere kleine Ziffern als Erinnerung, was noch möglich ist.',
-				'Jetzt fülle alle leeren Felder. Doppelte Ziffern werden rot.'
+				{
+					text: 'Dieses kleine Sudoku nutzt die Ziffern 1 bis 4. Jede Zeile, jede Spalte und jeder dick umrandete 2×2-Block (wie der markierte) enthält jede Ziffer genau einmal. Schau dir das Gitter erst einmal nur an: Ab Schritt 2 trägst du ein.'
+				},
+				{
+					text: 'Fang dort an, wo wenig fehlt. Die oberste Zeile hat schon 1, 2 und 4, ihre leere Zelle kann also nur die übrige Ziffer sein.',
+					task: 'Fülle die leere Zelle der obersten Zeile: Zelle auswählen, dann die Ziffer im Zahlenfeld antippen oder auf der Tastatur tippen.',
+					done: 'Richtig: eine 3. Wenn du eine Zelle auswählst, leuchten ihre Zeile, Spalte und ihr Block auf und helfen dir beim Schauen.'
+				},
+				{
+					text: 'Blöcke funktionieren genauso. Der Block oben links hat 1, 2 und 4, seine leere Zelle bekommt die fehlende Ziffer.',
+					task: 'Fülle die leere Zelle im Block oben links.',
+					done: 'Genau: Dem Block fehlte seine 3.'
+				},
+				{
+					text: 'Und Spalten auch. Jetzt, wo die 3 drin ist, fehlt der linken Spalte nur noch eine Ziffer.',
+					task: 'Fülle die nächste leere Zelle der linken Spalte.',
+					done: 'Gut gemacht: Ob Zeile, Block oder Spalte, der Trick ist immer, die eine fehlende Ziffer zu finden.'
+				},
+				{
+					text: 'Drei Zellen sind noch übrig. Prüfe bei jeder ihre Zeile, Spalte und ihren Block. Noch unsicher? Mit dem Werkzeug Notiz (✎) notierst du kleine Ziffern als Gedächtnisstütze. Doppelte Ziffern werden rot.',
+					task: 'Fülle die letzten drei Zellen allein aus.'
+				}
 			]
 		}
 	}

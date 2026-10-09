@@ -55,7 +55,7 @@ export interface BoardProps<P, S> {
 export interface GameTutorial<P, S> {
 	puzzle: P;
 	start(puzzle: P): S;
-	steps?: TutorialStep<P, S>[];
+	steps: TutorialStep<P, S>[];
 }
 
 /**
