@@ -71,12 +71,13 @@ export function writeType(
  * The first special periods whose stored puzzle must fit its type's difficulty. Earlier ones were
  * stored before the generators were fixed (issue #84) and may have been played already, so they
  * keep their puzzle even where its difficulty is off: replacing it would change the puzzle behind
- * an ID that players have solved, possibly in the middle of its period.
+ * an ID that players have solved. With that fix, the week and the month in progress were
+ * generated again on purpose; the dailies from the next day on.
  */
 export const DIFFICULTY_CHECKED_FROM: Record<SpecialKind, string> = {
-	daily: '2026-10-19',
-	weekly: '2026-W43',
-	monthly: '2026-11'
+	daily: '2026-10-10',
+	weekly: '2026-W41',
+	monthly: '2026-10'
 };
 
 /** Whether a stored puzzle must fit its type's difficulty (see DIFFICULTY_CHECKED_FROM). */

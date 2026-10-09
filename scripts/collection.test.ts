@@ -111,10 +111,10 @@ describe('difficulty check', () => {
 		expect(checksDifficulty('daily', DIFFICULTY_CHECKED_FROM.daily)).toBe(true);
 		expect(checksDifficulty('daily', '2026-10-09')).toBe(false);
 		expect(checksDifficulty('daily', '2027-01-01')).toBe(true);
-		expect(checksDifficulty('weekly', '2026-W41')).toBe(false);
+		expect(checksDifficulty('weekly', '2026-W40')).toBe(false);
 		expect(checksDifficulty('weekly', '2026-W52')).toBe(true);
-		expect(checksDifficulty('monthly', '2026-10')).toBe(false);
-		expect(checksDifficulty('monthly', '2026-11')).toBe(true);
+		expect(checksDifficulty('monthly', '2026-09')).toBe(false);
+		expect(checksDifficulty('monthly', '2026-10')).toBe(true);
 		// A special without a period cannot be placed after the cutoff.
 		expect(checksDifficulty('daily')).toBe(false);
 	});

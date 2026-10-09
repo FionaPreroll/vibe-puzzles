@@ -180,7 +180,7 @@ Before the fix (2026-10-08, commit `9a96875`), Tetroid missed on up to 12 of 40 
 
 ### Stored collection
 
-Every regular puzzle, and every special puzzle from `DIFFICULTY_CHECKED_FROM` on, fits its type's difficulty; `bank.test.ts` checks this whenever the collection changes. Of the 44 special puzzles before those dates, kept because they may have been played, 8 miss: 7 of the 12 Pinwheel dailies from 2026-10-07 to 2026-10-18, and the Tetroid weekly of 2026-W41.
+Every regular puzzle, and every special puzzle from `DIFFICULTY_CHECKED_FROM` on, fits its type's difficulty; `bank.test.ts` checks this whenever the collection changes. Of the 8 dailies before those dates (2026-10-07 to 2026-10-09), kept because they have been played, the 3 Pinwheel dailies miss.
 
 ### What this means
 
@@ -201,7 +201,7 @@ Any change to a generator, to a solver it calls or to the order of its random dr
    - A special puzzle is generated again for its period (its seed is fixed), or dropped and left to on-device generation if it still misses.
    - Special puzzles of periods before `DIFFICULTY_CHECKED_FROM` (`scripts/collection.ts`) are kept even when misgraded, because players may already have solved them. Move those dates to a few days after the change will be deployed, so that no current period changes its puzzle.
 
-The fix for issue #84 went this way. It changed all Tetroid normal puzzles and the Tetroid hard, Pinwheel and Sudoku hard seeds that used to end in a fallback; every other ID kept its puzzle. In the collection it replaced 1,569 misgraded puzzles (from 2026-10-19 on for the specials).
+The fix for issue #84 went this way. It changed all Tetroid normal puzzles and the Tetroid hard, Pinwheel and Sudoku hard seeds that used to end in a fallback; every other ID kept its puzzle. In the collection it replaced 1,569 misgraded puzzles, then generated every special again from the next day (dailies), the week in progress (weeklies) and the month in progress (monthlies) on, so that they are what the generator now makes for their IDs: 358 Tetroid dailies, 4 Pinwheel dailies and the Tetroid weekly of 2026-W41 changed.
 
 ## Tests and budgets
 
