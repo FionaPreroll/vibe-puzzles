@@ -105,8 +105,10 @@ export class TetroidModel {
 	}
 }
 
-interface Domain {
+/** Placements still possible (`alive`, indexed like `TetroidModel.placements`), per region. */
+export interface Domain {
 	alive: Uint8Array;
+	/** Number of alive placements of each region. */
 	size: Int32Array;
 }
 
@@ -169,6 +171,22 @@ export class TetroidSolver {
 			branched: this.branched,
 			nodes: this.nodes
 		};
+	}
+
+	/**
+	 * What propagation alone (as with `branch: false`) leaves of the puzzle, or null on a
+	 * contradiction. A region with more than one placement left is where a solver that does not
+	 * guess gets stuck.
+	 */
+	propagated(advanced = true): Domain | null {
+		this.advanced = advanced;
+		const { placements, byRegion } = this.m;
+		const dom: Domain = {
+			alive: new Uint8Array(placements.length).fill(1),
+			size: Int32Array.from(byRegion.map((l) => l.length))
+		};
+		if (dom.size.some((s) => s === 0)) return null;
+		return this.propagate(dom) ? dom : null;
 	}
 
 	private search(dom: Domain, depth = 0): void {
