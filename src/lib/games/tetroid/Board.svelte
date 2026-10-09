@@ -17,7 +17,8 @@
 		keyboard = false,
 		celebrate = false,
 		touchMode,
-		onmove
+		onmove,
+		spotlight
 	}: BoardProps<TetroidPuzzle, TetroidState> = $props();
 
 	const TYPE_COLOURS: Record<string, string> = {
@@ -490,6 +491,22 @@
 				stroke-width="1.5"
 			/>
 		{/each}
+	{/if}
+
+	{#if spotlight?.size && !blank}
+		<g class="spotlight" fill="none" stroke={colours.cursor} stroke-width="3" aria-hidden="true">
+			{#each [...spotlight] as key (key)}
+				{@const i = Number(key)}
+				<rect
+					x={pad + (i % w) * cellSize + 4}
+					y={pad + Math.floor(i / w) * cellSize + 4}
+					width={cellSize - 8}
+					height={cellSize - 8}
+					rx="4"
+					stroke-dasharray="6 4"
+				/>
+			{/each}
+		</g>
 	{/if}
 
 	{#if cursor != null && !blank}

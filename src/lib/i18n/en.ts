@@ -284,6 +284,8 @@ const en = {
 		finish: 'Play a real puzzle',
 		skip: 'Skip tutorial',
 		tryIt: 'Try it on the board.',
+		yourTurn: 'Your turn',
+		showMe: 'Show me',
 		wellDone: 'Well done!',
 		solvedAll: 'You solved your first puzzle. Ready for a real one?'
 	},
@@ -347,10 +349,26 @@ const en = {
 			controlsTouch:
 				'Tap a cell to cycle through shaded, cross and empty. Hold a moment, then drag to paint several cells.',
 			tutorial: [
-				'Each region with a thick border needs exactly one tetromino: four shaded cells in a row, an L, a T or an S shape.',
-				'This small board has four regions. The top-left region is already done: it holds an S.',
-				'Shaded cells must all connect, and no 2×2 block may be shaded. Same shapes may not touch across a region border.',
-				'Now finish the board: shade one tetromino in each of the other regions. Wrong spots turn red.'
+				{
+					text: 'Each region with a thick border needs exactly one tetromino: four shaded cells joined along their sides. There are four shapes, I, L, T and S, which may be turned or mirrored. The top-left region is already done: it holds an S, and crosses mark its empty cells. Just look for now: you start shading in step 2.'
+				},
+				{
+					text: 'The region at the top right has exactly four cells, so its tetromino fills it completely.',
+					task: 'Shade all four cells of that region.',
+					done: 'Done: that tetromino is an L.'
+				},
+				{
+					text: 'No 2×2 block may be fully shaded. The two marked cells each sit next to three shaded cells of a 2×2 block, so shading them would complete it.',
+					task: 'Mark both cells with a cross: pick the Cross tool (✕) and click or tap them. A cross means the cell stays empty.',
+					done: 'Right: these cells stay empty, and you have ruled them out for good.'
+				},
+				{
+					text: 'Two more rules. All shaded cells together form one connected group. And two tetrominoes of the same shape may not touch across a region border; turned or mirrored ones count as the same shape.'
+				},
+				{
+					text: 'Two regions are left: the one at the bottom and the big one on the right. Use the rules from the steps before. Cells that break a rule turn red.',
+					task: 'Shade one tetromino in each of the two regions.'
+				}
 			]
 		},
 		pinwheel: {
@@ -376,10 +394,36 @@ const en = {
 			controlsTouch:
 				'Tap between dots to draw a line. Pick the Colour tool to colour cells. Hold a circle to lock a finished region.',
 			tutorial: [
-				'Every circle is the centre of one region. Turned by 180° around its circle, a region looks exactly the same.',
-				'A circle on a cell, an edge or a corner tells you where the middle of the region is.',
-				'Draw lines between the dots to separate the regions. The symmetry helper mirrors your lines for you.',
-				'Now split this board so that each region holds one circle and is symmetric around it.'
+				{
+					text: 'Pinwheel is about splitting the board into regions. Every circle is the centre of exactly one region, and every region holds exactly one circle. Just look for now: you start drawing in step 3.'
+				},
+				{
+					text: 'The key rule: turn a region by 180° around its circle, and it covers exactly the same cells again. So every cell of a region has a partner straight across the circle, and that partner belongs to the region too.'
+				},
+				{
+					text: 'A circle can sit in the middle of a cell, like the one in the top-left corner. Its region is just that cell: any other cell would need a partner across the circle, and that would lie outside the board.',
+					task: 'Draw lines between the dots to close off the top-left cell. The border of the board already counts as a line, so two lines are enough.',
+					done: 'Done: one circle, one region.'
+				},
+				{
+					text: 'A circle on an edge sits between two cells, and both belong to its region. The next circle in the top row cannot grow downwards: the partners of those cells would lie above the board.',
+					task: 'Close off the two cells of the next circle in the top row.',
+					done: 'Right. No line can run through a circle: it would cut the region in two.'
+				},
+				{
+					text: 'A circle on a corner touches four cells, and all four belong to its region. In the top right, those four cells are already the whole region.',
+					task: 'Close off the four cells around the circle in the top right.',
+					done: 'Three regions done. The next one is a little trickier.'
+				},
+				{
+					text: 'Regions do not have to be rectangles. The symmetry helper finds partners for you: press a circle and drag onto a cell (on a touch screen, hold the circle briefly, then slide). The cell and its partner light up.',
+					task: 'The marked cell belongs to the circle in the middle. Find its partner with the helper, then close off the region: four cells in a zigzag.',
+					done: 'Exactly: turned around its circle, the zigzag looks the same.'
+				},
+				{
+					text: 'Four regions are left, and two of them are zigzags too. If a closed area turns red, it has no circle. If a circle turns red, its region is not symmetric yet.',
+					task: 'Split the rest of the board on your own.'
+				}
 			]
 		},
 		sudoku: {

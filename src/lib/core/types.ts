@@ -48,6 +48,20 @@ export interface BoardProps<P, S> {
 	onmove: (next: S, changed: string[]) => void;
 	/** Some boards switch tools temporarily (e.g. Shift for colour). */
 	ontool?: (tool: string) => void;
+	/** Elements a tutorial step points at, in the same keys as `lastChange`. */
+	spotlight?: ReadonlySet<string>;
+}
+
+/**
+ * One step of a guided tutorial, next to its texts in the translations. A step with `done` is a
+ * task on the board: the player moves on once it holds. A step without it is only read.
+ */
+export interface TutorialStep<P, S> {
+	/** Elements to point at on the board, in the board's `lastChange` keys. */
+	spotlight?: string[];
+	done?(puzzle: P, state: S): boolean;
+	/** "Show me": the state with the task done, for a player who is stuck. */
+	show?(puzzle: P, state: S): S;
 }
 
 export type TouchMode = 'auto' | 'draw' | 'pan';
@@ -99,5 +113,5 @@ export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	/** Small static preview for the home page. */
 	icon: string;
 	/** A small hand-picked first puzzle for the interactive tutorial (texts in the translations). */
-	tutorial?: { puzzle: P; start(puzzle: P): S };
+	tutorial?: { puzzle: P; start(puzzle: P): S; steps?: TutorialStep<P, S>[] };
 }

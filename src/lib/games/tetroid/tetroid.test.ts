@@ -172,4 +172,40 @@ describe('tutorial', () => {
 			if (m === CROSS) expect(res.solutions[0][i]).toBe(0);
 		});
 	});
+
+	it('walks through every task with "Show me", and the tasks fit the solution', async () => {
+		const {
+			TETROID_TUTORIAL: p,
+			TETROID_TUTORIAL_STEPS: steps,
+			tetroidTutorialStart
+		} = await import('./tutorial');
+		const solution = solveTetroid(p, { limit: 2 }).solutions[0];
+		let s = tetroidTutorialStart(p);
+		for (const step of steps) {
+			if (!step.done) continue;
+			expect(step.done(p, s)).toBe(false);
+			s = step.show!(p, s);
+			expect(step.done(p, s)).toBe(true);
+		}
+		s.marks.forEach((m, i) => {
+			if (m === SHADED) expect(solution[i]).toBe(1);
+			if (m === CROSS) expect(solution[i]).toBe(0);
+		});
+		expect(isSolvedMarks(p, (i) => s.marks[i] === SHADED)).toBe(false);
+	});
+
+	it('has a text for every step and a task for every step with a check', async () => {
+		const { TETROID_TUTORIAL_STEPS: steps } = await import('./tutorial');
+		const { default: en } = await import('../../i18n/en');
+		const { default: de } = await import('../../i18n/de');
+		for (const texts of [en.games.tetroid.tutorial, de.games.tetroid.tutorial]) {
+			expect(texts).toHaveLength(steps.length);
+			steps.forEach((step, n) => {
+				const text = texts[n] as { text: string; task?: string; done?: string };
+				expect(text.text, `step ${n + 1}`).toBeTruthy();
+				if (step.done) expect(text.task && text.done, `step ${n + 1}`).toBeTruthy();
+			});
+			expect((texts.at(-1) as { task?: string }).task).toBeTruthy();
+		}
+	});
 });

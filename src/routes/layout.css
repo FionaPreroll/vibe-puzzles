@@ -158,7 +158,21 @@
 		box-shadow: 0 0 0 10px rgb(79 70 229 / 0);
 	}
 }
+/* Tutorial: what a step talks about on the board breathes gently. */
+.spotlight {
+	animation: spotlight 1.6s ease-in-out infinite;
+}
+@keyframes spotlight {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.35;
+	}
+}
 @media (prefers-reduced-motion: reduce) {
+	.spotlight,
 	.next-up,
 	.solved-glow,
 	.solved-burst,

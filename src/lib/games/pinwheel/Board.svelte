@@ -49,7 +49,8 @@
 		keyboard = false,
 		celebrate = false,
 		touchMode,
-		onmove
+		onmove,
+		spotlight
 	}: BoardProps<PinwheelPuzzle, PinwheelState> = $props();
 
 	type Edge = { kind: 'h' | 'v'; i: number; j: number };
@@ -232,13 +233,16 @@
 		if (changed.length) onmove(next, changed);
 	}
 
+	/** Only a complete region can be locked; a locked one can always be unlocked. */
+	function canToggleLock(k: number) {
+		if (board.locks[k]) return true;
+		const live = analyze(puzzle, board);
+		return live.complete[live.centreRegion[k]];
+	}
+
 	function toggleLock(k: number) {
-		if (readonly) return;
+		if (readonly || !canToggleLock(k)) return;
 		const locks = board.locks.slice();
-		if (!locks[k]) {
-			const live = analyze(puzzle, board);
-			if (!live.complete[live.centreRegion[k]]) return;
-		}
 		locks[k] = locks[k] ? 0 : 1;
 		onmove({ ...board, locks }, [`g:${k}`]);
 	}
@@ -433,8 +437,9 @@
 		const p = toBoard(start.x, start.y);
 		const k = centreAt(p.x, p.y);
 		if (k >= 0) {
+			// A hold that cannot lock keeps going, so the symmetry helper works by touch too.
 			start.lockTimer = window.setTimeout(() => {
-				if (touch !== start) return;
+				if (touch !== start || !canToggleLock(k)) return;
 				clearTimeout(start.timer);
 				touch = null;
 				pending = null;
@@ -753,6 +758,27 @@
 						height={e.kind === 'v' ? cellSize : 8}
 						rx="3"
 					/>
+				{/if}
+			{/each}
+		</g>
+	{/if}
+
+	{#if spotlight?.size && !blank}
+		<g class="spotlight" fill="none" stroke={colours.cursor} stroke-width="3" aria-hidden="true">
+			{#each [...spotlight] as key (key)}
+				{#if key.startsWith('c:')}
+					{@const i = Number(key.slice(2))}
+					<rect
+						x={px(i % w) + 4}
+						y={py(Math.floor(i / w)) + 4}
+						width={cellSize - 8}
+						height={cellSize - 8}
+						rx="4"
+						stroke-dasharray="6 4"
+					/>
+				{:else if key.startsWith('g:')}
+					{@const [hr, hc] = puzzle.centres[Number(key.slice(2))]}
+					<circle cx={px(hc / 2 + 0.5)} cy={py(hr / 2 + 0.5)} r={cellSize * 0.32} />
 				{/if}
 			{/each}
 		</g>

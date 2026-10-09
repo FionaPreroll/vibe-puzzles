@@ -66,6 +66,21 @@ export function tList(key: string): string[] {
 	return Array.isArray(value) ? (value as string[]) : [];
 }
 
+export interface TutorialText {
+	text: string;
+	/** What to do on the board in this step. */
+	task?: string;
+	/** Feedback once the task is done. */
+	done?: string;
+}
+
+/** Tutorial steps: plain texts or texts with a task. */
+export function tSteps(key: string): TutorialText[] {
+	const value = lookup(DICTIONARIES[i18n.locale], key) ?? lookup(en, key);
+	if (!Array.isArray(value)) return [];
+	return value.map((v) => (typeof v === 'string' ? { text: v } : (v as TutorialText)));
+}
+
 /** Display name of a puzzle type, e.g. "10×10 Hard" or "Daily". */
 export function variantLabel(v: Variant): string {
 	if (v.special) return t(`special.${v.special}`);
