@@ -128,8 +128,63 @@ describe('generator', () => {
 });
 
 describe('tutorial', () => {
-	it('has a unique solution', async () => {
-		const { PINWHEEL_TUTORIAL } = await import('./tutorial');
-		expect(solvePinwheel(PINWHEEL_TUTORIAL, { limit: 2 }).solutions).toHaveLength(1);
+	it('has a unique solution, found without guessing', async () => {
+		const { PINWHEEL_TUTORIAL, PINWHEEL_TUTORIAL_SOLUTION } = await import('./tutorial');
+		const res = solvePinwheel(PINWHEEL_TUTORIAL, { limit: 2 });
+		expect(res.solutions).toHaveLength(1);
+		expect(Array.from(res.solutions[0])).toEqual(PINWHEEL_TUTORIAL_SOLUTION);
+	});
+
+	it('walks through every task with "Show me" to the solved board', async () => {
+		const { PINWHEEL_TUTORIAL: p, PINWHEEL_TUTORIAL_STEPS: steps } = await import('./tutorial');
+		let s = emptyPinwheelState(p);
+		for (const step of steps) {
+			if (!step.done) continue;
+			expect(step.done(p, s)).toBe(false);
+			s = step.show!(p, s);
+			expect(step.done(p, s)).toBe(true);
+		}
+		// Earlier tasks stay done.
+		for (const step of steps) if (step.done) expect(step.done(p, s)).toBe(true);
+		expect(isSolvedState(p, s)).toBe(false);
+	});
+
+	it('only accepts the region of the solution, not any symmetric one', async () => {
+		const { PINWHEEL_TUTORIAL: p, regionDone, showRegion } = await import('./tutorial');
+		// The zigzag's circle sits between cells (1,2) and (2,2): those two alone are symmetric too.
+		const s = emptyPinwheelState(p);
+		for (const [i, j] of [
+			[1, 2],
+			[3, 2]
+		])
+			s.h[hIndex(p, i, j)] = LINE;
+		for (const [i, j] of [
+			[1, 2],
+			[1, 3],
+			[2, 2],
+			[2, 3]
+		])
+			s.v[vIndex(p, i, j)] = LINE;
+		const a = analyze(p, s);
+		expect(a.complete[a.centreRegion[3]]).toBe(true);
+		expect(regionDone(p, s, 3)).toBe(false);
+		// "Show me" repairs it, clearing the line inside the zigzag.
+		expect(regionDone(p, showRegion(p, s, 3), 3)).toBe(true);
+	});
+
+	it('has a text for every step and a task for every step with a check', async () => {
+		const { PINWHEEL_TUTORIAL_STEPS: steps } = await import('./tutorial');
+		const { default: en } = await import('../../i18n/en');
+		const { default: de } = await import('../../i18n/de');
+		for (const texts of [en.games.pinwheel.tutorial, de.games.pinwheel.tutorial]) {
+			expect(texts).toHaveLength(steps.length);
+			steps.forEach((step, n) => {
+				const text = texts[n] as { text: string; task?: string; done?: string };
+				expect(text.text, `step ${n + 1}`).toBeTruthy();
+				if (step.done) expect(text.task && text.done, `step ${n + 1}`).toBeTruthy();
+			});
+			// The last step is a task too: solving the board ends the tutorial.
+			expect((texts.at(-1) as { task?: string }).task).toBeTruthy();
+		}
 	});
 });

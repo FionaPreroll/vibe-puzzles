@@ -10,6 +10,7 @@ import {
 	settingLabel,
 	t,
 	tList,
+	tSteps,
 	toolHint,
 	toolLabel,
 	variantLabel
@@ -153,5 +154,15 @@ describe('nextDailyText', () => {
 		expect(nextDailyText(now)).toBe(`New daily puzzle in 2 h 08 min, at ${at}`);
 		i18n.locale = 'de';
 		expect(nextDailyText(now)).toMatch(/^Neues Tagesrätsel in 2 h 08 min, um \d\d:00 Uhr$/);
+	});
+});
+
+describe('tSteps', () => {
+	it('reads plain texts and texts with a task alike', () => {
+		expect(tSteps('games.tetroid.tutorial')[0]).toEqual({ text: en.games.tetroid.tutorial[0] });
+		expect(tSteps('games.pinwheel.tutorial')[2].task).toBe(en.games.pinwheel.tutorial[2].task);
+		i18n.locale = 'de';
+		expect(tSteps('games.pinwheel.tutorial')[2].task).toBe(de.games.pinwheel.tutorial[2].task);
+		expect(tSteps('games.nope.tutorial')).toEqual([]);
 	});
 });

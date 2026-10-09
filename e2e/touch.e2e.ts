@@ -52,3 +52,27 @@ for (const [game, variant, id, row, prep, mark] of [
 		expect(await board.innerHTML()).toBe(shown);
 	});
 }
+
+test('holding a circle of an open region, then sliding, shows the symmetry helper', async ({
+	page
+}) => {
+	await page.goto('/pinwheel/tutorial');
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await page.waitForLoadState('networkidle');
+	const box = (await board.boundingBox())!;
+	const cell = box.width / 5.4;
+	const at = (r: number, c: number) => ({
+		x: box.x + (0.2 + c) * cell,
+		y: box.y + (0.2 + r) * cell
+	});
+	const lit = board.locator(`rect[fill="${palette.selection}"]`);
+	const cdp = await page.context().newCDPSession(page);
+	// The circle between cells (1,2) and (2,2); held past the lock delay, as its region is open.
+	await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at(2, 2.5)] });
+	await page.waitForTimeout(600);
+	await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [at(1.5, 1.5)] });
+	// The cell under the finger and its partner across the circle.
+	await expect(lit).toHaveCount(2);
+	await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+	await expect(lit).toHaveCount(0);
+});

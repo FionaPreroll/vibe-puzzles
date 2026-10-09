@@ -283,6 +283,8 @@ const de: Dictionary = {
 		finish: 'Ein echtes Rätsel spielen',
 		skip: 'Tutorial überspringen',
 		tryIt: 'Probier es auf dem Brett aus.',
+		yourTurn: 'Du bist dran',
+		showMe: 'Zeig es mir',
 		wellDone: 'Gut gemacht!',
 		solvedAll: 'Du hast dein erstes Rätsel gelöst. Bereit für ein echtes?'
 	},
@@ -378,10 +380,36 @@ const de: Dictionary = {
 			controlsTouch:
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen. Mit dem Farbwerkzeug färbst du Zellen. Einen Kreis halten sperrt einen fertigen Bereich.',
 			tutorial: [
-				'Jeder Kreis ist die Mitte eines Bereichs. Um 180° um seinen Kreis gedreht, sieht ein Bereich genau gleich aus.',
-				'Ein Kreis auf einer Zelle, einer Kante oder einer Ecke zeigt dir, wo die Mitte des Bereichs liegt.',
-				'Ziehe Linien zwischen den Punkten, um die Bereiche zu trennen. Die Symmetriehilfe spiegelt deine Linien automatisch.',
-				'Jetzt teile dieses Brett so, dass jeder Bereich einen Kreis enthält und um ihn symmetrisch ist.'
+				{
+					text: 'Bei Pinwheel teilst du das Brett in Bereiche. Jeder Kreis ist die Mitte von genau einem Bereich, und jeder Bereich enthält genau einen Kreis. Schau dir das Brett erst einmal nur an: Ab Schritt 3 zeichnest du.'
+				},
+				{
+					text: 'Die wichtigste Regel: Dreh einen Bereich um 180° um seinen Kreis, und er deckt wieder genau dieselben Zellen ab. Jede Zelle eines Bereichs hat also eine Partnerzelle genau gegenüber auf der anderen Seite des Kreises, und die gehört auch dazu.'
+				},
+				{
+					text: 'Ein Kreis kann mitten in einer Zelle sitzen, so wie der in der Ecke oben links. Sein Bereich ist nur diese eine Zelle: Jede weitere Zelle bräuchte eine Partnerzelle gegenüber, und die läge außerhalb des Bretts.',
+					task: 'Ziehe Linien zwischen den Punkten, um die Zelle oben links abzutrennen. Der Rand des Bretts zählt schon als Linie, zwei Linien genügen also.',
+					done: 'Geschafft: ein Kreis, ein Bereich.'
+				},
+				{
+					text: 'Ein Kreis auf einer Kante sitzt zwischen zwei Zellen, und beide gehören zu seinem Bereich. Der nächste Kreis in der oberen Reihe kann nicht nach unten wachsen: Die Partnerzellen lägen über dem Brett.',
+					task: 'Trenne die beiden Zellen des nächsten Kreises in der oberen Reihe ab.',
+					done: 'Richtig. Durch einen Kreis kann keine Linie gehen: Sie würde seinen Bereich zerschneiden.'
+				},
+				{
+					text: 'Ein Kreis auf einer Ecke berührt vier Zellen, und alle vier gehören zu seinem Bereich. Oben rechts sind diese vier Zellen schon der ganze Bereich.',
+					task: 'Trenne die vier Zellen um den Kreis oben rechts ab.',
+					done: 'Drei Bereiche fertig. Der nächste ist etwas kniffliger.'
+				},
+				{
+					text: 'Bereiche müssen keine Rechtecke sein. Die Symmetriehilfe findet Partnerzellen für dich: Drücke auf einen Kreis und ziehe auf eine Zelle (auf einem Touchscreen den Kreis kurz halten, dann wischen). Die Zelle und ihre Partnerzelle leuchten auf.',
+					task: 'Die markierte Zelle gehört zum Kreis in der Mitte. Finde mit der Hilfe ihre Partnerzelle und trenne dann den Bereich ab: vier Zellen im Zickzack.',
+					done: 'Genau: Um seinen Kreis gedreht, sieht der Zickzack gleich aus.'
+				},
+				{
+					text: 'Vier Bereiche sind noch übrig, zwei davon sind auch Zickzacks. Wird ein abgetrennter Bereich rot, hat er keinen Kreis. Wird ein Kreis rot, ist sein Bereich noch nicht symmetrisch.',
+					task: 'Teile den Rest des Bretts allein auf.'
+				}
 			]
 		},
 		sudoku: {

@@ -4,11 +4,12 @@
 	import { GameSettings } from '../client/settings.svelte';
 	import { save } from '../client/storage';
 	import type { GameModule } from '../core/types';
-	import { t, tList, toolLabel } from '../i18n/index.svelte';
+	import { t, tSteps, toolLabel } from '../i18n/index.svelte';
 
 	/**
 	 * Interactive first puzzle: a few short steps next to a small hand-picked board that the
-	 * player solves with the real controls.
+	 * player solves with the real controls. With `tutorial.steps` the steps are guided: some are
+	 * only read, others are a task on the board that has to be done before going on.
 	 */
 	let { game }: { game: GameModule } = $props();
 
@@ -23,8 +24,12 @@
 	let lastChange = $state.raw<ReadonlySet<string>>(new Set());
 	let step = $state(0);
 
-	const steps = $derived(tList(`games.${game.id}.tutorial`));
+	const steps = $derived(tSteps(`games.${game.id}.tutorial`));
 	const last = $derived(step === steps.length - 1);
+	const guide = $derived(tutorial.steps?.[step]);
+	const taskDone = $derived(!!guide?.done?.(tutorial.puzzle, current));
+	const canGoOn = $derived(!guide?.done || taskDone);
+	const spotlight = $derived(new Set(guide?.spotlight ?? []));
 	const solved = $derived(
 		game.isSolved(tutorial.puzzle, current) ||
 			!!game.acceptAlternative?.(tutorial.puzzle, current, settings.values)
@@ -47,6 +52,11 @@
 		history = [...history, current];
 		current = game.afterMove?.(tutorial.puzzle, next, settings.values) ?? next;
 		lastChange = new Set(changed);
+	}
+
+	function showMe() {
+		const next = guide?.show?.(tutorial.puzzle, current);
+		if (next) move(next, []);
 	}
 
 	function undo() {
@@ -74,6 +84,7 @@
 				{cellSize}
 				readonly={solved}
 				{lastChange}
+				spotlight={solved ? undefined : spotlight}
 				keyboard={true}
 				touchMode="auto"
 				onmove={move}
@@ -111,20 +122,40 @@
 			<a class="btn btn-primary mt-4" href={playUrl}>{t('tutorial.finish')}</a>
 		{:else}
 			<p class="section-title mt-3">{t('tutorial.step', { n: step + 1, total: steps.length })}</p>
-			<p class="mt-2">{steps[step]}</p>
+			<p class="mt-2">{steps[step]?.text}</p>
+			{#if steps[step]?.task}
+				<div
+					class="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950/40"
+				>
+					<p class="text-sm font-semibold">👉 {t('tutorial.yourTurn')}</p>
+					<p class="mt-1">{steps[step].task}</p>
+				</div>
+			{/if}
+			{#if taskDone && steps[step]?.done}
+				<p class="mt-3 font-semibold text-emerald-700 dark:text-emerald-400">
+					✓ {steps[step].done}
+				</p>
+			{/if}
 			{#if last}
 				<p class="mt-2 text-sm text-stone-500 dark:text-stone-400">
 					{t(`games.${game.id}.${isTouch ? 'controlsTouch' : 'controlsMouse'}`)}
 				</p>
-			{:else}
+			{:else if !tutorial.steps}
 				<p class="mt-2 text-sm text-stone-500 dark:text-stone-400">{t('tutorial.tryIt')}</p>
 			{/if}
-			<div class="mt-4 flex gap-2">
+			<div class="mt-4 flex flex-wrap gap-2">
 				<button class="btn" onclick={() => step--} disabled={step === 0}
 					>{t('tutorial.back')}</button
 				>
 				{#if !last}
-					<button class="btn btn-primary" onclick={() => step++}>{t('tutorial.next')}</button>
+					<button
+						class="btn btn-primary {guide?.done && taskDone ? 'next-up' : ''}"
+						onclick={() => step++}
+						disabled={!canGoOn}>{t('tutorial.next')}</button
+					>
+				{/if}
+				{#if guide?.show && !taskDone}
+					<button class="btn" onclick={showMe}>{t('tutorial.showMe')}</button>
 				{/if}
 			</div>
 			<a class="link mt-4 inline-block text-sm" href={playUrl}>{t('tutorial.skip')}</a>
