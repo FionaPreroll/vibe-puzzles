@@ -548,6 +548,17 @@ describe('hints', () => {
 		expect(plain.hinted).toBe(false);
 	});
 
+	it('give none for a solved board that is not submitted yet', async () => {
+		const settings = new GameSettings('tetroid', withCommon([]));
+		settings.values.autoSubmit = false;
+		const s = new GameSession(tetroid, settings);
+		await s.open('6n', { puzzleId: ID });
+		s.move(solvedState(), []);
+		s.showHint();
+		expect(s.hint).toBeNull();
+		expect(s.hinted).toBe(false);
+	});
+
 	it('start a new puzzle unhinted', async () => {
 		const s = await hinting();
 		s.showHint();
