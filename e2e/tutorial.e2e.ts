@@ -192,3 +192,19 @@ test('the Sudoku tutorial finds the missing digit in a row, a box and a column',
 	}
 	await expect(page.getByText('Well done!')).toBeVisible();
 });
+
+test('Space switches between digits and notes in the Sudoku tutorial, as its text says', async ({
+	page
+}) => {
+	await page.goto('/sudoku/tutorial');
+	const digit = page.getByRole('button', { name: 'Digit' });
+	const note = page.getByRole('button', { name: 'Note' });
+	await expect(digit).toHaveAttribute('aria-pressed', 'true');
+	// Select a cell, as the board only takes keys with a cell selected.
+	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
+	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+	await page.keyboard.press('Space');
+	await expect(note).toHaveAttribute('aria-pressed', 'true');
+	await page.keyboard.press('Space');
+	await expect(digit).toHaveAttribute('aria-pressed', 'true');
+});
