@@ -223,7 +223,8 @@ const en = {
 		autoRemoveNotes: 'Remove notes ruled out by a new digit',
 		highlightLines: 'Highlight row, column and box',
 		highlightSame: 'Highlight the same digit',
-		showRemaining: 'Show how many of each digit are left'
+		showRemaining: 'Show how many of each digit are left',
+		digitFirst: 'Pick the digit first, then the cells (left click: digit, right click: note)'
 	},
 	source: {
 		title: 'Where new puzzles come from',
@@ -436,7 +437,7 @@ const en = {
 				'Small digits in a cell are notes: the digits you still consider possible there. They do not count for the solution.'
 			],
 			controlsMouse:
-				'Click a cell, then type a digit or use the number pad. Shift+digit adds or removes a note, Space switches between digits and notes. Backspace or 0 erases. Arrow keys move.',
+				'Click a cell, then type a digit or use the number pad. Shift+digit adds or removes a note, Space switches between digits and notes. Backspace or 0 erases. Arrow keys move. Prefer to pick the digit first? Turn on "Pick the digit first" in the settings.',
 			controlsTouch:
 				'Tap a cell, then a digit on the number pad. Pick the Note tool to add or remove small notes instead. ⌫ erases.',
 			modes: {

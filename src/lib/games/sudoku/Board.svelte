@@ -51,6 +51,17 @@
 	/** Selected cell, -1 for none. */
 	let selected = $state(-1);
 
+	/**
+	 * "Pick the digit first" (like KSudoku): the pad arms a digit (0 is the eraser), and a click
+	 * on a cell enters it there, with the current tool on the left button and the other kind on
+	 * the right one. Null while nothing is armed.
+	 */
+	const digitFirst = $derived(!!settings.digitFirst && !blank && !readonly);
+	let armed = $state<number | null>(null);
+	$effect(() => {
+		if (!digitFirst) armed = null;
+	});
+
 	const grid = $derived(blank ? puzzle.givens : currentGrid(puzzle, board));
 	const clashes = $derived(conflicts(size, grid, !calc));
 	const errorColour = $derived(settings.blueErrors ? colours.blueError : colours.error);
@@ -67,9 +78,9 @@
 	const wrong = $derived(solution ? mistakes(puzzle, board, solution) : null);
 	const remaining = $derived(blank ? [] : remainingDigits(puzzle, board));
 
-	/** Digit in the selected cell, for "Highlight the same digit". */
+	/** Digit in the selected cell, or the armed one, for "Highlight the same digit". */
 	const selectedDigit = $derived(
-		settings.highlightSame && selected >= 0 && !blank ? grid[selected] : 0
+		!settings.highlightSame || blank ? 0 : armed ? armed : selected >= 0 ? grid[selected] : 0
 	);
 	/** Row, column and (without cages) box of a cell. */
 	const unitsOf = (i: number): number[] =>
@@ -139,9 +150,8 @@
 
 	// ---- Input --------------------------------------------------------------------------------
 
-	/** Enter digit `d` (0 erases) in the selected cell, as a note when `note` is set. */
-	function enter(d: number, note: boolean) {
-		const i = selected;
+	/** Enter digit `d` (0 erases) in cell `i` (the selected one), as a note when `note` is set. */
+	function enter(d: number, note: boolean, i = selected) {
 		if (readonly || blank || i < 0 || puzzle.givens[i]) return;
 		let next: SudokuState;
 		if (d === 0) {
@@ -177,6 +187,13 @@
 		if (cell < 0) return;
 		e.preventDefault();
 		selected = cell;
+		if (digitFirst && armed !== null) enter(armed, (tool === 'note') !== (e.button === 2), cell);
+	}
+
+	/** A pad button: arms its digit when picking the digit first, else enters it. */
+	function pressPad(d: number) {
+		if (digitFirst) armed = armed === d ? null : d;
+		else enter(d, d !== 0 && tool === 'note');
 	}
 
 	const DIRS: Record<string, [number, number]> = {
@@ -227,6 +244,7 @@
 			ontool?.(tool === 'note' ? 'digit' : 'note');
 		} else if (e.key === 'Escape') {
 			selected = -1;
+			armed = null;
 		}
 	}
 
@@ -417,7 +435,7 @@
 	</svg>
 
 	{#if !blank && !readonly}
-		<!-- Number pad: enters into the selected cell with the current tool -->
+		<!-- Number pad: enters into the selected cell with the current tool, or arms a digit -->
 		<div class="mt-2 flex w-full gap-1 px-[3px]" role="toolbar" aria-label={t('games.sudoku.pad')}>
 			{#each digits as d (d)}
 				<button
@@ -425,12 +443,15 @@
 					style:height="{Math.min(56, cellSize * 0.95)}px"
 					style:font-size="{Math.min(28, cellSize * 0.5)}px"
 					class:opacity-40={settings.showRemaining && remaining[d] <= 0}
-					disabled={selected < 0}
+					class:ring-2={armed === d}
+					class:ring-indigo-500={armed === d}
+					disabled={!digitFirst && selected < 0}
+					aria-pressed={digitFirst ? armed === d : undefined}
 					onpointerdown={(e) => e.preventDefault()}
 					title={settings.showRemaining
 						? t('games.sudoku.left', { count: remaining[d] })
 						: undefined}
-					onclick={() => enter(d, tool === 'note')}
+					onclick={() => pressPad(d)}
 				>
 					{d}
 					{#if settings.showRemaining}
@@ -445,11 +466,14 @@
 				class="flex-1 rounded-md border border-stone-300 bg-white text-stone-700 shadow-sm active:bg-stone-100 disabled:opacity-60 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200"
 				style:height="{Math.min(56, cellSize * 0.95)}px"
 				style:font-size="{Math.min(24, cellSize * 0.4)}px"
-				disabled={selected < 0}
+				class:ring-2={armed === 0}
+				class:ring-indigo-500={armed === 0}
+				disabled={!digitFirst && selected < 0}
+				aria-pressed={digitFirst ? armed === 0 : undefined}
 				aria-label={t('games.sudoku.erase')}
 				title={t('games.sudoku.erase')}
 				onpointerdown={(e) => e.preventDefault()}
-				onclick={() => enter(0, false)}>⌫</button
+				onclick={() => pressPad(0)}>⌫</button
 			>
 		</div>
 	{/if}

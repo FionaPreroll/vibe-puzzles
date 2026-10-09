@@ -147,3 +147,51 @@ test('Calcudoku shows cages with their results and checks rows and columns', asy
 	await page.keyboard.press('3');
 	await expect(board.locator('text[data-cell="6"]')).toHaveAttribute('fill', palette.entered);
 });
+
+test('picking the digit first: the pad arms a digit, left click enters it, right click notes it', async ({
+	page
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
+		localStorage.setItem(
+			'vp:settings:sudoku',
+			JSON.stringify({ values: { digitFirst: true }, updatedAt: 1 })
+		);
+	});
+	await page.goto('/sudoku?v=9e');
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	const pad = page.getByRole('toolbar', { name: 'Number pad' });
+	const givens = await board
+		.locator('text[data-cell]')
+		.evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-cell'))));
+	const [a, b] = [...Array(81).keys()].filter((i) => !givens.includes(i));
+	const at = async (i: number) => {
+		const box = (await board.boundingBox())!;
+		const cell = (box.width - 6) / 9;
+		return {
+			x: box.x + 3 + ((i % 9) + 0.5) * cell,
+			y: box.y + 3 + (Math.floor(i / 9) + 0.5) * cell
+		};
+	};
+
+	// No cell is selected, yet the pad works: it arms the digit.
+	const five = pad.getByRole('button', { name: '5', exact: true });
+	await five.click();
+	await expect(five).toHaveAttribute('aria-pressed', 'true');
+
+	let p = await at(a);
+	await page.mouse.click(p.x, p.y);
+	await expect(board.locator(`text[data-cell="${a}"]`)).toHaveText('5');
+	p = await at(b);
+	await page.mouse.click(p.x, p.y, { button: 'right' });
+	await expect(board.locator(`text[data-cell="${b}"]`)).toHaveCount(0);
+	await expect(board.locator('g.notes text', { hasText: '5' })).toHaveCount(1);
+
+	// The eraser is armed the same way; clicking the digit again disarms it.
+	await pad.getByRole('button', { name: 'Erase' }).click();
+	await expect(five).toHaveAttribute('aria-pressed', 'false');
+	p = await at(a);
+	await page.mouse.click(p.x, p.y);
+	await expect(board.locator(`text[data-cell="${a}"]`)).toHaveCount(0);
+});
