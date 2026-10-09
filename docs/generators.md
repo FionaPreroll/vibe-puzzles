@@ -142,63 +142,50 @@ Until 2026-10 (issue #84), Tetroid took the first unique puzzle after its 5th at
 
 ## Measurements
 
-Measured on 2026-10-08 (commit `9a96875`) with the generators' own rating solvers. A puzzle counts as graded right when the rating matches its type: for Sudoku, singles only for easy and normal and subsets needed for hard; for Calcudoku, the rules in the profile table; for Tetroid and Pinwheel, solvable without guessing exactly when normal. Times are single-threaded on the build container, not a phone.
+Measured on 2026-10-09 (commit `e88783b`, after issue #84) with each game's `fitsDifficulty`, which rates a puzzle with the generator's own solver. A puzzle counts as graded right when the rating matches its type: for Sudoku, singles only for easy and normal and subsets needed for hard; for Calcudoku, the rules in the profile table; for Tetroid and Pinwheel, solvable without guessing exactly when normal. Times are for generation alone, single-threaded on the build container (three measurements at a time), not a phone.
 
 ### Fresh puzzles (seeds 1 to N)
 
 | Type                  | N   | Graded right | Median  | Max    |
 | --------------------- | --- | ------------ | ------- | ------ |
 | Sudoku 9×9 easy       | 40  | 40           | 2 ms    | 23 ms  |
-| Sudoku 9×9 normal     | 40  | 40           | 3 ms    | 24 ms  |
-| Sudoku 9×9 hard       | 40  | 40           | 69 ms   | 198 ms |
-| Calcudoku 5×5, all    | 30  | 30 each      | ≤ 4 ms  | 46 ms  |
-| Calcudoku 7×7, all    | 30  | 30 each      | ≤ 46 ms | 229 ms |
-| Calcudoku 9×9 easy    | 30  | 30           | 139 ms  | 197 ms |
-| Calcudoku 9×9 normal  | 30  | 30           | 254 ms  | 394 ms |
-| Calcudoku 9×9 hard    | 30  | 30           | 541 ms  | 3.0 s  |
-| Tetroid 6×6 normal    | 40  | 39           | 23 ms   | 118 ms |
-| Tetroid 6×6 hard      | 40  | 28           | 58 ms   | 180 ms |
-| Tetroid 8×8 normal    | 40  | 40           | 78 ms   | 231 ms |
-| Tetroid 8×8 hard      | 40  | 35           | 78 ms   | 266 ms |
-| Tetroid 10×10 normal  | 40  | 36           | 178 ms  | 559 ms |
-| Tetroid 10×10 hard    | 40  | 35           | 168 ms  | 503 ms |
-| Tetroid 15×15 normal  | 12  | 10           | 1.0 s   | 2.3 s  |
-| Tetroid 15×15 hard    | 12  | 12           | 0.5 s   | 2.1 s  |
-| Tetroid 20×20 normal  | 12  | 7            | 8.3 s   | 13.3 s |
-| Tetroid 20×20 hard    | 12  | 11           | 4.9 s   | 11.6 s |
-| Pinwheel 5×5 normal   | 40  | 40           | 1 ms    | 3 ms   |
-| Pinwheel 5×5 hard     | 40  | 2            | 2 ms    | 11 ms  |
-| Pinwheel 7×7 normal   | 40  | 40           | 1 ms    | 6 ms   |
-| Pinwheel 7×7 hard     | 40  | 7            | 4 ms    | 18 ms  |
-| Pinwheel 10×10 normal | 40  | 40           | 2 ms    | 11 ms  |
-| Pinwheel 10×10 hard   | 40  | 16           | 11 ms   | 42 ms  |
-| Pinwheel 15×15 normal | 12  | 12           | 8 ms    | 27 ms  |
-| Pinwheel 15×15 hard   | 12  | 12           | 12 ms   | 79 ms  |
-| Pinwheel 20×20 hard   | 6   | 6            | 144 ms  | 484 ms |
+| Sudoku 9×9 normal     | 40  | 40           | 3 ms    | 48 ms  |
+| Sudoku 9×9 hard       | 40  | 40           | 53 ms   | 154 ms |
+| Calcudoku 5×5, all    | 30  | 30 each      | ≤ 4 ms  | 55 ms  |
+| Calcudoku 7×7, all    | 30  | 30 each      | ≤ 40 ms | 181 ms |
+| Calcudoku 9×9 easy    | 30  | 30           | 120 ms  | 215 ms |
+| Calcudoku 9×9 normal  | 30  | 30           | 201 ms  | 397 ms |
+| Calcudoku 9×9 hard    | 30  | 30           | 523 ms  | 2.9 s  |
+| Tetroid 6×6 normal    | 40  | 40           | 12 ms   | 262 ms |
+| Tetroid 6×6 hard      | 40  | 40           | 44 ms   | 236 ms |
+| Tetroid 8×8 normal    | 40  | 40           | 46 ms   | 379 ms |
+| Tetroid 8×8 hard      | 40  | 40           | 55 ms   | 334 ms |
+| Tetroid 10×10 normal  | 40  | 40           | 90 ms   | 657 ms |
+| Tetroid 10×10 hard    | 40  | 40           | 119 ms  | 548 ms |
+| Tetroid 15×15 normal  | 12  | 12           | 0.4 s   | 1.2 s  |
+| Tetroid 15×15 hard    | 12  | 12           | 0.5 s   | 1.7 s  |
+| Tetroid 20×20 normal  | 12  | 12           | 0.9 s   | 2.6 s  |
+| Tetroid 20×20 hard    | 12  | 12           | 3.9 s   | 10.8 s |
+| Pinwheel 5×5 normal   | 40  | 40           | < 1 ms  | 5 ms   |
+| Pinwheel 5×5 hard     | 40  | 40           | 48 ms   | 283 ms |
+| Pinwheel 7×7 normal   | 40  | 40           | 1 ms    | 10 ms  |
+| Pinwheel 7×7 hard     | 40  | 40           | 24 ms   | 132 ms |
+| Pinwheel 10×10 normal | 40  | 40           | 2 ms    | 17 ms  |
+| Pinwheel 10×10 hard   | 40  | 40           | 12 ms   | 78 ms  |
+| Pinwheel 15×15 normal | 12  | 12           | 8 ms    | 29 ms  |
+| Pinwheel 15×15 hard   | 12  | 12           | 7 ms    | 90 ms  |
+| Pinwheel 20×20 hard   | 6   | 6            | 101 ms  | 401 ms |
 
-### Stored collection (20 puzzles per type, evenly spread)
+Before the fix (2026-10-08, commit `9a96875`), Tetroid missed on up to 12 of 40 per type and on 5 of 12 at 20×20 normal, Pinwheel hard below 15×15 was graded right for only 2 to 16 of 40, and Tetroid 20×20 normal took a median of 8.3 s.
 
-Every sampled puzzle was exactly what the generator makes for its ID. Graded right, for the types that missed:
+### Stored collection
 
-| Type                        | Graded right |
-| --------------------------- | ------------ |
-| Tetroid 6×6 hard            | 13 of 20     |
-| Tetroid 8×8 hard            | 18 of 20     |
-| Tetroid 10×10 normal        | 15 of 20     |
-| Tetroid 10×10 hard          | 15 of 20     |
-| Pinwheel 5×5 hard           | 1 of 20      |
-| Pinwheel 7×7 hard           | 3 of 20      |
-| Pinwheel 10×10 hard         | 4 of 20      |
-| Pinwheel daily (10×10 hard) | 7 of 20      |
-| Sudoku 9×9 hard             | 19 of 20     |
-| Sudoku monthly (hard)       | 13 of 14     |
-
-All other types up to 10×10 had every sampled puzzle graded right; larger types were not sampled.
+Every regular puzzle, and every special puzzle from `DIFFICULTY_CHECKED_FROM` on, fits its type's difficulty; `bank.test.ts` checks this whenever the collection changes. Of the 44 special puzzles before those dates, kept because they may have been played, 8 miss: 7 of the 12 Pinwheel dailies from 2026-10-07 to 2026-10-18, and the Tetroid weekly of 2026-W41.
 
 ### What this means
 
 - **Every type** hits its level on fresh puzzles. Sudoku and Calcudoku did before; Tetroid normal is now right by construction, and Tetroid hard, Pinwheel hard and Sudoku hard search long enough.
-- **Tetroid 20×20 normal** got faster (median 8.3 s before), because `makeLogical` replaces most of the complete solver's work in `makeUnique`.
+- **Tetroid 20×20 normal** got much faster (median 0.9 s instead of 8.3 s), because `makeLogical` replaces most of the complete solver's work in `makeUnique`.
 - **Small Pinwheel hard boards** cost the most attempts, but each is so cheap that they stay well within budget.
 
 ## Changing a generator
