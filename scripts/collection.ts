@@ -9,7 +9,8 @@ import {
 	type BankFile,
 	type BankIndex
 } from '../src/lib/core/bank';
-import type { SpecialKind } from '../src/lib/core/variants';
+import type { GameLogic } from '../src/lib/core/types';
+import { decodePuzzleId, type SpecialKind, type Variant } from '../src/lib/core/variants';
 
 /** Folder of a type's collection files under `root` (the static folder). */
 export const typeDir = (root: string, game: string, variant: string) =>
@@ -64,6 +65,38 @@ export function writeType(
 	for (const f of readdirSync(dir)) {
 		if (!kept.has(join(dir, f))) rmSync(join(dir, f));
 	}
+}
+
+/**
+ * The first special periods whose stored puzzle must fit its type's difficulty. Earlier ones were
+ * stored before the generators were fixed (issue #84) and may have been played already, so they
+ * keep their puzzle even where its difficulty is off: replacing it would change the puzzle behind
+ * an ID that players have solved, possibly in the middle of its period.
+ */
+export const DIFFICULTY_CHECKED_FROM: Record<SpecialKind, string> = {
+	daily: '2026-10-19',
+	weekly: '2026-W43',
+	monthly: '2026-11'
+};
+
+/** Whether a stored puzzle must fit its type's difficulty (see DIFFICULTY_CHECKED_FROM). */
+export const checksDifficulty = (kind?: SpecialKind, period?: string) =>
+	!kind || (period ?? '') >= DIFFICULTY_CHECKED_FROM[kind];
+
+/**
+ * The puzzle of an ID if it belongs in the collection: it has a unique solution and fits its
+ * type's difficulty. Otherwise the reason it does not.
+ */
+export function checkedPuzzle(
+	logic: GameLogic,
+	variant: Variant,
+	id: number
+): { puzzle: unknown } | { reason: string } {
+	const puzzle = logic.generate(variant, decodePuzzleId(id).seed);
+	const check = logic.countSolutions(puzzle, 2);
+	if (!check.finished || check.count !== 1) return { reason: 'not uniquely solvable' };
+	if (!logic.fitsDifficulty(puzzle, variant)) return { reason: `not ${variant.difficulty}` };
+	return { puzzle };
 }
 
 /** Changes that can make stored puzzles invalid: the game logic and the shared core. */

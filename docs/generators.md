@@ -20,12 +20,12 @@ The same ID must give the same puzzle on every device, in every browser and on t
 
 - All randomness comes from `Rng` (`src/lib/core/rng.ts`, mulberry32 seeded with the puzzle seed). Nothing reads `Math.random`, the clock or the platform.
 - Budgets are counted in search nodes, iterations and attempts, never in time, so a slow device does not cut a search short where a fast one finishes it.
-- Changing a generator, a solver it calls or even the order in which it draws random numbers changes the puzzle behind existing IDs. Shared links and leaderboard entries then point at a different puzzle, and the collection (`static/puzzles`) no longer matches what devices generate for the same ID. Treat such a change like a format migration.
+- Changing a generator, a solver it calls or even the order in which it draws random numbers changes the puzzle behind existing IDs. Shared links and leaderboard entries then point at a different puzzle, and the collection (`static/puzzles`) no longer matches what devices generate for the same ID. `src/lib/games/generator-ids.test.ts` pins a few IDs of every generator setting, so such a change fails loudly; treat it like a format migration (see [Changing a generator](#changing-a-generator)).
 
 ### Where generation runs
 
 - In the browser, `src/lib/client/generate.ts` runs generators in a Web Worker (on the main thread if workers are blocked), caches a prefetched next puzzle, and gives up after 180 s (`GENERATE_TIMEOUT_MS`), which only catches a generator that never finishes.
-- `scripts/grow-puzzle-bank.ts` runs the same generators to fill the collection, checks each puzzle for a unique solution again, and stores it under its ID.
+- `scripts/grow-puzzle-bank.ts` runs the same generators to fill the collection, checks each puzzle for a unique solution and for its type's difficulty (`fitsDifficulty`) again, and stores it under its ID. A seed that fails a check is skipped.
 - The server never generates; it hands out collection puzzles.
 
 ### The shared recipe
@@ -36,7 +36,9 @@ Every generator follows the same three steps:
 2. **Make it unique.**
    - Sudoku goes the other way round: it starts from the full grid and removes givens only while a logical solver still solves the puzzle, which proves the solution unique.
    - Calcudoku, Tetroid and Pinwheel use a complete solver (propagation plus backtracking) to look for a second solution, with `limit: 2` and a node budget. While it finds one, the generator changes the puzzle where the two solutions differ (a cell becomes its own cage, a cell moves to another region, a galaxy is split) and tries again. A search that runs out of nodes discards the attempt.
-3. **Grade it.** A logical solver that never guesses replays the puzzle with a limited set of techniques. The difficulty is the weakest set of techniques that solves it (easy and normal Sudoku are right by construction, since their digging allows singles only). If the result does not match the requested difficulty, the generator starts a new attempt with the same `Rng` (so still deterministic), up to an attempt limit, and otherwise keeps the best or first puzzle it found (see [Fallbacks](#fallbacks)).
+3. **Grade it.** A logical solver that never guesses replays the puzzle with a limited set of techniques. The difficulty is the weakest set of techniques that solves it. Easy and normal Sudoku and normal Tetroid are right by construction: their last step already uses that logical solver (Sudoku digs with singles only; Tetroid reshapes regions until propagation solves the puzzle). Otherwise, if the result does not match the requested difficulty, the generator starts a new attempt with the same `Rng` (so still deterministic), up to an attempt limit, and then keeps the best or first puzzle it found (see [Fallbacks](#fallbacks)).
+
+Each game's `GameLogic.fitsDifficulty(puzzle, variant)` applies the same rating to any stored puzzle; the collection script and tests use it.
 
 ## Difficulty at a glance
 
@@ -58,7 +60,7 @@ Specials use these levels too: Sudoku and Tetroid daily normal, weekly and month
 3. **Difficulty**:
    - _Easy_ digs with singles only and stops removing at 36 givens (`EASY_GIVENS`, scaled for smaller grids), so there are always several obvious next steps.
    - _Normal_ digs with singles only, as far as it gets.
-   - _Hard_ digs allowing subsets, then accepts the puzzle only if singles alone do not solve it. It tries up to 30 solutions (`HARD_ATTEMPTS`) and otherwise keeps the one that needs the most (hard first, then fewest givens).
+   - _Hard_ digs allowing subsets, then accepts the puzzle only if singles alone do not solve it. About one attempt in eight does, so it tries up to 200 solutions (`HARD_ATTEMPTS`; with 30, about 1 seed in 60 ran out) and otherwise keeps the one that needs the most (hard first, then fewest givens).
 
 **Rating solver** (`ratePuzzle` in `solver.ts`) works with pencil marks the way a person does: naked and hidden singles first; only when none is left, locked candidates (pointing and claiming) and naked and hidden subsets of two or three. `Level.Singles` and `Level.Subsets` are the two levels.
 
@@ -72,7 +74,7 @@ Specials use these levels too: Sudoku and Tetroid daily normal, weekly and month
 2. **Cages** (`partition`): grow connected groups from random start cells, with sizes drawn from the difficulty's weights (`PROFILES[difficulty].sizes` for sizes 1, 2, 3, 4). Hard allows no single cells; a leftover single joins a neighbouring cage of fewer than four cells, if there is one.
 3. **Operations** (`makeCage`): one cell shows its digit (`=`). Two cells get − or ÷ with the profile's probability (`diffDivShare`, ÷ only when it divides evenly), otherwise + or ×. Larger cages get + (60 %) or ×.
 4. **Unique** (`makeUnique`): if the advanced logical solver solves the puzzle it is unique. Otherwise the complete solver (`limit: 2`, 2,000 nodes) looks for two solutions; a cell where they differ is cut out as a single-cell cage (showing its digit), and the rest of its cage is split into connected pieces. Repeat until unique.
-5. **Difficulty**: an attempt is accepted when it fits the profile's `maxLevel` and, for hard, needs more than `CalcLevel.Basic`, and when it has few single-cell cages (at most `n` on easy, `n / 3` otherwise). Up to 40 attempts (`ATTEMPTS`); otherwise the best one by fit, then fewest single-cell cages.
+5. **Difficulty**: an attempt is accepted when it fits the profile's `maxLevel` and, for hard, needs more than `CalcLevel.Basic`, and when it has few single-cell cages (at most `n` on easy, `n / 3` otherwise). Up to 40 attempts (`ATTEMPTS`); otherwise the best one by fit, then fewest single-cell cages. If no attempt ends unique (never observed), it throws `generation failed` like the other generators.
 
 | Profile | Cage size weights (1, 2, 3, 4) | − or ÷ on two cells | Allowed techniques | Must need advanced |
 | ------- | ------------------------------ | ------------------- | ------------------ | ------------------ |
@@ -93,9 +95,13 @@ Specials use these levels too: Sudoku and Tetroid daily normal, weekly and month
 2. **Grow regions** (`growRegions`): assign the unshaded cells to neighbouring regions by random flood fill, preferring the region where the cell opens the fewest _alternatives_. An alternative is another placement in that region that fits with all other planted tetrominoes, i.e. a second solution that differs in this region only. These are cheap to count.
 3. **Unique** (`makeUnique`), up to `2 × cells` iterations:
    - While some region has alternatives, move an unshaded cell of it to a neighbouring region where that removes the most alternatives (a short tabu list keeps it from undoing recent moves; worse moves are sometimes accepted to escape dead ends). If no move helps, swap the region's planted tetromino for one of its alternatives, which reshapes the pockets around it.
-   - Once no region has single-region alternatives, the complete solver (`limit: 2`, 1,500 nodes) looks for combined alternatives; a cell the other solution shades is moved to another region.
+   - Once no region has single-region alternatives, the complete solver (`limit: 2`, 1,500 nodes) looks for combined alternatives; a cell the other solution shades is moved to another region. Normal puzzles skip this phase and leave combined alternatives to the next step.
    - Moving an unshaded cell never invalidates the planted solution.
-4. **Difficulty**: _normal_ must be solved by propagation with the look-ahead and without branching; _hard_ must not be. Up to 100 attempts; after the 5th attempt the first unique puzzle is returned whatever its difficulty (see [Fallbacks](#fallbacks)).
+4. **Solvable by logic** (`makeLogical`, normal only), up to `cells` iterations: run propagation with the look-ahead (`TetroidSolver.propagated`). If every region is down to one placement, the puzzle is solved by deduction, which also proves the solution unique. Otherwise propagation is stuck: some regions still have placements besides their planted tetromino. Each of those covers an unshaded cell of its region, and moving such a cell to a neighbouring region rules it out.
+   - The move prefers cells that many stuck placements share and avoids targets where the cell would open a new single-region alternative (a short tabu list again).
+   - If every such cell holds its region together (moving it would split the region), another unshaded cell of a stuck region moves instead, preferably one next to them, which frees them for a later move.
+   - Then propagation runs again. Most puzzles need a few dozen moves at most. An attempt that runs out of iterations or moves is discarded; about 3 in 5 attempts succeed on 6×6, more on bigger boards.
+5. **Difficulty**: _normal_ is right by construction. _Hard_ must not be solved by propagation with the look-ahead: up to 100 attempts (`ATTEMPTS`); about one unique attempt in four fits on 6×6, one in two on 10×10; if none fits, the first unique puzzle (see [Fallbacks](#fallbacks)).
 
 **Solver** (`TetroidSolver` in `solver.ts`): one domain per region, the placements of an L, I, T or S inside it. Propagation, to a fixpoint:
 
@@ -112,22 +118,27 @@ With `branch: false` the solver stops after propagation; otherwise it branches o
 1. **Partition** (`partition`): start at a free cell with few free neighbours (with some randomness), put a centre on it or on an adjacent edge or corner whose covered cells are free, and grow the galaxy by adding cells together with their mirror image through the centre, up to a random target size. Repeat until every cell belongs to a galaxy. Then let galaxies swallow single-cell galaxies in symmetric pairs (`absorbSingles`), so there are few 1×1 pieces.
 2. **Unique** (`makeUnique`), up to `cells` iterations: the complete solver (`limit: 2`, 3,000 nodes) looks for a second partition; a cell where it differs is cut out of its galaxy together with its mirror, as long as the rest stays connected. The pair becomes a new galaxy (a domino if the two cells touch, two single cells otherwise).
 3. **Hiding the construction**: centres are sorted in reading order before they are stored.
-4. **Difficulty**: _normal_ must be solved by propagation alone; _hard_ must not be. Up to 100 attempts; after the 9th the first unique puzzle is returned whatever its difficulty.
+4. **Difficulty**: _normal_ must be solved by propagation alone; _hard_ must not be. Up to 10,000 attempts (`ATTEMPTS`), then the first unique puzzle. Puzzles that need case analysis are rare on small boards (about one unique partition in 500 on 5×5, one in 90 on 7×7, one in 17 on 10×10 and one in 3 on 15×15), but an attempt on a small board takes a fraction of a millisecond. The hard puzzles found are still varied: 200 seeds of 5×5 hard gave 177 distinct puzzles, counting rotations and mirror images as the same.
+
+Two other ways to make hard puzzles did not help and are not used: larger galaxies (a bigger `maxSize` in `partition`) did not raise the share of hard partitions, and removing centres while the puzzle stays unique left small boards solvable by propagation.
 
 **Solver** (`PinwheelSolver` in `solver.ts`): a domain of possible centres per cell (bitmaps cell × centre). Propagation enforces symmetry (a centre stays possible for a cell only while it is possible for the cell's mirror, and a decided cell decides its mirror) and connectivity (a cell can belong to a centre only if it reaches the centre's covered cells through cells that may also belong to it). Branching picks the cell with the fewest possible centres and tries each.
 
 ## Fallbacks
 
-Each generator has an attempt limit, so it always returns a puzzle in bounded work. When no attempt hits the requested difficulty, the puzzle may not match it:
+Each generator has an attempt limit, so it always ends in bounded work. When no attempt hits the requested difficulty, the puzzle may not match it:
 
-| Generator | Attempts  | When none fits                                              |
-| --------- | --------- | ----------------------------------------------------------- |
-| Sudoku    | 30 (hard) | Best attempt: needs subsets if any did, then fewest givens  |
-| Calcudoku | 40        | Best attempt: fits the level, then fewest single-cell cages |
-| Tetroid   | 5 of 100  | First unique puzzle, whatever its difficulty                |
-| Pinwheel  | 9 of 100  | First unique puzzle, whatever its difficulty                |
+| Generator      | Attempts | When none fits                                                 |
+| -------------- | -------- | -------------------------------------------------------------- |
+| Sudoku hard    | 200      | Best attempt: needs subsets if any did, then fewest givens     |
+| Calcudoku      | 40       | Best attempt: fits the level, then fewest single-cell cages    |
+| Tetroid normal | 100      | None: `generation failed` (never a puzzle that needs guessing) |
+| Tetroid hard   | 100      | First unique puzzle, whatever its difficulty                   |
+| Pinwheel       | 10,000   | First unique puzzle, whatever its difficulty                   |
 
-The puzzle is always valid and unique; only its difficulty can be off. How often that happens is measured below.
+The limits are far above what the measurements below need, so in practice the difficulty is always right. A returned puzzle is always valid and unique.
+
+Until 2026-10 (issue #84), Tetroid took the first unique puzzle after its 5th attempt, Pinwheel after its 9th and Sudoku hard tried 30 solutions. Some Tetroid normal puzzles then needed guessing (5 of 12 at 20×20) and most Pinwheel hard puzzles below 15×15 did not need case analysis (2 of 40 at 5×5).
 
 ## Measurements
 
@@ -186,14 +197,28 @@ All other types up to 10×10 had every sampled puzzle graded right; larger types
 
 ### What this means
 
-- **Sudoku and Calcudoku** hit their level almost always; a hard Sudoku occasionally falls back to one that singles solve.
-- **Tetroid** misses in both directions. Some _normal_ puzzles need guessing, and more so on large boards (5 of 12 at 20×20), because after five attempts the first unique puzzle is taken. Some _hard_ puzzles are solvable by logic.
-- **Pinwheel hard** is mostly not hard on small boards: case analysis is rarely needed below 15×15, and after nine attempts the generator takes what it has. Most stored 5×5 to 10×10 hard puzzles, and most daily puzzles, are as easy as normal ones.
+- **Every type** hits its level on fresh puzzles. Sudoku and Calcudoku did before; Tetroid normal is now right by construction, and Tetroid hard, Pinwheel hard and Sudoku hard search long enough.
+- **Tetroid 20×20 normal** got faster (median 8.3 s before), because `makeLogical` replaces most of the complete solver's work in `makeUnique`.
+- **Small Pinwheel hard boards** cost the most attempts, but each is so cheap that they stay well within budget.
 
-Proposed fixes are tracked in [issue #84](https://github.com/FionaPreroll/vibe-puzzles/issues/84).
+## Changing a generator
+
+Any change to a generator, to a solver it calls or to the order of its random draws can change the puzzle behind existing IDs. Treat it as a migration:
+
+1. `src/lib/games/generator-ids.test.ts` fails for the pinned IDs whose puzzle changed. Make sure only the intended ones changed, then replace their hashes in the same pull request, so the migration is visible in review.
+2. What happens to existing IDs:
+   - **Collection puzzles keep their puzzle.** The app loads a stored puzzle before generating one, and the server only hands out stored puzzles, so their IDs stay stable even if the generator would now make something else (only an offline device without the cached collection file generates the new puzzle). Saved games store their puzzle too.
+   - **Other generated IDs** (shared links, a device's own puzzles) show the new puzzle. The server remembers the first puzzle submitted for an ID (`fingerprint` in `worker/store.ts`), so solving the new puzzle of an ID that someone solved before the change is refused as not matching its ID. Generated IDs rarely repeat (2^26 seeds per type), so this mostly concerns shared links.
+3. If the rating got stricter, `pnpm bank:regrade` replaces stored puzzles that miss their type's difficulty:
+   - A regular puzzle gets a new one with a fresh seed in its place, so all other puzzles keep their chunk and position. A device whose cached chunk is older than the index then simply generates the new ID, which gives the same puzzle as the stored one. The removed ID keeps working: devices generate its puzzle.
+   - A special puzzle is generated again for its period (its seed is fixed), or dropped and left to on-device generation if it still misses.
+   - Special puzzles of periods before `DIFFICULTY_CHECKED_FROM` (`scripts/collection.ts`) are kept even when misgraded, because players may already have solved them. Move those dates to a few days after the change will be deployed, so that no current period changes its puzzle.
+
+The fix for issue #84 went this way. It changed all Tetroid normal puzzles and the Tetroid hard, Pinwheel and Sudoku hard seeds that used to end in a fallback; every other ID kept its puzzle. In the collection it replaced 1,569 misgraded puzzles (from 2026-10-19 on for the specials).
 
 ## Tests and budgets
 
-- Unit tests per game check uniqueness, validity and determinism of generated puzzles. Sudoku (9×9) and Calcudoku (4×4 to 7×7, seeds 1–3) also check the difficulty; Tetroid and Pinwheel do not yet.
-- `src/lib/games/bank.test.ts` checks every stored puzzle for validity and a unique solution (see the README on `BANK_TEST_SINCE`).
+- Unit tests per game check uniqueness, validity, determinism and the difficulty of generated puzzles: Sudoku (9×9, and a seed whose first 30 attempts failed), Calcudoku (4×4 to 7×7), Tetroid (6×6 and 8×8 normal and hard, 10×10 normal) and Pinwheel (5×5 normal and hard, 7×7 and 10×10 hard).
+- `src/lib/games/generator-ids.test.ts` pins the puzzle behind a few IDs of every distinct generator setting (rule set, size, difficulty) and checks that every setting is pinned.
+- `src/lib/games/bank.test.ts` checks every stored puzzle for validity, a unique solution and its type's difficulty (special puzzles from `DIFFICULTY_CHECKED_FROM` on; see the README on `BANK_TEST_SINCE`).
 - `perf/generate.perf.ts` (`pnpm test:perf`) holds median time budgets per board size over five fixed seeds: 200 ms (5×5) up to 20 s (20×20), four times as much for Calcudoku. `PERF_BUDGET_SCALE` relaxes them on slow machines.

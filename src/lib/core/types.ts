@@ -79,6 +79,8 @@ export interface GameLogic<P = unknown, S = unknown> {
 	generate(variant: Variant, seed: number): P;
 	/** Number of solutions, searching for at most `limit`; `finished` is false if it gave up. */
 	countSolutions(puzzle: P, limit: number): { count: number; finished: boolean };
+	/** Whether a uniquely solvable puzzle is as hard as its type says, by the generator's rating. */
+	fitsDifficulty(puzzle: P, variant: Variant): boolean;
 	/** Sanity check for a puzzle definition received from elsewhere. */
 	isValidPuzzle(puzzle: unknown, variant: Variant): puzzle is P;
 	emptyState(puzzle: P): S;

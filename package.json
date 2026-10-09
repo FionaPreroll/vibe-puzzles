@@ -20,6 +20,7 @@
 		"cf:dev": "pnpm build && wrangler d1 migrations apply DB --local && wrangler dev",
 		"cf:deploy": "pnpm build && wrangler d1 migrations apply DB --remote && wrangler deploy",
 		"bank:grow": "tsx scripts/grow-puzzle-bank.ts",
+		"bank:regrade": "tsx scripts/regrade-puzzle-bank.ts",
 		"test:server": "playwright test -c playwright.server.config.ts",
 		"test:soak": "playwright test -c playwright.load.config.ts soak",
 		"test:perf": "vitest --run -c vitest.perf.config.ts && playwright test -c playwright.load.config.ts performance"

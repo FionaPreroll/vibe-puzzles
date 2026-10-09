@@ -76,6 +76,9 @@ export const pinwheelLogic: GameLogic<PinwheelPuzzle, PinwheelState> = {
 		const res = solvePinwheel(p, { limit, maxNodes: 2_000_000 });
 		return { count: res.solutions.length, finished: res.finished };
 	},
+	// Normal: propagation alone solves it; hard: it needs case analysis.
+	fitsDifficulty: (p, v) =>
+		(solvePinwheel(p, { branch: false }).solutions.length === 1) === (v.difficulty === 'normal'),
 	isValidPuzzle(p: unknown, v): p is PinwheelPuzzle {
 		if (!p || typeof p !== 'object') return false;
 		const q = p as PinwheelPuzzle;
