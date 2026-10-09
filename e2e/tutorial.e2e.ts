@@ -154,3 +154,43 @@ test('a Calcudoku game links the Calcudoku tutorial', async ({ page }) => {
 		/\/sudoku\/tutorial\/calc$/
 	);
 });
+
+test('the Sudoku tutorial finds the missing digit in a row, a box and a column', async ({
+	page
+}) => {
+	await page.goto('/sudoku/tutorial');
+	const next = page.getByRole('button', { name: 'Next' });
+	const pad = page.getByRole('toolbar', { name: 'Number pad' });
+	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
+	const cell = (box.width - 6) / 4;
+	const enter = async (i: number, d: number) => {
+		await page.mouse.click(
+			box.x + 3 + ((i % 4) + 0.5) * cell,
+			box.y + 3 + (Math.floor(i / 4) + 0.5) * cell
+		);
+		await pad.getByRole('button', { name: String(d), exact: true }).click();
+	};
+
+	await expect(page.getByText('Step 1 of 5')).toBeVisible();
+	await next.click();
+	// Row, box, column: each waits for its digit.
+	for (const [i, d, done] of [
+		[2, 3, /Right: a 3/],
+		[4, 3, /the box needed its 3/],
+		[8, 2, /find the one missing digit/]
+	] as const) {
+		await expect(next).toBeDisabled();
+		await enter(i, d);
+		await expect(page.getByText(done)).toBeVisible();
+		await next.click();
+	}
+	await expect(page.getByText('Step 5 of 5')).toBeVisible();
+	for (const [i, d] of [
+		[7, 2],
+		[11, 3],
+		[13, 3]
+	]) {
+		await enter(i, d);
+	}
+	await expect(page.getByText('Well done!')).toBeVisible();
+});

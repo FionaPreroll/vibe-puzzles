@@ -74,35 +74,34 @@ describe.each(GAMES.map((g) => [g.id, g] as [string, GameModule]))('%s', (id, ga
 		}
 	);
 
-	it.each(
-		tutorialsOf(game)
-			.filter((r) => r.tutorial.steps)
-			.map((r) => [r.mode ?? 'main', r] as const)
-	)('guides the %s tutorial with a text per step and "Show me" for every task', (_, r) => {
-		const { puzzle, start, steps } = r.tutorial;
-		let s = start(puzzle);
-		for (const step of steps!) {
-			if (!step.done) continue;
-			expect(step.done(puzzle, s)).toBe(false);
-			s = step.show!(puzzle, s);
-			expect(step.done(puzzle, s)).toBe(true);
+	it.each(tutorialsOf(game).map((r) => [r.mode ?? 'main', r] as const))(
+		'guides the %s tutorial with a text per step and "Show me" for every task',
+		(_, r) => {
+			const { puzzle, start, steps } = r.tutorial;
+			let s = start(puzzle);
+			for (const step of steps) {
+				if (!step.done) continue;
+				expect(step.done(puzzle, s)).toBe(false);
+				s = step.show!(puzzle, s);
+				expect(step.done(puzzle, s)).toBe(true);
+			}
+			expect(game.isSolved(puzzle, s)).toBe(false);
+			for (const dict of [en, de]) {
+				const texts = lookup(dict, tutorialTextKey(r)) as {
+					text: string;
+					task?: string;
+					done?: string;
+				}[];
+				expect(texts).toHaveLength(steps.length);
+				steps.forEach((step, n) => {
+					expect(texts[n].text, `step ${n + 1}`).toBeTruthy();
+					if (step.done) expect(texts[n].task && texts[n].done, `step ${n + 1}`).toBeTruthy();
+				});
+				// The last step is a task too: solving the board ends the tutorial.
+				expect(texts.at(-1)!.task).toBeTruthy();
+			}
 		}
-		expect(game.isSolved(puzzle, s)).toBe(false);
-		for (const dict of [en, de]) {
-			const texts = lookup(dict, tutorialTextKey(r)) as {
-				text: string;
-				task?: string;
-				done?: string;
-			}[];
-			expect(texts).toHaveLength(steps!.length);
-			steps!.forEach((step, n) => {
-				expect(texts[n].text, `step ${n + 1}`).toBeTruthy();
-				if (step.done) expect(texts[n].task && texts[n].done, `step ${n + 1}`).toBeTruthy();
-			});
-			// The last step is a task too: solving the board ends the tutorial.
-			expect(texts.at(-1)!.task).toBeTruthy();
-		}
-	});
+	);
 });
 
 describe('tutorials', () => {

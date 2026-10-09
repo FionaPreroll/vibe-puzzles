@@ -283,7 +283,6 @@ const en = {
 		back: 'Back',
 		finish: 'Play a real puzzle',
 		skip: 'Skip tutorial',
-		tryIt: 'Try it on the board.',
 		yourTurn: 'Your turn',
 		showMe: 'Show me',
 		wellDone: 'Well done!',
@@ -480,10 +479,28 @@ const en = {
 			erase: 'Erase',
 			left: '{count} left',
 			tutorial: [
-				'This small Sudoku uses the digits 1 to 4. Every row, column and 2×2 box needs each of them exactly once.',
-				'Look at the top row: 1, 2 and 4 are there already, so the empty cell must be a 3.',
-				'Not sure yet? Pick the Note tool and jot down small digits as reminders of what is still possible.',
-				'Now fill in all empty cells. Repeated digits turn red.'
+				{
+					text: 'This small Sudoku uses the digits 1 to 4. Each row, each column and each 2×2 box with a thick border (like the marked one) holds every digit exactly once. Just look for now: you start filling in step 2.'
+				},
+				{
+					text: 'Start where little is missing. The top row already has 1, 2 and 4, so its empty cell can only be the one digit left.',
+					task: 'Fill the empty cell of the top row: select it, then tap the digit on the number pad or type it.',
+					done: 'Right: a 3. When you select a cell, its row, column and box light up to help you look.'
+				},
+				{
+					text: 'Boxes work the same way. The top-left box has 1, 2 and 4, so its empty cell takes the missing digit.',
+					task: 'Fill the empty cell of the top-left box.',
+					done: 'Exactly: the box needed its 3.'
+				},
+				{
+					text: 'And columns too. Now that the 3 is in, the left column lacks only one digit.',
+					task: 'Fill the next empty cell of the left column.',
+					done: 'Well done: row, box or column, the trick is always to find the one missing digit.'
+				},
+				{
+					text: 'Three cells are left. For each, check its row, column and box. Not sure yet? The Note tool (✎) jots down small digits as reminders. Repeated digits turn red.',
+					task: 'Fill in the last three cells on your own.'
+				}
 			]
 		}
 	}
