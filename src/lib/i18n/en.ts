@@ -349,10 +349,26 @@ const en = {
 			controlsTouch:
 				'Tap a cell to cycle through shaded, cross and empty. Hold a moment, then drag to paint several cells.',
 			tutorial: [
-				'Each region with a thick border needs exactly one tetromino: four shaded cells in a row, an L, a T or an S shape.',
-				'This small board has four regions. The top-left region is already done: it holds an S.',
-				'Shaded cells must all connect, and no 2×2 block may be shaded. Same shapes may not touch across a region border.',
-				'Now finish the board: shade one tetromino in each of the other regions. Wrong spots turn red.'
+				{
+					text: 'Each region with a thick border needs exactly one tetromino: four shaded cells joined along their sides. There are four shapes, I, L, T and S, which may be turned or mirrored. The top-left region is already done: it holds an S, and crosses mark its empty cells. Just look for now: you start shading in step 2.'
+				},
+				{
+					text: 'The region at the top right has exactly four cells, so its tetromino fills it completely.',
+					task: 'Shade all four cells of that region.',
+					done: 'Done: that tetromino is an L.'
+				},
+				{
+					text: 'No 2×2 block may be fully shaded. The two marked cells each sit next to three shaded cells of a 2×2 block, so shading them would complete it.',
+					task: 'Mark both cells with a cross: pick the Cross tool (✕) and click or tap them. A cross means the cell stays empty.',
+					done: 'Right: these cells stay empty, and you have ruled them out for good.'
+				},
+				{
+					text: 'Two more rules. All shaded cells together form one connected group. And two tetrominoes of the same shape may not touch across a region border; turned or mirrored ones count as the same shape.'
+				},
+				{
+					text: 'Two regions are left: the one at the bottom and the big one on the right. Use the rules from the steps before. Cells that break a rule turn red.',
+					task: 'Shade one tetromino in each of the two regions.'
+				}
 			]
 		},
 		pinwheel: {

@@ -350,10 +350,26 @@ const de: Dictionary = {
 			controlsTouch:
 				'Tippe eine Zelle an, um zwischen schattiert, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Zellen.',
 			tutorial: [
-				'Jeder dick umrandete Bereich braucht genau ein Tetromino: vier schattierte Zellen in einer Reihe, als L, T oder S.',
-				'Dieses kleine Brett hat vier Bereiche. Der Bereich oben links ist schon fertig: Er enthält ein S.',
-				'Alle schattierten Zellen müssen verbunden sein, und keine 2×2-Fläche darf schattiert sein. Gleiche Formen dürfen sich über eine Bereichsgrenze nicht berühren.',
-				'Jetzt löse das Brett: Schattiere in jedem anderen Bereich ein Tetromino. Falsche Stellen werden rot.'
+				{
+					text: 'Jeder dick umrandete Bereich braucht genau ein Tetromino: vier schattierte Zellen, die mit ihren Seiten aneinanderstoßen. Es gibt vier Formen, I, L, T und S, die auch gedreht oder gespiegelt sein dürfen. Der Bereich oben links ist schon fertig: Er enthält ein S, und Kreuze markieren seine leeren Zellen. Schau dir das Brett erst einmal nur an: Ab Schritt 2 schattierst du.'
+				},
+				{
+					text: 'Der Bereich oben rechts hat genau vier Zellen, sein Tetromino füllt ihn also ganz aus.',
+					task: 'Schattiere alle vier Zellen dieses Bereichs.',
+					done: 'Geschafft: Dieses Tetromino ist ein L.'
+				},
+				{
+					text: 'Keine 2×2-Fläche darf ganz schattiert sein. Die beiden markierten Zellen liegen jeweils neben drei schattierten Zellen einer 2×2-Fläche: Schattiert würden sie sie vervollständigen.',
+					task: 'Markiere beide Zellen mit einem Kreuz: Wähle das Werkzeug Kreuz (✕) und klicke oder tippe sie an. Ein Kreuz heißt, die Zelle bleibt leer.',
+					done: 'Richtig: Diese Zellen bleiben leer, du hast sie endgültig ausgeschlossen.'
+				},
+				{
+					text: 'Zwei weitere Regeln. Alle schattierten Zellen bilden zusammen eine verbundene Gruppe. Und zwei Tetrominos derselben Form dürfen sich über eine Bereichsgrenze nicht berühren; gedrehte oder gespiegelte zählen als dieselbe Form.'
+				},
+				{
+					text: 'Zwei Bereiche sind noch übrig: der unten und der große rechts. Nutze die Regeln aus den Schritten davor. Zellen, die eine Regel verletzen, werden rot.',
+					task: 'Schattiere in beiden Bereichen je ein Tetromino.'
+				}
 			]
 		},
 		pinwheel: {

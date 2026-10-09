@@ -1,3 +1,4 @@
+import type { TutorialStep } from '../../core/types';
 import type { TetroidPuzzle, TetroidState } from './rules';
 import { CROSS, EMPTY, SHADED } from './rules';
 
@@ -21,3 +22,34 @@ export function tetroidTutorialStart(p: TetroidPuzzle): TetroidState {
 	for (const i of [1, 16]) marks[i] = CROSS;
 	return { marks, auto: new Array(p.width * p.height).fill(0) };
 }
+
+/** A task that marks the given cells: done once they all have `mark`; "Show me" sets them. */
+function markStep(cells: number[], mark: number): TutorialStep<TetroidPuzzle, TetroidState> {
+	return {
+		spotlight: cells.map(String),
+		done: (_, s) => cells.every((i) => s.marks[i] === mark),
+		show: (_, s) => {
+			const marks = s.marks.slice();
+			const auto = s.auto.slice();
+			for (const i of cells) {
+				marks[i] = mark;
+				auto[i] = 0;
+			}
+			return { marks, auto };
+		}
+	};
+}
+
+/** Texts under `games.tetroid.tutorial`, one per step. */
+export const TETROID_TUTORIAL_STEPS: TutorialStep<TetroidPuzzle, TetroidState>[] = [
+	// What a tetromino is, with the given S as the example.
+	{ spotlight: ['0', '5', '6', '11'] },
+	// The top-right region has exactly four cells: they are its tetromino (an L).
+	markStep([2, 3, 4, 7], SHADED),
+	// No 2×2 block: each of these cells would complete one, so both stay empty.
+	markStep([8, 10], CROSS),
+	// The last two rules, still without a task.
+	{},
+	// The rest alone; the tutorial ends when the board is solved.
+	{}
+];

@@ -159,7 +159,7 @@ describe('nextDailyText', () => {
 
 describe('tSteps', () => {
 	it('reads plain texts and texts with a task alike', () => {
-		expect(tSteps('games.tetroid.tutorial')[0]).toEqual({ text: en.games.tetroid.tutorial[0] });
+		expect(tSteps('games.sudoku.tutorial')[0]).toEqual({ text: en.games.sudoku.tutorial[0] });
 		expect(tSteps('games.pinwheel.tutorial')[2].task).toBe(en.games.pinwheel.tutorial[2].task);
 		i18n.locale = 'de';
 		expect(tSteps('games.pinwheel.tutorial')[2].task).toBe(de.games.pinwheel.tutorial[2].task);
