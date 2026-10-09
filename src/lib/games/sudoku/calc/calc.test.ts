@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Rng } from '../../../core/rng';
 import { generateCalc } from './generator';
 import {
@@ -236,5 +236,18 @@ describe('Calcudoku generator', () => {
 				if (c.op === '-' || c.op === '/') expect(c.cells).toHaveLength(2);
 			}
 		}
+	});
+
+	it('throws when no attempt ends with a unique puzzle', async () => {
+		vi.resetModules();
+		// Logic never solves a puzzle and every search runs out of nodes.
+		vi.doMock('./solver', async (original) => ({
+			...(await original<typeof import('./solver')>()),
+			rateCalc: () => ({ solved: false, grid: [] }),
+			solveCalc: () => ({ solutions: [], finished: false })
+		}));
+		const fresh = await import('./generator');
+		expect(() => fresh.generateCalc(4, 'easy', 1)).toThrow('generation failed');
+		vi.doUnmock('./solver');
 	});
 });
