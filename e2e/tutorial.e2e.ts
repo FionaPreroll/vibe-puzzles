@@ -93,3 +93,64 @@ test('the Tetroid tutorial teaches one rule per step', async ({ page }) => {
 	for (const i of [9, 13, 14, 18, 20, 21, 22, 23]) await click(i);
 	await expect(page.getByText('Well done!')).toBeVisible();
 });
+
+test('the home page links both Sudoku tutorials, and Calcudoku has its own', async ({ page }) => {
+	await page.goto('/');
+	await page.getByRole('link', { name: 'New here? Learn Calcudoku in a minute' }).click();
+	await expect(page).toHaveURL(/\/sudoku\/tutorial\/calc$/);
+	await expect(page.getByRole('heading', { name: 'Calcudoku tutorial' })).toBeVisible();
+	const next = page.getByRole('button', { name: 'Next' });
+	const pad = page.getByRole('toolbar', { name: 'Number pad' });
+	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
+	const cell = (box.width - 6) / 4;
+	const enter = async (i: number, d: number) => {
+		await page.mouse.click(
+			box.x + 3 + ((i % 4) + 0.5) * cell,
+			box.y + 3 + (Math.floor(i / 4) + 0.5) * cell
+		);
+		await pad.getByRole('button', { name: String(d), exact: true }).click();
+	};
+
+	await next.click();
+	await next.click();
+	// The single cell, then the "3−" cage.
+	await expect(next).toBeDisabled();
+	await enter(3, 4);
+	await expect(page.getByText('Done: one cell, one digit.')).toBeVisible();
+	await next.click();
+	await enter(6, 4);
+	await enter(7, 1);
+	await expect(page.getByText(/the 1 goes on the right/)).toBeVisible();
+	await next.click();
+	// Notes for the "7+" cage.
+	await expect(next).toBeDisabled();
+	await page.getByRole('button', { name: 'Note' }).click();
+	for (const i of [8, 9]) for (const d of [3, 4]) await enter(i, d);
+	await expect(page.getByText('Good: the order will come out later.')).toBeVisible();
+	await next.click();
+
+	// The rest: 1234 / 2341 / 3412 / 4123.
+	await page.getByRole('button', { name: 'Digit' }).click();
+	const solution = [1, 2, 3, 4, 2, 3, 4, 1, 3, 4, 1, 2, 4, 1, 2, 3];
+	for (const i of [0, 1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15]) await enter(i, solution[i]);
+	await expect(page.getByText('Well done!')).toBeVisible();
+	await page.getByRole('link', { name: 'Play a real puzzle' }).click();
+	await expect(page).toHaveURL(/\/sudoku\?v=c5e$/);
+
+	// The solved Calcudoku tutorial leaves the home page; the Sudoku one stays.
+	await page.goto('/');
+	await expect(
+		page.getByRole('link', { name: 'New here? Learn Sudoku in a minute' })
+	).toBeVisible();
+	await expect(page.getByRole('link', { name: /Learn Calcudoku/ })).toHaveCount(0);
+});
+
+test('a Calcudoku game links the Calcudoku tutorial', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
+	await page.goto('/sudoku?v=c5e');
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByRole('link', { name: 'Tutorial', exact: true }).first()).toHaveAttribute(
+		'href',
+		/\/sudoku\/tutorial\/calc$/
+	);
+});

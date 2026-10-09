@@ -52,6 +52,12 @@ export interface BoardProps<P, S> {
 	spotlight?: ReadonlySet<string>;
 }
 
+export interface GameTutorial<P, S> {
+	puzzle: P;
+	start(puzzle: P): S;
+	steps?: TutorialStep<P, S>[];
+}
+
 /**
  * One step of a guided tutorial, next to its texts in the translations. A step with `done` is a
  * task on the board: the player moves on once it holds. A step without it is only read.
@@ -113,5 +119,7 @@ export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	/** Small static preview for the home page. */
 	icon: string;
 	/** A small hand-picked first puzzle for the interactive tutorial (texts in the translations). */
-	tutorial?: { puzzle: P; start(puzzle: P): S; steps?: TutorialStep<P, S>[] };
+	tutorial?: GameTutorial<P, S>;
+	/** Tutorials for a mode, e.g. Calcudoku in Sudoku (texts under `games.<id>.modes.<mode>`). */
+	modeTutorials?: Record<string, GameTutorial<P, S>>;
 }

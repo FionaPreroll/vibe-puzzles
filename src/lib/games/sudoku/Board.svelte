@@ -32,7 +32,8 @@
 		keyboard = false,
 		celebrate = false,
 		ontool,
-		onmove
+		onmove,
+		spotlight
 	}: BoardProps<SudokuPuzzle, SudokuState> = $props();
 
 	const size = $derived(puzzle.width);
@@ -380,6 +381,22 @@
 					stroke-width="1.5"
 				/>
 			{/each}
+		{/if}
+
+		{#if spotlight?.size && !blank}
+			<g class="spotlight" fill="none" stroke={colours.cursor} stroke-width="3" aria-hidden="true">
+				{#each [...spotlight] as key (key)}
+					{@const i = Number(key)}
+					<rect
+						x={pad + (i % size) * cellSize + 4}
+						y={pad + Math.floor(i / size) * cellSize + 4}
+						width={cellSize - 8}
+						height={cellSize - 8}
+						rx="4"
+						stroke-dasharray="6 4"
+					/>
+				{/each}
+			</g>
 		{/if}
 
 		{#if settings.showCoordinates && !blank}

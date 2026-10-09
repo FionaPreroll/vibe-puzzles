@@ -21,7 +21,7 @@ import {
 	toggleNote,
 	type SudokuPuzzle
 } from './rules';
-import { solveCalc } from './calc/solver';
+import { CalcLevel, rateCalc, solveCalc } from './calc/solver';
 import { Level, ratePuzzle, solveSudoku } from './solver';
 
 const parse = (text: string) => [...text.replace(/\s/g, '')].map((ch) => (ch === '.' ? 0 : +ch));
@@ -370,5 +370,29 @@ describe('logic', () => {
 			const s = fillNotes(big, emptySudokuState(big));
 			expect(sudokuLogic.decodeState(big, sudokuLogic.encodeState(s))).toEqual(s);
 		});
+	});
+});
+
+describe('Calcudoku tutorial', () => {
+	it('has the solution the solver finds, without guessing', async () => {
+		const { CALC_TUTORIAL: p, CALC_TUTORIAL_SOLUTION } = await import('./calcTutorial');
+		const calc = { width: p.width, height: p.height, cages: p.cages! };
+		const res = solveCalc(calc, { limit: 2 });
+		expect(res.solutions).toEqual([CALC_TUTORIAL_SOLUTION]);
+		expect(rateCalc(calc, CalcLevel.Basic).solved).toBe(true);
+	});
+
+	it('accepts the right digits as well as the notes in the note task', async () => {
+		const { CALC_TUTORIAL: p, CALC_TUTORIAL_STEPS: steps } = await import('./calcTutorial');
+		const noteStep = steps[4];
+		const s = emptySudokuState(p);
+		s.values[8] = 3;
+		s.notes[9] = bit(3) | bit(4);
+		expect(noteStep.done!(p, s)).toBe(true);
+		s.notes[9] |= bit(1);
+		expect(noteStep.done!(p, s)).toBe(false);
+		s.values[8] = 4;
+		s.notes[9] = bit(3) | bit(4);
+		expect(noteStep.done!(p, s)).toBe(false);
 	});
 });

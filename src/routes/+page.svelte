@@ -7,12 +7,14 @@
 	import { load } from '#lib/client/storage.ts';
 	import { periodKey } from '#lib/core/variants.ts';
 	import { GAMES } from '#lib/games/index.ts';
+	import { tutorialDoneKey, tutorialsOf, type TutorialRef } from '#lib/games/tutorials.ts';
 	import { nextDailyText, t, variantLabel } from '#lib/i18n/index.svelte.ts';
 
 	interface GameStatus {
 		dailyDone: boolean;
 		dailyStreak: number;
-		tutorialDone: boolean;
+		/** Tutorials not solved yet: the game's own, then one per mode. */
+		tutorials: TutorialRef[];
 	}
 
 	let resume = $state<{ game: (typeof GAMES)[number]; save: SavedGame } | null>(null);
@@ -37,7 +39,7 @@
 			status[game.id] = {
 				dailyDone: !!stats && stats.lastPeriod === periodKey('daily'),
 				dailyStreak: stats ? currentPeriodStreak(stats, 'daily') : 0,
-				tutorialDone: load<boolean>(`tutorialDone:${game.id}`, false)
+				tutorials: tutorialsOf(game).filter((r) => !load<boolean>(tutorialDoneKey(r), false))
 			};
 		}
 		return () => clearInterval(tick);
@@ -128,11 +130,15 @@
 			{/if}
 			<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
 				<a class="btn btn-primary" href={gameUrl(game.id)}>{t('home.play')}</a>
-				{#if game.tutorial && s && !s.tutorialDone}
-					<a class="link text-sm" href={resolve('/[game]/tutorial', { game: game.id })}
-						>{t('home.tutorial', { game: game.name })}</a
+				{#each s?.tutorials ?? [] as r (r.mode ?? '')}
+					<a
+						class="link text-sm"
+						href={r.mode
+							? resolve('/[game]/tutorial/[mode]', { game: game.id, mode: r.mode })
+							: resolve('/[game]/tutorial', { game: game.id })}
+						>{t('home.tutorial', { game: r.mode ? t(`mode.${r.mode}`) : game.name })}</a
 					>
-				{/if}
+				{/each}
 			</div>
 		</li>
 	{/each}

@@ -3,6 +3,7 @@ import type { GameModule } from '../../core/types';
 import Board from './Board.svelte';
 import { sudokuLogic } from './logic';
 import { emptySudokuState, type SudokuPuzzle, type SudokuState } from './rules';
+import { CALC_TUTORIAL, CALC_TUTORIAL_STEPS } from './calcTutorial';
 import { SUDOKU_TUTORIAL } from './tutorial';
 
 export const sudoku: GameModule<SudokuPuzzle, SudokuState> = {
@@ -23,6 +24,9 @@ export const sudoku: GameModule<SudokuPuzzle, SudokuState> = {
 		{ key: 'showRemaining', label: 'Show how many of each digit are left', default: true }
 	]),
 	tutorial: { puzzle: SUDOKU_TUTORIAL, start: emptySudokuState },
+	modeTutorials: {
+		calc: { puzzle: CALC_TUTORIAL, start: emptySudokuState, steps: CALC_TUTORIAL_STEPS }
+	},
 	board: Board,
 	padRows: 1.2
 };
