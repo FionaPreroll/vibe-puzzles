@@ -21,7 +21,8 @@ export const sudoku: GameModule<SudokuPuzzle, SudokuState> = {
 		{ key: 'autoRemoveNotes', label: 'Remove notes ruled out by a new digit', default: false },
 		{ key: 'highlightLines', label: 'Highlight row, column and box', default: true },
 		{ key: 'highlightSame', label: 'Highlight the same digit', default: true },
-		{ key: 'showRemaining', label: 'Show how many of each digit are left', default: true }
+		{ key: 'showRemaining', label: 'Show how many of each digit are left', default: true },
+		{ key: 'digitFirst', label: 'Pick the digit first, then the cells', default: false }
 	]),
 	tutorial: { puzzle: SUDOKU_TUTORIAL, start: emptySudokuState, steps: SUDOKU_TUTORIAL_STEPS },
 	modeTutorials: {

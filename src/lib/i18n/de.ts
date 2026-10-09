@@ -222,7 +222,8 @@ const de: Dictionary = {
 		autoRemoveNotes: 'Notizen entfernen, die eine neue Ziffer ausschließt',
 		highlightLines: 'Zeile, Spalte und Block hervorheben',
 		highlightSame: 'Gleiche Ziffer hervorheben',
-		showRemaining: 'Anzeigen, wie oft jede Ziffer noch fehlt'
+		showRemaining: 'Anzeigen, wie oft jede Ziffer noch fehlt',
+		digitFirst: 'Erst die Ziffer wählen, dann die Felder (Linksklick: Ziffer, Rechtsklick: Notiz)'
 	},
 	source: {
 		title: 'Woher neue Rätsel kommen',
@@ -439,7 +440,7 @@ const de: Dictionary = {
 				'Kleine Ziffern in einem Feld sind Notizen: die Ziffern, die dort noch möglich sind. Für die Lösung zählen sie nicht.'
 			],
 			controlsMouse:
-				'Klicke ein Feld an und tippe eine Ziffer oder nutze das Zahlenfeld. Umschalt+Ziffer setzt oder entfernt eine Notiz, die Leertaste wechselt zwischen Ziffern und Notizen. Rücktaste oder 0 löscht. Pfeiltasten bewegen.',
+				'Klicke ein Feld an und tippe eine Ziffer oder nutze das Zahlenfeld. Umschalt+Ziffer setzt oder entfernt eine Notiz, die Leertaste wechselt zwischen Ziffern und Notizen. Rücktaste oder 0 löscht. Pfeiltasten bewegen. Lieber erst die Ziffer wählen? Schalte „Erst die Ziffer wählen“ in den Einstellungen ein.',
 			controlsTouch:
 				'Tippe ein Feld an, dann eine Ziffer im Zahlenfeld. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
 			modes: {
