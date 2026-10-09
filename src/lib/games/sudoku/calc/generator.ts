@@ -189,5 +189,6 @@ export function generateCalc(n: number, difficulty: Difficulty, seed: number): G
 		}
 		if (ok && singles(puzzle) <= (difficulty === 'easy' ? n : Math.floor(n / 3))) break;
 	}
-	return best!;
+	if (!best) throw new Error('generation failed');
+	return best;
 }
