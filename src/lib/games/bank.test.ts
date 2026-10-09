@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { filesToCheck, readType, typeDir } from '../../../scripts/collection';
+import { checksDifficulty, filesToCheck, readType, typeDir } from '../../../scripts/collection';
 import { layoutType, serialize, specialPuzzleId, type BankFile } from '../core/bank';
 import { decodePuzzleId } from '../core/variants';
 import { GAME_LOGIC } from './logic';
@@ -20,7 +20,10 @@ const changed = since
 	: null;
 const solveAgain = filesToCheck(changed);
 
-/** Every puzzle in the collection must be valid, belong to its file and have one solution. */
+/**
+ * Every puzzle in the collection must be valid, belong to its file, have one solution and fit
+ * its type's difficulty (special puzzles from DIFFICULTY_CHECKED_FROM on).
+ */
 describe('puzzle collection', () => {
 	for (const logic of Object.values(GAME_LOGIC)) {
 		it(`${logic.id} has a folder per puzzle type and nothing else`, () => {
@@ -54,9 +57,13 @@ describe('puzzle collection', () => {
 
 				for (const [path, file] of Object.entries(files)) {
 					if (!('puzzles' in file) || !solveAgain(join('static', path))) continue;
-					for (const { id, puzzle } of (file as BankFile).puzzles) {
+					for (const { id, puzzle, period } of (file as BankFile).puzzles) {
 						expect(logic.isValidPuzzle(puzzle, variant), `#${id}`).toBe(true);
 						expect(logic.countSolutions(puzzle, 2), `#${id}`).toEqual({ count: 1, finished: true });
+						if (!checksDifficulty(kind, period)) continue;
+						expect(logic.fitsDifficulty(puzzle, variant), `#${id} ${variant.difficulty}`).toBe(
+							true
+						);
 					}
 				}
 			}, 120_000);

@@ -37,6 +37,7 @@ pnpm test:server    # browser tests against the server: sync between devices, se
 pnpm test:soak      # long play sessions (desktop, phone): nothing leaks (SOAK_ACTIONS=600, SOAK_SEED)
 pnpm test:perf      # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
 pnpm bank:grow      # add puzzles to the collection (--per-variant N --max-minutes M)
+pnpm bank:regrade   # replace collection puzzles that miss their type's difficulty
 ```
 
 The browser tests need Chromium: run `pnpm exec playwright install chromium` once, or point `CHROMIUM_PATH` at an installed Chromium.
@@ -68,11 +69,11 @@ docs/                    technical documentation (generators.md: how puzzles and
 
 ### Adding a game
 
-1. Create `src/lib/games/<id>/` with a `logic.ts` exporting a `GameLogic` (variants, generator, solution counter, state encoding, answer check) and an `index.ts` exporting a `GameModule` (name, tools, settings, an optional tutorial puzzle and a `Board.svelte` component).
+1. Create `src/lib/games/<id>/` with a `logic.ts` exporting a `GameLogic` (variants, generator, solution counter, difficulty rating, state encoding, answer check) and an `index.ts` exporting a `GameModule` (name, tools, settings, an optional tutorial puzzle and a `Board.svelte` component).
 2. Take every board colour from `src/lib/core/palette.ts` (`colours.<name>`), never a colour literal: that is how boards follow night mode and keep screenshots and prints light. A unit test rejects colour literals in boards and checks the contrast of the palette's colour pairs in both themes.
 3. Add the texts (tagline, rules, notes, control hints, tutorial steps) under `games.<id>` in every file in `src/lib/i18n/`.
 4. Register the logic in `src/lib/games/logic.ts` and the module in `src/lib/games/index.ts`.
-5. Generators must be deterministic for a seed and must not depend on time, so puzzle IDs work everywhere. [docs/generators.md](docs/generators.md) describes how the existing generators build unique puzzles and grade their difficulty.
+5. Generators must be deterministic for a seed and must not depend on time, so puzzle IDs work everywhere. [docs/generators.md](docs/generators.md) describes how the existing generators build unique puzzles and grade their difficulty. Pin a few IDs of each new generator setting in `src/lib/games/generator-ids.test.ts` (a test fails until every setting is pinned).
 6. Only ever append new puzzle types to a game's variant list (at most 16): a puzzle ID stores the type's position in the list, so moving or inserting one changes every ID, save, link and leaderboard entry. A unit test pins the order.
 
 ## Puzzle collection
@@ -91,10 +92,10 @@ The collection also saves generating time when a puzzle is opened by an ID it co
 The `Grow puzzle collection` workflow runs every Monday, or by hand with the number of new puzzles per type and a time limit.
 
 1. It stores the special puzzles of the coming periods first.
-2. Then it adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution before it is stored.
+2. Then it adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution and for its type's difficulty before it is stored; a seed that fails is skipped, which changes no ID.
 3. It proposes the new puzzles in a pull request against `main` from the branch `feature/grow_puzzle_collection`. While that pull request is open, later runs add to it, and it merges itself once CI passes (auto-merge).
 
-The unit tests check every stored puzzle again: on `main` all of them, in a pull request only the collection files it changes, unless it changes the game logic (`src/lib/games`, `src/lib/core`). Locally, `BANK_TEST_SINCE=origin/main pnpm test` does the same.
+The unit tests check every stored puzzle again (valid, one solution, the difficulty of its type): on `main` all of them, in a pull request only the collection files it changes, unless it changes the game logic (`src/lib/games`, `src/lib/core`). Locally, `BANK_TEST_SINCE=origin/main pnpm test` does the same. Special puzzles of periods before `DIFFICULTY_CHECKED_FROM` (`scripts/collection.ts`) are exempt from the difficulty check: they were stored before the generators were fixed and may have been played. `pnpm bank:regrade` replaces puzzles that miss their difficulty with new ones in their place, for example after a generator change (see [docs/generators.md](docs/generators.md#changing-a-generator)).
 
 ### Repository settings it needs
 

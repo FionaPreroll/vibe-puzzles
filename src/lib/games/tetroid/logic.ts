@@ -83,6 +83,9 @@ export const tetroidLogic: GameLogic<TetroidPuzzle, TetroidState> = {
 		const res = solveTetroid(p, { limit, maxNodes: 2_000_000 });
 		return { count: res.solutions.length, finished: res.finished };
 	},
+	// Normal: deduction alone (propagation with the look-ahead) solves it; hard: it does not.
+	fitsDifficulty: (p, v) =>
+		(solveTetroid(p, { branch: false }).solutions.length === 1) === (v.difficulty === 'normal'),
 	isValidPuzzle(p: unknown, v): p is TetroidPuzzle {
 		if (!p || typeof p !== 'object') return false;
 		const q = p as TetroidPuzzle;

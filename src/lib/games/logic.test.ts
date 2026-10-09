@@ -76,6 +76,26 @@ describe('variant lists', () => {
 	});
 });
 
+describe('difficulty', () => {
+	// Types with the same rules and size whose puzzles must not pass for each other.
+	it.each([
+		['tetroid', '6n', '6h'],
+		['pinwheel', '5n', '5h'],
+		['sudoku', '9n', '9h'],
+		['sudoku', 'c5e', 'c5h']
+	])('%s tells %s from %s puzzles', (game, a, b) => {
+		const logic = GAME_LOGIC[game];
+		const [va, vb] = [a, b].map((key) => variant(logic.variants, key));
+		for (const seed of [1, 2]) {
+			const [pa, pb] = [va, vb].map((v) => logic.generate(v, seed));
+			expect(logic.fitsDifficulty(pa, va)).toBe(true);
+			expect(logic.fitsDifficulty(pb, vb)).toBe(true);
+			expect(logic.fitsDifficulty(pa, vb)).toBe(false);
+			expect(logic.fitsDifficulty(pb, va)).toBe(false);
+		}
+	});
+});
+
 describe('tetroid logic', () => {
 	const v = variant(TETROID_VARIANTS, '6n');
 	const { puzzle, solution } = generateTetroid(6, 6, 'normal', 77);

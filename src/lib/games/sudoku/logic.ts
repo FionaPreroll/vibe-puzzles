@@ -3,7 +3,7 @@ import type { GameLogic, Settings } from '../../core/types';
 import type { Variant } from '../../core/variants';
 import { generateCalc } from './calc/generator';
 import { isSolvedCalc, isValidCalcPuzzle } from './calc/rules';
-import { solveCalc } from './calc/solver';
+import { CalcLevel, rateCalc, solveCalc } from './calc/solver';
 import { generateSudoku } from './generator';
 import {
 	allMask,
@@ -17,7 +17,7 @@ import {
 	type SudokuPuzzle,
 	type SudokuState
 } from './rules';
-import { solveSudoku } from './solver';
+import { Level, ratePuzzle, solveSudoku } from './solver';
 
 export const SUDOKU_VARIANTS: Variant[] = [
 	{ key: '9e', label: '9x9 Easy', width: 9, height: 9, difficulty: 'easy' },
@@ -105,6 +105,18 @@ export const sudokuLogic: GameLogic<SudokuPuzzle, SudokuState> = {
 				)
 			: solveSudoku(p.givens, p.width, { limit, maxNodes: 2_000_000 });
 		return { count: res.solutions.length, finished: res.finished };
+	},
+	fitsDifficulty(p, v) {
+		if (p.cages) {
+			// Easy: cage arithmetic and line eliminations; hard needs hidden singles or pairs.
+			const calc = { width: p.width, height: p.height, cages: p.cages };
+			const basic = rateCalc(calc, CalcLevel.Basic).solved;
+			if (v.difficulty === 'easy') return basic;
+			return rateCalc(calc, CalcLevel.Advanced).solved && (v.difficulty === 'normal' || !basic);
+		}
+		// Easy and normal: singles only; hard: needs locked candidates or subsets, never guessing.
+		const singles = ratePuzzle(p, Level.Singles).solved;
+		return v.difficulty === 'hard' ? !singles && ratePuzzle(p, Level.Subsets).solved : singles;
 	},
 	isValidPuzzle(p: unknown, v): p is SudokuPuzzle {
 		if (!p || typeof p !== 'object') return false;

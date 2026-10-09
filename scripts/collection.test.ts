@@ -3,7 +3,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CHUNK_SIZE } from '../src/lib/core/bank';
-import { filesToCheck, readType, typeDir, writeType } from './collection';
+import type { GameLogic } from '../src/lib/core/types';
+import {
+	checkedPuzzle,
+	checksDifficulty,
+	DIFFICULTY_CHECKED_FROM,
+	filesToCheck,
+	readType,
+	typeDir,
+	writeType
+} from './collection';
 
 let root = '';
 
@@ -67,5 +76,46 @@ describe('filesToCheck', () => {
 		expect(check(chunk)).toBe(true);
 		expect(check(other)).toBe(false);
 		expect(filesToCheck(['src/lib/client/bank.ts'])(other)).toBe(false);
+	});
+});
+
+describe('checked puzzles', () => {
+	const variant = { key: 'v', label: 'V', width: 1, height: 1, difficulty: 'hard' } as const;
+	const logic = (count: number, finished: boolean, fits: boolean) =>
+		({
+			generate: (_: unknown, seed: number) => ({ seed }),
+			countSolutions: () => ({ count, finished }),
+			fitsDifficulty: () => fits
+		}) as unknown as GameLogic;
+
+	it('takes a unique puzzle of the right difficulty, generated from the ID', () => {
+		expect(checkedPuzzle(logic(1, true, true), variant, 5 * 16 + 2)).toEqual({
+			puzzle: { seed: 5 }
+		});
+	});
+
+	it('says why it refuses a puzzle', () => {
+		expect(checkedPuzzle(logic(2, true, true), variant, 16)).toEqual({
+			reason: 'not uniquely solvable'
+		});
+		expect(checkedPuzzle(logic(1, false, true), variant, 16)).toEqual({
+			reason: 'not uniquely solvable'
+		});
+		expect(checkedPuzzle(logic(1, true, false), variant, 16)).toEqual({ reason: 'not hard' });
+	});
+});
+
+describe('difficulty check', () => {
+	it('applies to every regular puzzle and to specials from the first checked period on', () => {
+		expect(checksDifficulty()).toBe(true);
+		expect(checksDifficulty('daily', DIFFICULTY_CHECKED_FROM.daily)).toBe(true);
+		expect(checksDifficulty('daily', '2026-10-09')).toBe(false);
+		expect(checksDifficulty('daily', '2027-01-01')).toBe(true);
+		expect(checksDifficulty('weekly', '2026-W40')).toBe(false);
+		expect(checksDifficulty('weekly', '2026-W52')).toBe(true);
+		expect(checksDifficulty('monthly', '2026-09')).toBe(false);
+		expect(checksDifficulty('monthly', '2026-10')).toBe(true);
+		// A special without a period cannot be placed after the cutoff.
+		expect(checksDifficulty('daily')).toBe(false);
 	});
 });
