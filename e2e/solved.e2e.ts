@@ -279,3 +279,57 @@ test.describe('the message after sharing the solve on a wide screen', () => {
 		});
 	}
 });
+
+test('a solve that cannot be copied shows in a dialog, selected, ready to copy by hand', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		Object.defineProperty(navigator, 'share', { value: undefined });
+		// The clipboard refuses, as without the permission.
+		navigator.clipboard.writeText = () => Promise.reject(new DOMException('denied'));
+	});
+	await page.goto(PUZZLE);
+	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+	const grid = (await board.locator('rect').first().boundingBox())!;
+	const cell = grid.width / 6;
+	for (const i of [...SOLUTION].flatMap((c, i) => (c === '1' ? [i] : []))) {
+		await page.mouse.click(
+			grid.x + ((i % 6) + 0.5) * cell,
+			grid.y + (Math.floor(i / 6) + 0.5) * cell
+		);
+	}
+	await expect(page.locator('.solved-burst')).toHaveCount(0, { timeout: 5000 });
+	const stop = await watchBoard(page);
+	await page.getByRole('button', { name: 'Share success' }).click();
+
+	const dialog = page.getByRole('dialog', { name: 'Share success' });
+	await expect(dialog).toBeVisible();
+	const text = dialog.getByRole('textbox', { name: 'Your result and the link' });
+	await expect(text).toHaveValue(
+		/^I solved Tetroid 6×6 Normal \(puzzle 496,678,832\) in .+ http:\/\/[^ ]+\/tetroid\?id=496678832$/
+	);
+	// All of it selected, ready to copy.
+	await expect
+		.poll(() =>
+			text.evaluate(
+				(el: HTMLTextAreaElement) =>
+					document.activeElement === el &&
+					el.selectionStart === 0 &&
+					el.selectionEnd === el.value.length
+			)
+		)
+		.toBe(true);
+	// The long text stays out of the top bar, and the board stays where it was.
+	await expect(page.locator('p:not(.sr-only)', { hasText: 'I solved' })).toHaveCount(0);
+	expect(await stop()).toHaveLength(1);
+
+	// Copying the selection the old way needs no permission.
+	await dialog.getByRole('button', { name: 'Copy' }).click();
+	await expect(dialog).toBeHidden();
+	await expect(page.locator('p:not(.sr-only)', { hasText: 'Copied your result' })).toBeVisible();
+});
