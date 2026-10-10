@@ -415,6 +415,21 @@ const en = {
 				'Click between dots to draw a line, right click to set a cross, Shift+click to colour a cell. Right click a circle to lock a finished region.',
 			controlsTouch:
 				'Tap between dots to draw a line. Pick the Colour tool to colour cells. Hold a circle to lock a finished region.',
+			/** What the hint button says: why a circle's region is ruled out, then what follows. */
+			hints: {
+				centre:
+					"A circle's own cells belong to its region, and a cell whose mirror image through a circle would lie outside the grid cannot belong to that circle's region.",
+				marks: 'Your lines keep cells in different regions, and your crosses join cells into one.',
+				symmetry:
+					"A cell can belong to a circle's region only if its mirror image through that circle can too.",
+				reach:
+					'A region is connected: a cell its circle cannot reach through cells that may belong to it is not part of it.',
+				line: 'So the cells on either side of the highlighted edges lie in different regions: draw lines there.',
+				cross:
+					'So the cells on either side of the highlighted edges lie in the same region: no line goes there.',
+				stuck:
+					'No rule decides an edge here. Hard puzzles need case analysis: try a region for the highlighted cell in your head and follow it until a rule breaks.'
+			},
 			tutorial: [
 				{
 					text: 'Pinwheel is about splitting the board into regions. Every circle is the centre of exactly one region, and every region holds exactly one circle. Just look for now: you start drawing in step 3.'

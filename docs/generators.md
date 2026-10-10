@@ -128,6 +128,8 @@ Two other ways to make hard puzzles did not help and are not used: larger galaxi
 
 **Solver** (`PinwheelSolver` in `solver.ts`): a domain of possible centres per cell (bitmaps cell × centre). Propagation enforces symmetry (a centre stays possible for a cell only while it is possible for the cell's mirror, and a decided cell decides its mirror) and connectivity (a cell can belong to a centre only if it reaches the centre's covered cells through cells that may also belong to it). Branching picks the cell with the fewest possible centres and tries each.
 
+**Hints** (`pinwheelHint` in `hint.ts`) assign cells to centres like the solver, starting from the player's marks: a line keeps the cells on its sides in different galaxies, a cross joins them. Lines that contradict the solution, and crosses between galaxies, come first. Otherwise the simplest deduction that rules something out runs, in this order: the player's marks, symmetry, connectivity (the centres' own cells and cells without a mirror come for free). After each round the hint looks for open edges whose cells can share no galaxy (a line) or surely share one (a cross) and names the lines around one galaxy first. Following the hints solves every normal puzzle, which is graded by the same propagation; on hard ones they end at a cell with the fewest centres left, the place to start case analysis.
+
 ## Fallbacks
 
 Each generator has an attempt limit, so it always ends in bounded work. When no attempt hits the requested difficulty, the puzzle may not match it:

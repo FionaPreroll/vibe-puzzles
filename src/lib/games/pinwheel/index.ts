@@ -2,6 +2,7 @@ import { withCommon } from '../../core/settings';
 import { PINWHEEL_TUTORIAL, PINWHEEL_TUTORIAL_STEPS } from './tutorial';
 import type { GameModule } from '../../core/types';
 import Board, { NOTE_COLOURS } from './Board.svelte';
+import { pinwheelHint } from './hint';
 import { pinwheelLogic } from './logic';
 import { emptyPinwheelState, type PinwheelPuzzle, type PinwheelState } from './rules';
 
@@ -41,5 +42,15 @@ export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState> = {
 		start: emptyPinwheelState,
 		steps: PINWHEEL_TUTORIAL_STEPS
 	},
-	board: Board
+	board: Board,
+	hint(puzzle, state) {
+		const hint = pinwheelHint(puzzle, state);
+		if (!hint) return null;
+		if (hint.kind === 'stuck')
+			return { kind: 'stuck', spotlight: [`c:${hint.cell}`], text: ['games.pinwheel.hints.stuck'] };
+		const spotlight = hint.edges.map((e) => `${e.kind}:${e.i}:${e.j}`);
+		if (hint.kind === 'mistake') return { kind: 'mistake', spotlight, text: ['game.hintMistake'] };
+		const key = (k: string) => `games.pinwheel.hints.${k}`;
+		return { kind: 'step', spotlight, text: [key(hint.technique), key(hint.mark)] };
+	}
 };
