@@ -64,14 +64,51 @@ describe.each([
 	it('keeps the newest save per player and key', async () => {
 		const store = await withPlayers('ann', 'bob');
 		expect(await store.getSave('ann', 'k')).toBeNull();
-		expect(await store.putSave('ann', 'k', 'v1', 10)).toBe(true);
-		expect(await store.putSave('ann', 'k', 'v2', 20)).toBe(true);
-		expect(await store.putSave('ann', 'k', 'old', 15)).toBe(false);
-		expect(await store.putSave('ann', 'k', 'same', 20)).toBe(false);
+		expect(await store.putSave('ann', 'k', 'v1', 10, 1)).toBe(true);
+		expect(await store.putSave('ann', 'k', 'v2', 20, 2)).toBe(true);
+		expect(await store.putSave('ann', 'k', 'old', 15, 3)).toBe(false);
+		expect(await store.putSave('ann', 'k', 'same', 20, 4)).toBe(false);
 		expect(await store.getSave('ann', 'k')).toEqual({ data: 'v2', updatedAt: 20 });
 		expect(await store.getSave('bob', 'k')).toBeNull();
-		expect(await store.putSave('bob', 'k', 'b', 1)).toBe(true);
+		expect(await store.putSave('bob', 'k', 'b', 1, 5)).toBe(true);
 		expect(await store.getSave('ann', 'k')).toEqual({ data: 'v2', updatedAt: 20 });
+	});
+
+	it('keeps the most recently stored saves of a player within a number and size', async () => {
+		const store = await withPlayers('ann', 'bob');
+		// Stored in this order; the client's own timestamps do not count.
+		await store.putSave('ann', 'a', '1234', 900, 100);
+		await store.putSave('ann', 'b', '12', 800, 200);
+		await store.putSave('ann', 'c', '1', 700, 300);
+		await store.putSave('bob', 'x', '123456', 1, 50);
+		expect(await store.trimSaves('ann', 3, 7)).toBe(0);
+		expect(await store.trimSaves('ann', 2, 7)).toBe(1);
+		expect(await store.getSave('ann', 'a')).toBeNull();
+		expect(await store.getSave('ann', 'b')).not.toBeNull();
+		// Storing a save again makes it the newest.
+		await store.putSave('ann', 'b', '123', 801, 400);
+		expect(await store.trimSaves('ann', 2, 3)).toBe(1);
+		expect(await store.getSave('ann', 'b')).toEqual({ data: '123', updatedAt: 801 });
+		expect(await store.getSave('ann', 'c')).toBeNull();
+		expect(await store.getSave('bob', 'x')).not.toBeNull();
+		// Saves stored at the same moment are kept in key order.
+		for (const key of ['z', 'y', 'w']) await store.putSave('ann', key, '1', 1, 500);
+		expect(await store.trimSaves('ann', 2, 100)).toBe(2);
+		expect(await store.getSave('ann', 'w')).not.toBeNull();
+		expect(await store.getSave('ann', 'y')).not.toBeNull();
+		expect(await store.getSave('ann', 'z')).toBeNull();
+	});
+
+	it('deletes saves nobody stored for a while', async () => {
+		const store = await withPlayers('ann', 'bob');
+		await store.putSave('ann', 'old', 'o', 9999, 100);
+		await store.putSave('ann', 'new', 'n', 1, 300);
+		await store.putSave('bob', 'old', 'o', 1, 150);
+		expect(await store.deleteSaves(200)).toBe(2);
+		expect(await store.getSave('ann', 'old')).toBeNull();
+		expect(await store.getSave('bob', 'old')).toBeNull();
+		expect(await store.getSave('ann', 'new')).not.toBeNull();
+		expect(await store.deleteSaves(200)).toBe(0);
 	});
 
 	it('keeps the first fingerprint of a puzzle', async () => {

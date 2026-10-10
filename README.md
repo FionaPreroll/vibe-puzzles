@@ -175,6 +175,12 @@ Because the collection is public, a determined player can look a puzzle up in it
 
 The server deletes old tickets once a day (a cron trigger in `wrangler.jsonc`): unsolved ones 45 days after they were issued, solved ones 7 days after the solve. A game whose ticket is gone can still be solved, but is not ranked.
 
+A ticket counts as solved only once its score is stored, so a solve whose score could not be stored (a server error) can be sent again.
+
+### Saves
+
+The server keeps up to 500 saves and 4 MiB of saves per player (`SAVE_LIMITS` in `worker/api.ts`); a player of every game and type needs about 200. Beyond that, the saves stored longest ago are deleted. The daily cron also deletes saves that were not stored for 400 days. Either way, the device that made a save keeps its own copy.
+
 ### API
 
 | Method         | Path              | Purpose                                        |

@@ -53,7 +53,7 @@ describe('worker', () => {
 		expect(await res.json()).toEqual({ ok: true, serverPuzzles: true });
 	});
 
-	it('deletes old tickets on the daily schedule, and waits for it', async () => {
+	it('deletes old tickets and saves on the daily schedule, and waits for it', async () => {
 		const sql: string[] = [];
 		const DB = {
 			prepare: (query: string) => {
@@ -69,10 +69,14 @@ describe('worker', () => {
 			{ ...env(), DB } as unknown as Env,
 			ctx as unknown as ExecutionContext
 		);
-		expect(waiting).toHaveLength(1);
+		expect(waiting).toHaveLength(2);
 		await Promise.all(waiting);
-		expect(sql).toEqual([expect.stringMatching(/^DELETE FROM tickets/)]);
+		expect(sql).toEqual([
+			expect.stringMatching(/^DELETE FROM tickets/),
+			expect.stringMatching(/^DELETE FROM saves/)
+		]);
 		expect(log).toHaveBeenCalledWith('Deleted 3 old tickets');
+		expect(log).toHaveBeenCalledWith('Deleted 3 old saves');
 		log.mockRestore();
 	});
 });

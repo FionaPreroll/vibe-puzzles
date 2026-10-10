@@ -34,6 +34,15 @@ export type Limiter = (key: string) => Promise<boolean>;
  */
 
 const MAX_SAVE_BYTES = 256 * 1024;
+
+/**
+ * What the server keeps of a player's saves: the most recently stored ones up to a number and a
+ * total size (in characters, like MAX_SAVE_BYTES), and only those stored within some days.
+ * A player of every game and type needs about 200 saves, most of them a few kilobytes: one per
+ * game type, plus one per special period within SPECIAL_RETENTION_DAYS. Older ones are dropped
+ * first; the device that made them keeps its own copy.
+ */
+export const SAVE_LIMITS = { count: 500, size: 4 * 1024 * 1024, days: 400 };
 const BOARD_SIZE = 20;
 
 class HttpError extends Error {
@@ -229,19 +238,21 @@ async function submitTicket(player: { id: string }, b: Record<string, unknown>, 
 		return json({ ok: false, code: 'wrong', message: 'That is not the solution yet.' });
 	}
 	const now = Date.now();
-	if (!(await store.solveTicket(ticket.id, now))) {
+	const timeMs = now - ticket.issuedAt;
+	if (ticket.solvedAt != null) {
 		return json({
 			ok: true,
 			code: 'repeat',
 			puzzleId: ticket.puzzleId,
-			timeMs: now - ticket.issuedAt,
+			timeMs,
 			message: 'Solved! (You solved this puzzle before.)'
 		});
 	}
-	const timeMs = now - ticket.issuedAt;
 	// The personal timer cannot have run longer than the puzzle was out.
 	const playMs = Math.min(timeMs, Math.max(0, Math.round(Number(b.playMs)) || 0));
-	return recordScore(player, store, {
+	// The score comes first: if storing it fails, the ticket stays open and the solve can be sent
+	// again. A solve sent twice at once is still counted once (one score per player and puzzle).
+	const res = await recordScore(player, store, {
 		game: ticket.game,
 		variant: logic.variants.find((v) => v.key === ticket.variant)!,
 		puzzleId: ticket.puzzleId,
@@ -251,6 +262,9 @@ async function submitTicket(player: { id: string }, b: Record<string, unknown>, 
 		hinted: b.hinted === true,
 		unranked: null
 	});
+	// The score is stored; an open ticket only lives until cleanupTickets removes it.
+	await store.solveTicket(ticket.id, now).catch((e) => console.error(e));
+	return res;
 }
 
 async function submitScore(req: Request, store: Store, options: ApiOptions) {
@@ -400,6 +414,11 @@ export async function cleanupTickets(store: Store, now = Date.now()): Promise<nu
 	);
 }
 
+/** Removes saves nobody has stored for SAVE_LIMITS.days (run daily with cleanupTickets). */
+export async function cleanupSaves(store: Store, now = Date.now()): Promise<number> {
+	return store.deleteSaves(now - SAVE_LIMITS.days * 86_400_000);
+}
+
 export async function handleApi(
 	req: Request,
 	store: Store,
@@ -454,7 +473,8 @@ export async function handleApi(
 				if (data.length > MAX_SAVE_BYTES) throw new HttpError(413, 'Save too large');
 				const updatedAt = Number(b.updatedAt);
 				if (!Number.isSafeInteger(updatedAt)) throw new HttpError(400, 'Invalid timestamp');
-				const stored = await store.putSave(player.id, key, data, updatedAt);
+				const stored = await store.putSave(player.id, key, data, updatedAt, Date.now());
+				if (stored) await store.trimSaves(player.id, SAVE_LIMITS.count, SAVE_LIMITS.size);
 				return json({ stored });
 			}
 		}

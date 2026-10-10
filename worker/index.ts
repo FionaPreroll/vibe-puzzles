@@ -1,4 +1,4 @@
-import { cleanupTickets, handleApi, type Limiter } from './api';
+import { cleanupSaves, cleanupTickets, handleApi, type Limiter } from './api';
 import { assetCollection } from './bank';
 import { D1Store } from './store';
 
@@ -40,8 +40,8 @@ export default {
 
 	/** Daily housekeeping (`triggers.crons` in wrangler.jsonc). */
 	async scheduled(_controller, env, ctx) {
-		ctx.waitUntil(
-			cleanupTickets(new D1Store(env.DB)).then((n) => console.log(`Deleted ${n} old tickets`))
-		);
+		const store = new D1Store(env.DB);
+		ctx.waitUntil(cleanupTickets(store).then((n) => console.log(`Deleted ${n} old tickets`)));
+		ctx.waitUntil(cleanupSaves(store).then((n) => console.log(`Deleted ${n} old saves`)));
 	}
 } satisfies ExportedHandler<Env>;

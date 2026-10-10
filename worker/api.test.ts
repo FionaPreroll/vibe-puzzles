@@ -11,7 +11,14 @@ import { decodePuzzleId, encodePuzzleId, periodKey } from '../src/lib/core/varia
 import { generateTetroid } from '../src/lib/games/tetroid/generator';
 import type { TetroidPuzzle } from '../src/lib/games/tetroid/rules';
 import { solveTetroid } from '../src/lib/games/tetroid/solver';
-import { cleanupTickets, handleApi, TICKET_RETENTION_DAYS, type ApiOptions } from './api';
+import {
+	cleanupSaves,
+	cleanupTickets,
+	handleApi,
+	SAVE_LIMITS,
+	TICKET_RETENTION_DAYS,
+	type ApiOptions
+} from './api';
 import { MemoryStore } from './store';
 
 function client(options: ApiOptions = {}, store = new MemoryStore()) {
@@ -84,6 +91,49 @@ describe('api', () => {
 		expect(stale.body.stored).toBe(false);
 		const got = await api('GET', '/saves/save%3Atetroid%3A6n', undefined, token);
 		expect(got.body).toEqual({ key: 'save:tetroid:6n', data: { v: 2 }, updatedAt: 200 });
+	});
+
+	it('keeps a limited number and size of saves per player, the most recently stored', async () => {
+		const store = new MemoryStore();
+		const api = client({}, store);
+		const { token } = (await api('POST', '/player', { name: 'A' })).body as { token: string };
+		const other = (await api('POST', '/player', { name: 'B' })).body.token as string;
+		await api('PUT', '/saves/theirs', { data: 1, updatedAt: 1 }, other);
+		const now = vi.spyOn(Date, 'now');
+		for (let i = 0; i <= SAVE_LIMITS.count; i++) {
+			now.mockReturnValue(1000 + i);
+			// Client timestamps run backwards: they do not decide which saves are newest.
+			await api('PUT', `/saves/k${i}`, { data: i, updatedAt: 1e6 - i }, token);
+		}
+		const read = async (key: string, t = token) =>
+			(await api('GET', `/saves/${key}`, undefined, t)).body.data;
+		expect(await read('k0')).toBeNull();
+		expect(await read('k1')).toBe(1);
+		expect(await read(`k${SAVE_LIMITS.count}`)).toBe(SAVE_LIMITS.count);
+		// Saves of the largest size: only as many as fit into the total size stay.
+		const big = 'x'.repeat(256 * 1024 - 2);
+		const fit = Math.floor(SAVE_LIMITS.size / JSON.stringify(big).length);
+		for (let i = 0; i <= fit; i++) {
+			now.mockReturnValue(10_000 + i);
+			await api('PUT', `/saves/big${i}`, { data: big, updatedAt: 1 }, token);
+		}
+		now.mockRestore();
+		expect(await read('big0')).toBeNull();
+		expect(await read('big1')).toBe(big);
+		expect(await read(`big${fit}`)).toBe(big);
+		expect(await read(`k${SAVE_LIMITS.count}`)).toBeNull();
+		expect(await read('theirs', other)).toBe(1);
+	});
+
+	it('deletes saves nobody stored for SAVE_LIMITS.days', async () => {
+		const store = new MemoryStore();
+		const api = client({}, store);
+		const { token } = (await api('POST', '/player', { name: 'A' })).body as { token: string };
+		await api('PUT', '/saves/k', { data: 1, updatedAt: 1 }, token);
+		const day = 86_400_000;
+		expect(await cleanupSaves(store, Date.now() + (SAVE_LIMITS.days - 1) * day)).toBe(0);
+		expect(await cleanupSaves(store, Date.now() + (SAVE_LIMITS.days + 1) * day)).toBe(1);
+		expect((await api('GET', '/saves/k', undefined, token)).body.data).toBeNull();
 	});
 
 	it('verifies and ranks scores', async () => {
@@ -232,8 +282,8 @@ describe('api', () => {
 	});
 
 	describe('server puzzles', () => {
-		async function setup() {
-			const api = client({ serverPuzzles: true });
+		async function setup(store = new MemoryStore()) {
+			const api = client({ serverPuzzles: true }, store);
 			const token = (await api('POST', '/player', { name: 'A' })).body.token as string;
 			const issued = (await api('POST', '/puzzles', { game: 'tetroid', variant: '6n' }, token))
 				.body as { ticket: string; puzzle: TetroidPuzzle; issuedAt: number; puzzleId: null };
@@ -269,6 +319,39 @@ describe('api', () => {
 			expect(entry.timeMs).toBeGreaterThanOrEqual(0);
 			expect(entry.timeMs).toBeLessThan(60000);
 			expect((await submit(solved)).body.message).toContain('before');
+		});
+
+		const lost = async () => {
+			throw new Error('D1_ERROR: network connection lost');
+		};
+
+		it('ranks a ticket sent again after its score could not be stored', async () => {
+			const store = new MemoryStore();
+			const { api, token, issued, solved } = await setup(store);
+			const submit = () =>
+				api('POST', '/scores', { ticket: issued.ticket, answer: solved, playMs: 1 }, token);
+			const addScore = store.addScore.bind(store);
+			store.addScore = lost;
+			const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+			expect((await submit()).status).toBe(500);
+			logged.mockRestore();
+			store.addScore = addScore;
+			expect((await submit()).body).toMatchObject({ ok: true, code: 'ranked', rank: 1 });
+			expect((await store.getTicket(issued.ticket))?.solvedAt).toEqual(expect.any(Number));
+			expect((await submit()).body.message).toContain('before');
+		});
+
+		it('ranks a ticket whose solve could not be marked, and only once', async () => {
+			const store = new MemoryStore();
+			const { api, token, issued, solved } = await setup(store);
+			const submit = () => api('POST', '/scores', { ticket: issued.ticket, answer: solved }, token);
+			store.solveTicket = lost;
+			const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+			expect((await submit()).body).toMatchObject({ ok: true, code: 'ranked', rank: 1 });
+			expect(logged).toHaveBeenCalledTimes(1);
+			logged.mockRestore();
+			expect((await submit()).body).toMatchObject({ ok: true, code: 'repeat' });
+			expect((await api('GET', '/scores?game=tetroid&variant=6n')).body.players).toBe(1);
 		});
 
 		it('does not rank a ticket solved with a hint', async () => {
