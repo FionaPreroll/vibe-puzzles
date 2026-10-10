@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { specialPuzzleId, upcomingPeriods } from './bank';
 import {
+	boardPad,
 	CELEBRATION_COLOURS,
+	celebrationFills,
 	colourRegions,
 	columnLabel,
+	coordinateLabels,
+	labelFontSize,
 	neighbours,
 	packDigits,
 	unpackDigits
@@ -61,6 +65,37 @@ describe('grid', () => {
 			'ba',
 			'zz',
 			'aaa'
+		]);
+	});
+
+	it('fills each cell with the win colour of its region', () => {
+		const region = [0, 0, 1, 3, 4, 1, 3, 2, 2];
+		const fills = celebrationFills(region, 3, 3);
+		const slot = colourRegions(region, 3, 3, CELEBRATION_COLOURS.length);
+		expect(fills).toEqual(region.map((r) => CELEBRATION_COLOURS[slot[r]]));
+		expect(fills[0]).toBe(fills[1]);
+		expect(fills[0]).not.toBe(fills[3]);
+	});
+
+	it('leaves room for the coordinates only when they are shown', () => {
+		expect(boardPad(40, true, 3)).toBe(24);
+		expect(boardPad(10, true, 3)).toBe(14);
+		expect(boardPad(40, false, 3)).toBe(3);
+		expect(labelFontSize(24)).toBe(12);
+		expect(labelFontSize(14)).toBe(10.5);
+	});
+
+	it('puts column letters above and below, row numbers left and right', () => {
+		// 2×3 cells of 10 px in a margin of 4: the board is 28 px wide and 38 px high.
+		const labels = coordinateLabels(2, 3, 10, 4);
+		expect(labels).toHaveLength(2 * 2 + 3 * 2);
+		expect(labels.filter((l) => l.text === 'b')).toEqual([
+			{ x: 19, y: 2, text: 'b' },
+			{ x: 19, y: 36, text: 'b' }
+		]);
+		expect(labels.filter((l) => l.text === '3')).toEqual([
+			{ x: 2, y: 29, text: '3' },
+			{ x: 26, y: 29, text: '3' }
 		]);
 	});
 

@@ -41,8 +41,11 @@ export interface BoardProps<P, S> {
 	lastChange: ReadonlySet<string>;
 	/** Render the empty puzzle only (printing). */
 	blank?: boolean;
-	/** Whether the board reacts to the keyboard (only one instance per page). */
-	keyboard?: boolean;
+	/**
+	 * The page's key dispatcher, for the one board instance that reacts to the keyboard: the board
+	 * hands in its handlers and gets each key before the page's shortcuts.
+	 */
+	keys?: (board: BoardKeys) => () => void;
 	/** The win animation is running: briefly colour the regions. */
 	celebrate?: boolean;
 	touchMode: TouchMode;
@@ -54,6 +57,28 @@ export interface BoardProps<P, S> {
 	spotlight?: ReadonlySet<string>;
 	/** Elements a hint's reasoning rests on (a region, a cage, a row), tinted more softly. */
 	area?: ReadonlySet<string>;
+}
+
+/** What the boards read of a browser `KeyboardEvent` (this file has no DOM types: the server uses it). */
+export interface KeyPress {
+	key: string;
+	code: string;
+	repeat: boolean;
+	altKey: boolean;
+	ctrlKey: boolean;
+	metaKey: boolean;
+	shiftKey: boolean;
+	target: unknown;
+	preventDefault(): void;
+}
+
+/** A board's keyboard handlers, called by the page's key dispatcher (`client/keys.ts`). */
+export interface BoardKeys {
+	/** True when the board used the key, so that the page's shortcuts leave it alone. */
+	keydown(e: KeyPress): boolean;
+	keyup?(e: KeyPress): void;
+	/** The window lost the focus: held keys count as released. */
+	blur?(): void;
 }
 
 export interface GameTutorial<P, S> {

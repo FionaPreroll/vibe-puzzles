@@ -63,6 +63,55 @@ export function columnLabel(c: number): string {
 	return s;
 }
 
+/**
+ * Win animation: a colour per cell, the one of the region it belongs to (`region` holds a region
+ * id per cell). Neighbouring regions never share a colour.
+ */
+export function celebrationFills(region: ArrayLike<number>, w: number, h: number): string[] {
+	const slot = colourRegions(region, w, h, CELEBRATION_COLOURS.length);
+	return Array.from({ length: w * h }, (_, i) => CELEBRATION_COLOURS[slot[region[i]]]);
+}
+
+/** Margin around a board's grid: room for the coordinates when they are shown, else `plain`. */
+export function boardPad(cellSize: number, showCoordinates: boolean, plain: number): number {
+	return showCoordinates ? Math.max(14, cellSize * 0.6) : plain;
+}
+
+export interface CoordinateLabel {
+	x: number;
+	y: number;
+	text: string;
+}
+
+/**
+ * Coordinates around a `w`×`h` grid drawn with margin `pad`: column letters above and below,
+ * row numbers to the left and right, each centred in the margin.
+ */
+export function coordinateLabels(
+	w: number,
+	h: number,
+	cellSize: number,
+	pad: number
+): CoordinateLabel[] {
+	const right = 2 * pad + w * cellSize - pad / 2;
+	const bottom = 2 * pad + h * cellSize - pad / 2;
+	const out: CoordinateLabel[] = [];
+	for (let c = 0; c < w; c++) {
+		const x = pad + (c + 0.5) * cellSize;
+		out.push({ x, y: pad / 2, text: columnLabel(c) }, { x, y: bottom, text: columnLabel(c) });
+	}
+	for (let r = 0; r < h; r++) {
+		const y = pad + (r + 0.5) * cellSize;
+		out.push({ x: pad / 2, y, text: String(r + 1) }, { x: right, y, text: String(r + 1) });
+	}
+	return out;
+}
+
+/** Font size of the coordinates in a margin of `pad`. */
+export function labelFontSize(pad: number): number {
+	return Math.min(12, pad * 0.75);
+}
+
 /** Pack small non-negative integers (< 16) into a URL-safe string. */
 export function packDigits(values: ArrayLike<number>): string {
 	const bytes = new Uint8Array(Math.ceil(values.length / 2));

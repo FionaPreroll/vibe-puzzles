@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { GameSettings } from '../client/settings.svelte';
+	import { KeyDispatcher } from '../client/keys';
 	import { save } from '../client/storage';
 	import type { GameModule, Hint } from '../core/types';
 	import {
@@ -26,6 +27,8 @@
 	const settings = untrack(() => new GameSettings(game.id, game.settings));
 	const isTouch = typeof window !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 	const Board = $derived(game.board);
+	/** The board's keys; the tutorial has no shortcuts of its own. */
+	const keys = new KeyDispatcher();
 
 	let current = $state.raw(untrack(() => tutorial.start(tutorial.puzzle)));
 	let history = $state.raw<unknown[]>([]);
@@ -99,6 +102,8 @@
 	});
 </script>
 
+<svelte:window onkeydown={keys.keydown} onkeyup={keys.keyup} onblur={keys.blur} />
+
 <svelte:head>
 	<title>{t('tutorial.title', { game: name })} · {t('app.name')}</title>
 </svelte:head>
@@ -117,7 +122,7 @@
 				{lastChange}
 				spotlight={solved ? undefined : spotlight}
 				area={solved ? undefined : area}
-				keyboard={true}
+				keys={keys.attach}
 				touchMode="auto"
 				onmove={move}
 				ontool={(next) => (tool = next)}
