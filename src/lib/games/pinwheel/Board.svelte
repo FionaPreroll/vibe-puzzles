@@ -779,6 +779,18 @@
 				{:else if key.startsWith('g:')}
 					{@const [hr, hc] = puzzle.centres[Number(key.slice(2))]}
 					<circle cx={px(hc / 2 + 0.5)} cy={py(hr / 2 + 0.5)} r={cellSize * 0.32} />
+				{:else if key.startsWith('h:') || key.startsWith('v:')}
+					<!-- An edge, e.g. from a hint: a dashed frame along it -->
+					{@const e = parseEdge(key)}
+					{@const m = edgeMid(e)}
+					<rect
+						x={m.x - (e.kind === 'h' ? cellSize / 2 - 3 : 6)}
+						y={m.y - (e.kind === 'v' ? cellSize / 2 - 3 : 6)}
+						width={e.kind === 'h' ? cellSize - 6 : 12}
+						height={e.kind === 'v' ? cellSize - 6 : 12}
+						rx="5"
+						stroke-dasharray="6 4"
+					/>
 				{/if}
 			{/each}
 		</g>

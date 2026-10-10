@@ -81,3 +81,24 @@ test('the Sudoku hint names the digit and its cell; Calcudoku has none yet', asy
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 	await expect(page.getByRole('button', { name: 'Hint' })).toHaveCount(0);
 });
+
+test('the Pinwheel hint points at edges that need a line', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:pinwheel', 'true'));
+	await page.goto('/pinwheel?v=5n');
+	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible();
+	const spotlight = board.locator('g.spotlight > *');
+	const status = page.getByRole('status');
+
+	await page.getByRole('button', { name: 'Hint' }).click();
+	await expect(status).toContainText('draw lines there');
+	expect(await spotlight.count()).toBeGreaterThan(0);
+
+	// Drawing the first highlighted line clears the hint; the next one is another step.
+	const edge = (await spotlight.first().boundingBox())!;
+	await page.mouse.click(edge.x + edge.width / 2, edge.y + edge.height / 2);
+	await expect(spotlight).toHaveCount(0);
+	await page.keyboard.press('h');
+	await expect(status).toContainText('draw lines there');
+});

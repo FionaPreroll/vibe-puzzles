@@ -418,6 +418,21 @@ const de: Dictionary = {
 				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen. Rechtsklick setzt ein Kreuz, Shift+Klick färbt eine Zelle. Rechtsklick auf einen Kreis sperrt einen fertigen Bereich.',
 			controlsTouch:
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen. Mit dem Farbwerkzeug färbst du Zellen. Einen Kreis halten sperrt einen fertigen Bereich.',
+			hints: {
+				centre:
+					'Die Zellen unter einem Kreis gehören zu seinem Bereich, und eine Zelle, deren Spiegelbild durch einen Kreis außerhalb des Gitters läge, kann nicht zu dessen Bereich gehören.',
+				marks:
+					'Deine Linien trennen Zellen in verschiedene Bereiche, deine Kreuze verbinden Zellen zu einem.',
+				symmetry:
+					'Eine Zelle kann nur dann zum Bereich eines Kreises gehören, wenn ihr Spiegelbild durch diesen Kreis es auch kann.',
+				reach:
+					'Ein Bereich hängt zusammen: Eine Zelle, die sein Kreis nicht über Zellen erreicht, die zu ihm gehören können, gehört nicht dazu.',
+				line: 'Also liegen die Zellen beiderseits der markierten Kanten in verschiedenen Bereichen: Zieh dort Linien.',
+				cross:
+					'Also liegen die Zellen beiderseits der markierten Kanten im selben Bereich: Dort kommt keine Linie hin.',
+				stuck:
+					'Hier entscheidet keine Regel eine Kante. Schwere Rätsel brauchen eine Fallunterscheidung: Probier im Kopf einen Bereich für die markierte Zelle aus und verfolge ihn, bis eine Regel bricht.'
+			},
 			tutorial: [
 				{
 					text: 'Bei Pinwheel teilst du das Brett in Bereiche. Jeder Kreis ist die Mitte von genau einem Bereich, und jeder Bereich enthält genau einen Kreis. Schau dir das Brett erst einmal nur an: Ab Schritt 3 zeichnest du.'
