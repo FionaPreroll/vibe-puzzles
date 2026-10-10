@@ -88,6 +88,8 @@
 	/** Everything on the page below the board area: tools, buttons, paddings and the footer. */
 	let afterBoard = $state(120);
 	let pageRoot: HTMLDivElement | undefined = $state();
+	/** Height of the phones' fixed tool bar (0 where it is hidden). */
+	let barHeight = $state(0);
 	let gameColumn: HTMLElement | undefined = $state();
 
 	function measure() {
@@ -106,8 +108,15 @@
 
 	$effect(() => {
 		// Re-measure when anything around the board changes size.
-		void [viewportHeight, wide, toolbarHeight, areaWidth, belowHeight];
+		void [viewportHeight, wide, toolbarHeight, areaWidth, belowHeight, barHeight];
 		measure();
+	});
+
+	// The page ends below the phones' fixed tool bar, so that nothing stays hidden under it: not
+	// the buttons below the board, nor the footer of the layout.
+	$effect(() => {
+		document.body.style.paddingBottom = barHeight ? `${barHeight}px` : '';
+		return () => void (document.body.style.paddingBottom = '');
 	});
 
 	onMount(() => {
@@ -593,12 +602,7 @@
 	{/if}
 {/snippet}
 
-<div
-	bind:this={pageRoot}
-	class="screen-only flex flex-col gap-6 lg:flex-row lg:items-start {showTools
-		? 'pb-24 lg:pb-0'
-		: ''}"
->
+<div bind:this={pageRoot} class="screen-only flex flex-col gap-6 lg:flex-row lg:items-start">
 	<!-- Side panel: a column on wide screens, a drawer on phones -->
 	{#if menuOpen}
 		<button
@@ -971,6 +975,7 @@
 				{/if}
 				<!-- Phones: a fixed bar at the bottom, in reach of the thumb -->
 				<div
+					bind:offsetHeight={barHeight}
 					class="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden dark:border-stone-800 dark:bg-stone-900/95"
 				>
 					{#if game.toolOptions && showSwatches}
