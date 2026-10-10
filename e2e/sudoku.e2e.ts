@@ -182,7 +182,38 @@ test('a whole Calcudoku can be solved', async ({ page }) => {
 	await expect(page.getByRole('status')).toContainText('Solved in');
 });
 
-test('picking the digit first:the pad arms a digit, left click enters it, right click notes it', async ({
+test('Calcudoku digits sit in the middle of their cells, below the cage labels', async ({
+	page
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+	});
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	/** Where the digit in the top left cell sits, as a share of the cell from its top. */
+	const digitAt = async (size: number) => {
+		await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
+		await clickCell(page, size, 0, 0);
+		await page.keyboard.press('1');
+		return board.locator('text[data-cell="0"]').evaluate((text) => {
+			const cell = text.previousElementSibling!;
+			const top = Number(cell.getAttribute('y'));
+			return (Number(text.getAttribute('y')) - top) / Number(cell.getAttribute('height'));
+		});
+	};
+
+	await page.goto('/sudoku?v=c5e&id=513322150');
+	expect(await digitAt(5)).toBeCloseTo(0.5, 3);
+
+	// Small cells: the digit moves down just enough to clear the label.
+	await page.setViewportSize({ width: 360, height: 800 });
+	await page.goto('/sudoku?v=c9n');
+	const small = await digitAt(9);
+	expect(small).toBeGreaterThan(0.5);
+	expect(small).toBeLessThan(0.56);
+});
+
+test('picking the digit first: the pad arms a digit, left click enters it, right click notes it', async ({
 	page
 }) => {
 	await page.addInitScript(() => {
