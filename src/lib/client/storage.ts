@@ -32,7 +32,8 @@ export function load<T>(key: string, fallback: T): T {
 	}
 }
 
-export function save(key: string, value: unknown): boolean {
+/** Store `value`; `freeSpace: false` skips the quota handler when storage is full. */
+export function save(key: string, value: unknown, freeSpace = true): boolean {
 	const s = store();
 	if (!s) return false;
 	const text = JSON.stringify(value);
@@ -42,7 +43,7 @@ export function save(key: string, value: unknown): boolean {
 			return true;
 		} catch (e) {
 			const quota = e instanceof DOMException && /quota/i.test(e.name + e.message);
-			if (!quota || onQuota?.() !== true || retry >= QUOTA_RETRIES) return false;
+			if (!quota || !freeSpace || onQuota?.() !== true || retry >= QUOTA_RETRIES) return false;
 		}
 	}
 }

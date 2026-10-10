@@ -390,9 +390,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.resumeClock();
 	}
 
-	/** Re-check the server when the page becomes visible again (device switch). */
-	refreshFromServer() {
-		if (!this.loading && !this.solved && currentPlayer()) this.syncFromServer(this.openToken);
+	/** Re-check the server when the page becomes visible again (device switch) or on "Sync now". */
+	async refreshFromServer() {
+		if (!this.loading && !this.solved && currentPlayer()) await this.syncFromServer(this.openToken);
 	}
 
 	/**
@@ -674,6 +674,13 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 				hinted: this.hinted,
 				ticket: this.ticket ?? undefined
 			});
+			if (res === 'queued') {
+				this.message = {
+					kind: 'info',
+					text: t('session.queued', { time: formatDuration(shown, true) })
+				};
+				return;
+			}
 			if (res?.puzzleId && !this.puzzleId) {
 				this.puzzleId = res.puzzleId;
 				this.persist();

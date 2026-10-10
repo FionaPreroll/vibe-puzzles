@@ -9,6 +9,7 @@
 		watchServer,
 		type Player
 	} from '#lib/client/api.ts';
+	import { net } from '#lib/client/network.svelte.ts';
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import { ask } from '#lib/client/confirm.svelte.ts';
 
@@ -56,7 +57,13 @@
 		<p class="text-stone-500">{t('player.checking')}</p>
 	{:else if !hasServer}
 		<section class="panel text-sm text-stone-700 dark:text-stone-300">
-			<p>{t('player.noServer')}</p>
+			<p>
+				{net.offline
+					? t('net.offlineHint')
+					: net.status === 'unreachable'
+						? t('net.unreachableHint')
+						: t('player.noServer')}
+			</p>
 		</section>
 	{:else if !player}
 		<section class="panel">

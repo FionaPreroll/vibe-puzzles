@@ -522,6 +522,17 @@ describe('solving', () => {
 		expect(s.message).toEqual({ kind: 'info', text: expect.stringContaining('offline') });
 	});
 
+	it('says when the solve waits to be uploaded', async () => {
+		vi.mocked(api.submitScore).mockResolvedValueOnce('queued');
+		const s = await opened();
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		expect(s.message).toEqual({
+			kind: 'info',
+			text: expect.stringContaining('once it can be reached')
+		});
+	});
+
 	it('breaks the streak when a started puzzle is abandoned', async () => {
 		const s = await opened();
 		s.move(solvedState(), []);
@@ -828,6 +839,24 @@ describe('syncing with other devices', () => {
 			await Promise.resolve();
 			expect(s.state).toEqual(shaded(1));
 		}
+	});
+});
+
+describe('refreshing from the server', () => {
+	it('asks only for a signed-in player and an unsolved game', async () => {
+		const s = await opened();
+		vi.mocked(api.pullSave).mockClear();
+		vi.mocked(api.currentPlayer).mockReturnValue(null);
+		await s.refreshFromServer();
+		expect(api.pullSave).not.toHaveBeenCalled();
+		vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
+		await s.refreshFromServer();
+		expect(api.pullSave).toHaveBeenCalledTimes(1);
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		await s.refreshFromServer();
+		expect(api.pullSave).toHaveBeenCalledTimes(1);
+		vi.mocked(api.currentPlayer).mockReturnValue(null);
 	});
 });
 

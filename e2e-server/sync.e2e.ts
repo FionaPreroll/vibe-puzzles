@@ -130,7 +130,7 @@ test('a device that started offline uses the server once it is back', async ({ b
 	// No answer from the server, as when the app is opened without a connection.
 	await page.route('**/api/health', (route) => route.abort('internetdisconnected'));
 	await page.goto('/player');
-	await expect(page.getByText('This deployment has no server')).toBeVisible();
+	await expect(page.getByText('The server cannot be reached right now.')).toBeVisible();
 	await page.unroute('**/api/health');
 	await page.evaluate(() => window.dispatchEvent(new Event('online')));
 	await page.getByPlaceholder('Name').fill('Offline');
@@ -148,4 +148,115 @@ test('a device that started offline uses the server once it is back', async ({ b
 	);
 	await page.evaluate(() => window.dispatchEvent(new Event('online')));
 	await pushed;
+});
+
+/** Two devices of one new player: the first registers, the second links with its sync code. */
+async function pair(browser: Browser, name: string): Promise<[Page, Page]> {
+	const a = await device(browser);
+	const b = await device(browser);
+	await a.goto('/player');
+	await a.getByPlaceholder('Name').fill(`${name} ${Date.now() % 100000}`);
+	await a.getByRole('button', { name: 'Start' }).click();
+	await a.getByRole('button', { name: 'Show' }).click();
+	const code = (await a.locator('code').textContent())!.trim();
+	await b.goto('/player');
+	await b.getByPlaceholder('xxxx-xxxx-xxxx-xxxx').fill(code);
+	await b.getByRole('button', { name: 'Link device' }).click();
+	await expect(b.getByRole('button', { name: 'Sign out' })).toBeVisible();
+	return [a, b];
+}
+
+/** Shade the given cells of the 6x6 board. */
+async function shade(page: Page, cells: [number, number][]) {
+	const board = page.getByRole('grid', { name: 'Puzzle board' }).first();
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	const box = (await board.boundingBox())!;
+	const cell = box.width / 6;
+	for (const [r, c] of cells) {
+		await page.mouse.click(box.x + (c + 0.5) * cell, box.y + (r + 0.5) * cell);
+	}
+}
+
+const savePut = (r: { url(): string; request(): { method(): string } }) =>
+	r.url().includes('/api/saves/save') && r.request().method() === 'PUT';
+
+test('a game played offline reaches the other device once back online', async ({ browser }) => {
+	const [phone, laptop] = await pair(browser, 'Train');
+	await phone.goto('/tetroid?v=6n');
+	await shade(phone, [[0, 0]]);
+	await phone.waitForResponse(savePut);
+
+	// The connection drops: the moves wait in the outbox.
+	await phone.context().setOffline(true);
+	await phone.evaluate(() => window.dispatchEvent(new Event('offline')));
+	await shade(phone, [
+		[2, 3],
+		[5, 5]
+	]);
+	await expect
+		.poll(() =>
+			phone.evaluate(() => Object.keys(JSON.parse(localStorage['vp:outbox'] ?? '{}').saves ?? {}))
+		)
+		.toEqual(['save:tetroid:6n']);
+	await expect(phone.getByRole('button', { name: /^Connection: No connection/ })).toBeVisible();
+	const cells = await shadedCells(phone);
+	expect(cells).toHaveLength(3);
+
+	// Back online: sent without a reload.
+	const pushed = phone.waitForResponse(savePut);
+	await phone.context().setOffline(false);
+	await phone.evaluate(() => window.dispatchEvent(new Event('online')));
+	await pushed;
+	await expect.poll(() => phone.evaluate(() => localStorage['vp:outbox'] ?? null)).toBeNull();
+
+	await laptop.goto('/tetroid?v=6n');
+	await expect(laptop.getByRole('status')).toHaveText('Continued your game from another device.', {
+		timeout: 15_000
+	});
+	expect(await shadedCells(laptop)).toEqual(cells);
+});
+
+test('offline mode sends nothing until "Sync now"', async ({ browser }) => {
+	const [phone, laptop] = await pair(browser, 'Quiet');
+	await phone.goto('/tetroid?v=6n');
+	await shade(phone, [[0, 0]]);
+	await phone.waitForResponse(savePut);
+
+	await phone.getByRole('button', { name: /^Connection: Online/ }).click();
+	await phone.getByRole('dialog', { name: 'Connection' }).getByLabel('Offline mode').check();
+	await phone.keyboard.press('Escape');
+	await expect(phone.getByRole('button', { name: 'Connection: Offline mode' })).toBeVisible();
+
+	const api: string[] = [];
+	phone.on('request', (r) => {
+		if (r.url().includes('/api/')) api.push(r.url());
+	});
+	await shade(phone, [[2, 3]]);
+	// Longer than the pause before an upload; a reload keeps offline mode.
+	await phone.waitForTimeout(2500);
+	await phone.reload();
+	await expect(phone.getByRole('grid', { name: 'Puzzle board' }).first()).toBeVisible({
+		timeout: 30_000
+	});
+	await shade(phone, [[5, 5]]);
+	await phone.waitForTimeout(2500);
+	expect(api).toEqual([]);
+	const cells = await shadedCells(phone);
+	expect(cells).toHaveLength(3);
+
+	await phone.getByRole('button', { name: 'Connection: Offline mode' }).click();
+	const menu = phone.getByRole('dialog', { name: 'Connection' });
+	await expect(menu.getByText('1 change waiting for the server')).toBeVisible();
+	const pushed = phone.waitForResponse(savePut);
+	await menu.getByRole('button', { name: 'Sync now' }).click();
+	await pushed;
+	await expect(menu.getByText(/^Last synced at/)).toBeVisible();
+	await expect(menu.getByText('1 change waiting for the server')).toBeHidden();
+	await expect(menu.getByLabel('Offline mode')).toBeChecked();
+
+	await laptop.goto('/tetroid?v=6n');
+	await expect(laptop.getByRole('status')).toHaveText('Continued your game from another device.', {
+		timeout: 15_000
+	});
+	expect(await shadedCells(laptop)).toEqual(cells);
 });

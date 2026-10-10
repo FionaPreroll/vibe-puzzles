@@ -4,6 +4,7 @@ import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { networkDefaults } from './scripts/buildFlags.ts';
 import { checkShippedLicenses, readLicense } from './scripts/licenses.ts';
 
 /**
@@ -42,6 +43,8 @@ const build = {
 export default defineConfig({
 	define: {
 		__BUILD__: JSON.stringify(build),
+		// Defaults of the connection menu (see README, "Deployment").
+		__NET__: JSON.stringify(networkDefaults(process.env)),
 		// Separate from __BUILD__, which every page uses: only the About page carries the texts.
 		__LICENSES__: JSON.stringify(SHIPPED_PACKAGES.map((name) => readLicense('.', name)))
 	},
@@ -69,6 +72,7 @@ export default defineConfig({
 				'src/**/*.{js,ts}',
 				'worker/**/*.ts',
 				'scripts/licenses.ts',
+				'scripts/buildFlags.ts',
 				'scripts/collection.ts'
 			],
 			exclude: ['src/test/**', 'src/service-worker/**', '**/*.test.ts'],

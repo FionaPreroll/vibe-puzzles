@@ -62,7 +62,10 @@ describe('other keys', () => {
 			'look',
 			'touch',
 			'puzzleSource',
-			'rulesHidden'
+			'rulesHidden',
+			'offlineMode',
+			'updateCheck',
+			'outbox'
 		]);
 	});
 
