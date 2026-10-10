@@ -11,12 +11,15 @@
 		stroke-width="1.6"
 		stroke-linecap="round"
 	>
-		<path d="M10 44 Q4 40 2 44" />
-		<path d="M10 47 Q3 46 1 51" />
-		<path d="M10 50 Q4 52 3 57" />
-		<path d="M18 44 Q24 40 26 44" />
-		<path d="M18 47 Q25 46 27 51" />
-		<path d="M18 50 Q24 52 25 57" />
+		<!-- Eight legs, four on each side -->
+		<path d="M10 43 Q4 38 2 41" />
+		<path d="M10 46 Q3 44 1 48" />
+		<path d="M10 49 Q3 50 1 55" />
+		<path d="M10 52 Q5 55 4 60" />
+		<path d="M18 43 Q24 38 26 41" />
+		<path d="M18 46 Q25 44 27 48" />
+		<path d="M18 49 Q25 50 27 55" />
+		<path d="M18 52 Q23 55 24 60" />
 	</g>
 	<g class="fill-[#2a1b3d] dark:fill-[#b8aecb]">
 		<circle cx="14" cy="48" r="6" />
