@@ -165,6 +165,8 @@ export async function resources(page: Page, cdp: CDPSession) {
 		heapMB: Math.round((get('JSHeapUsedSize') / 2 ** 20) * 10) / 10,
 		nodes,
 		detachedNodes: Math.max(0, nodes - inPage.attached),
+		/** Documents alive, also ones no longer shown (an iframe, an SVG image). */
+		documents: get('Documents'),
 		jsListeners: get('JSEventListeners'),
 		...(inPage as typeof inPage & {
 			intervals: number;
