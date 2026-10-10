@@ -333,3 +333,49 @@ test('a solve that cannot be copied shows in a dialog, selected, ready to copy b
 	await expect(dialog).toBeHidden();
 	await expect(page.locator('p:not(.sr-only)', { hasText: 'Copied your result' })).toBeVisible();
 });
+
+for (const [label, viewport] of [
+	['wide', { width: 1280, height: 800 }],
+	['phone', { width: 390, height: 844 }]
+] as const) {
+	test(`${label}: once the solve is shared, the next puzzle is the button that stands out`, async ({
+		page
+	}) => {
+		await page.setViewportSize(viewport);
+		await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+		await page.addInitScript(() => {
+			localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+			localStorage.setItem('vp:puzzleSource', '"bank"');
+			Object.defineProperty(navigator, 'share', { value: undefined });
+		});
+		await page.goto(PUZZLE);
+		const board = page.locator('.overflow-x-auto svg[role="grid"]');
+		await expect(board).toBeVisible({ timeout: 30_000 });
+		await page.waitForLoadState('networkidle');
+		const grid = (await board.locator('rect').first().boundingBox())!;
+		const cell = grid.width / 6;
+		for (const i of [...SOLUTION].flatMap((c, i) => (c === '1' ? [i] : []))) {
+			await page.mouse.click(
+				grid.x + ((i % 6) + 0.5) * cell,
+				grid.y + (Math.floor(i / 6) + 0.5) * cell
+			);
+		}
+		const share = page.getByRole('button', { name: 'Share success' });
+		const next = page.getByRole('button', { name: 'New puzzle' });
+		await expect(share).toHaveClass(/btn-primary/);
+		await expect(next).not.toHaveClass(/btn-primary/);
+
+		await share.click();
+		await expect(next).toHaveClass(/btn-primary/);
+		await expect(share).not.toHaveClass(/btn-primary/);
+
+		// The next puzzle starts plain again.
+		const id = await page.locator('.font-mono.select-all').textContent();
+		await next.click();
+		await expect(page.locator('.font-mono.select-all')).not.toHaveText(id ?? '', {
+			timeout: 30_000
+		});
+		await expect(share).toHaveCount(0);
+		await expect(next).not.toHaveClass(/btn-primary/);
+	});
+}

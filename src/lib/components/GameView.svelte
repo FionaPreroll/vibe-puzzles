@@ -270,9 +270,14 @@
 		share.image = await screenshot();
 	}
 
+	/** The puzzle whose solve was shared: then the next puzzle is the way on, not sharing again. */
+	let sharedId: number | null = $state(null);
+	const shared = $derived(session.solved && sharedId !== null && sharedId === session.puzzleId);
+
 	/** Share the solve, e.g. to a messenger; without the Web Share API the text is copied. */
 	async function shareSolve() {
 		if (!session.puzzleId) return;
+		sharedId = session.puzzleId;
 		const url = `${location.origin}${resolve('/[game]', { game: game.id })}?id=${session.puzzleId}`;
 		const hints = session.hints;
 		const text = t(hints === 0 ? 'game.brag' : hints === 1 ? 'game.bragHint' : 'game.bragHints', {
@@ -1221,12 +1226,14 @@
 						>
 					{/if}
 					{#if session.solved && session.puzzleId}
-						<button class="btn btn-primary next-up max-lg:min-h-11" onclick={shareSolve}
-							>{t('game.shareSolve')}</button
+						<button
+							class="btn max-lg:min-h-11 {shared ? '' : 'btn-primary next-up'}"
+							onclick={shareSolve}>{t('game.shareSolve')}</button
 						>
 					{/if}
+					<!-- Once the solve is shared, the next puzzle is the way on -->
 					<button
-						class="btn max-lg:min-h-11"
+						class="btn max-lg:min-h-11 {shared ? 'btn-primary next-up' : ''}"
 						onclick={newPuzzle}
 						disabled={newBusy || session.loading}>{t('game.newPuzzle')}</button
 					>
