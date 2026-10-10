@@ -49,7 +49,7 @@
 	<title>{t('player.title')} · {t('app.name')}</title>
 </svelte:head>
 
-<h1 class="text-3xl font-bold tracking-tight">{t('player.title')}</h1>
+<h1 class="font-display text-3xl font-bold tracking-tight">{t('player.title')}</h1>
 
 <div class="mt-6 max-w-xl space-y-6">
 	{#if hasServer === null}

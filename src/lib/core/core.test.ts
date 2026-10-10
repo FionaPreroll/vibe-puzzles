@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { specialPuzzleId, upcomingPeriods } from './bank';
-import { colourRegions, columnLabel, neighbours, packDigits, unpackDigits } from './grid';
+import {
+	CELEBRATION_COLOURS,
+	colourRegions,
+	columnLabel,
+	neighbours,
+	packDigits,
+	unpackDigits
+} from './grid';
 import { hashString, Rng } from './rng';
 import { COMMON_SETTINGS, withCommon } from './settings';
 import { formatCountdown, formatDuration } from './time';
@@ -15,6 +22,12 @@ import {
 } from './variants';
 
 describe('grid', () => {
+	it('lets a look bring its own win colours, with the classic ones as fallback', () => {
+		expect(CELEBRATION_COLOURS).toHaveLength(8);
+		expect(CELEBRATION_COLOURS[0]).toBe('var(--celebrate-1, #f87171)');
+		expect(CELEBRATION_COLOURS[7]).toBe('var(--celebrate-8, #fb923c)');
+	});
+
 	it('colours neighbouring regions differently', () => {
 		// 3×3: a ring of regions 0–3 around region 4.
 		const region = [0, 0, 1, 3, 4, 1, 3, 2, 2];

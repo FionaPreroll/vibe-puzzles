@@ -55,13 +55,14 @@ describe('board palette', () => {
 		});
 	}
 
-	it('defines every colour in both themes as a CSS variable', () => {
+	it('defines every colour in every theme as a CSS variable', () => {
 		const css = paletteCss();
 		for (const [name, value] of Object.entries(colours)) {
 			const variable = value.slice(4, -1);
-			expect(css.split(`${variable}:`).length, name).toBe(4);
+			expect(css.split(`${variable}:`).length, name).toBe(6);
 		}
 		expect(css).toContain(':root.dark{--board-surface:#1c1917;');
+		expect(css).toContain(':root[data-theme="halloween"].dark{--board-surface:#1b1528;');
 	});
 
 	it('puts the light colours into board markup', () => {

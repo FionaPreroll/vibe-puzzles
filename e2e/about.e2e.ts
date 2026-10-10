@@ -6,7 +6,18 @@ import { colours as palette } from '../src/lib/core/palette';
 test('the About page lists every shipped library with its licence text', async ({ page }) => {
 	await page.goto('/about');
 	const section = page.locator('section', { has: page.getByRole('heading', { name: 'Licences' }) });
-	for (const name of ['svelte', '@sveltejs/kit', 'devalue', 'clsx', 'tailwindcss']) {
+	const licences = [
+		...['svelte', '@sveltejs/kit', 'devalue', 'clsx', 'tailwindcss'].map((name) => ({
+			name,
+			terms: /MIT License|Permission is hereby granted/
+		})),
+		// The Halloween look's heading fonts.
+		...['@fontsource/fredoka', '@fontsource/cinzel'].map((name) => ({
+			name,
+			terms: /SIL Open Font License/
+		}))
+	];
+	for (const { name, terms } of licences) {
 		const link = section.getByRole('link', { name, exact: true });
 		await expect(link).toHaveAttribute('href', /^https:\/\//);
 		// The text is folded away until asked for, and holds the copyright notice.
@@ -15,7 +26,7 @@ test('the About page lists every shipped library with its licence text', async (
 		await expect(text).toBeHidden();
 		await summary.click();
 		await expect(text).toBeVisible();
-		await expect(text).toContainText(/MIT License|Permission is hereby granted/);
+		await expect(text).toContainText(terms);
 		await expect(text).toContainText('Copyright');
 	}
 });

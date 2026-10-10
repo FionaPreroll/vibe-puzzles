@@ -16,6 +16,7 @@
 		loadTouchMode,
 		saveTool,
 		saveTouchMode,
+		theme,
 		type StoredSettings
 	} from '../client/settings.svelte';
 	import { load, save, setQuotaHandler } from '../client/storage';
@@ -27,6 +28,7 @@
 	import { lightColours } from '../core/palette';
 	import type { GameModule, TouchMode } from '../core/types';
 	import { t, tList, toolHint, toolLabel, variantLabel } from '../i18n/index.svelte';
+	import HalloweenBurst from './halloween/Burst.svelte';
 	import HoldButton from './HoldButton.svelte';
 	import SettingsDialog from './SettingsDialog.svelte';
 	import ShortcutsDialog from './ShortcutsDialog.svelte';
@@ -610,7 +612,7 @@
 	>
 		<div class="flex items-center justify-between gap-2">
 			{#if !panelCollapsed}
-				<h1 class="text-2xl font-bold tracking-tight">
+				<h1 class="font-display text-2xl font-bold tracking-tight">
 					<span aria-hidden="true">{game.icon}</span>
 					{game.name}
 				</h1>
@@ -860,7 +862,9 @@
 							{touchMode}
 							onmove={(next, changed) => session.move(next, changed)}
 						/>
-						{#if celebrate}
+						{#if celebrate && theme.look === 'halloween'}
+							<HalloweenBurst night={theme.night} />
+						{:else if celebrate}
 							<!-- Clipped to the board so the sparkles never resize the page -->
 							<div
 								class="solved-burst pointer-events-none absolute inset-0 overflow-hidden"

@@ -1,3 +1,4 @@
+import { isLookChoice, resolveLook, type LookChoice } from '../core/theme';
 import type { SettingInfo, Settings, TouchMode } from '../core/types';
 import { load, save } from './storage';
 
@@ -8,12 +9,22 @@ const chosenNight = () => load<boolean | null>('night', null);
 
 const systemNight = () => typeof matchMedia === 'function' && matchMedia(DARK_SCHEME).matches;
 
+/** The player's choice of look, 'auto' until they pick one. */
+function chosenLook(): LookChoice {
+	const stored = load<unknown>('look', 'auto');
+	return isLookChoice(stored) ? stored : 'auto';
+}
+
 /**
- * Night mode applies to the whole site, so it lives outside the per-game settings. Until the
- * player switches it, it follows the system's colour scheme (app.html applies the same rule
- * before the first paint).
+ * Night mode and the look apply to the whole site, so they live outside the per-game settings.
+ * Until the player switches night mode, it follows the system's colour scheme; until they pick a
+ * look, the calendar picks it (app.html applies the same rules before the first paint).
  */
-export const theme = $state({ night: chosenNight() ?? systemNight() });
+export const theme = $state({
+	night: chosenNight() ?? systemNight(),
+	lookChoice: chosenLook(),
+	look: resolveLook(chosenLook(), new Date())
+});
 
 /** Keeps night mode in step with the system's colour scheme while the player has not chosen. */
 export function followSystemTheme(): () => void {
@@ -30,6 +41,12 @@ export function followSystemTheme(): () => void {
 export function setNight(on: boolean) {
 	theme.night = on;
 	save('night', on);
+}
+
+export function setLook(choice: LookChoice) {
+	theme.lookChoice = choice;
+	theme.look = resolveLook(choice, new Date());
+	save('look', choice);
 }
 
 export interface StoredSettings {
