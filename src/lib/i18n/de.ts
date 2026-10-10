@@ -74,6 +74,9 @@ const de: Dictionary = {
 	},
 	game: {
 		menu: '{game}-Menü',
+		earlyAccess: 'Early Access',
+		comingSoon: 'Bald',
+		comingSoonTitle: '{variant}: kommt bald',
 		openMenu: 'Rätseltypen und Regeln',
 		closeMenu: 'Menü schließen',
 		expandPanel: 'Seitenleiste ausklappen',
@@ -241,6 +244,7 @@ const de: Dictionary = {
 		symmetryHelper: 'Symmetriehilfe',
 		blackHoles: 'Schwarzes Loch in fertigen Bereichen',
 		autoColor: 'Fertige Bereiche automatisch einfärben',
+		dimSatisfiedClues: 'Zahlen mit allen Linien ausgrauen',
 		markMistakes: 'Falsche Ziffern rot färben',
 		autoNotes: 'Notizen automatisch eintragen',
 		autoRemoveNotes: 'Notizen entfernen, wenn eine neue Ziffer sie ausschließt',
@@ -657,6 +661,31 @@ const de: Dictionary = {
 					task: 'Fülle die letzten fünf Felder selbst aus.'
 				}
 			]
+		},
+		loop: {
+			tagline: 'Zeichne eine geschlossene Schleife um die Zahlen.',
+			rules: [
+				'Verbinde benachbarte Punkte mit Linien zu einer einzigen geschlossenen Schleife.',
+				'Die Schleife kreuzt und berührt sich nie und hat keine losen Enden.',
+				'Eine Zahl sagt, an wie vielen der vier Seiten ihres Felds die Schleife entlangläuft. Felder ohne Zahl können beliebig viele haben.'
+			],
+			notes: [
+				'Early Access: Loop ist noch im Bau. Bisher ist nur 5×5 Normal spielbar; weitere Größen, schwere Rätsel, Specials, Tipps und ein Tutorial folgen.'
+			],
+			tool: { black: 'Linie' },
+			toolHint: {
+				rotate:
+					'Jeder Klick auf eine Kante schaltet weiter: leer, Linie, Kreuz und wieder leer. Rechtsklick schaltet rückwärts.',
+				black:
+					'Klick auf eine Kante zieht eine Linie, ein zweiter Klick entfernt sie. Rechtsklick setzt ein Kreuz.',
+				cross:
+					'Klick markiert eine Kante mit einem Kreuz: Dort verläuft die Schleife nicht. Ein zweiter Klick entfernt es.',
+				blank: 'Leert jede Kante, die du anklickst oder überstreichst.'
+			},
+			controlsMouse:
+				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen, oder zieh über die Punkte, um mehrere zu zeichnen. Rechtsklick setzt ein Kreuz.',
+			controlsTouch:
+				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen, oder halte und zieh über die Punkte, um mehrere zu zeichnen. Mit dem Kreuz-Werkzeug markierst du Kanten, die die Schleife meidet.'
 		}
 	}
 };

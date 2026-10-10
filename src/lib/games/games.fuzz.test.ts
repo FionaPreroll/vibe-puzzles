@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { BasePuzzle, GameModule } from '../core/types';
+import { isPlayable } from '../core/variants';
 import { GAMES } from './index';
 
 /**
@@ -51,7 +52,7 @@ function replaceNode(value: unknown, n: number, by: unknown): unknown {
 const samples = GAMES.map((game) => {
 	const g = game as unknown as GameModule;
 	const small = g.variants
-		.filter((v) => !v.special)
+		.filter((v) => !v.special && isPlayable(v))
 		.sort((a, b) => a.width * a.height - b.width * b.height)
 		.filter((v, i, all) => i === 0 || v.mode !== all[0].mode)
 		.slice(0, 2);

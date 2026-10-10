@@ -27,7 +27,7 @@ let dropped = 0;
 for (const logic of Object.values(GAME_LOGIC)) {
 	if (onlyGame && logic.id !== onlyGame) continue;
 	logic.variants.forEach((variant, index) => {
-		if (onlyVariants && !onlyVariants.includes(variant.key)) return;
+		if (variant.comingSoon || (onlyVariants && !onlyVariants.includes(variant.key))) return;
 		const kind = variant.special;
 		const puzzles = readType('static', logic.id, variant.key, kind);
 		const known = new Set(puzzles.map((p) => p.id));

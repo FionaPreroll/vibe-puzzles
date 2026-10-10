@@ -82,7 +82,7 @@ const regulars: Slot[] = [];
 for (const logic of Object.values(GAME_LOGIC)) {
 	if (onlyGame && logic.id !== onlyGame) continue;
 	logic.variants.forEach((v, index) => {
-		if (onlyVariants && !onlyVariants.includes(v.key)) return;
+		if (v.comingSoon || (onlyVariants && !onlyVariants.includes(v.key))) return;
 		(v.special ? specials : regulars).push(open(logic, index));
 	});
 }

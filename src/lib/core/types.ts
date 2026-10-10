@@ -191,6 +191,8 @@ export interface GameModule<
 	K extends string = never
 > extends GameLogic<P, S, K> {
 	name: string;
+	/** Playable before it is finished: shown with an "Early access" label. */
+	earlyAccess?: boolean;
 	tools: ToolInfo[];
 	defaultTool(touch: boolean): string;
 	/** Two tools that Space switches between (the board handles the key), e.g. digit and note. */

@@ -4,6 +4,7 @@ import type { Variant } from '../src/lib/core/variants';
 import {
 	decodePuzzleId,
 	encodePuzzleId,
+	isPlayable,
 	periodKey,
 	randomSeed,
 	specialSeed
@@ -149,7 +150,7 @@ function formatTime(ms: number) {
 function scopeOf(game: string, variantKey: string, puzzleId: number | null): Scope {
 	const logic = gameLogic(game);
 	const variant = logic?.variants.find((v) => v.key === variantKey);
-	if (!variant) throw new HttpError(400, 'Unknown game or puzzle type');
+	if (!isPlayable(variant)) throw new HttpError(400, 'Unknown game or puzzle type');
 	// Special types rank one puzzle; regular types rank best times over all puzzles.
 	return { game, variant: variantKey, puzzleId: variant.special ? puzzleId : null };
 }
@@ -185,7 +186,9 @@ async function issuePuzzle(req: Request, store: Store, options: ApiOptions) {
 	const game = String(b.game);
 	const logic = gameLogic(game);
 	const index = logic ? logic.variants.findIndex((v) => v.key === b.variant) : -1;
-	if (!logic || index < 0) throw new HttpError(400, 'Unknown game or puzzle type');
+	if (!logic || !isPlayable(logic.variants[index])) {
+		throw new HttpError(400, 'Unknown game or puzzle type');
+	}
 	const variant = logic.variants[index];
 	let puzzleId: number;
 	let puzzle: unknown;
@@ -280,7 +283,7 @@ async function submitScore(req: Request, store: Store, options: ApiOptions) {
 	if (!Number.isSafeInteger(puzzleId) || puzzleId <= 0)
 		throw new HttpError(400, 'Invalid puzzle ID');
 	const variant = logic.variants[decodePuzzleId(puzzleId).variantIndex];
-	if (!variant || variant.key !== b.variant)
+	if (!isPlayable(variant) || variant.key !== b.variant)
 		throw new HttpError(400, 'Puzzle ID does not match its type');
 	if (!logic.isValidPuzzle(b.puzzle, variant)) throw new HttpError(400, 'Invalid puzzle');
 	const print = await sha256(JSON.stringify(b.puzzle));

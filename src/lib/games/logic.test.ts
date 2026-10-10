@@ -52,6 +52,10 @@ describe('variant lists', () => {
 			sudoku: [
 				...['9e', '9n', '9h', 'daily', 'weekly', 'monthly'],
 				...['c5e', 'c5n', 'c5h', 'c7e', 'c7n', 'c7h', 'c9e', 'c9n', 'c9h']
+			],
+			loop: [
+				...['5n', '5h', '7n', '7h', '10n', '10h', '15n', '15h', '20n', '20h', '25x30n', '25x30h'],
+				...['daily', 'weekly', 'monthly']
 			]
 		});
 	});
@@ -69,7 +73,9 @@ describe('variant lists', () => {
 		expect(pairs).toEqual({
 			tetroid: ['10n', '15h', '20h'],
 			pinwheel: ['10h', '15h', '15h'],
-			sudoku: ['9n', '9h', '9h']
+			sudoku: ['9n', '9h', '9h'],
+			// Only 5×5 Normal is playable so far.
+			loop: ['5n', '5n', '5n']
 		});
 	});
 

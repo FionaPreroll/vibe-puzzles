@@ -3,6 +3,7 @@ import type { BasePuzzle, GameModule, Hint } from '../core/types';
 import {
 	decodePuzzleId,
 	encodePuzzleId,
+	isPlayable,
 	periodKey,
 	randomSeed,
 	regularCounterpart,
@@ -164,14 +165,17 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 
 	/** The variant, puzzle, special period and save slot that `open` would use. */
 	private target(variantKey: string, opts: OpenOptions) {
-		let index = this.game.variants.findIndex((v) => v.key === variantKey);
-		if (opts.puzzleId != null) {
-			const decoded = decodePuzzleId(opts.puzzleId);
-			if (this.game.variants[decoded.variantIndex]) index = decoded.variantIndex;
-		}
-		if (index < 0) index = 0;
-		const v = this.game.variants[index];
+		const variants = this.game.variants;
+		let index = variants.findIndex((v) => v.key === variantKey);
 		let puzzleId = opts.puzzleId;
+		if (puzzleId != null) {
+			const decoded = decodePuzzleId(puzzleId);
+			if (isPlayable(variants[decoded.variantIndex])) index = decoded.variantIndex;
+			else puzzleId = undefined;
+		}
+		// A type that is only announced opens the first playable one.
+		if (!isPlayable(variants[index])) index = variants.findIndex((v) => isPlayable(v));
+		const v = variants[index];
 		let period: string | undefined;
 		if (v.special) {
 			const current = encodePuzzleId(

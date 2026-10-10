@@ -19,7 +19,7 @@ import {
 	type BankFile
 } from '../core/bank';
 import type { BasePuzzle } from '../core/types';
-import { decodePuzzleId } from '../core/variants';
+import { decodePuzzleId, isPlayable } from '../core/variants';
 import { GAME_LOGIC } from './logic';
 
 /**
@@ -48,8 +48,11 @@ describe('puzzle collection', () => {
 	});
 
 	for (const logic of Object.values(GAME_LOGIC)) {
-		it(`${logic.id} has a folder per puzzle type and nothing else`, () => {
-			const keys = logic.variants.map((v) => v.key).sort();
+		it(`${logic.id} has a folder per playable puzzle type and nothing else`, () => {
+			const keys = logic.variants
+				.filter(isPlayable)
+				.map((v) => v.key)
+				.sort();
 			expect(readdirSync(join('static', 'puzzles', logic.id)).sort()).toEqual(keys);
 		});
 

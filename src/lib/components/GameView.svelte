@@ -31,7 +31,7 @@
 	import { trapFocus } from '../client/focus';
 	import { isTyping, KeyDispatcher } from '../client/keys';
 	import { formatDuration } from '../core/time';
-	import { decodePuzzleId, parsePuzzleId } from '../core/variants';
+	import { decodePuzzleId, parsePlayableId } from '../core/variants';
 	import { CELEBRATION_COLOURS } from '../core/grid';
 	import { lightColours } from '../core/palette';
 	import type { TouchMode } from '../core/types';
@@ -232,7 +232,7 @@
 	async function openById() {
 		const digits = idInput.replace(/[^0-9]/g, '');
 		if (!digits) return;
-		const id = parsePuzzleId(digits, game.variants.length);
+		const id = parsePlayableId(digits, game.variants);
 		if (!id) {
 			session.message = { kind: 'error', text: t('game.unknownId') };
 			return;
@@ -354,7 +354,7 @@
 				return;
 			}
 		}
-		const id = parsePuzzleId(params.get('id'), game.variants.length);
+		const id = parsePlayableId(params.get('id'), game.variants);
 		const start = async () => {
 			let variantKey = params.get('v') ?? game.variants[0].key;
 			let opts: OpenOptions = { puzzleId: id, shared: params.get('s') ?? undefined };
@@ -367,7 +367,10 @@
 			if (params.has('id') && !id && !session.message) {
 				session.message = { kind: 'error', text: t('game.unknownId') };
 			}
-			if (params.has('s') || params.has('id')) replaceState(variantUrl(session.variant.key), {});
+			// A shared position, an ID or a type that cannot be played (yet) leaves the address.
+			if (params.has('s') || params.has('id') || session.variant.key !== variantKey) {
+				replaceState(variantUrl(session.variant.key), {});
+			}
 		};
 		start();
 
@@ -753,6 +756,9 @@
 				<h1 class="font-display text-2xl font-bold tracking-tight">
 					<span aria-hidden="true">{game.icon}</span>
 					{game.name}
+					{#if game.earlyAccess}<span class="early-access align-middle"
+							>{t('game.earlyAccess')}</span
+						>{/if}
 				</h1>
 			{/if}
 			<button

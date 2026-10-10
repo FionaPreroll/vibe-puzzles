@@ -132,6 +132,7 @@
 					>
 						{game.name}
 					</h2>
+					{#if game.earlyAccess}<span class="early-access">{t('game.earlyAccess')}</span>{/if}
 				</div>
 				<p class="mt-2 text-sm text-stone-600 dark:text-stone-400">
 					{t(`games.${game.id}.tagline`)}

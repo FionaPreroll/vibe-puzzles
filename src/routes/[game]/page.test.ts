@@ -9,7 +9,8 @@ describe('game page', () => {
 		expect(await entries()).toEqual([
 			{ game: 'tetroid' },
 			{ game: 'pinwheel' },
-			{ game: 'sudoku' }
+			{ game: 'sudoku' },
+			{ game: 'loop' }
 		]);
 	});
 

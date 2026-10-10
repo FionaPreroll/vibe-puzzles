@@ -18,11 +18,15 @@ import { formatCountdown, formatDuration } from './time';
 import {
 	decodePuzzleId,
 	encodePuzzleId,
+	isPlayable,
 	nextPeriodStart,
+	parsePlayableId,
 	periodKey,
 	randomSeed,
+	regularCounterpart,
 	specialSeed,
-	SPECIAL_RETENTION_DAYS
+	SPECIAL_RETENTION_DAYS,
+	type Variant
 } from './variants';
 
 describe('grid', () => {
@@ -308,6 +312,27 @@ describe('variants', () => {
 		expect(seed).not.toBe(specialSeed('tetroid', 'daily', '2026-10-08'));
 		expect(seed).not.toBe(specialSeed('pinwheel', 'daily', '2026-10-07'));
 		expect(seed >= 1 && seed < 1 << 26).toBe(true);
+	});
+
+	it('plays only types that are not just announced', () => {
+		const type = (key: string, comingSoon?: boolean): Variant => ({
+			key,
+			label: key,
+			width: key === 'big' ? 9 : 5,
+			height: key === 'big' ? 9 : 5,
+			difficulty: 'normal',
+			...(comingSoon && { comingSoon }),
+			...(key === 'daily' && { special: 'daily' })
+		});
+		const types = [type('small'), type('big', true), type('daily')];
+		expect(types.map(isPlayable)).toEqual([true, false, true]);
+		expect(isPlayable(undefined)).toBe(false);
+		// An ID of an announced type is no puzzle yet.
+		expect(parsePlayableId(String(encodePuzzleId(0, 7)), types)).toBe(encodePuzzleId(0, 7));
+		expect(parsePlayableId(String(encodePuzzleId(1, 7)), types)).toBeUndefined();
+		expect(parsePlayableId('x', types)).toBeUndefined();
+		// "New puzzle" after a special never continues with an announced type.
+		expect(regularCounterpart(types, types[2]).key).toBe('small');
 	});
 
 	it('keeps longer periods longer', () => {

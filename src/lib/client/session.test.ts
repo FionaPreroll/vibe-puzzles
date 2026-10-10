@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 import { withCommon } from '../core/settings';
-import type { GameModule } from '../core/types';
+import type { BasePuzzle, GameModule } from '../core/types';
 import {
 	decodePuzzleId,
 	encodePuzzleId,
@@ -115,6 +115,18 @@ describe('opening a puzzle', () => {
 		const s = session();
 		await s.open('nope');
 		expect(s.variant.key).toBe('6n');
+	});
+
+	it('opens the first playable type instead of one that is only announced', async () => {
+		const loop = GAME_LOGIC.loop as unknown as GameModule<BasePuzzle, unknown>;
+		expect(loop.variants[2]).toMatchObject({ key: '7n', comingSoon: true });
+		const s = new GameSession(loop, new GameSettings('loop', withCommon([])));
+		await s.open('7n');
+		expect(s.variant.key).toBe('5n');
+		// A link to a puzzle of an announced type opens no puzzle of it either.
+		await s.open('7n', { puzzleId: encodePuzzleId(2, SEED) });
+		expect(s.variant.key).toBe('5n');
+		expect(decodePuzzleId(s.puzzleId).variantIndex).toBe(0);
 	});
 
 	it('uses a stored collection puzzle instead of generating it', async () => {
