@@ -47,6 +47,7 @@
 	import HoldButton from './HoldButton.svelte';
 	import SettingsDialog from './SettingsDialog.svelte';
 	import ShortcutsDialog from './ShortcutsDialog.svelte';
+	import Dialog from './Dialog.svelte';
 	import VariantPicker from './VariantPicker.svelte';
 
 	let { game }: { game: AnyGame } = $props();
@@ -293,7 +294,22 @@
 			await navigator.clipboard.writeText(`${text} ${url}`);
 			session.message = { kind: 'info', text: t('game.bragCopied') };
 		} catch {
-			session.message = { kind: 'info', text: `${text} ${url}` };
+			// Too long for a message: shown in a dialog to copy by hand.
+			bragText = `${text} ${url}`;
+		}
+	}
+
+	/** The solve to share when it could not be copied; shown in a dialog while set. */
+	let bragText: string | null = $state(null);
+	let bragField: HTMLTextAreaElement | undefined = $state();
+
+	/** Copies the selected text the old way, which needs no permission. */
+	function copyBrag() {
+		if (!bragField) return;
+		bragField.select();
+		if (document.execCommand('copy')) {
+			bragText = null;
+			session.message = { kind: 'info', text: t('game.bragCopied') };
 		}
 	}
 
@@ -1316,6 +1332,27 @@
 {/if}
 
 <ShortcutsDialog bind:open={showShortcuts} {game} tools={showTools} hint={session.canHint} />
+<Dialog
+	bind:open={() => bragText !== null, (open) => !open && (bragText = null)}
+	title={t('game.shareSolve')}
+>
+	<p class="text-sm text-stone-600 dark:text-stone-300">{t('game.bragManual')}</p>
+	<textarea
+		bind:this={bragField}
+		readonly
+		rows="4"
+		class="mt-3 w-full resize-none rounded-lg border border-stone-300 bg-stone-50 p-2 text-sm dark:border-stone-700 dark:bg-stone-950"
+		aria-label={t('game.bragText')}
+		value={bragText ?? ''}
+		onfocus={(e) => e.currentTarget.select()}
+		{@attach (node) => {
+			// Selected once the dialog shows, ready to copy.
+			if (bragText) requestAnimationFrame(() => (node.focus(), node.select()));
+		}}></textarea>
+	<div class="mt-3 flex justify-end">
+		<button class="btn btn-primary" onclick={copyBrag}>{t('game.copy')}</button>
+	</div>
+</Dialog>
 
 <SettingsDialog
 	bind:open={showSettings}
