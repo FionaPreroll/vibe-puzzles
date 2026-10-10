@@ -44,6 +44,8 @@ test('the first visit opens the tutorial, which can be solved', async ({ page })
 
 test('switches to German', async ({ page }) => {
 	await page.goto('/');
+	// A choice made before the page has hydrated goes unnoticed.
+	await page.waitForLoadState('networkidle');
 	await page.getByRole('combobox', { name: 'Language' }).selectOption('de');
 	await expect(page.getByRole('heading', { name: /Logikrätsel/ })).toBeVisible();
 });
