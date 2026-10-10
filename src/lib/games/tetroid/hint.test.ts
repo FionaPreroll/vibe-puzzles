@@ -125,30 +125,33 @@ describe('tetroid hints', () => {
 		expect(hint.region).not.toBe(2);
 	});
 
-	it('lead through hard puzzles with assumptions that fail, and never cross for nothing', () => {
-		const { puzzle } = generateTetroid(6, 6, 'hard', 1);
-		const answer = solveTetroid(puzzle).solutions[0];
-		const state = empty(puzzle);
-		let assumptions = 0;
-		const last = follow(puzzle, state, (h) => {
-			if (h.kind !== 'step') return;
-			for (const i of h.cells) expect(answer[i]).toBe(h.mark === 'shade' ? 1 : 0);
-			if (h.technique === 'assumption') {
-				assumptions++;
-				// The tried placement is not the one of the solution, and lies in the region.
-				expect(h.assumed!.every((i) => answer[i])).toBe(false);
-				expect(h.assumed!.every((i) => puzzle.regions[i] === h.region)).toBe(true);
-			}
-			if (h.mark !== 'cross') return;
-			// Crosses come only from a deduction, never just from the player's own shaded cells.
-			const shadedThere = state.marks.some(
-				(m, i) => m === SHADED && puzzle.regions[i] === h.region
-			);
-			expect(h.technique === 'region' && shadedThere).toBe(false);
-		});
-		expect(last).toBeNull();
-		expect(assumptions).toBeGreaterThan(0);
-	});
+	it.each([1, 2, 3])(
+		'lead through hard puzzles with assumptions that fail, and never cross for nothing (#%i)',
+		(seed) => {
+			const { puzzle } = generateTetroid(6, 6, 'hard', seed);
+			const answer = solveTetroid(puzzle).solutions[0];
+			const state = empty(puzzle);
+			let assumptions = 0;
+			const last = follow(puzzle, state, (h) => {
+				if (h.kind !== 'step') return;
+				for (const i of h.cells) expect(answer[i]).toBe(h.mark === 'shade' ? 1 : 0);
+				if (h.technique === 'assumption') {
+					assumptions++;
+					// The tried placement is not the one of the solution, and lies in the region.
+					expect(h.assumed!.every((i) => answer[i])).toBe(false);
+					expect(h.assumed!.every((i) => puzzle.regions[i] === h.region)).toBe(true);
+				}
+				if (h.mark !== 'cross') return;
+				// Crosses come only from a deduction, never just from the player's own shaded cells.
+				const shadedThere = state.marks.some(
+					(m, i) => m === SHADED && puzzle.regions[i] === h.region
+				);
+				expect(h.technique === 'region' && shadedThere).toBe(false);
+			});
+			expect(last).toBeNull();
+			expect(assumptions).toBeGreaterThan(0);
+		}
+	);
 
 	it('name the region with the fewest options when not even an assumption helps', () => {
 		// One region of 3×2 cells: several tetrominoes fit, none covers every cell or rules out

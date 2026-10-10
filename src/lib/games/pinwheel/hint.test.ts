@@ -128,12 +128,13 @@ describe('pinwheel hints', () => {
 		});
 	});
 
-	it('lead through hard puzzles with assumptions that fail', () => {
-		const { puzzle } = generatePinwheel(10, 10, 'hard', 1);
+	it.each([1, 2, 3])('lead through hard puzzles with assumptions that fail (#%i)', (seed) => {
+		const { puzzle } = generatePinwheel(10, 10, 'hard', seed);
 		const solution = solvePinwheel(puzzle).solutions[0];
 		const w = puzzle.width;
+		const state = emptyPinwheelState(puzzle);
 		let assumptions = 0;
-		const last = follow(puzzle, emptyPinwheelState(puzzle), (h) => {
+		const last = follow(puzzle, state, (h) => {
 			if (h.kind !== 'step') return;
 			for (const e of h.edges) {
 				const [a, b] = sides(puzzle, e);
@@ -141,6 +142,8 @@ describe('pinwheel hints', () => {
 			}
 			if (h.technique !== 'assumption') return;
 			assumptions++;
+			// The assumption names its cells itself, without "look at the tinted galaxy".
+			expect(pinwheel.hint!(puzzle, state)?.teaser).toEqual(['games.pinwheel.hints.assumption']);
 			// The cell and its mirror, tried in the galaxy halfway between them: not theirs.
 			const [a, b] = h.area;
 			const mid = [Math.floor(a / w) + Math.floor(b / w), (a % w) + (b % w)];

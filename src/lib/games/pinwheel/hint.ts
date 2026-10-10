@@ -141,25 +141,23 @@ class Deduction {
 	 */
 	private assume(): Step | null {
 		const { n, g, p } = this;
-		const cells = [...Array(n).keys()]
+		const centres = [...Array(g).keys()];
+		const trials = [...Array(n).keys()]
 			.filter((c) => this.options(c) > 1)
-			.sort((a, b) => this.options(a) - this.options(b));
-		let trials = 0;
-		for (const c of cells) {
-			for (let k = 0; k < g; k++) {
-				if (!this.has(c, k)) continue;
-				if (++trials > MAX_TRIALS) return null;
-				const trial = this.copy();
-				for (let o = 0; o < g; o++) if (o !== k) trial.remove(c, o, 0);
-				if (trial.consistent()) continue;
-				const after = this.copy();
-				after.remove(c, k, TECHNIQUES.indexOf('assumption'));
-				let step = after.decided();
-				while (!step && after.sweep()) step = after.decided();
-				if (!step) continue;
-				const area = [c, mirrorCell(p, c, p.centres[k])];
-				return { ...step, technique: 'assumption', area };
-			}
+			.sort((a, b) => this.options(a) - this.options(b))
+			.flatMap((c) => centres.filter((k) => this.has(c, k)).map((k) => [c, k]))
+			.slice(0, MAX_TRIALS);
+		for (const [c, k] of trials) {
+			const trial = this.copy();
+			for (let o = 0; o < g; o++) if (o !== k) trial.remove(c, o, 0);
+			if (trial.consistent()) continue;
+			const after = this.copy();
+			after.remove(c, k, TECHNIQUES.indexOf('assumption'));
+			let step = after.decided();
+			while (!step && after.sweep()) step = after.decided();
+			if (!step) continue;
+			const area = [c, mirrorCell(p, c, p.centres[k])];
+			return { ...step, technique: 'assumption', area };
 		}
 		return null;
 	}

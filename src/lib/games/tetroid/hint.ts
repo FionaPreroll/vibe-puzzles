@@ -225,39 +225,36 @@ class Deduction {
 	 */
 	private assume(): Step | null {
 		const { byRegion, placements, p } = this.m;
-		const order = byRegion
+		const trials = byRegion
 			.map((_, r) => r)
 			.filter((r) => this.size[r] > 1)
-			.sort((a, b) => this.size[a] - this.size[b]);
+			.sort((a, b) => this.size[a] - this.size[b])
+			.flatMap((r) => byRegion[r].filter((k) => this.alive[k]).map((k) => [r, k]))
+			.slice(0, MAX_TRIALS);
 		const solver = new TetroidSolver(this.m);
-		let trials = 0;
 		let cross: Step | null = null;
-		for (const r of order) {
+		for (const [r, k] of trials) {
 			const open = p.regions.flatMap((reg, i) => (reg === r && this.marks[i] === EMPTY ? [i] : []));
-			for (const k of byRegion[r]) {
-				if (!this.alive[k]) continue;
-				if (++trials > MAX_TRIALS) return cross;
-				const rest = byRegion[r].filter((q) => q !== k && this.alive[q]);
-				const covered = (i: number) => rest.filter((q) => placements[q].cells.includes(i)).length;
-				const shade = open.filter((i) => covered(i) === rest.length);
-				const empty = open.filter((i) => covered(i) === 0);
-				if (!shade.length && (!empty.length || cross)) continue;
-				const dom = { alive: this.alive.slice(), size: this.size.slice() };
-				for (const q of rest) dom.alive[q] = 0;
-				dom.size[r] = 1;
-				if (solver.consistent(dom)) continue;
-				const step: Step = {
-					kind: 'step',
-					technique: 'assumption',
-					mark: shade.length ? 'shade' : 'cross',
-					region: r,
-					cells: shade.length ? shade : empty,
-					context: [],
-					assumed: placements[k].cells
-				};
-				if (shade.length) return step;
-				cross = step;
-			}
+			const rest = byRegion[r].filter((q) => q !== k && this.alive[q]);
+			const covered = (i: number) => rest.filter((q) => placements[q].cells.includes(i)).length;
+			const shade = open.filter((i) => covered(i) === rest.length);
+			const empty = open.filter((i) => covered(i) === 0);
+			if (!shade.length && (!empty.length || cross)) continue;
+			const dom = { alive: this.alive.slice(), size: this.size.slice() };
+			for (const q of rest) dom.alive[q] = 0;
+			dom.size[r] = 1;
+			if (solver.consistent(dom)) continue;
+			const step: Step = {
+				kind: 'step',
+				technique: 'assumption',
+				mark: shade.length ? 'shade' : 'cross',
+				region: r,
+				cells: shade.length ? shade : empty,
+				context: [],
+				assumed: placements[k].cells
+			};
+			if (shade.length) return step;
+			cross = step;
 		}
 		return cross;
 	}
