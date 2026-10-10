@@ -221,6 +221,33 @@ describe('tutorial', () => {
 		expect(isSolvedMarks(p, (i) => s.marks[i] === SHADED)).toBe(false);
 	});
 
+	it('teaches the connectivity look-ahead in steps 4 and 5 (#99)', async () => {
+		const {
+			TETROID_TUTORIAL: p,
+			TETROID_TUTORIAL_STEPS: steps,
+			tetroidTutorialStart
+		} = await import('./tutorial');
+		const { tetroidHint } = await import('./hint');
+		// From the start of the step, follow the hints until the task's cell is decided.
+		for (const [step, cell] of [
+			[4, 9],
+			[5, 23]
+		]) {
+			let s = tetroidTutorialStart(p);
+			for (const before of steps.slice(0, step - 1)) if (before.show) s = before.show(p, s);
+			let technique: string | undefined;
+			while (!technique) {
+				const h = tetroidHint(p, s);
+				if (h?.kind !== 'step') throw new Error(`step ${step}: no hint`);
+				if (h.cells.includes(cell)) technique = h.technique;
+				const marks = s.marks.slice();
+				for (const c of h.cells) marks[c] = h.mark === 'shade' ? SHADED : CROSS;
+				s = { ...s, marks };
+			}
+			expect(technique, `step ${step}`).toBe('lookAhead');
+		}
+	});
+
 	it('has a text for every step and a task for every step with a check', async () => {
 		const { TETROID_TUTORIAL_STEPS: steps } = await import('./tutorial');
 		const { default: en } = await import('../../i18n/en');
