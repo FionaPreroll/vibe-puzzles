@@ -1,16 +1,19 @@
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CHUNK_SIZE } from '../src/lib/core/bank';
+import { CHUNK_SIZE, MAX_PER_TYPE, sizesPath } from '../src/lib/core/bank';
 import type { GameLogic } from '../src/lib/core/types';
 import {
 	checkedPuzzle,
 	checksDifficulty,
+	collectionSizes,
 	DIFFICULTY_CHECKED_FROM,
 	filesToCheck,
+	growInTurns,
 	readType,
 	typeDir,
+	writeSizes,
 	writeType
 } from './collection';
 
@@ -58,6 +61,67 @@ describe('collection files', () => {
 		writeType(root, 'g', 'v', entries(2));
 		expect(readdirSync(typeDir(root, 'g', 'v')).sort()).toEqual(['0000.json', 'index.json']);
 		expect(existsSync(join(typeDir(root, 'g', 'v'), '0001.json'))).toBe(false);
+	});
+});
+
+describe('collection sizes', () => {
+	const logic = (id: string, keys: string[]) =>
+		({
+			id,
+			variants: keys.map((key) => ({ key, special: key === 'daily' ? 'daily' : undefined }))
+		}) as unknown as GameLogic;
+
+	it('counts the regular types from their index and writes one game per line', () => {
+		root = mkdtempSync(join(tmpdir(), 'collection-'));
+		writeType(root, 'g', 'v', entries(CHUNK_SIZE + 1));
+		writeType(root, 'g', 'daily', [{ id: 1, period: '2026-10-10', puzzle: 'd' }], 'daily');
+		writeType(root, 'h', 'v', entries(3));
+		const logics = [logic('g', ['v', 'w', 'daily']), logic('h', ['v'])];
+		expect(collectionSizes(root, logics)).toEqual({ g: { v: CHUNK_SIZE + 1 }, h: { v: 3 } });
+		writeSizes(root, logics);
+		const text = readFileSync(join(root, sizesPath), 'utf8');
+		expect(text).toBe(`{\n\t"g": {"v":${CHUNK_SIZE + 1}},\n\t"h": {"v":3}\n}\n`);
+		expect(JSON.parse(text)).toEqual(collectionSizes(root, logics));
+	});
+});
+
+describe('growing in turns', () => {
+	const type = (size: number) => ({ puzzles: Array.from({ length: size }), added: 0 });
+	const addOne = (t: ReturnType<typeof type>) => {
+		t.puzzles.push(null);
+		t.added++;
+	};
+
+	it('gives every type its new puzzles, one at a time', () => {
+		const types = [type(0), type(10)];
+		const order: number[] = [];
+		growInTurns(
+			types,
+			2,
+			(t) => (order.push(types.indexOf(t)), addOne(t)),
+			() => true
+		);
+		expect(order).toEqual([0, 1, 0, 1]);
+		expect(types.map((t) => t.added)).toEqual([2, 2]);
+	});
+
+	it('skips types at the cap and stops a type when it reaches it', () => {
+		const full = type(MAX_PER_TYPE);
+		const almost = type(MAX_PER_TYPE - 1);
+		const small = type(0);
+		growInTurns([full, almost, small], 3, addOne, () => true);
+		expect(full.added).toBe(0);
+		expect(almost.puzzles).toHaveLength(MAX_PER_TYPE);
+		expect(small.added).toBe(3);
+	});
+
+	it('stops when the time is up, and adds nothing for zero puzzles per type', () => {
+		const t = type(0);
+		let left = 2;
+		growInTurns([t, type(0)], 5, addOne, () => left-- > 0);
+		expect(t.added).toBe(1);
+		growInTurns([t], 0, addOne, () => true);
+		expect(t.added).toBe(1);
 	});
 });
 

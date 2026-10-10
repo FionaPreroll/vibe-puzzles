@@ -2,8 +2,22 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { checksDifficulty, filesToCheck, readType, typeDir } from '../../../scripts/collection';
-import { layoutType, serialize, specialPuzzleId, type BankFile } from '../core/bank';
+import {
+	checksDifficulty,
+	collectionSizes,
+	filesToCheck,
+	readType,
+	serializeSizes,
+	typeDir
+} from '../../../scripts/collection';
+import {
+	layoutType,
+	MAX_PER_TYPE,
+	serialize,
+	sizesPath,
+	specialPuzzleId,
+	type BankFile
+} from '../core/bank';
 import type { BasePuzzle } from '../core/types';
 import { decodePuzzleId } from '../core/variants';
 import { GAME_LOGIC } from './logic';
@@ -26,6 +40,13 @@ const solveAgain = filesToCheck(changed);
  * its type's difficulty (special puzzles from DIFFICULTY_CHECKED_FROM on).
  */
 describe('puzzle collection', () => {
+	it('lists the size of every regular type, at most MAX_PER_TYPE', () => {
+		const sizes = collectionSizes('static', Object.values(GAME_LOGIC));
+		expect(readFileSync(join('static', sizesPath), 'utf8')).toBe(serializeSizes(sizes));
+		const counts = Object.values(sizes).flatMap((types) => Object.values(types));
+		expect(Math.max(...counts)).toBeLessThanOrEqual(MAX_PER_TYPE);
+	});
+
 	for (const logic of Object.values(GAME_LOGIC)) {
 		it(`${logic.id} has a folder per puzzle type and nothing else`, () => {
 			const keys = logic.variants.map((v) => v.key).sort();

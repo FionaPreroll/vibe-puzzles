@@ -107,16 +107,13 @@ test('caches a collection file when it is first used, not on install', async ({
 
 	await page.goto('/tetroid?v=8n');
 	await expect(page.getByText('(from the puzzle collection)')).toBeVisible({ timeout: 10_000 });
-	// The index of the type and the one chunk the puzzle came from.
+	// Only the one chunk the puzzle came from: a random pick needs no index.
 	await expect
-		.poll(async () => (await cached())['vibe-puzzles-collection']?.sort())
-		.toEqual([
-			expect.stringMatching(/^\/puzzles\/tetroid\/8n\/\d{4}\.json$/),
-			'/puzzles/tetroid/8n/index.json'
-		]);
-	const [chunk, index] = (await cached())['vibe-puzzles-collection'].sort();
+		.poll(async () => (await cached())['vibe-puzzles-collection'])
+		.toEqual([expect.stringMatching(/^\/puzzles\/tetroid\/8n\/\d{4}\.json$/)]);
+	const [chunk] = (await cached())['vibe-puzzles-collection'];
 
-	// Offline, the service worker answers with the cached files; a file that was never needed is
+	// Offline, the service worker answers with the cached file; a file that was never needed is
 	// missing (the game then generates the puzzle on the device).
 	await context.setOffline(true);
 	const loads = (path: string) =>
@@ -128,9 +125,8 @@ test('caches a collection file when it is first used, not on install', async ({
 				),
 			path
 		);
-	expect(await loads(index)).toBe(true);
 	expect(await loads(chunk)).toBe(true);
-	expect(await loads('/puzzles/tetroid/6n/index.json')).toBe(false);
+	expect(await loads('/puzzles/tetroid/8n/index.json')).toBe(false);
 	await context.setOffline(false);
 });
 

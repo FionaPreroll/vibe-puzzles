@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Collection, layoutType, specialPuzzleId } from '../src/lib/core/bank';
+import {
+	Collection,
+	layoutType,
+	sizesOf,
+	specialPuzzleId,
+	type BankFile,
+	type BankIndex
+} from '../src/lib/core/bank';
 import { decodePuzzleId, encodePuzzleId, periodKey } from '../src/lib/core/variants';
 import { generateTetroid } from '../src/lib/games/tetroid/generator';
 import type { TetroidPuzzle } from '../src/lib/games/tetroid/rules';
@@ -322,14 +329,17 @@ describe('api', () => {
 			{ id: puzzleId, puzzle },
 			{ id: encodePuzzleId(0, 77), puzzle: other }
 		];
-		const files: Record<string, unknown> = {
+		const files: Record<string, BankFile | BankIndex> = {
 			...layoutType('tetroid', '6n', entries6n),
 			...layoutType('tetroid', 'daily', [{ id: dailyId, period: today, puzzle: daily }], 'daily'),
 			...layoutType('tetroid', '8n', []),
 			// A broken puzzle must not be handed out.
 			...layoutType('tetroid', '8h', [{ id: 1, puzzle: { width: 3 } }])
 		};
-		const collection = new Collection(async (path) => files[path] ?? null);
+		const collection = new Collection(
+			async (path) => files[path] ?? null,
+			sizesOf(Object.values(files))
+		);
 
 		async function setup() {
 			const api = client({ serverPuzzles: true, collection });

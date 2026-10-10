@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CHUNK_SIZE, layoutType } from '../core/bank';
+import { CHUNK_SIZE, layoutType, MAX_PER_TYPE } from '../core/bank';
 import type { Variant } from '../core/variants';
 import { MemoryStorage } from '../../test/memory-storage';
 import { load, save } from './storage';
 
 vi.mock('$app/paths', () => ({ asset: (path: string) => `/base${path}` }));
+// The sizes of the types in `files` below, in place of the deployed collection's.
+vi.mock('../../../static/puzzles/sizes.json', () => ({ default: { tetroid: { '6n': 102 } } }));
 
 type Bank = typeof import('./bank');
 
@@ -95,5 +97,24 @@ describe('collection', () => {
 		expect(picks).toEqual([100, 101, 102]);
 		expect(load<number[]>('bankPlayed:tetroid:6n', []).slice(-3)).toEqual([100, 101, 102]);
 		expect(await bank.pickFromBank('tetroid', '6n')).toBeNull();
+		// Picking needs the chunks only, not the index.
+		expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+			'/base/puzzles/tetroid/6n/0000.json',
+			'/base/puzzles/tetroid/6n/0001.json'
+		]);
+	});
+
+	it('remembers as many played puzzles per type as a type can hold', async () => {
+		const bank = await setup(serve);
+		save(
+			'bankPlayed:tetroid:6n',
+			Array.from({ length: MAX_PER_TYPE }, (_, k) => -k)
+		);
+		vi.spyOn(Math, 'random').mockReturnValue(0);
+		expect((await bank.pickFromBank('tetroid', '6n'))?.id).toBe(1);
+		const played = load<number[]>('bankPlayed:tetroid:6n', []);
+		expect(played).toHaveLength(MAX_PER_TYPE);
+		expect(played.slice(0, 1)).toEqual([-1]);
+		expect(played.at(-1)).toBe(1);
 	});
 });

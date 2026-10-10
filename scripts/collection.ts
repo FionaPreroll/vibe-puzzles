@@ -4,10 +4,14 @@ import {
 	chunkPath,
 	indexPath,
 	layoutType,
+	MAX_PER_TYPE,
 	serialize,
+	sizesOf,
+	sizesPath,
 	type BankEntry,
 	type BankFile,
-	type BankIndex
+	type BankIndex,
+	type BankSizes
 } from '../src/lib/core/bank';
 import type { GameLogic } from '../src/lib/core/types';
 import { decodePuzzleId, type SpecialKind, type Variant } from '../src/lib/core/variants';
@@ -64,6 +68,57 @@ export function writeType(
 	const kept = new Set(Object.keys(files).map((path) => join(root, path)));
 	for (const f of readdirSync(dir)) {
 		if (!kept.has(join(dir, f))) rmSync(join(dir, f));
+	}
+}
+
+/** The sizes of the regular types of these games, from their index files under `root`. */
+export function collectionSizes(root: string, logics: GameLogic[]): BankSizes {
+	const indexes = logics.flatMap((logic) =>
+		logic.variants
+			.filter((v) => !v.special && existsSync(join(root, indexPath(logic.id, v.key))))
+			.map((v) => readJson<BankIndex>(join(root, indexPath(logic.id, v.key))))
+	);
+	return sizesOf(indexes);
+}
+
+/** Text of `puzzles/sizes.json`: one game per line. */
+export function serializeSizes(sizes: BankSizes): string {
+	const lines = Object.entries(sizes).map(
+		([game, types]) => `\t${JSON.stringify(game)}: ${JSON.stringify(types)}`
+	);
+	return `{\n${lines.join(',\n')}\n}\n`;
+}
+
+/** Writes `puzzles/sizes.json` under `root` for the regular types of these games. */
+export function writeSizes(root: string, logics: GameLogic[]) {
+	writeFileSync(join(root, sizesPath), serializeSizes(collectionSizes(root, logics)));
+}
+
+/** A regular type being grown: its puzzles so far and how many of them are new. */
+export interface Growing {
+	puzzles: unknown[];
+	added: number;
+}
+
+/**
+ * Grows regular types in turns, one puzzle each (`addOne` tries a new seed and may skip it), so a
+ * time limit (`more`) still leaves every type with new puzzles. A type stops at `perType` new
+ * puzzles or at MAX_PER_TYPE in all; its turns go to the types below.
+ */
+export function growInTurns<T extends Growing>(
+	types: T[],
+	perType: number,
+	addOne: (type: T) => void,
+	more: () => boolean
+) {
+	const room = (t: T) => t.added < perType && t.puzzles.length < MAX_PER_TYPE;
+	let growing = types.filter(room);
+	while (growing.length && more()) {
+		for (const type of growing) {
+			if (!more()) break;
+			addOne(type);
+		}
+		growing = growing.filter(room);
 	}
 }
 

@@ -5,7 +5,8 @@
  *
  * Special types (daily, weekly, monthly) get the puzzle of every period up to
  * SPECIAL_PERIODS_AHEAD first. Regular types then grow in turns, one puzzle each, so that every
- * type gets its share when the time limit ends the run.
+ * type gets its share when the time limit ends the run. A regular type stops at MAX_PER_TYPE
+ * puzzles. Finally `puzzles/sizes.json` gets the new size of every regular type.
  *
  *   pnpm bank:grow [--per-variant N] [--max-minutes M] [--game ID]
  *     [--variants KEY,KEY]
@@ -22,7 +23,7 @@ import {
 import type { GameLogic } from '../src/lib/core/types';
 import { encodePuzzleId, randomSeed } from '../src/lib/core/variants';
 import { GAME_LOGIC } from '../src/lib/games/logic';
-import { checkedPuzzle, readType, writeType } from './collection';
+import { checkedPuzzle, growInTurns, readType, writeSizes, writeType } from './collection';
 
 const args = process.argv.slice(2);
 const option = (name: string, fallback: number) => {
@@ -100,16 +101,17 @@ for (const slot of specials) {
 }
 
 // Regular types in turns, so a time limit leaves every type with new puzzles.
-let growing = regulars.filter(() => perVariant > 0);
-while (growing.length && Date.now() < deadline) {
-	for (const slot of growing) {
-		if (Date.now() >= deadline) break;
+growInTurns(
+	regulars,
+	perVariant,
+	(slot) => {
 		const id = encodePuzzleId(slot.index, randomSeed(secureRandom));
 		if (!slot.known.has(id)) add(slot, id);
-	}
-	growing = growing.filter((s) => s.added < perVariant);
-}
+	},
+	() => Date.now() < deadline
+);
 regulars.forEach(write);
+writeSizes('static', Object.values(GAME_LOGIC));
 
 const added = [...specials, ...regulars].reduce((n, s) => n + s.added, 0);
 console.log(`Added ${added} puzzles${Date.now() >= deadline ? ' (time limit reached)' : ''}.`);
