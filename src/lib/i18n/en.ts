@@ -123,6 +123,10 @@ const en = {
 		closeShare: 'Close share panel',
 		shareSolve: 'Share success',
 		brag: 'I solved {game} {variant} (puzzle {id}) in {time}! Can you beat my time?',
+		bragHint:
+			'I solved {game} {variant} (puzzle {id}) in {time}, with 1 hint. Can you do it without?',
+		bragHints:
+			'I solved {game} {variant} (puzzle {id}) in {time}, with {count} hints. Can you do it without?',
 		bragCopied: 'Copied your result and the link. Paste it anywhere to share.',
 		creating: 'Creating puzzle…',
 		notCreated: 'The puzzle could not be created.',

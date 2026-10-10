@@ -124,6 +124,10 @@ const de: Dictionary = {
 		closeShare: 'Teilen schließen',
 		shareSolve: 'Erfolg teilen',
 		brag: 'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst! Schaffst du es schneller?',
+		bragHint:
+			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit 1 Tipp. Schaffst du es ohne?',
+		bragHints:
+			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit {count} Tipps. Schaffst du es ohne?',
 		bragCopied: 'Ergebnis und Link kopiert. Füge sie ein, wo du sie teilen möchtest.',
 		creating: 'Rätsel wird erstellt…',
 		notCreated: 'Das Rätsel konnte nicht erstellt werden.',

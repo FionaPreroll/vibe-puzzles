@@ -584,6 +584,41 @@ describe('hints', () => {
 		expect(s.hinted).toBe(false);
 	});
 
+	it('count each new hint, not another look at the one on the board', async () => {
+		const s = await hinting();
+		s.showHint();
+		s.showHint();
+		expect(s.hints).toBe(1);
+		s.move(shaded(solution.indexOf(1)), []);
+		s.showHint();
+		expect(s.hints).toBe(2);
+		expect((await hinting()).hints).toBe(2);
+		// Saves from before the count only knew that hints were used.
+		const key = s.slot;
+		const saved = load<Record<string, unknown>>(key, {});
+		delete saved.hints;
+		save(key, saved);
+		expect((await hinting()).hints).toBe(1);
+	});
+
+	it('keep a game hinted when hints are turned off in the middle of it', async () => {
+		const settings = new GameSettings('tetroid', withCommon([]));
+		const s = new GameSession(tetroid, settings);
+		await s.open('6n', { puzzleId: ID });
+		s.showHint();
+		settings.values.hideHint = true;
+		expect(s.canHint).toBe(false);
+		s.dismissHint();
+		expect(s.hint).toBeNull();
+		expect(s.message).toBeNull();
+		s.showHint();
+		expect(s.hints).toBe(1);
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		expect(api.submitScore).toHaveBeenCalledWith(expect.objectContaining({ hinted: true }));
+		expect(getStats('tetroid', '6n').bestMs).toBeNull();
+	});
+
 	it('start a new puzzle unhinted', async () => {
 		const s = await hinting();
 		s.showHint();
