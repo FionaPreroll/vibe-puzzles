@@ -72,8 +72,10 @@ export class GameSettings<K extends string = never> {
 	}
 
 	set(key: CommonKey | K, value: boolean) {
+		// Stored whole: what another tab changed meanwhile must not be written back.
+		this.reload();
 		this.values[key] = value;
-		this.updatedAt = Date.now();
+		this.updatedAt = Math.max(Date.now(), this.updatedAt + 1);
 		this.persist();
 	}
 
@@ -86,6 +88,7 @@ export class GameSettings<K extends string = never> {
 
 	/** Apply settings from another device if they are newer. */
 	merge(remote: StoredSettings) {
+		this.reload();
 		if (!remote || !Number.isFinite(remote.updatedAt) || remote.updatedAt <= this.updatedAt) return;
 		if (!remote.values || typeof remote.values !== 'object') return;
 		for (const s of this.info) {
@@ -94,6 +97,16 @@ export class GameSettings<K extends string = never> {
 		}
 		this.updatedAt = remote.updatedAt;
 		this.persist();
+	}
+
+	/** Take over what another tab stored since this one last stored or read the settings. */
+	reload() {
+		const stored = load<StoredSettings | null>(settingsKey(this.game), null);
+		if (!stored || !Number.isFinite(stored.updatedAt) || stored.updatedAt === this.updatedAt)
+			return;
+		const values = settingValues(this.info, stored.values);
+		for (const s of this.info) this.values[s.key] = values[s.key];
+		this.updatedAt = stored.updatedAt;
 	}
 
 	private persist() {

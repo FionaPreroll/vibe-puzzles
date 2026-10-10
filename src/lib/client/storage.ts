@@ -67,3 +67,17 @@ export function keys(prefix = ''): string[] {
 	}
 	return out;
 }
+
+/**
+ * Call `listener` when another tab of the app changes a value: with its key (without prefix), or
+ * null when all of storage was cleared. Returns a function that stops listening.
+ */
+export function watchStorage(listener: (key: string | null) => void): () => void {
+	if (typeof window === 'undefined') return () => undefined;
+	const changed = (e: StorageEvent) => {
+		if (e.key === null) listener(null);
+		else if (e.key.startsWith(PREFIX)) listener(e.key.slice(PREFIX.length));
+	};
+	window.addEventListener('storage', changed);
+	return () => window.removeEventListener('storage', changed);
+}

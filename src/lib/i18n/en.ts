@@ -176,6 +176,7 @@ const en = {
 		serverFailed:
 			'The server could not create a puzzle, so this one is played offline and not ranked.',
 		continued: 'Continued your game from another device.',
+		otherTab: 'Continued your game from another tab.',
 		notSolved: 'Not solved yet. Keep going!',
 		solved: 'Solved in {time}!',
 		uploadFailed: 'Solved in {time}! (Score not uploaded: {error})',

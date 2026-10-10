@@ -19,7 +19,7 @@
 		theme,
 		type StoredSettings
 	} from '../client/settings.svelte';
-	import { load, save, setQuotaHandler } from '../client/storage';
+	import { load, save, setQuotaHandler, watchStorage } from '../client/storage';
 	import {
 		boardZoomKey,
 		KEY,
@@ -378,8 +378,10 @@
 			session.setActive(document.visibilityState === 'visible' && document.hasFocus());
 		const visibility = () => {
 			activity();
-			if (document.visibilityState === 'visible') session.refreshFromServer();
-			else session.flush();
+			if (document.visibilityState === 'visible') {
+				session.followStorage();
+				session.refreshFromServer();
+			} else session.flush();
 		};
 		const tick = setInterval(() => (now = Date.now()), 500);
 		document.addEventListener('visibilitychange', visibility);
@@ -388,6 +390,11 @@
 		const pagehide = () => session.flush();
 		window.addEventListener('pagehide', pagehide);
 		activity();
+		// Another tab of the app played this game or changed its settings.
+		const stopStorage = watchStorage((key) => {
+			if (key === null || key === session.slot) session.followStorage();
+			if (key === null || key === settingsKey(game.id)) settings.reload();
+		});
 
 		const pullSettings = async () => {
 			const remote = await pullSave<StoredSettings>(settingsKey(game.id));
@@ -408,6 +415,7 @@
 		const stopSync = onSync(() => Promise.all([session.refreshFromServer(), pullSettings()]));
 
 		return () => {
+			stopStorage();
 			stopWatching();
 			stopSync();
 			clearInterval(tick);

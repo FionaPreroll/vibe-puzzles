@@ -107,6 +107,11 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	private pushTimer: ReturnType<typeof setTimeout> | null = null;
 	private openToken = 0;
 	private touched = false;
+	/**
+	 * `updatedAt` of the save this tab last wrote to or read from the slot. When the slot holds
+	 * another one, another tab has saved the game since.
+	 */
+	private storedAt: number | null = null;
 
 	constructor(
 		readonly game: GameModule<P, S, K>,
@@ -266,6 +271,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.playMs = 0;
 		this.touched = false;
 		this.finishLoading(token);
+		// The new game takes the slot, whatever another tab saved in it meanwhile.
+		this.storedAt = this.storedUpdatedAt();
 		this.persist();
 		if (!ticket) this.prefetch();
 	}
@@ -320,6 +327,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.ticket = ticket;
 		this.source = ticket ? 'server' : 'local';
 		this.changedAt = Number.isFinite(s.updatedAt) ? s.updatedAt : 0;
+		this.storedAt = s.updatedAt;
 		this.puzzle = puzzle;
 		this.puzzleKey = this.saveKey;
 		this.state = s.state;
@@ -401,10 +409,39 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.pauseClock();
 		if (this.pushTimer) clearTimeout(this.pushTimer);
 		if (this.restore(remote.data)) {
-			save(this.saveKey, remote.data);
+			// Storage full: the older save stays, and must not count as another tab's.
+			if (!save(this.saveKey, remote.data)) this.storedAt = this.storedUpdatedAt();
 			this.message = { kind: 'info', text: t('session.continued') };
 		}
 		this.resumeClock();
+	}
+
+	/**
+	 * Continue what another tab saved in this game's slot since this tab last saved or read it: the
+	 * newest save wins, so a tab showing an older game never writes it back. True if it did.
+	 */
+	followStorage(): boolean {
+		// Not while a puzzle loads, nor without one on the board (its slot is another).
+		if (this.loading || this.puzzleKey !== this.saveKey) return false;
+		const stored = load<SavedGame<S> | null>(this.saveKey, null);
+		if (!this.playable(stored) || stored.updatedAt === this.storedAt) return false;
+		this.pauseClock();
+		if (this.pushTimer) clearTimeout(this.pushTimer);
+		// A playable save always restores.
+		this.restore(stored);
+		if (stored.solved) {
+			this.solved = true;
+			this.finalMs = Math.max(0, stored.updatedAt - this.startedAt);
+			this.finalPlayMs = this.playMs;
+		}
+		this.message = { kind: 'info', text: t('session.otherTab') };
+		this.resumeClock();
+		return true;
+	}
+
+	/** `updatedAt` of the save in the slot, if any. */
+	private storedUpdatedAt(): number | null {
+		return load<SavedGame<S> | null>(this.saveKey, null)?.updatedAt ?? null;
 	}
 
 	/** Re-check the server when the page becomes visible again (device switch) or on "Sync now". */
@@ -769,7 +806,10 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	persist(changed = true) {
 		// Never save the previous puzzle into the slot of one that is still loading.
 		if (!this.puzzle || !this.state || !this.saveKey || this.puzzleKey !== this.saveKey) return;
-		if (changed || !this.changedAt) this.changedAt = Date.now();
+		// Another tab saved the game since: this tab takes its save over instead of rolling it back.
+		if (this.followStorage()) return;
+		// Each change gets a time of its own, which tells the tabs' saves apart (`storedAt`).
+		if (changed || !this.changedAt) this.changedAt = Math.max(Date.now(), this.changedAt + 1);
 		const running = this.runningSince != null ? Date.now() - this.runningSince : 0;
 		const data: SavedGame<S> = {
 			version: 1,
@@ -787,7 +827,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			...(this.hints ? { hinted: true, hints: this.hints } : {}),
 			...(this.assisted ? { assisted: true } : {})
 		};
-		save(this.saveKey, data);
+		if (save(this.saveKey, data)) this.storedAt = data.updatedAt;
 		if (this.pushTimer) clearTimeout(this.pushTimer);
 		// An untouched new puzzle is not uploaded, so it cannot replace a game on another device.
 		if (!this.hasProgress(data)) return;
