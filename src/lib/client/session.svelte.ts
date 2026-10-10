@@ -33,8 +33,12 @@ export interface SavedGame<S = unknown> {
 	updatedAt: number;
 	/** Puzzle issued by the server (ranked); its ID is 0 until solved. */
 	ticket?: string;
-	/** A hint was shown: no best time, not ranked. */
+	/** A hint was shown: no best time, not ranked. Kept for saves from before `hints`. */
 	hinted?: boolean;
+	/** How many hints were shown. */
+	hints?: number;
+	/** A setting that counts as a hint was on during the game; it is one of `hints`. */
+	assisted?: boolean;
 }
 
 export interface Message {
@@ -72,8 +76,10 @@ export class GameSession<P = unknown, S = unknown> {
 	hint = $state.raw<Hint | null>(null);
 	/** Whether the hint shows its result, or only its first look (`Hint.teaser`). */
 	hintFull = $state(false);
-	/** A hint was shown for this puzzle. */
-	hinted = $state(false);
+	/** How many hints were shown for this puzzle. */
+	hints = $state(0);
+	/** A setting that counts as a hint was on during this game (counted once in `hints`). */
+	private assisted = false;
 	loading = $state(true);
 	message = $state<Message | null>(null);
 
@@ -251,7 +257,8 @@ export class GameSession<P = unknown, S = unknown> {
 		this.currentCheckpoint = -1;
 		this.lastChange = new Set();
 		this.hint = null;
-		this.hinted = false;
+		this.hints = 0;
+		this.assisted = false;
 		this.solved = false;
 		this.manualPause = false;
 		this.startedAt = startedAt;
@@ -320,7 +327,8 @@ export class GameSession<P = unknown, S = unknown> {
 		this.currentCheckpoint = Math.min(s.currentCheckpoint ?? -1, this.checkpoints.length - 1);
 		this.lastChange = new Set();
 		this.hint = null;
-		this.hinted = !!s.hinted;
+		this.hints = s.hints ?? (s.hinted ? 1 : 0);
+		this.assisted = !!s.assisted;
 		this.solved = false;
 		this.manualPause = false;
 		this.startedAt = s.startedAt;
@@ -342,7 +350,8 @@ export class GameSession<P = unknown, S = unknown> {
 		this.currentCheckpoint = -1;
 		this.lastChange = new Set();
 		this.hint = null;
-		this.hinted = false;
+		this.hints = 0;
+		this.assisted = false;
 		this.solved = false;
 	}
 
@@ -421,7 +430,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.future = [];
 		this.state = after;
 		this.lastChange = new Set(changed);
-		this.clearHint();
+		this.dismissHint();
 		this.touched = true;
 		this.persist();
 		this.checkSolved();
@@ -433,7 +442,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.state = this.past[this.past.length - 1];
 		this.past = this.past.slice(0, -1);
 		this.lastChange = new Set();
-		this.clearHint();
+		this.dismissHint();
 		this.touched = true;
 		this.persist();
 	}
@@ -444,7 +453,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.state = this.future[0];
 		this.future = this.future.slice(1);
 		this.lastChange = new Set();
-		this.clearHint();
+		this.dismissHint();
 		this.touched = true;
 		this.persist();
 	}
@@ -456,7 +465,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.future = [];
 		this.state = next;
 		this.lastChange = new Set();
-		this.clearHint();
+		this.dismissHint();
 		this.touched = true;
 	}
 
@@ -466,7 +475,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.past = [];
 		this.future = [];
 		this.lastChange = new Set();
-		this.clearHint();
+		this.dismissHint();
 		this.solved = false;
 		this.manualPause = false;
 		// The server measures ranked time from when it issued the puzzle.
@@ -479,14 +488,20 @@ export class GameSession<P = unknown, S = unknown> {
 		this.persist();
 	}
 
-	/** Whether the game has hints. */
+	/** Whether the game has hints and the player wants the button. */
 	get canHint(): boolean {
-		return !!this.game.hint;
+		return !!this.game.hint && !this.settings.values.hideHint;
+	}
+
+	/** A hint was shown: the solve gets no best time and is not ranked. */
+	get hinted(): boolean {
+		return this.hints > 0;
 	}
 
 	/**
 	 * Point at where to look and which rule applies, and on the next press at the step itself (at
-	 * once for wrong marks). The game then counts as hinted.
+	 * once for wrong marks). Each new hint counts; asking again before the next move goes on to the
+	 * same hint's result and does not.
 	 */
 	showHint() {
 		if (this.readonly || !this.puzzle || !this.state || !this.game.hint || !this.canHint) return;
@@ -494,9 +509,9 @@ export class GameSession<P = unknown, S = unknown> {
 		const shown = this.hint;
 		const hint = shown ?? this.game.hint(this.puzzle, this.state);
 		if (!hint) return;
+		if (!shown) this.hints++;
 		this.hint = hint;
 		this.hintFull = !!shown || !hint.teaser;
-		this.hinted = true;
 		const keys = this.hintFull ? hint.text : hint.teaser!;
 		this.message = {
 			kind: hint.kind === 'mistake' ? 'error' : 'info',
@@ -505,8 +520,24 @@ export class GameSession<P = unknown, S = unknown> {
 		this.persist();
 	}
 
-	/** The board changed: the hint and its message no longer apply. */
-	private clearHint() {
+	/** Whether a setting that counts as a hint is on, such as painting wrong digits red. */
+	get assistOn(): boolean {
+		return this.settings.info.some((s) => s.countsAsHint && this.settings.values[s.key]);
+	}
+
+	/**
+	 * Count a setting that counts as a hint, once per game: when the game starts with it on, or
+	 * when it is turned on before the puzzle is solved. Called by the page whenever either changes.
+	 */
+	noteAssist() {
+		if (this.assisted || !this.assistOn || this.loading || this.solved || !this.puzzle) return;
+		this.assisted = true;
+		this.hints++;
+		this.persist();
+	}
+
+	/** Take the hint off the board, with its message: after a move, or when hints are turned off. */
+	dismissHint() {
 		if (!this.hint) return;
 		this.hint = null;
 		this.message = null;
@@ -726,7 +757,8 @@ export class GameSession<P = unknown, S = unknown> {
 			playMs: this.playMs + running,
 			updatedAt: this.changedAt,
 			...(this.ticket ? { ticket: this.ticket } : {}),
-			...(this.hinted ? { hinted: true } : {})
+			...(this.hints ? { hinted: true, hints: this.hints } : {}),
+			...(this.assisted ? { assisted: true } : {})
 		};
 		save(this.saveKey, data);
 		if (this.pushTimer) clearTimeout(this.pushTimer);

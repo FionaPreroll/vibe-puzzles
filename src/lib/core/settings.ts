@@ -12,6 +12,7 @@ export const COMMON_SETTINGS: SettingInfo[] = [
 	{ key: 'showCheckpoints', label: 'Show checkpoints', default: false },
 	{ key: 'showCoordinates', label: 'Show board coordinates', default: false },
 	{ key: 'hideTimer', label: 'Hide the timer', default: false },
+	{ key: 'hideHint', label: 'Hide the hint button', default: false },
 	{
 		key: 'personalTimer',
 		label: 'Non-competitive (personal) timer',

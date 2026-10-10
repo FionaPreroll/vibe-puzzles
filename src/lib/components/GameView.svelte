@@ -228,11 +228,13 @@
 	async function shareSolve() {
 		if (!session.puzzleId) return;
 		const url = `${location.origin}${resolve('/[game]', { game: game.id })}?id=${session.puzzleId}`;
-		const text = t('game.brag', {
+		const hints = session.hints;
+		const text = t(hints === 0 ? 'game.brag' : hints === 1 ? 'game.bragHint' : 'game.bragHints', {
 			game: game.name,
 			variant: label,
 			id: session.puzzleId.toLocaleString('en-US'),
-			time: formatDuration(clock, true)
+			time: formatDuration(clock, true),
+			count: hints
 		});
 		if (navigator.share) {
 			try {
@@ -505,6 +507,16 @@
 	const hintArea = $derived(session.hint?.area ? new Set(session.hint.area) : undefined);
 	/** The hint shows only where to look: the message offers the step itself. */
 	const teaser = $derived(!!session.hint && !session.hintFull);
+	// Turning hints off in the settings also takes a hint on the board away.
+	$effect(() => {
+		if (!session.canHint) untrack(() => session.dismissHint());
+	});
+	// A setting that counts as a hint (painting wrong digits red) counts once it is on in a game.
+	$effect(() => {
+		if (session.assistOn && session.puzzle && !session.loading && !session.solved) {
+			untrack(() => session.noteAssist());
+		}
+	});
 </script>
 
 <svelte:window
@@ -855,6 +867,7 @@
 							spotlight={hintSpotlight}
 							area={hintArea}
 							keyboard={true}
+							ontool={showTools ? setTool : undefined}
 							{celebrate}
 							{touchMode}
 							onmove={(next, changed) => session.move(next, changed)}

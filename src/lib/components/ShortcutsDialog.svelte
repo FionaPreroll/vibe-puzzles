@@ -32,6 +32,14 @@
 		[['?'], t('shortcuts.help')]
 	] as [string[], string][]);
 	const swatchNames = $derived(tList('swatch'));
+	const switchLabel = $derived.by(() => {
+		if (!game.spaceSwitches) return '';
+		const [a, b] = game.spaceSwitches.map((id) => game.tools.find((x) => x.id === id)!);
+		return t('shortcuts.switchTools', {
+			a: toolLabel(game.id, a),
+			b: toolLabel(game.id, b)
+		});
+	});
 </script>
 
 {#snippet keys(list: string[])}
@@ -58,6 +66,10 @@
 				<dt>{@render keys([tool.key])}</dt>
 				<dd>{toolLabel(game.id, tool)}</dd>
 			{/each}
+			{#if switchLabel}
+				<dt>{@render keys([t('shortcuts.space')])}</dt>
+				<dd>{switchLabel}</dd>
+			{/if}
 		</dl>
 		{#if game.toolOptions}
 			<h3 class="section-title mt-4">{t('shortcuts.colours')}</h3>

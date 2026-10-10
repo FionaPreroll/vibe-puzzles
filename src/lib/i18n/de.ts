@@ -96,6 +96,8 @@ const de: Dictionary = {
 			'Tipp (H): zeigt den nächsten Schritt. Danach zählt das Rätsel nicht für Bestzeit und Rangliste.',
 		hintMistake: 'Die markierten Einträge passen nicht zur Lösung.',
 		hintShow: 'Zeig den Schritt',
+		countsAsHint:
+			'Zählt als Tipp: keine Bestzeit und keine Rangliste für ein Rätsel, bei dem es an war.',
 		tools: 'Werkzeuge',
 		colour: 'Farbe {name}',
 		touch: 'Touch-Bedienung',
@@ -122,6 +124,10 @@ const de: Dictionary = {
 		closeShare: 'Teilen schließen',
 		shareSolve: 'Erfolg teilen',
 		brag: 'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst! Schaffst du es schneller?',
+		bragHint:
+			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit 1 Tipp. Schaffst du es ohne?',
+		bragHints:
+			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit {count} Tipps. Schaffst du es ohne?',
 		bragCopied: 'Ergebnis und Link kopiert. Füge sie ein, wo du sie teilen möchtest.',
 		creating: 'Rätsel wird erstellt…',
 		notCreated: 'Das Rätsel konnte nicht erstellt werden.',
@@ -142,6 +148,8 @@ const de: Dictionary = {
 		save: 'Zwischenstand speichern',
 		add: 'Neuen Zwischenstand anlegen',
 		colourTool: 'Farbwerkzeug und zurück',
+		space: 'Leertaste',
+		switchTools: 'Zwischen {a} und {b} wechseln',
 		escape: 'Menü oder Zoom schließen',
 		help: 'Diese Liste',
 		tools: 'Werkzeuge',
@@ -204,6 +212,7 @@ const de: Dictionary = {
 		showCheckpoints: 'Zwischenstände anzeigen',
 		showCoordinates: 'Koordinaten anzeigen',
 		hideTimer: 'Zeit ausblenden',
+		hideHint: 'Tipp-Button ausblenden',
 		personalTimer: 'Persönliche Zeit (ohne Wertung)',
 		highlightErrors: 'Fehler markieren',
 		blueErrors: 'Fehler blau statt rot',

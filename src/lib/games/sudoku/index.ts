@@ -17,9 +17,15 @@ export const sudoku: GameModule<SudokuPuzzle, SudokuState> = {
 		{ id: 'digit', label: 'Digit', icon: '9', key: 'v' },
 		{ id: 'note', label: 'Note', icon: '✎', key: 'n' }
 	],
+	spaceSwitches: ['digit', 'note'],
 	defaultTool: () => 'digit',
 	settings: withCommon([
-		{ key: 'markMistakes', label: 'Paint wrong digits red', default: false },
+		{
+			key: 'markMistakes',
+			label: 'Paint wrong digits red',
+			default: false,
+			countsAsHint: true
+		},
 		{ key: 'autoNotes', label: 'Fill in notes automatically', default: false },
 		{ key: 'autoRemoveNotes', label: 'Remove notes ruled out by a new digit', default: false },
 		{ key: 'highlightLines', label: 'Highlight row, column and box', default: true },

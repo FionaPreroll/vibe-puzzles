@@ -95,6 +95,7 @@ const en = {
 		hintMistake: 'The highlighted marks do not match the solution.',
 		/** Shown with a hint's first look: the step itself, as a second press of Hint does. */
 		hintShow: 'Show the step',
+		countsAsHint: 'Counts as a hint: no best time and no rank for a puzzle played with it on.',
 		tools: 'Tools',
 		colour: 'Colour {name}',
 		touch: 'Touch input',
@@ -121,6 +122,10 @@ const en = {
 		closeShare: 'Close share panel',
 		shareSolve: 'Share success',
 		brag: 'I solved {game} {variant} (puzzle {id}) in {time}! Can you beat my time?',
+		bragHint:
+			'I solved {game} {variant} (puzzle {id}) in {time}, with 1 hint. Can you do it without?',
+		bragHints:
+			'I solved {game} {variant} (puzzle {id}) in {time}, with {count} hints. Can you do it without?',
 		bragCopied: 'Copied your result and the link. Paste it anywhere to share.',
 		creating: 'Creating puzzle…',
 		notCreated: 'The puzzle could not be created.',
@@ -141,6 +146,8 @@ const en = {
 		save: 'Save checkpoint',
 		add: 'Add a checkpoint',
 		colourTool: 'Colour tool and back',
+		space: 'Space',
+		switchTools: 'Switch between {a} and {b}',
 		escape: 'Close a menu or the zoom',
 		help: 'This list',
 		tools: 'Tools',
@@ -205,6 +212,7 @@ const en = {
 		showCheckpoints: 'Show checkpoints',
 		showCoordinates: 'Show board coordinates',
 		hideTimer: 'Hide the timer',
+		hideHint: 'Hide the hint button',
 		personalTimer: 'Non-competitive (personal) timer',
 		highlightErrors: 'Highlight errors',
 		blueErrors: 'Use blue for errors',

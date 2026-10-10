@@ -230,6 +230,15 @@
 			}
 			return;
 		}
+		// Space switches between digits and notes, with or without a selected cell. A focused
+		// button or link keeps Space for itself.
+		if (e.key === ' ') {
+			const tag = (e.target as HTMLElement | null)?.tagName;
+			if (!ontool || tag === 'BUTTON' || tag === 'A') return;
+			e.preventDefault();
+			ontool(tool === 'note' ? 'digit' : 'note');
+			return;
+		}
 		if (selected < 0) return;
 		// Digit keys by their code, so that Shift+digit (a note) works on every keyboard layout.
 		const m = /^(?:Digit|Numpad)(\d)$/.exec(e.code);
@@ -240,9 +249,6 @@
 		} else if (d === 0 || e.key === 'Backspace' || e.key === 'Delete') {
 			e.preventDefault();
 			enter(0, false);
-		} else if (e.key === ' ') {
-			e.preventDefault();
-			ontool?.(tool === 'note' ? 'digit' : 'note');
 		} else if (e.key === 'Escape') {
 			selected = -1;
 			armed = null;
@@ -265,6 +271,20 @@
 		Math.min(cellSize / (noteCols + 0.6), (cellSize - noteTop) / (noteRows + 0.6))
 	);
 	const labelFont = $derived(Math.max(8, cellSize * 0.24));
+	const digitFont = $derived(cellSize * (calc ? 0.54 : 0.62));
+	/**
+	 * Where a digit sits in its cell: in the middle, unless a cage label would touch it (small
+	 * Calcudoku cells), then just below the label. A digit reaches 0.4 em above and below its
+	 * centre; a label ends 0.65 em below its top, 3 px into the cell.
+	 */
+	const digitY = $derived(
+		calc
+			? Math.max(
+					cellSize / 2,
+					3 + labelFont * 0.65 + Math.max(2.5, cellSize * 0.06) + digitFont * 0.4
+				)
+			: cellSize / 2
+	);
 </script>
 
 <!-- Capture phase: the board handles its keys before the game's shortcuts see them -->
@@ -293,8 +313,8 @@
 				<text
 					data-cell={i}
 					x={x + cellSize / 2}
-					y={y + (calc ? cellSize * 0.58 : cellSize / 2)}
-					font-size={cellSize * (calc ? 0.54 : 0.62)}
+					y={y + digitY}
+					font-size={digitFont}
 					font-weight={puzzle.givens[i] ? 700 : 500}
 					fill={textColour(i)}
 					text-anchor="middle"
