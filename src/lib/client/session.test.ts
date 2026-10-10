@@ -842,6 +842,24 @@ describe('syncing with other devices', () => {
 	});
 });
 
+describe('refreshing from the server', () => {
+	it('asks only for a signed-in player and an unsolved game', async () => {
+		const s = await opened();
+		vi.mocked(api.pullSave).mockClear();
+		vi.mocked(api.currentPlayer).mockReturnValue(null);
+		await s.refreshFromServer();
+		expect(api.pullSave).not.toHaveBeenCalled();
+		vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
+		await s.refreshFromServer();
+		expect(api.pullSave).toHaveBeenCalledTimes(1);
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		await s.refreshFromServer();
+		expect(api.pullSave).toHaveBeenCalledTimes(1);
+		vi.mocked(api.currentPlayer).mockReturnValue(null);
+	});
+});
+
 describe('cleaning up saves', () => {
 	it('removes saves of special periods that are over', () => {
 		const day = 86_400_000;

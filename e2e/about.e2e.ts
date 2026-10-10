@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { BACKUP_FORMAT, BACKUP_VERSION } from '../src/lib/client/backup';
 import { colours as palette } from '../src/lib/core/palette';
 
@@ -58,6 +58,18 @@ const savedMarks = (page: Page) =>
 
 const importInput = (page: Page) => page.getByLabel('Import backup');
 
+/**
+ * Pick a file to import. A pick before the page has hydrated goes unnoticed, so the file is picked
+ * again until the page answers with its question or its error.
+ */
+async function importFile(page: Page, file: Parameters<Locator['setInputFiles']>[0]) {
+	const answer = page.getByRole('alertdialog').or(page.getByRole('alert')).first();
+	await expect(async () => {
+		await importInput(page).setInputFiles(file);
+		await expect(answer).toBeVisible({ timeout: 1000 });
+	}).toPass();
+}
+
 test('a backup exported on the About page brings a game in progress back', async ({ page }) => {
 	await page.goto('/');
 	await page.evaluate(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
@@ -86,7 +98,7 @@ test('a backup exported on the About page brings a game in progress back', async
 	// A new device: nothing stored. The import asks first, then restores and reloads.
 	await page.evaluate(() => localStorage.clear());
 	await page.reload();
-	await importInput(page).setInputFiles(file);
+	await importFile(page, file);
 	const asked = page.getByRole('alertdialog');
 	await expect(asked).toContainText(`Restore ${Object.keys(before).length} entries`);
 	const reloaded = page.waitForEvent('load');
@@ -123,7 +135,7 @@ test('the About page refuses a file that is not a backup and keeps everything', 
 		['notes.json', '{"hello": "world"}'],
 		['photo.json', 'not JSON at all']
 	]) {
-		await importInput(page).setInputFiles({
+		await importFile(page, {
 			name,
 			mimeType: 'application/json',
 			buffer: Buffer.from(text)
@@ -146,7 +158,7 @@ test('cancelling the import of a backup keeps everything', async ({ page }) => {
 		app: { version: '0.0.1', commit: 'abc1234' },
 		data: { night: 'true', 'tutorialSeen:tetroid': 'true' }
 	};
-	await importInput(page).setInputFiles({
+	await importFile(page, {
 		name: 'backup.json',
 		mimeType: 'application/json',
 		buffer: Buffer.from(JSON.stringify(backup))

@@ -488,3 +488,143 @@ describe('ping', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('connection edge cases', () => {
+	let win: EventTarget;
+	let doc: EventTarget & { visibilityState: DocumentVisibilityState };
+
+	async function browser(handler: Handler, signedIn = true) {
+		const api = await setup(handler, { signedIn });
+		doc = Object.assign(new EventTarget(), { visibilityState: 'visible' as const });
+		win = new EventTarget();
+		vi.stubGlobal('window', win);
+		vi.stubGlobal('document', doc);
+		const { net } = await import('./network.svelte');
+		const outbox = await import('./outbox');
+		return { api, net, outbox };
+	}
+
+	const solve = {
+		game: 'tetroid',
+		variant: '6n',
+		puzzleId: 17,
+		puzzle: {},
+		answer: '01',
+		timeMs: 1,
+		playMs: 1,
+		competitive: true
+	};
+
+	it('"Sync now" while online refreshes the state and sends what waits', async () => {
+		let up: Handler = offline;
+		const { api, net, outbox } = await browser((url, init) => up(url, init));
+		await api.pushSave('save:a', {}, 1);
+		expect(net.status).toBe('unreachable');
+		up = server({ 'PUT /saves/save%3Aa': {} });
+		const pull = vi.fn(async () => {
+			throw new Error('a failing page does not stop the sync');
+		});
+		api.onSync(pull);
+		expect(await api.syncNow()).toBe(true);
+		expect(net.status).toBe('online');
+		expect(outbox.pendingCount()).toBe(0);
+		expect(pull).toHaveBeenCalled();
+	});
+
+	it('"Sync now" retries what an upload already under way could not send', async () => {
+		let answer: (r: Response) => void = () => undefined;
+		let puts = 0;
+		const { api, outbox } = await browser((url, init) => {
+			if (url.pathname.endsWith('/health')) return Response.json({ ok: true });
+			if (init.method === 'PUT' && ++puts === 1) return new Promise((r) => (answer = r));
+			return Response.json({});
+		});
+		expect(await api.serverAvailable()).toBe(true);
+		void api.pushSave('save:a', {}, 1);
+		await vi.waitFor(() => expect(puts).toBe(1));
+		const synced = api.syncNow();
+		await new Promise((r) => setTimeout(r));
+		answer(Response.json({ error: 'busy' }, { status: 503 }));
+		expect(await synced).toBe(true);
+		expect(puts).toBe(2);
+		expect(outbox.pendingCount()).toBe(0);
+	});
+
+	it('"Sync now" in offline mode on hosting without a server forgets what waits', async () => {
+		const { api, net, outbox } = await browser(() => new Response('Not found', { status: 404 }));
+		api.setOfflineMode(true);
+		await api.pushSave('save:a', {}, 1);
+		expect(outbox.pendingCount()).toBe(1);
+		expect(await api.syncNow()).toBe(false);
+		expect(net.status).toBe('offline');
+		expect(outbox.pendingCount()).toBe(0);
+	});
+
+	it('switching offline mode does nothing twice and only remembers it without a server', async () => {
+		const { api, net } = await browser(server());
+		expect(await api.serverAvailable()).toBe(true);
+		api.setOfflineMode(false);
+		api.setOfflineMode(true);
+		api.setOfflineMode(true);
+		api.setOfflineMode(false);
+		// The server answered before, so it counts as online right away.
+		expect(net.status).toBe('online');
+		net.hasServer = false;
+		api.setOfflineMode(true);
+		expect(net).toMatchObject({ offline: true, status: 'online' });
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	it('ignores the browser going offline in offline mode and on static hosting', async () => {
+		const { api, net } = await browser(() => new Response('Not found', { status: 404 }));
+		expect(await api.serverAvailable()).toBe(false);
+		win.dispatchEvent(new Event('offline'));
+		doc.dispatchEvent(new Event('visibilitychange'));
+		expect(net.status).toBe('none');
+		api.setOfflineMode(true);
+		win.dispatchEvent(new Event('offline'));
+		expect(net.status).toBe('offline');
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('a failed request before any health check changes nothing', async () => {
+		const { api, net } = await browser(offline, false);
+		await expect(api.register('Ada')).rejects.toThrow('Failed to fetch');
+		expect(net.status).toBe('checking');
+	});
+
+	it('uploads at once when storage is too full to wait', async () => {
+		const { api, outbox } = await browser(server({ 'PUT /saves/save%3Aa': {} }));
+		(localStorage as unknown as MemoryStorage).full = true;
+		await api.pushSave('save:a', { v: 1 }, 1);
+		expect(requests().at(-1)).toMatchObject({ method: 'PUT', body: { data: { v: 1 } } });
+		expect(outbox.pendingCount()).toBe(0);
+		// A refused upload is lost quietly, as before the outbox.
+		await expect(api.pushSave('save:b', {}, 1)).resolves.toBeUndefined();
+		api.setOfflineMode(true);
+		await api.pushSave('save:a', { v: 2 }, 2);
+		expect(requests()).toHaveLength(3);
+	});
+
+	it('keeps a waiting solve while the server cannot take it', async () => {
+		let status = 503;
+		const { api, outbox } = await browser((url) =>
+			url.pathname.endsWith('/health')
+				? Response.json({ ok: true })
+				: Response.json({ error: 'No' }, { status })
+		);
+		expect(await api.submitScore(solve)).toBe('queued');
+		await api.flushOutbox();
+		expect(outbox.pending().scores).toEqual([solve]);
+		status = 400;
+		await expect(api.submitScore({ ...solve, puzzleId: 18 })).rejects.toThrow('No');
+		await api.flushOutbox();
+		expect(outbox.pendingCount()).toBe(0);
+	});
+
+	it('submits nothing without a player', async () => {
+		const { api } = await browser(server(), false);
+		expect(await api.submitScore(solve)).toBeNull();
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+});
