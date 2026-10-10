@@ -147,6 +147,8 @@ const de: Dictionary = {
 		save: 'Zwischenstand speichern',
 		add: 'Neuen Zwischenstand anlegen',
 		colourTool: 'Farbwerkzeug und zurück',
+		space: 'Leertaste',
+		switchTools: 'Zwischen {a} und {b} wechseln',
 		escape: 'Menü oder Zoom schließen',
 		help: 'Diese Liste',
 		tools: 'Werkzeuge',

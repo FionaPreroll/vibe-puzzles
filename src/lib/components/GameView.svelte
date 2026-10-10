@@ -855,6 +855,7 @@
 							lastChange={session.lastChange}
 							spotlight={hintSpotlight}
 							keyboard={true}
+							ontool={showTools ? setTool : undefined}
 							{celebrate}
 							{touchMode}
 							onmove={(next, changed) => session.move(next, changed)}
