@@ -297,6 +297,7 @@ describe('puzzles and scores', () => {
 		const me = { rank: 3, name: 'Me', timeMs: 9, playMs: 9, puzzleId: 1, at: 'x', me: true };
 		const answers: unknown[] = [
 			{ entries: [me, { rank: 1 }, null, 'x'], me: { rank: 2 }, players: 4 },
+			{ entries: [], me, players: 9 },
 			{},
 			null,
 			[]
@@ -309,6 +310,7 @@ describe('puzzles and scores', () => {
 			{ signedIn: true }
 		);
 		expect(await api.leaderboard('tetroid', '6n')).toEqual({ entries: [me], me: null, players: 4 });
+		expect(await api.leaderboard('tetroid', '6n')).toEqual({ entries: [], me, players: 9 });
 		for (let i = 0; i < 3; i++) {
 			expect(await api.leaderboard('tetroid', '6n')).toEqual({ entries: [], me: null, players: 0 });
 		}

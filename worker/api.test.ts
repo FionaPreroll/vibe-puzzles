@@ -130,6 +130,23 @@ describe('api', () => {
 		expect((await api('GET', '/scores?game=nope&variant=6n')).status).toBe(400);
 	});
 
+	it('refuses names that are not text, unknown games and a declared oversized body', async () => {
+		const api = client({ serverPuzzles: true });
+		const token = (await api('POST', '/player', { name: 'A' })).body.token as string;
+		expect((await api('PATCH', '/player', { name: 5 }, token)).status).toBe(400);
+		const unknown = await api('POST', '/puzzles', { game: 'chess', variant: '6n' }, token);
+		expect(unknown).toEqual({ status: 400, body: { error: 'Unknown game or puzzle type' } });
+		const big = await handleApi(
+			new Request('https://example.test/api/player', {
+				method: 'POST',
+				headers: { 'content-length': String(10 * 1024 * 1024) },
+				body: '{"name":"A"}'
+			}),
+			new MemoryStore()
+		);
+		expect(big.status).toBe(413);
+	});
+
 	it('rejects a body that is not a JSON object', async () => {
 		for (const text of ['{name: "A"', 'null', '42', '"A"']) {
 			const res = await handleApi(

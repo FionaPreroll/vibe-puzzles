@@ -1019,11 +1019,13 @@ describe('saves from anywhere', () => {
 	it('continues only playable games from another device', async () => {
 		vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
 		await fc.assert(
-			fc.asyncProperty(fc.oneof(broken, value), async (data) => {
+			fc.asyncProperty(fc.oneof(broken, value), fc.option(value), async (data, local) => {
 				localStorage.clear();
 				save('save:tetroid:6n', { ...valid(), state: shaded(0), updatedAt: 0 });
 				const s = session();
 				await s.open('6n');
+				// The game in storage may be broken meanwhile (another tab, another version).
+				if (local !== null) save('save:tetroid:6n', local);
 				vi.mocked(api.pullSave).mockResolvedValueOnce({
 					key: 'save:tetroid:6n',
 					data,
