@@ -1,6 +1,6 @@
 # Puzzle generators
 
-How the four generators build puzzles, guarantee a unique solution and set the difficulty. Code: `src/lib/games/<game>/generator.ts` (Calcudoku: `src/lib/games/sudoku/calc/generator.ts`), with the solvers next to them.
+How the five generators build puzzles, guarantee a unique solution and set the difficulty. Code: `src/lib/games/<game>/generator.ts` (Calcudoku: `src/lib/games/sudoku/calc/generator.ts`), with the solvers next to them.
 
 ## Common ground
 
@@ -48,6 +48,7 @@ Each game's `GameLogic.fitsDifficulty(puzzle, variant)` applies the same rating 
 | Calcudoku | Cage arithmetic and line eliminations only | Also hidden singles and naked pairs in lines (may need them, need not)     | Needs hidden singles or naked pairs; never guessing; larger cages, fewer − ÷ |
 | Tetroid   | –                                          | Solvable by propagation with the connectivity look-ahead, without guessing | Not solvable without guessing                                                |
 | Pinwheel  | –                                          | Solvable by propagation alone                                              | Not solvable without case analysis                                           |
+| Loop      | –                                          | Solvable by propagation alone                                              | Not solvable without case analysis (prepared, not playable yet)              |
 
 Specials use these levels too: Sudoku and Tetroid daily normal, weekly and monthly hard; Pinwheel all three hard.
 
@@ -132,6 +133,17 @@ Two other ways to make hard puzzles did not help and are not used: larger galaxi
 
 **Hints** (`pinwheelHint` in `hint.ts`) assign cells to centres like the solver, starting from the player's marks: a line keeps the cells on its sides in different galaxies, a cross joins them. Lines that contradict the solution, and crosses between galaxies, come first. Otherwise the simplest deduction that rules something out runs, in this order: the player's marks, symmetry, connectivity (the centres' own cells and cells without a mirror come for free). After each round the hint looks for open edges whose cells can share no galaxy (a line) or surely share one (a cross) and names the lines around one galaxy first. When no deduction decides an edge, the hint tries the centres left for the cells with the fewest options (at most 300 per hint): a centre that leads to a contradiction after the deductions run to the end is ruled out for the cell, and the first one after which edges follow is named, with the cell and its mirror tinted. The area of other steps is the galaxy's known cells. Following the hints solves every normal puzzle, which is graded by the same propagation, and 56 of 60 hard bank puzzles (5×5 to 15×15); the others end at a cell with the fewest centres left, the place to start case analysis.
 
+## Loop
+
+`generateLoop(width, height, difficulty, seed)` in `src/lib/games/loop/generator.ts`. Loop is in early access: only 5×5 Normal is playable. The other types are in the variant list with `comingSoon: true`, so their IDs are reserved, but they have no collection and no pinned IDs, and their generator settings may still change before they open.
+
+1. **Loop** (`randomLoop`): grow a region of "inside" cells from one random cell to 40–60 % of the board, preferring cells with a single inside neighbour so the loop takes more turns. A cell is only added while the region's border stays one simple loop: the outside cells stay connected to the edge of the board, and no dot has inside cells on one diagonal and outside cells on the other.
+2. **Clues**: every cell gets the number of loop edges around it. If propagation cannot solve the board with all clues, the attempt is dropped.
+3. **Digging**: visit the cells in random order and remove each clue if the puzzle stays as easy as asked. _Normal_ keeps every removal that propagation alone still solves, which also proves the solution unique. _Hard_ keeps every removal that stays unique (complete solver, `limit: 2`, 20,000 nodes) and is accepted only if propagation alone no longer solves it.
+4. Up to 40 attempts (`ATTEMPTS`); a hard generator then keeps the first unique puzzle, a normal one throws `generation failed` (not observed).
+
+**Solver** (`LoopSolver` in `solver.ts`): a value per edge (open, line, cross). Propagation applies a clue's count (enough lines: cross the rest; only enough edges left: draw them all), the dot rule (two lines or none at every dot) and the loop rule (an edge that would close a loop is crossed unless that loop is the whole solution). Branching prefers an open edge that continues a line.
+
 ## Fallbacks
 
 Each generator has an attempt limit, so it always ends in bounded work. When no attempt hits the requested difficulty, the puzzle may not match it:
@@ -143,6 +155,8 @@ Each generator has an attempt limit, so it always ends in bounded work. When no 
 | Tetroid normal | 100      | None: `generation failed` (never a puzzle that needs guessing) |
 | Tetroid hard   | 100      | First unique puzzle, whatever its difficulty                   |
 | Pinwheel       | 10,000   | First unique puzzle, whatever its difficulty                   |
+| Loop normal    | 40       | None: `generation failed`                                      |
+| Loop hard      | 40       | First unique puzzle, whatever its difficulty                   |
 
 The limits are far above what the measurements below need, so in practice the difficulty is always right. A returned puzzle is always valid and unique.
 

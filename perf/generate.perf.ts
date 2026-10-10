@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isPlayable } from '../src/lib/core/variants';
 import { GAME_LOGIC } from '../src/lib/games/logic';
 
 /**
@@ -27,7 +28,8 @@ const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.len
 
 for (const [id, logic] of Object.entries(GAME_LOGIC)) {
 	describe(id, () => {
-		for (const variant of logic.variants.filter((v) => !v.special)) {
+		// Types that are only announced have no tuned generator yet.
+		for (const variant of logic.variants.filter((v) => !v.special && isPlayable(v))) {
 			it(`generates ${variant.key} within budget`, () => {
 				const times = SEEDS.map((seed) => {
 					const start = performance.now();

@@ -71,6 +71,10 @@
 	.section-title {
 		@apply text-xs font-semibold tracking-wider text-stone-500 uppercase dark:text-stone-400;
 	}
+	/* "Early access" next to the name of a game that is not finished yet. */
+	.early-access {
+		@apply ml-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 font-sans text-[11px] leading-4 font-semibold tracking-wide whitespace-nowrap text-amber-800 uppercase dark:bg-amber-950 dark:text-amber-300;
+	}
 }
 
 /* Solved: a green glow pulses around the board and a few sparkles fly out. Neither changes the

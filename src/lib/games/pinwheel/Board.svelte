@@ -42,7 +42,7 @@
 		type PinwheelPuzzle,
 		type PinwheelState
 	} from './rules';
-	import { extendPath, type Dot } from './path';
+	import { extendPath, type Dot } from '../../core/path';
 	import { theme } from '../../client/settings.svelte';
 	import { t } from '../../i18n/index.svelte';
 

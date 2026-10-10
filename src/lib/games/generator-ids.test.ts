@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { encodePuzzleId } from '../core/variants';
+import { encodePuzzleId, isPlayable } from '../core/variants';
 import { GAME_LOGIC } from './logic';
 
 /**
@@ -11,7 +11,7 @@ import { GAME_LOGIC } from './logic';
  *
  * This test pins the puzzle behind a few IDs of every distinct generator setting (rule set, size
  * and difficulty; special types share the setting of a regular type except Pinwheel's monthly
- * 20×20). If it fails, the generator changed what an ID means. When that is deliberate, treat it
+ * 20×20). Types that are only announced (`comingSoon`) have no IDs yet, so they are left out. If it fails, the generator changed what an ID means. When that is deliberate, treat it
  * as a migration (see docs/generators.md) and replace the hashes with the new ones.
  *
  * Keys are `<game> <type> <seed>`; values are the first 16 hex digits of the SHA-256 of the
@@ -72,7 +72,9 @@ const PINNED: Record<string, string> = {
 	'sudoku c9n 1': 'dae7fd291803f970',
 	'sudoku c9n 2': 'fb76d99a75b2a786',
 	'sudoku c9h 1': '7c5013b70677a45c',
-	'sudoku c9h 2': '6459a1f29ab946b2'
+	'sudoku c9h 2': '6459a1f29ab946b2',
+	'loop 5n 1': 'd0776dab15a623d4',
+	'loop 5n 2': 'cdfb602fde10c8ea'
 };
 
 const fingerprint = (puzzle: unknown) =>
@@ -83,7 +85,7 @@ describe('generated puzzle IDs', () => {
 		const pinned = new Set(Object.keys(PINNED).map((key) => key.split(' ').slice(0, 2).join(' ')));
 		for (const logic of Object.values(GAME_LOGIC)) {
 			const settings = new Map<string, string>();
-			for (const v of logic.variants) {
+			for (const v of logic.variants.filter(isPlayable)) {
 				const setting = `${v.mode ?? ''} ${v.width}x${v.height} ${v.difficulty}`;
 				if (pinned.has(`${logic.id} ${v.key}`)) settings.set(setting, v.key);
 				else if (!settings.has(setting)) settings.set(setting, '');

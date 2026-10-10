@@ -75,6 +75,11 @@ const en = {
 	},
 	game: {
 		menu: '{game} menu',
+		/** A game that is playable but not finished yet. */
+		earlyAccess: 'Early access',
+		/** A puzzle type that is listed but not playable yet. */
+		comingSoon: 'Soon',
+		comingSoonTitle: '{variant}: coming soon',
 		openMenu: 'Puzzle types and rules',
 		closeMenu: 'Close menu',
 		expandPanel: 'Expand panel',
@@ -248,6 +253,7 @@ const en = {
 		symmetryHelper: 'Enable symmetry helper',
 		blackHoles: 'Black hole in completed regions',
 		autoColor: 'Auto colour completed regions',
+		dimSatisfiedClues: 'Grey out numbers that have all their lines',
 		markMistakes: 'Paint wrong digits red',
 		autoNotes: 'Fill in notes automatically',
 		autoRemoveNotes: 'Remove notes ruled out by a new digit',
@@ -662,6 +668,30 @@ const en = {
 					task: 'Fill in the last five cells on your own.'
 				}
 			]
+		},
+		loop: {
+			tagline: 'Draw one closed loop around the numbers.',
+			rules: [
+				'Draw lines between neighbouring dots to make a single closed loop.',
+				'The loop never crosses or touches itself and has no loose ends.',
+				'A number tells how many of the four sides of its cell the loop runs along. Cells without a number can have any count.'
+			],
+			notes: [
+				'Early access: Loop is still being built. So far only 5×5 Normal is playable; more sizes, hard puzzles, specials, hints and a tutorial follow.'
+			],
+			tool: { black: 'Line' },
+			toolHint: {
+				rotate:
+					'Each click on an edge steps it from empty to line to cross and back. Right click goes the other way.',
+				black: 'Click an edge to draw a line, click again to remove it. Right click sets a cross.',
+				cross:
+					'Click an edge to mark it with a cross: the loop does not go there. Click again to remove it.',
+				blank: 'Clears every edge you click or drag over.'
+			},
+			controlsMouse:
+				'Click between two dots to draw a line, or drag along the dots to draw several. Right click sets a cross.',
+			controlsTouch:
+				'Tap between two dots to draw a line, or hold and drag along the dots to draw several. Pick the Cross tool to mark edges the loop avoids.'
 		}
 	}
 };

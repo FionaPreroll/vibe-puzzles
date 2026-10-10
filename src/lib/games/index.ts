@@ -1,4 +1,5 @@
 import type { BasePuzzle, GameModule } from '../core/types';
+import { loop } from './loop';
 import { pinwheel } from './pinwheel';
 import { sudoku } from './sudoku';
 import { tetroid } from './tetroid';
@@ -14,7 +15,7 @@ export type AnyGame = GameModule<BasePuzzle, unknown, string>;
  * (`logic.ts`, registered in `logic.ts` here too), its settings (`settings.ts`) and a board
  * component, then list it below.
  */
-export const GAMES: AnyGame[] = [tetroid, pinwheel, sudoku];
+export const GAMES: AnyGame[] = [tetroid, pinwheel, sudoku, loop];
 
 export function gameById(id: string): AnyGame | undefined {
 	return GAMES.find((g) => g.id === id);

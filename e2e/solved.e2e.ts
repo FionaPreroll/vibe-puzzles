@@ -29,7 +29,7 @@ for (const [width, height, locale] of [
 		test.use({ viewport: { width, height }, isMobile: true, hasTouch: true, locale });
 
 		test('the board never scrolls inside its area', async ({ page }) => {
-			for (const path of ['/pinwheel?v=5n', '/tetroid?v=6n']) {
+			for (const path of ['/pinwheel?v=5n', '/tetroid?v=6n', '/loop?v=5n']) {
 				await page.addInitScript(() => {
 					for (const g of ['tetroid', 'pinwheel']) {
 						localStorage.setItem(`vp:tutorialSeen:${g}`, 'true');

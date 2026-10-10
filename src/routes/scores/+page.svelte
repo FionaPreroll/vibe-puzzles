@@ -6,7 +6,7 @@
 	import { net } from '#lib/client/network.svelte.ts';
 	import { getStats, type VariantStats } from '#lib/client/stats.ts';
 	import { formatDuration } from '#lib/core/time.ts';
-	import { encodePuzzleId, periodKey, specialSeed } from '#lib/core/variants.ts';
+	import { encodePuzzleId, isPlayable, periodKey, specialSeed } from '#lib/core/variants.ts';
 	import { GAMES } from '#lib/games/index.ts';
 	import { t, variantLabel } from '#lib/i18n/index.svelte.ts';
 
@@ -18,20 +18,22 @@
 	let stats = $state<VariantStats | null>(null);
 
 	const game = $derived(GAMES.find((g) => g.id === gameId) ?? GAMES[0]);
-	const variant = $derived(game.variants.find((v) => v.key === variantKey) ?? game.variants[0]);
+	/** Types that are only announced have no scores yet. */
+	const playable = $derived(game.variants.filter(isPlayable));
+	const variant = $derived(playable.find((v) => v.key === variantKey) ?? playable[0]);
 
 	onMount(() => {
 		const q = new URL(location.href).searchParams;
 		const g = GAMES.find((x) => x.id === q.get('game'));
 		if (g) {
 			gameId = g.id;
-			if (g.variants.some((v) => v.key === q.get('v'))) variantKey = q.get('v')!;
+			if (g.variants.some((v) => v.key === q.get('v') && isPlayable(v))) variantKey = q.get('v')!;
 		}
 		return watchServer((ok) => (hasServer = ok));
 	});
 
 	$effect(() => {
-		if (!game.variants.some((v) => v.key === variantKey)) variantKey = game.variants[0].key;
+		if (!playable.some((v) => v.key === variantKey)) variantKey = playable[0].key;
 	});
 
 	$effect(() => {
@@ -75,7 +77,7 @@
 	<label class="flex items-center gap-2 text-sm">
 		{t('scores.puzzleType')}
 		<select class="input" bind:value={variantKey}>
-			{#each game.variants as v (v.key)}<option value={v.key}>{variantLabel(v)}</option>{/each}
+			{#each playable as v (v.key)}<option value={v.key}>{variantLabel(v)}</option>{/each}
 		</select>
 	</label>
 </div>

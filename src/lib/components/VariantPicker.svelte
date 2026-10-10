@@ -45,6 +45,19 @@
 		'bg-indigo-50 font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300';
 </script>
 
+<!-- A type that is only announced: greyed out, with "Soon" instead of its marker. -->
+{#snippet soon(v: Variant, name: string)}
+	<button
+		class="{cell} cursor-not-allowed text-stone-400 hover:bg-transparent dark:text-stone-500 dark:hover:bg-transparent"
+		aria-label={t('game.comingSoonTitle', { variant: variantLabel(v) })}
+		title={t('game.comingSoonTitle', { variant: variantLabel(v) })}
+		disabled
+	>
+		{name}
+		<span class="block text-[10px] leading-3 uppercase">{t('game.comingSoon')}</span>
+	</button>
+{/snippet}
+
 {#each modes as mode (mode)}
 	{#if mode}<h3 class="section-title mt-3">{t(`mode.${mode}`)}</h3>{/if}
 	<table class="w-full table-fixed text-center">
@@ -55,7 +68,9 @@
 					{#each difficulties as d (d)}
 						{@const v = find(mode, size, d)}
 						<td class="p-0.5">
-							{#if v}
+							{#if v?.comingSoon}
+								{@render soon(v, t(`difficulty.${d}`))}
+							{:else if v}
 								<button
 									class="{cell} {v.key === current ? active : ''}"
 									aria-label={variantLabel(v)}
@@ -79,23 +94,28 @@
 		{#each specials as v (v.key)}
 			{@const done = marker(v)}
 			<li>
-				<button
-					class="{cell} {v.key === current ? active : ''}"
-					aria-label={variantLabel(v)}
-					title={variantLabel(v)}
-					aria-current={v.key === current ? 'true' : undefined}
-					onclick={() => onpick(v.key)}
-				>
-					{t(`specialShort.${v.special}`)}
-					<span class="block text-xs text-stone-500 dark:text-stone-400"
-						>{v.width}×{v.height}
-						{#if done}<span class="text-emerald-600 dark:text-emerald-400">{done}</span>{/if}</span
+				{#if v.comingSoon}
+					{@render soon(v, t(`specialShort.${v.special}`))}
+				{:else}
+					<button
+						class="{cell} {v.key === current ? active : ''}"
+						aria-label={variantLabel(v)}
+						title={variantLabel(v)}
+						aria-current={v.key === current ? 'true' : undefined}
+						onclick={() => onpick(v.key)}
 					>
-				</button>
+						{t(`specialShort.${v.special}`)}
+						<span class="block text-xs text-stone-500 dark:text-stone-400"
+							>{v.width}×{v.height}
+							{#if done}<span class="text-emerald-600 dark:text-emerald-400">{done}</span
+								>{/if}</span
+						>
+					</button>
+				{/if}
 			</li>
 		{/each}
 	</ul>
-	{#if specials.some((v) => v.special === 'daily')}
+	{#if specials.some((v) => v.special === 'daily' && !v.comingSoon)}
 		<p class="mt-1 text-xs text-stone-500 dark:text-stone-400">{nextDailyText(now)}</p>
 	{/if}
 {/if}

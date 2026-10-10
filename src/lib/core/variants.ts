@@ -13,7 +13,15 @@ export interface Variant {
 	special?: SpecialKind;
 	/** A rule set other than the game's main one, e.g. 'calc' for Calcudoku in Sudoku. */
 	mode?: string;
+	/**
+	 * Listed but not playable yet: the type keeps its place (puzzle IDs hold it), but has no
+	 * puzzles, no collection and no pinned generator, so its generator may still change.
+	 */
+	comingSoon?: boolean;
 }
+
+/** Whether a type can be played (it exists and is not just announced). */
+export const isPlayable = (v: Variant | undefined): v is Variant => !!v && !v.comingSoon;
 
 const SEED_SPACE = 1 << 26;
 const VARIANT_SLOTS = 16;
@@ -36,6 +44,12 @@ export function parsePuzzleId(text: string | null, variantCount: number): number
 	if (!text || !Number.isSafeInteger(id) || id <= 0) return undefined;
 	const { variantIndex, seed } = decodePuzzleId(id);
 	return variantIndex < variantCount && seed >= 1 && seed < SEED_SPACE ? id : undefined;
+}
+
+/** Like `parsePuzzleId`, for a game's types: only an ID of a playable type counts. */
+export function parsePlayableId(text: string | null, variants: Variant[]): number | undefined {
+	const id = parsePuzzleId(text, variants.length);
+	return id && isPlayable(variants[decodePuzzleId(id).variantIndex]) ? id : undefined;
 }
 
 export function randomSeed(random: () => number = Math.random): number {
@@ -90,7 +104,7 @@ export function specialSeed(gameId: string, kind: SpecialKind, period: string): 
  * nearest size. "New puzzle" on a special type continues here (or stays, if there is none).
  */
 export function regularCounterpart(variants: Variant[], special: Variant): Variant {
-	const regular = variants.filter((v) => !v.special && v.mode === special.mode);
+	const regular = variants.filter((v) => !v.special && v.mode === special.mode && isPlayable(v));
 	const area = (v: Variant) => v.width * v.height;
 	const score = (v: Variant) => [
 		v.difficulty === special.difficulty ? 0 : 1,
