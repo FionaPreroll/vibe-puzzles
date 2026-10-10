@@ -104,6 +104,9 @@
 	let boardTop = $state(200);
 	/** Width of the board with its surface: the rows above and below it are no wider. */
 	let stageWidth = $state(0);
+	/** The board area around the stage, and how far below the page's header it starts. */
+	let areaWrap: HTMLDivElement | undefined = $state();
+	let headerGap = $state(0);
 	/** The play bar below the board on wide screens; the board's stage is at least as wide. */
 	let barWidth = $state(0);
 	/** Padding of the board's surface (p-2, lg:p-3), which the board's size leaves room for. */
@@ -119,6 +122,10 @@
 		if (!boardArea || !pageRoot || !gameColumn) return;
 		// The scroll container's py-1 sits above the board's surface.
 		boardTop = boardArea.getBoundingClientRect().top + window.scrollY + 4;
+		const header = document.querySelector('header');
+		if (areaWrap && header) {
+			headerGap = areaWrap.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
+		}
 		// Up to the page's end, but not where a longer side panel reaches beyond the game column.
 		const root = pageRoot.getBoundingClientRect().bottom;
 		const rootContent = root - parseFloat(getComputedStyle(pageRoot).paddingBottom);
@@ -692,7 +699,6 @@
 		<HalloweenCobweb class="absolute top-0 right-0 w-14 lg:w-16" />
 		<HalloweenCobweb class="absolute bottom-0 left-0 w-10 rotate-180 lg:w-12" />
 		{#if decorBeside}
-			<HalloweenSpider class="absolute top-0 right-full mr-8 w-8" />
 			<HalloweenBat
 				eyes
 				class="halloween-bob absolute top-10 left-full ml-8 w-16 text-[#7c3aed] dark:text-[#8b5cf6]"
@@ -969,7 +975,21 @@
 		</div>
 
 		<!-- Room around the board on phones, so a quick swipe does not hit a button -->
-		<div class="relative mt-5 lg:mt-4" bind:clientWidth={areaWidth}>
+		<div class="relative mt-5 lg:mt-4" bind:clientWidth={areaWidth} bind:this={areaWrap}>
+			{#if decorBeside && session.puzzle}
+				<!-- Let down from the page's header, beside the board's stage. Outside the board's
+				     scroll container, which would cut off the thread. -->
+				<div
+					class="halloween-only halloween-sway pointer-events-none absolute flex w-8 flex-col items-center"
+					style:top="{-headerGap}px"
+					style:right="calc(50% + {stageWidth / 2}px + 2rem)"
+					aria-hidden="true"
+					data-spider
+				>
+					<div class="w-px bg-[#b9a6c9] dark:bg-[#5a4c73]" style:height="{headerGap + 4}px"></div>
+					<HalloweenSpider swing={false} class="w-8" />
+				</div>
+			{/if}
 			<div
 				bind:this={boardArea}
 				class="overflow-x-auto py-1"

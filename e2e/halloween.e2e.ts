@@ -171,3 +171,34 @@ test.describe('Pinwheel', () => {
 		});
 	});
 });
+
+for (const night of [false, true]) {
+	test(`${night ? 'by night' : 'by day'}, the spider beside the board hangs from the header`, async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await page.addInitScript((night) => {
+			localStorage.setItem('vp:look', '"halloween"');
+			localStorage.setItem('vp:night', JSON.stringify(night));
+			localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+			localStorage.setItem('vp:puzzleSource', '"bank"');
+		}, night);
+		await page.goto('/tetroid?v=6n&id=496678832');
+		await expect(page.getByRole('grid', { name: 'Puzzle board' }).first()).toBeVisible({
+			timeout: 30_000
+		});
+		await page.waitForLoadState('networkidle');
+		// Measured without the swing, which tilts the thread a little.
+		await page.addStyleTag({ content: '[data-spider] { animation: none !important; }' });
+		const header = (await page.locator('header').first().boundingBox())!;
+		const spider = page.locator('[data-spider]');
+		await expect(spider).toBeVisible();
+		const thread = (await spider.boundingBox())!;
+		const stage = (await page.locator('.board-stage').boundingBox())!;
+		expect(Math.abs(thread.y - (header.y + header.height))).toBeLessThan(1.5);
+		// Beside the stage, down to its upper part.
+		expect(thread.x + thread.width).toBeLessThan(stage.x);
+		expect(thread.y + thread.height).toBeGreaterThan(stage.y + 40);
+		expect(thread.y + thread.height).toBeLessThan(stage.y + stage.height / 2);
+	});
+}
