@@ -49,8 +49,21 @@ export interface Store {
 	playerByToken(tokenHash: string): Promise<PlayerRow | null>;
 	renamePlayer(id: string, name: string): Promise<void>;
 	getSave(playerId: string, key: string): Promise<{ data: string; updatedAt: number } | null>;
-	/** Stores the save unless a newer one exists. Returns whether it was stored. */
-	putSave(playerId: string, key: string, data: string, updatedAt: number): Promise<boolean>;
+	/** Stores the save at server time `storedAt` unless a newer one exists. Returns whether it was stored. */
+	putSave(
+		playerId: string,
+		key: string,
+		data: string,
+		updatedAt: number,
+		storedAt: number
+	): Promise<boolean>;
+	/**
+	 * Keeps the `count` most recently stored saves of a player, and of those only as many as fit
+	 * into `size` characters; deletes the rest and returns how many.
+	 */
+	trimSaves(playerId: string, count: number, size: number): Promise<number>;
+	/** Deletes saves last stored before `storedBefore`; returns how many. */
+	deleteSaves(storedBefore: number): Promise<number>;
 	/** Returns the stored fingerprint, storing `fingerprint` first if none exists. */
 	fingerprint(game: string, puzzleId: number, fingerprint: string): Promise<string>;
 	/** Adds a score; false if the player already solved this puzzle. */
@@ -72,7 +85,10 @@ export interface Store {
 
 export class MemoryStore implements Store {
 	private readonly playerRows = new Map<string, PlayerRow & { tokenHash: string }>();
-	private readonly saves = new Map<string, { data: string; updatedAt: number }>();
+	private readonly saves = new Map<
+		string,
+		{ playerId: string; data: string; updatedAt: number; storedAt: number }
+	>();
 	private readonly prints = new Map<string, string>();
 	private readonly scores: ScoreRow[] = [];
 	private readonly tickets = new Map<string, TicketRow>();
@@ -94,15 +110,42 @@ export class MemoryStore implements Store {
 	}
 
 	async getSave(playerId: string, key: string) {
-		return this.saves.get(`${playerId}\n${key}`) ?? null;
+		const row = this.saves.get(`${playerId}\n${key}`);
+		return row ? { data: row.data, updatedAt: row.updatedAt } : null;
 	}
 
-	async putSave(playerId: string, key: string, data: string, updatedAt: number) {
+	async putSave(playerId: string, key: string, data: string, updatedAt: number, storedAt: number) {
 		const k = `${playerId}\n${key}`;
 		const old = this.saves.get(k);
 		if (old && old.updatedAt >= updatedAt) return false;
-		this.saves.set(k, { data, updatedAt });
+		this.saves.set(k, { playerId, data, updatedAt, storedAt });
 		return true;
+	}
+
+	async trimSaves(playerId: string, count: number, size: number) {
+		const mine = [...this.saves.entries()]
+			.filter(([, s]) => s.playerId === playerId)
+			.sort(([a, x], [b, y]) => y.storedAt - x.storedAt || Number(a > b) - Number(a < b));
+		let total = 0;
+		let deleted = 0;
+		mine.forEach(([k, s], i) => {
+			total += s.data.length;
+			if (i < count && total <= size) return;
+			this.saves.delete(k);
+			deleted++;
+		});
+		return deleted;
+	}
+
+	async deleteSaves(storedBefore: number) {
+		let deleted = 0;
+		for (const [k, s] of [...this.saves.entries()]) {
+			if (s.storedAt < storedBefore) {
+				this.saves.delete(k);
+				deleted++;
+			}
+		}
+		return deleted;
 	}
 
 	async fingerprint(game: string, puzzleId: number, fingerprint: string) {
@@ -249,16 +292,41 @@ export class D1Store implements Store {
 		return row ? { data: row.data, updatedAt: row.updated_at } : null;
 	}
 
-	async putSave(playerId: string, key: string, data: string, updatedAt: number) {
+	async putSave(playerId: string, key: string, data: string, updatedAt: number, storedAt: number) {
 		const res = await this.db
 			.prepare(
-				`INSERT INTO saves (player_id, key, data, updated_at) VALUES (?, ?, ?, ?)
-				 ON CONFLICT (player_id, key) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
+				`INSERT INTO saves (player_id, key, data, updated_at, stored_at, size) VALUES (?, ?, ?, ?, ?, ?)
+				 ON CONFLICT (player_id, key) DO UPDATE SET data = excluded.data,
+				   updated_at = excluded.updated_at, stored_at = excluded.stored_at, size = excluded.size
 				 WHERE excluded.updated_at > saves.updated_at`
 			)
-			.bind(playerId, key, data, updatedAt)
+			.bind(playerId, key, data, updatedAt, storedAt, data.length)
 			.run();
 		return res.meta.changes > 0;
+	}
+
+	async trimSaves(playerId: string, count: number, size: number) {
+		const res = await this.db
+			.prepare(
+				`DELETE FROM saves WHERE player_id = ? AND key IN (
+				   SELECT key FROM (
+				     SELECT key, ROW_NUMBER() OVER newest AS n, SUM(size) OVER newest AS total
+				     FROM saves WHERE player_id = ?
+				     WINDOW newest AS (ORDER BY stored_at DESC, key)
+				   ) WHERE n > ? OR total > ?
+				 )`
+			)
+			.bind(playerId, playerId, count, size)
+			.run();
+		return res.meta.changes;
+	}
+
+	async deleteSaves(storedBefore: number) {
+		const res = await this.db
+			.prepare('DELETE FROM saves WHERE stored_at < ?')
+			.bind(storedBefore)
+			.run();
+		return res.meta.changes;
 	}
 
 	async fingerprint(game: string, puzzleId: number, fingerprint: string) {

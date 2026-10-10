@@ -88,6 +88,7 @@ const en = {
 		specials: 'Specials',
 		puzzleId: 'Puzzle ID',
 		openById: 'Open puzzle by ID',
+		unknownId: 'No puzzle has this ID.',
 		open: 'Open',
 		scoresLink: 'Hall of fame & statistics',
 		tutorial: 'Tutorial',

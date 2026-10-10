@@ -93,6 +93,8 @@ export const tetroidLogic: GameLogic<TetroidPuzzle, TetroidState, TetroidSetting
 		if (q.width !== v.width || q.height !== v.height) return false;
 		if (!Array.isArray(q.regions) || q.regions.length !== v.width * v.height) return false;
 		const count = Math.max(...q.regions) + 1;
+		// More regions than cells cannot be, and a huge number would only cost memory.
+		if (!(count <= q.regions.length)) return false;
 		if (!q.regions.every((r) => Number.isInteger(r) && r >= 0 && r < count)) return false;
 		return regionsConnected(q);
 	},

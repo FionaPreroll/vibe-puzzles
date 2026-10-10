@@ -87,6 +87,7 @@ const de: Dictionary = {
 		specials: 'Sonderrätsel',
 		puzzleId: 'Rätsel-ID',
 		openById: 'Rätsel per ID öffnen',
+		unknownId: 'Kein Rätsel hat diese ID.',
 		open: 'Öffnen',
 		scoresLink: 'Bestenliste & Statistik',
 		tutorial: 'Tutorial',

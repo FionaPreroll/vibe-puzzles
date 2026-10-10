@@ -1,5 +1,5 @@
 import { periodKey } from '../core/variants';
-import { GAME_LOGIC } from '../games/logic';
+import { gameLogic } from '../games/logic';
 import type { SavedGame } from './session.svelte';
 import { keys, load } from './storage';
 import { parseSaveKey, SAVE_PREFIX } from './storageKeys';
@@ -16,7 +16,7 @@ export function latestUnfinished(now = new Date()): { gameId: string; save: Save
 		const slot = parseSaveKey(key);
 		if (!slot) continue;
 		const { game: gameId, variant: variantKey, period } = slot;
-		const logic = GAME_LOGIC[gameId];
+		const logic = gameLogic(gameId);
 		const variant = logic?.variants.find((v) => v.key === variantKey);
 		const save = load<SavedGame | null>(key, null);
 		if (!logic || !variant || !save || save.solved || save.variant !== variantKey) continue;

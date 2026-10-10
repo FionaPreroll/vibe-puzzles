@@ -27,6 +27,17 @@ export function decodePuzzleId(id: number): { variantIndex: number; seed: number
 	return { variantIndex: id % VARIANT_SLOTS, seed: Math.floor(id / VARIANT_SLOTS) };
 }
 
+/**
+ * A puzzle ID as typed or linked, if it names a puzzle of a game with `variantCount` types: a
+ * whole number whose type exists and whose seed a generator can take.
+ */
+export function parsePuzzleId(text: string | null, variantCount: number): number | undefined {
+	const id = Number(text);
+	if (!text || !Number.isSafeInteger(id) || id <= 0) return undefined;
+	const { variantIndex, seed } = decodePuzzleId(id);
+	return variantIndex < variantCount && seed >= 1 && seed < SEED_SPACE ? id : undefined;
+}
+
 export function randomSeed(random: () => number = Math.random): number {
 	return 1 + Math.floor(random() * (SEED_SPACE - 1));
 }

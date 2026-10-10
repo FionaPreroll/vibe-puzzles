@@ -463,8 +463,29 @@ export interface Leaderboard {
 	players: number;
 }
 
-export async function leaderboard(game: string, variant: string, puzzleId?: number) {
+const isEntry = (e: unknown): e is ScoreEntry =>
+	!!e &&
+	typeof e === 'object' &&
+	typeof (e as ScoreEntry).rank === 'number' &&
+	typeof (e as ScoreEntry).name === 'string' &&
+	typeof (e as ScoreEntry).timeMs === 'number';
+
+/**
+ * A leaderboard, with only the entries that can be shown: something between the app and the
+ * server (a captive portal, a proxy) may answer in its place.
+ */
+export async function leaderboard(
+	game: string,
+	variant: string,
+	puzzleId?: number
+): Promise<Leaderboard> {
 	const q = new URLSearchParams({ game, variant });
 	if (puzzleId) q.set('puzzleId', String(puzzleId));
-	return call<Leaderboard>(`/scores?${q}`);
+	const b = await call<Partial<Leaderboard> | null>(`/scores?${q}`);
+	const entries = Array.isArray(b?.entries) ? b.entries.filter(isEntry) : [];
+	return {
+		entries,
+		me: isEntry(b?.me) ? b.me : null,
+		players: typeof b?.players === 'number' ? b.players : entries.length
+	};
 }

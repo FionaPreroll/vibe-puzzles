@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import fc from 'fast-check';
 import { withCommon } from '../core/settings';
 import type { GameModule } from '../core/types';
 import {
@@ -370,6 +371,19 @@ describe('checkpoints', () => {
 });
 
 describe('timers', () => {
+	it('shows no time while the first puzzle is still being created', async () => {
+		let done!: (p: unknown) => void;
+		vi.mocked(generate).mockReturnValueOnce(new Promise((resolve) => (done = resolve)));
+		const s = session();
+		const opening = s.open('6n', { puzzleId: ID });
+		expect(s.loading).toBe(true);
+		expect(s.elapsed(Date.now())).toBe(0);
+		done(puzzle);
+		await opening;
+		vi.advanceTimersByTime(2000);
+		expect(s.elapsed(Date.now())).toBe(2000);
+	});
+
 	it('counts personal time only while the page is active', async () => {
 		const s = await opened({ autoSubmit: false });
 		vi.advanceTimersByTime(1000);
@@ -925,5 +939,117 @@ describe('cleaning up saves', () => {
 			);
 			setQuotaHandler(() => false);
 		});
+	});
+});
+
+describe('saves from anywhere', () => {
+	// A save that cannot be continued starts a new puzzle: the same one, without generating it.
+	const generating = vi.mocked(generate).getMockImplementation()!;
+	beforeEach(() => {
+		vi.mocked(generate).mockImplementation(async () => puzzle);
+	});
+	afterEach(() => {
+		vi.mocked(generate).mockImplementation(generating);
+	});
+
+	/** A valid save of `puzzle` with one field set to `value` (anything JSON can hold). */
+	const field = fc.constantFrom(
+		'version',
+		'puzzleId',
+		'variant',
+		'checkpoints',
+		'currentCheckpoint',
+		'solved',
+		'startedAt',
+		'playMs',
+		'updatedAt',
+		'ticket',
+		'hinted',
+		'hints',
+		'assisted'
+	);
+	const value = fc
+		.oneof(
+			fc.integer(),
+			fc.double(),
+			fc.string(),
+			fc.boolean(),
+			fc.constant(null),
+			fc.array(fc.oneof(fc.integer(), fc.constant(solvedState()))),
+			fc.dictionary(fc.string(), fc.integer())
+		)
+		.map((v) => JSON.parse(JSON.stringify(v)) as unknown);
+	const valid = () => ({
+		version: 1,
+		puzzleId: ID,
+		variant: '6n',
+		puzzle,
+		state: shaded(0, 1),
+		checkpoints: [shaded(0)],
+		currentCheckpoint: 0,
+		solved: false,
+		startedAt: Date.now() - 1000,
+		playMs: 500,
+		updatedAt: Date.now() - 1000
+	});
+	const broken = fc
+		.array(fc.tuple(field, value), { minLength: 1, maxLength: 4 })
+		.map((changes) => ({ ...valid(), ...Object.fromEntries(changes) }));
+	const sane = (s: Session) => {
+		expect(s.loading).toBe(false);
+		expect(s.puzzle).not.toBeNull();
+		expect(Number.isFinite(s.elapsed(Date.now()))).toBe(true);
+		expect(Number.isFinite(s.personal(Date.now()))).toBe(true);
+		expect(s.currentCheckpoint).toBeLessThan(Math.max(1, s.checkpoints.length));
+	};
+
+	it('opens any stored game', async () => {
+		await fc.assert(
+			fc.asyncProperty(broken, async (stored) => {
+				localStorage.clear();
+				save('save:tetroid:6n', stored);
+				const s = session();
+				await s.open('6n');
+				sane(s);
+			}),
+			{ numRuns: 200, seed: 77 }
+		);
+	});
+
+	it('continues only playable games from another device', async () => {
+		vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
+		await fc.assert(
+			fc.asyncProperty(fc.oneof(broken, value), fc.option(value), async (data, local) => {
+				localStorage.clear();
+				save('save:tetroid:6n', { ...valid(), state: shaded(0), updatedAt: 0 });
+				const s = session();
+				await s.open('6n');
+				// The game in storage may be broken meanwhile (another tab, another version).
+				if (local !== null) save('save:tetroid:6n', local);
+				vi.mocked(api.pullSave).mockResolvedValueOnce({
+					key: 'save:tetroid:6n',
+					data,
+					updatedAt: 1
+				});
+				await s.refreshFromServer();
+				sane(s);
+			}),
+			{ numRuns: 200, seed: 77 }
+		);
+	});
+
+	it('reads and merges any stored settings', () => {
+		fc.assert(
+			fc.property(value, value, (stored, remote) => {
+				localStorage.clear();
+				save('settings:tetroid', stored);
+				const settings = new GameSettings('tetroid', withCommon([]));
+				settings.merge(remote as never);
+				settings.merge({ values: remote, updatedAt: Date.now() } as never);
+				for (const v of Object.values(settings.values)) expect(typeof v).toBe('boolean');
+				expect(Number.isFinite(settings.updatedAt)).toBe(true);
+			}),
+			{ numRuns: 300, seed: 77 }
+		);
 	});
 });

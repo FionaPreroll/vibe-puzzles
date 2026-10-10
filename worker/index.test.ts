@@ -33,12 +33,27 @@ describe('worker', () => {
 		expect(limit).toHaveBeenCalledWith({ key: '203.0.113.7' });
 	});
 
+	it('ignores the rate limiters with RATE_LIMITS=off', async () => {
+		const limit = vi.fn(async () => ({ success: false }));
+		const e = { ...env(), REGISTER_LIMIT: { limit }, RATE_LIMITS: 'off' } as unknown as Env;
+		const DB = {
+			prepare: () => ({ bind: () => ({ run: async () => ({ meta: { changes: 1 } }) }) })
+		};
+		const req = new Request('https://example.test/api/player', {
+			method: 'POST',
+			body: JSON.stringify({ name: 'A' })
+		});
+		const res = await worker.fetch(req as never, { ...e, DB } as Env, {} as ExecutionContext);
+		expect(res.status).toBe(201);
+		expect(limit).not.toHaveBeenCalled();
+	});
+
 	it('switches server puzzles on with the SERVER_PUZZLES variable', async () => {
 		const res = await call('https://example.test/api/health', env('true'));
 		expect(await res.json()).toEqual({ ok: true, serverPuzzles: true });
 	});
 
-	it('deletes old tickets on the daily schedule, and waits for it', async () => {
+	it('deletes old tickets and saves on the daily schedule, and waits for it', async () => {
 		const sql: string[] = [];
 		const DB = {
 			prepare: (query: string) => {
@@ -54,10 +69,14 @@ describe('worker', () => {
 			{ ...env(), DB } as unknown as Env,
 			ctx as unknown as ExecutionContext
 		);
-		expect(waiting).toHaveLength(1);
+		expect(waiting).toHaveLength(2);
 		await Promise.all(waiting);
-		expect(sql).toEqual([expect.stringMatching(/^DELETE FROM tickets/)]);
+		expect(sql).toEqual([
+			expect.stringMatching(/^DELETE FROM tickets/),
+			expect.stringMatching(/^DELETE FROM saves/)
+		]);
 		expect(log).toHaveBeenCalledWith('Deleted 3 old tickets');
+		expect(log).toHaveBeenCalledWith('Deleted 3 old saves');
 		log.mockRestore();
 	});
 });

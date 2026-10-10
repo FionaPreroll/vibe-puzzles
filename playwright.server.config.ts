@@ -6,7 +6,8 @@ export default defineConfig({
 	testMatch: '**/*.e2e.ts',
 	workers: 1,
 	webServer: {
-		command: 'pnpm cf:dev --port 8788',
+		// More players register here within a minute than the limit per address allows.
+		command: 'pnpm cf:dev --port 8788 --var RATE_LIMITS:off',
 		port: 8788,
 		timeout: 180_000,
 		env: { WRANGLER_SEND_METRICS: 'false' }

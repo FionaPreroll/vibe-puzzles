@@ -32,9 +32,9 @@ pnpm dev            # dev server without the API
 pnpm cf:dev         # build and run with the API and a local D1 database
 pnpm lint           # prettier and eslint (pnpm format fixes the formatting)
 pnpm check          # svelte-check and type checks of the worker and service worker
-pnpm test           # unit tests (pnpm test:unit watches, pnpm test:coverage measures coverage)
+pnpm test           # unit tests (pnpm test:unit watches, pnpm test:coverage measures coverage); *.fuzz.test.ts feed the API, game logic and storage random input (FUZZ_RUNS, FUZZ_SEED)
 pnpm test:e2e       # browser tests
-pnpm test:server    # browser tests against the server: sync between devices, settings, offline start
+pnpm test:server    # browser tests against the server: a ranked solve and the leaderboard, sync between devices, settings, offline start
 pnpm test:soak      # long play sessions (desktop, phone): nothing leaks (SOAK_ACTIONS=600, SOAK_SEED)
 pnpm test:perf      # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
 pnpm bank:grow      # add puzzles to the collection (--per-variant N --max-minutes M)
@@ -174,6 +174,12 @@ The Cloudflare deployment hands out puzzles from the server (`SERVER_PUZZLES` is
 Because the collection is public, a determined player can look a puzzle up in it or feed it to a solver program; the server clock still keeps ranked times honest about when the puzzle was handed out.
 
 The server deletes old tickets once a day (a cron trigger in `wrangler.jsonc`): unsolved ones 45 days after they were issued, solved ones 7 days after the solve. A game whose ticket is gone can still be solved, but is not ranked.
+
+A ticket counts as solved only once its score is stored, so a solve whose score could not be stored (a server error) can be sent again.
+
+### Saves
+
+The server keeps up to 500 saves and 4 MiB of saves per player (`SAVE_LIMITS` in `worker/api.ts`); a player of every game and type needs about 200. Beyond that, the saves stored longest ago are deleted. The daily cron also deletes saves that were not stored for 400 days. Either way, the device that made a save keeps its own copy.
 
 ### API
 

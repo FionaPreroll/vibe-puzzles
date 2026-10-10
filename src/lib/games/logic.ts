@@ -9,3 +9,8 @@ export const GAME_LOGIC: Record<string, GameLogic> = {
 	pinwheel: pinwheelLogic,
 	sudoku: sudokuLogic
 };
+
+/** The logic of a game ID from outside the app (a request, a stored key); never `Object`'s own. */
+export function gameLogic(id: unknown): GameLogic | undefined {
+	return typeof id === 'string' && Object.hasOwn(GAME_LOGIC, id) ? GAME_LOGIC[id] : undefined;
+}

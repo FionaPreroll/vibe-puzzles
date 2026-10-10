@@ -28,11 +28,25 @@ interface Stored {
 /** Waiting solves kept at most; the oldest go first. Each solve is also in the local stats. */
 export const MAX_SCORES = 200;
 
+const isObject = (v: unknown): v is Record<string, unknown> =>
+	!!v && typeof v === 'object' && !Array.isArray(v);
+
+const isScore = (v: unknown): v is PendingScore =>
+	isObject(v) &&
+	typeof v.game === 'string' &&
+	typeof v.variant === 'string' &&
+	typeof v.puzzleId === 'number';
+
+/** What waits, leaving out anything that is not an upload (storage can hold anything). */
 function read(): Stored {
 	const s = load<Partial<Stored> | null>(KEY.outbox, null);
+	const saves = Object.entries(isObject(s?.saves) ? s.saves : {}).filter(
+		(e): e is [string, PendingSave] => isObject(e[1]) && typeof e[1].updatedAt === 'number'
+	);
 	return {
-		saves: s?.saves && typeof s.saves === 'object' ? s.saves : {},
-		scores: Array.isArray(s?.scores) ? s.scores : []
+		// Without a prototype, any key is a key of its own (even `__proto__`).
+		saves: Object.assign(Object.create(null), Object.fromEntries(saves)),
+		scores: Array.isArray(s?.scores) ? s.scores.filter(isScore) : []
 	};
 }
 

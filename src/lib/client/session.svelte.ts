@@ -315,25 +315,29 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		if (!this.game.isValidPuzzle(s.puzzle, this.variant)) return false;
 		const puzzle = s.puzzle as P;
 		if (!this.game.isValidState(puzzle, s.state)) return false;
-		this.puzzleId = s.puzzleId;
-		this.ticket = s.ticket ?? null;
-		this.source = s.ticket ? 'server' : 'local';
-		this.changedAt = s.updatedAt;
+		const ticket = typeof s.ticket === 'string' ? s.ticket : null;
+		this.puzzleId = Number.isSafeInteger(s.puzzleId) ? s.puzzleId : 0;
+		this.ticket = ticket;
+		this.source = ticket ? 'server' : 'local';
+		this.changedAt = Number.isFinite(s.updatedAt) ? s.updatedAt : 0;
 		this.puzzle = puzzle;
 		this.puzzleKey = this.saveKey;
 		this.state = s.state;
 		this.past = [];
 		this.future = [];
-		this.checkpoints = (s.checkpoints ?? []).filter((c) => this.game.isValidState(puzzle, c));
-		this.currentCheckpoint = Math.min(s.currentCheckpoint ?? -1, this.checkpoints.length - 1);
+		// The rest of a save is checked too: it may come from another version or device.
+		const checkpoints = Array.isArray(s.checkpoints) ? s.checkpoints : [];
+		this.checkpoints = checkpoints.filter((c) => this.game.isValidState(puzzle, c));
+		const current = Number.isInteger(s.currentCheckpoint) ? s.currentCheckpoint : -1;
+		this.currentCheckpoint = Math.max(-1, Math.min(current, this.checkpoints.length - 1));
 		this.lastChange = new Set();
 		this.hint = null;
-		this.hints = s.hints ?? (s.hinted ? 1 : 0);
+		this.hints = Number.isInteger(s.hints) && s.hints! >= 0 ? s.hints! : s.hinted ? 1 : 0;
 		this.assisted = !!s.assisted;
 		this.solved = false;
 		this.manualPause = false;
-		this.startedAt = s.startedAt;
-		this.playMs = s.playMs;
+		this.startedAt = Number.isFinite(s.startedAt) ? s.startedAt : Date.now();
+		this.playMs = Number.isFinite(s.playMs) ? Math.max(0, s.playMs) : 0;
 		this.touched = false;
 		return true;
 	}
@@ -367,11 +371,24 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.resumeClock();
 	}
 
+	/** Whether a save from storage or another device holds a game of this type to continue. */
+	private playable(s: SavedGame<S> | null): s is SavedGame<S> {
+		return (
+			!!s &&
+			typeof s === 'object' &&
+			Number.isFinite(s.updatedAt) &&
+			this.game.isValidPuzzle(s.puzzle, this.variant) &&
+			this.game.isValidState(s.puzzle as P, s.state)
+		);
+	}
+
 	/** Pick up a newer save of the same slot from another device. */
 	private async syncFromServer(token: number) {
 		const remote = await pullSave<SavedGame<S>>(this.saveKey);
 		if (!remote || token !== this.openToken || this.touched) return;
-		const local = load<SavedGame<S> | null>(this.saveKey, null);
+		if (!this.playable(remote.data)) return;
+		const stored = load<SavedGame<S> | null>(this.saveKey, null);
+		const local = this.playable(stored) ? stored : null;
 		// A newer local game wins, unless nobody has played it yet: then the other device's game
 		// continues here.
 		if (local && remote.data.updatedAt <= local.updatedAt && this.hasProgress(local)) return;
@@ -607,6 +624,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	}
 
 	elapsed(now: number): number {
+		// Nothing has started while the first puzzle is still being created.
+		if (!this.puzzle) return 0;
 		return this.solved ? this.finalMs : Math.max(0, now - this.startedAt);
 	}
 
