@@ -156,7 +156,33 @@ test('Calcudoku shows cages with their results and checks rows and columns', asy
 	await expect(board.locator('text[data-cell="6"]')).toHaveAttribute('fill', palette.entered);
 });
 
-test('picking the digit first: the pad arms a digit, left click enters it, right click notes it', async ({
+test('a whole Calcudoku can be solved', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+	});
+	// Calcudoku 5×5 Easy #513322150 from the bundled collection, and its only solution.
+	await page.goto('/sudoku?v=c5e&id=513322150');
+	const solution = '1254321354452315341234125';
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+	const newPuzzle = page.getByRole('button', { name: 'New puzzle' });
+
+	for (const [i, d] of [...solution].entries()) {
+		if (i === solution.length - 1) {
+			// Every cell but the last: not solved yet, and nothing is marked wrong.
+			await expect(board.locator(`text[fill="${palette.error}"]`)).toHaveCount(0);
+			await expect(newPuzzle).not.toHaveClass(/btn-primary/);
+		}
+		await clickCell(page, 5, Math.floor(i / 5), i % 5);
+		await page.keyboard.press(d);
+	}
+	await expect(newPuzzle).toHaveClass(/btn-primary/);
+	await expect(page.getByRole('status')).toContainText('Solved in');
+});
+
+test('picking the digit first:the pad arms a digit, left click enters it, right click notes it', async ({
 	page
 }) => {
 	await page.addInitScript(() => {
