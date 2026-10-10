@@ -50,7 +50,7 @@
 	<title>{t('about.title')} · {t('app.name')}</title>
 </svelte:head>
 
-<h1 class="text-3xl font-bold tracking-tight">{t('about.title')}</h1>
+<h1 class="font-display text-3xl font-bold tracking-tight">{t('about.title')}</h1>
 <p class="mt-2 text-stone-600 dark:text-stone-400">{t('about.intro')}</p>
 
 <div class="mt-6 grid max-w-3xl gap-6">

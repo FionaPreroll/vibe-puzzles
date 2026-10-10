@@ -10,7 +10,10 @@ export function neighbours(i: number, w: number, h: number): number[] {
 	return out;
 }
 
-/** Bright colours for the win animation, neighbouring regions never share one. */
+/**
+ * Bright colours for the win animation, neighbouring regions never share one. Each is a CSS
+ * variable with the classic colour as fallback, so a look can bring its own (halloween.css).
+ */
 export const CELEBRATION_COLOURS = [
 	'#f87171',
 	'#fbbf24',
@@ -20,7 +23,7 @@ export const CELEBRATION_COLOURS = [
 	'#f472b6',
 	'#2dd4bf',
 	'#fb923c'
-];
+].map((colour, i) => `var(--celebrate-${i + 1}, ${colour})`);
 
 /**
  * A colour index per region (`region` holds a region id per cell) such that neighbouring regions

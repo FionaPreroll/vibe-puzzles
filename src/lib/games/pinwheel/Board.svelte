@@ -34,6 +34,7 @@
 		type PinwheelState
 	} from './rules';
 	import { extendPath, type Dot } from './path';
+	import { theme } from '../../client/settings.svelte';
 	import { t } from '../../i18n/index.svelte';
 
 	let {
@@ -620,6 +621,26 @@
 		return colours.surface;
 	}
 
+	/** The Halloween look draws the centres as pumpkins; prints keep the plain circles. */
+	const pumpkins = $derived(theme.look === 'halloween' && !blank);
+	const solved = $derived(a.complete.every(Boolean));
+	/** Unit of the pumpkin's drawing, centred on its body and 80 units wide. */
+	const pumpkinScale = $derived(cellSize / 150);
+
+	/**
+	 * A pumpkin is lit from inside when its galaxy is complete, as far as black holes would show
+	 * that (the same setting), and all of them once the puzzle is solved.
+	 */
+	const pumpkinLit = (k: number) =>
+		a.complete[a.centreRegion[k]] && (!!settings.blackHoles || solved);
+
+	function pumpkinBody(k: number) {
+		if (helper?.k === k) return colours.selection;
+		if (board.locks[k]) return colours.faint;
+		if (settings.highlightErrors && a.centreError[k]) return errorColour;
+		return colours.pumpkin;
+	}
+
 	/** Win animation: every region in its own colour for a moment. */
 	const celebrationFill = $derived.by(() => {
 		if (!celebrate || blank) return null;
@@ -816,16 +837,54 @@
 
 	<!-- Centres -->
 	{#each puzzle.centres as [hr, hc], k (k)}
-		<circle
-			cx={px(hc / 2 + 0.5)}
-			cy={py(hr / 2 + 0.5)}
-			r={cellSize * 0.2}
-			fill={centreFill(k)}
-			stroke={!blank && settings.highlightLastChange && lastChange.has(`g:${k}`)
+		{@const outline =
+			!blank && settings.highlightLastChange && lastChange.has(`g:${k}`)
 				? colours.recent
 				: colours.line}
-			stroke-width="2"
-		/>
+		{#if pumpkins}
+			{@const body = pumpkinBody(k)}
+			{@const lit = pumpkinLit(k)}
+			<g
+				class="pumpkin"
+				class:lit
+				transform="translate({px(hc / 2 + 0.5)} {py(hr / 2 + 0.5)}) scale({pumpkinScale})"
+			>
+				{#if lit}
+					<circle class="pumpkin-glow" r="58" fill={colours.candle} fill-opacity="0.35" />
+				{/if}
+				<!-- The outline: wide strokes, half covered by the fill on top -->
+				<g fill="none" stroke={outline} stroke-width={4 / pumpkinScale}>
+					<ellipse cx="-17" rx="23" ry="27" />
+					<ellipse cx="17" rx="23" ry="27" />
+					<ellipse rx="19" ry="29" />
+				</g>
+				<path
+					d="M0 -28 C0 -36 3 -40 9 -43"
+					fill="none"
+					stroke={colours.stem}
+					stroke-width="7"
+					stroke-linecap="round"
+				/>
+				<g fill={body === colours.pumpkin ? colours.pumpkinShade : body}>
+					<ellipse cx="-17" rx="23" ry="27" />
+					<ellipse cx="17" rx="23" ry="27" />
+				</g>
+				<ellipse rx="19" ry="29" fill={body} />
+				<g fill={lit ? colours.candle : colours.pumpkinFace}>
+					<path d="M-15 -5 L-9 -15 L-3 -5 Z M3 -5 L9 -15 L15 -5 Z" />
+					<path d="M-17 5 Q0 22 17 5 L13 7 L9 4 L5 9 L0 5 L-5 9 L-9 4 L-13 7 Z" />
+				</g>
+			</g>
+		{:else}
+			<circle
+				cx={px(hc / 2 + 0.5)}
+				cy={py(hr / 2 + 0.5)}
+				r={cellSize * 0.2}
+				fill={centreFill(k)}
+				stroke={outline}
+				stroke-width="2"
+			/>
+		{/if}
 	{/each}
 
 	{#if cursor && !blank}

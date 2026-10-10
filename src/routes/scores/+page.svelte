@@ -62,7 +62,7 @@
 	<title>{t('scores.title')} · {t('app.name')}</title>
 </svelte:head>
 
-<h1 class="text-3xl font-bold tracking-tight">{t('scores.title')}</h1>
+<h1 class="font-display text-3xl font-bold tracking-tight">{t('scores.title')}</h1>
 
 <div class="mt-6 flex flex-wrap gap-3">
 	<label class="flex items-center gap-2 text-sm">

@@ -51,6 +51,16 @@ const en = {
 		dayMode: 'Switch to day mode',
 		nightMode: 'Switch to night mode'
 	},
+	/** The site's look: the everyday one or a seasonal one. */
+	look: {
+		label: 'Theme',
+		auto: '{look} (automatic)',
+		classic: 'Classic',
+		halloween: 'Halloween',
+		/** Above the home page's title in the Halloween look, by day and by night. */
+		tagline: 'Trick or puzzle?',
+		taglineNight: 'Puzzles by moonlight'
+	},
 	home: {
 		title: 'Logic puzzles, one click away',
 		intro: 'Every puzzle has exactly one solution. Pick a game to start.',

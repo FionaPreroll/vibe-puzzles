@@ -8,6 +8,7 @@ import {
 	loadTouchMode,
 	saveTool,
 	saveTouchMode,
+	setLook,
 	setNight,
 	theme
 } from './settings.svelte';
@@ -46,6 +47,40 @@ describe('night mode', () => {
 		expect(load('night', false)).toBe(true);
 		setNight(false);
 		expect(load('night', true)).toBe(false);
+	});
+});
+
+describe('look', () => {
+	it('follows the calendar until the player picks one, and remembers the pick', () => {
+		vi.useFakeTimers({ now: new Date(2026, 9, 31) });
+		setLook('auto');
+		expect(theme.look).toBe('halloween');
+		setLook('classic');
+		expect(theme).toMatchObject({ lookChoice: 'classic', look: 'classic' });
+		expect(load('look', null)).toBe('classic');
+
+		vi.setSystemTime(new Date(2026, 11, 24));
+		setLook('auto');
+		expect(theme.look).toBe('classic');
+		setLook('halloween');
+		expect(theme.look).toBe('halloween');
+	});
+
+	it('starts from the stored pick, or the calendar if there is none', async () => {
+		vi.useFakeTimers({ now: new Date(2026, 9, 10) });
+		vi.resetModules();
+		expect((await import('./settings.svelte')).theme).toMatchObject({
+			lookChoice: 'auto',
+			look: 'halloween'
+		});
+
+		save('look', 'classic');
+		vi.resetModules();
+		expect((await import('./settings.svelte')).theme.look).toBe('classic');
+
+		save('look', 'spooky');
+		vi.resetModules();
+		expect((await import('./settings.svelte')).theme.lookChoice).toBe('auto');
 	});
 });
 

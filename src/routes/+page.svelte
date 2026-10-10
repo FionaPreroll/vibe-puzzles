@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
+	import Bat from '#lib/components/halloween/Bat.svelte';
+	import Candle from '#lib/components/halloween/Candle.svelte';
+	import CandyCorn from '#lib/components/halloween/CandyCorn.svelte';
+	import Cobweb from '#lib/components/halloween/Cobweb.svelte';
+	import HomeScene from '#lib/components/halloween/HomeScene.svelte';
+	import Pumpkin from '#lib/components/halloween/Pumpkin.svelte';
+	import Spider from '#lib/components/halloween/Spider.svelte';
+	import Stars from '#lib/components/halloween/Stars.svelte';
 	import { latestUnfinished } from '#lib/client/resume.ts';
 	import type { SavedGame } from '#lib/client/session.svelte.ts';
 	import { currentPeriodStreak, getStats } from '#lib/client/stats.ts';
@@ -56,9 +64,22 @@
 	<title>{t('app.name')}</title>
 </svelte:head>
 
-<section class="max-w-3xl">
-	<h1 class="text-3xl font-bold tracking-tight">{t('home.title')}</h1>
-	<p class="mt-2 text-stone-600 dark:text-stone-400">{t('home.intro')}</p>
+<section class="relative flex items-end justify-between gap-6">
+	<Stars />
+	<div class="relative max-w-3xl min-w-0 flex-1">
+		<p class="halloween-only mb-3">
+			<span
+				class="only-day inline-flex items-center gap-2 rounded-full bg-[#f3e8ff] py-1 pr-3.5 pl-2 text-sm font-semibold text-[#5b21b6]"
+				><CandyCorn class="h-[1.2em]" />{t('look.tagline')}</span
+			>
+			<span class="only-night night-tagline text-sm text-[#f2a65a] uppercase"
+				>{t('look.taglineNight')}</span
+			>
+		</p>
+		<h1 class="hero-title font-display text-3xl font-bold tracking-tight">{t('home.title')}</h1>
+		<p class="mt-2 text-stone-600 dark:text-stone-400">{t('home.intro')}</p>
+	</div>
+	<HomeScene />
 </section>
 
 {#if !mounted}
@@ -91,12 +112,23 @@
 	{#each GAMES as game (game.id)}
 		{@const s = status[game.id]}
 		{@const daily = dailyKey(game)}
-		<li class="panel flex h-full flex-col">
+		<li class="panel relative isolate flex h-full flex-col overflow-hidden">
+			<!-- Halloween: a spider, a bat or a cobweb in the corner -->
+			{#if game.id === 'tetroid'}
+				<Spider class="halloween-only absolute top-0 right-8 -z-10 w-7" />
+			{:else if game.id === 'pinwheel'}
+				<Bat
+					eyes
+					class="halloween-only halloween-bob absolute top-4 right-5 -z-10 w-14 text-[#7c3aed] dark:text-[#8b5cf6]"
+				/>
+			{:else if game.id === 'sudoku'}
+				<Cobweb class="halloween-only absolute top-0 right-0 -z-10 w-16" />
+			{/if}
 			<a href={gameUrl(game.id)} class="group block flex-1">
 				<div class="flex items-center gap-3">
 					<span class="text-3xl" aria-hidden="true">{game.icon}</span>
 					<h2
-						class="text-xl font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+						class="font-display text-xl font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
 					>
 						{game.name}
 					</h2>
@@ -135,7 +167,13 @@
 						? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200'
 						: 'bg-amber-50 text-amber-900 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900'}"
 				>
-					<span aria-hidden="true">{s.dailyDone ? '✓' : '☀'}</span>
+					{#if s.dailyDone}
+						<span aria-hidden="true">✓</span>
+					{:else}
+						<span class="classic-only" aria-hidden="true">☀</span>
+						<Pumpkin class="halloween-only only-day w-[1.1em]" />
+						<Candle class="halloween-only only-night h-[1.1em]" />
+					{/if}
 					<span class="flex-1">{s.dailyDone ? t('home.dailyDone') : t('home.dailyOpen')}</span>
 					{#if s.dailyStreak > 0}
 						<span class="font-medium">🔥 {t('home.streak', { count: s.dailyStreak })}</span>
