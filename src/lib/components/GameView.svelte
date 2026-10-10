@@ -22,6 +22,7 @@
 	import { load, save, setQuotaHandler } from '../client/storage';
 	import { ask } from '../client/confirm.svelte';
 	import { trapFocus } from '../client/focus';
+	import { isTyping, KeyDispatcher } from '../client/keys';
 	import { formatDuration } from '../core/time';
 	import { decodePuzzleId } from '../core/variants';
 	import { CELEBRATION_COLOURS } from '../core/grid';
@@ -422,18 +423,12 @@
 
 	// ---- Keyboard shortcuts --------------------------------------------------------------------
 
-	function onkeydown(e: KeyboardEvent) {
-		// The board saw the key first (capture phase) and used it, e.g. Shift+0, which is "=" on
-		// German keyboards, erases a Sudoku cell and must not also start a new puzzle.
-		if (e.defaultPrevented) return;
+	/** The page's shortcuts, for the keys the board leaves (see `keys` below). */
+	function shortcuts(e: KeyboardEvent) {
 		// Before the input check: the zoom slider has focus while its popover is open.
 		if (e.key === 'Escape' && showZoom) return void (showZoom = false);
+		if (isTyping(e)) return;
 		const target = e.target as HTMLElement | null;
-		if (
-			target &&
-			(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-		)
-			return;
 		if (document.querySelector('dialog[open]')) return;
 		if (e.key === 'Escape' && menuOpen) return void (menuOpen = false);
 		if (e.key === '?') return void (showShortcuts = true);
@@ -472,6 +467,9 @@
 			}
 		}
 	}
+
+	/** The one keyboard listener: the board gets each key first, then the shortcuts above. */
+	const keys = new KeyDispatcher(shortcuts);
 
 	// Middle mouse button pans the board area.
 	let pan: { x: number; y: number } | null = null;
@@ -522,7 +520,9 @@
 </script>
 
 <svelte:window
-	{onkeydown}
+	onkeydown={keys.keydown}
+	onkeyup={keys.keyup}
+	onblur={keys.blur}
 	onpointerdown={(e) => {
 		if (showZoom && !zoomBox?.contains(e.target as Node)) showZoom = false;
 	}}
@@ -868,7 +868,7 @@
 							lastChange={session.lastChange}
 							spotlight={hintSpotlight}
 							area={hintArea}
-							keyboard={true}
+							keys={keys.attach}
 							ontool={showTools ? setTool : undefined}
 							{celebrate}
 							{touchMode}

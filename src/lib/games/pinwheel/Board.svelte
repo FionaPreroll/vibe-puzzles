@@ -17,8 +17,16 @@
 </script>
 
 <script lang="ts">
-	import { CELEBRATION_COLOURS, colourRegions, columnLabel, neighbours } from '../../core/grid';
-	import type { BoardProps } from '../../core/types';
+	import {
+		boardPad,
+		celebrationFills,
+		coordinateLabels,
+		labelFontSize,
+		neighbours
+	} from '../../core/grid';
+	import type { BoardProps, KeyPress } from '../../core/types';
+	import { boardInput, interpolate, touchAction, type BoardPoint } from '../../client/boardInput';
+	import { direction } from '../../client/keys';
 	import {
 		analyze,
 		CROSS,
@@ -47,7 +55,7 @@
 		readonly,
 		lastChange,
 		blank = false,
-		keyboard = false,
+		keys,
 		celebrate = false,
 		touchMode,
 		onmove,
@@ -71,9 +79,7 @@
 
 	const w = $derived(puzzle.width);
 	const h = $derived(puzzle.height);
-	const pad = $derived(
-		settings.showCoordinates && !blank ? Math.max(14, cellSize * 0.6) : cellSize * 0.2
-	);
+	const pad = $derived(boardPad(cellSize, settings.showCoordinates && !blank, cellSize * 0.2));
 	const width = $derived(w * cellSize + 2 * pad);
 	const height = $derived(h * cellSize + 2 * pad);
 	const errorColour = $derived(settings.blueErrors ? colours.blueErrorCell : colours.errorCell);
@@ -251,17 +257,6 @@
 
 	// ---- Targeting ------------------------------------------------------------------------------
 
-	let svg: SVGSVGElement | undefined = $state();
-
-	function toBoard(clientX: number, clientY: number) {
-		const rect = svg!.getBoundingClientRect();
-		const scale = rect.width / width;
-		return {
-			x: ((clientX - rect.left) / scale - pad) / cellSize,
-			y: ((clientY - rect.top) / scale - pad) / cellSize
-		};
-	}
-
 	function centreAt(x: number, y: number): number {
 		return puzzle.centres.findIndex(
 			([hr, hc]) => Math.hypot(x - (hc / 2 + 0.5), y - (hr / 2 + 0.5)) < 0.22
@@ -292,8 +287,6 @@
 	}
 
 	// ---- Pointer --------------------------------------------------------------------------------
-
-	let last: { x: number; y: number } | null = null;
 
 	function begin(x: number, y: number, inverse: boolean, fromKeyboard = false) {
 		if (readonly) return;
@@ -352,19 +345,15 @@
 		pending = { kind: 'edges', status, inverse, edges: [edgeKey(e)], path, anchored: !!path };
 	}
 
-	function dragTo(x: number, y: number) {
+	function dragTo(to: BoardPoint, from: BoardPoint) {
 		const p = pending;
 		if (!p) return;
 		if (p.kind === 'centre') {
-			pending = { ...p, cell: cellAt(x, y) };
+			pending = { ...p, cell: cellAt(to.x, to.y) };
 			return;
 		}
-		const from = last ?? { x, y };
-		const steps = Math.max(1, Math.ceil(Math.hypot(x - from.x, y - from.y) * 5));
 		const copy = structuredClone($state.snapshot(p)) as typeof p;
-		for (let s = 1; s <= steps; s++) {
-			const px = from.x + ((x - from.x) * s) / steps;
-			const py = from.y + ((y - from.y) * s) / steps;
+		for (const { x: px, y: py } of interpolate(from, to, 5)) {
 			if (copy.kind === 'cells') {
 				const cell = cellAt(px, py);
 				if (cell >= 0 && !copy.cells.includes(cell)) copy.cells.push(cell);
@@ -392,136 +381,47 @@
 			}
 		}
 		pending = copy;
-		last = { x, y };
 	}
 
-	function onpointerdown(e: PointerEvent) {
-		if (e.pointerType === 'touch' || blank || e.button === 1) return;
-		e.preventDefault();
-		const { x, y } = toBoard(e.clientX, e.clientY);
-		shiftHeld = e.shiftKey;
-		cursor = null;
-		begin(x, y, e.button === 2 || e.ctrlKey || e.metaKey);
-		last = { x, y };
-		svg?.setPointerCapture(e.pointerId);
-	}
-
-	function onpointermove(e: PointerEvent) {
-		if (e.pointerType === 'touch' || !pending) return;
-		const { x, y } = toBoard(e.clientX, e.clientY);
-		dragTo(x, y);
-	}
-
-	function onpointerup(e: PointerEvent) {
-		if (e.pointerType === 'touch') return;
-		commit();
-		last = null;
-	}
-
-	// Touch: quick tap acts at once, early movement pans, holding 300 ms draws, 400 ms on a centre locks.
-	let touch: { x: number; y: number; drawing: boolean; timer: number; lockTimer: number } | null =
-		null;
-
-	function ontouchstart(e: TouchEvent) {
-		if (blank || readonly) return;
-		if (e.touches.length > 1) {
-			if (touch) {
-				clearTimeout(touch.timer);
-				clearTimeout(touch.lockTimer);
-			}
-			touch = null;
-			pending = null;
-			return;
-		}
-		const t = e.touches[0];
-		const start = { x: t.clientX, y: t.clientY, drawing: false, timer: 0, lockTimer: 0 };
-		touch = start;
-		const p = toBoard(start.x, start.y);
-		const k = centreAt(p.x, p.y);
-		if (k >= 0) {
+	/**
+	 * Touch: quick tap acts at once, early movement pans, holding 300 ms draws, 400 ms on the
+	 * centre of a complete galaxy locks it.
+	 */
+	const input = boardInput(
+		{
+			start(p, how) {
+				if (!how.touch) {
+					shiftHeld = how.shift;
+					cursor = null;
+				}
+				begin(p.x, p.y, how.inverse);
+			},
+			drag: dragTo,
+			end: commit,
+			cancel: () => (pending = null),
 			// A hold that cannot lock keeps going, so the symmetry helper works by touch too.
-			start.lockTimer = window.setTimeout(() => {
-				if (touch !== start || !canToggleLock(k)) return;
-				clearTimeout(start.timer);
-				touch = null;
-				pending = null;
+			hold(p) {
+				const k = centreAt(p.x, p.y);
+				if (k < 0 || !canToggleLock(k)) return false;
 				toggleLock(k);
-			}, 400);
+				return true;
+			}
+		},
+		{
+			layout: () => ({ width, pad, cellSize }),
+			touchMode: () => touchMode,
+			enabled: (touch) => !blank && !(touch && readonly)
 		}
-		const startDraw = () => {
-			if (touch !== start) return;
-			start.drawing = true;
-			begin(p.x, p.y, false);
-			last = p;
-		};
-		if (touchMode === 'draw') startDraw();
-		else if (touchMode === 'auto') start.timer = window.setTimeout(startDraw, 300);
-	}
-
-	function ontouchmove(e: TouchEvent) {
-		if (!touch) return;
-		const t = e.touches[0];
-		if (Math.hypot(t.clientX - touch.x, t.clientY - touch.y) > 3) clearTimeout(touch.lockTimer);
-		if (touch.drawing) {
-			// Not when the browser is already scrolling (e.g. a hold that started drawing late):
-			// that event cannot be cancelled, and trying it logs an error.
-			if (e.cancelable) e.preventDefault();
-			const p = toBoard(t.clientX, t.clientY);
-			dragTo(p.x, p.y);
-		} else if (Math.hypot(t.clientX - touch.x, t.clientY - touch.y) > 3) {
-			clearTimeout(touch.timer);
-			touch = null;
-		}
-	}
-
-	function ontouchend(e: TouchEvent) {
-		if (!touch) return;
-		clearTimeout(touch.timer);
-		clearTimeout(touch.lockTimer);
-		if (!touch.drawing) {
-			e.preventDefault();
-			const p = toBoard(touch.x, touch.y);
-			begin(p.x, p.y, false);
-		}
-		commit();
-		touch = null;
-		last = null;
-	}
-
-	$effect(() => {
-		const el = svg;
-		if (!el) return;
-		el.addEventListener('touchmove', ontouchmove, { passive: false });
-		el.addEventListener('touchend', ontouchend, { passive: false });
-		return () => {
-			el.removeEventListener('touchmove', ontouchmove);
-			el.removeEventListener('touchend', ontouchend);
-		};
-	});
+	);
 
 	// ---- Keyboard: cursor on dots ---------------------------------------------------------------
 
 	let keyMove = false;
-	const DIRS: Record<string, [number, number]> = {
-		ArrowUp: [-1, 0],
-		ArrowDown: [1, 0],
-		ArrowLeft: [0, -1],
-		ArrowRight: [0, 1],
-		w: [-1, 0],
-		s: [1, 0],
-		a: [0, -1],
-		d: [0, 1]
-	};
 
-	function isTyping(e: KeyboardEvent) {
-		const t = e.target as HTMLElement | null;
-		return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
-	}
-
-	function onkeydown(e: KeyboardEvent) {
+	function onkeydown(e: KeyPress): boolean {
 		if (e.key === 'Shift') shiftHeld = true;
-		if (!keyboard || blank || isTyping(e)) return;
-		const dir = DIRS[e.key] ?? DIRS[e.key.toLowerCase()];
+		if (blank) return false;
+		const dir = direction(e.key);
 		const isArrow = e.key.startsWith('Arrow');
 		if (dir && (isArrow || (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey))) {
 			e.preventDefault();
@@ -552,9 +452,9 @@
 					pending = p;
 				}
 			}
-			return;
+			return true;
 		}
-		if (!cursor) return;
+		if (!cursor) return false;
 		if (e.key === 'Escape') {
 			pending = null;
 			cursor = null;
@@ -566,15 +466,18 @@
 			pending = null;
 			keyMove = false;
 		}
+		return false;
 	}
 
-	function onkeyup(e: KeyboardEvent) {
+	function onkeyup(e: KeyPress) {
 		if (e.key === 'Shift') shiftHeld = false;
 		if (keyMove && (e.key === 'Control' || e.key === 'Meta')) {
 			keyMove = false;
 			commit();
 		}
 	}
+
+	$effect(() => keys?.({ keydown: onkeydown, keyup: onkeyup, blur: () => (shiftHeld = false) }));
 
 	// ---- Drawing helpers ------------------------------------------------------------------------
 
@@ -642,43 +545,21 @@
 	}
 
 	/** Win animation: every region in its own colour for a moment. */
-	const celebrationFill = $derived.by(() => {
-		if (!celebrate || blank) return null;
-		const slot = colourRegions(a.region, w, h, CELEBRATION_COLOURS.length);
-		return Array.from({ length: w * h }, (_, i) => CELEBRATION_COLOURS[slot[a.region[i]]]);
-	});
+	const celebrationFill = $derived(celebrate && !blank ? celebrationFills(a.region, w, h) : null);
 </script>
-
-<!-- Capture phase: the board handles its keys before the game's shortcuts see them -->
-<svelte:window
-	onkeydowncapture={onkeydown}
-	{onkeyup}
-	onblur={() => (shiftHeld = false)}
-	onscrollcapture={() => pending && !touch && (pending = null)}
-/>
 
 <!-- Only the svg itself is hit: a touch keeps its target even when the shape under the finger
      is redrawn mid-drag (a removed target would swallow the rest of the gesture). -->
 <svg
-	bind:this={svg}
 	{width}
 	{height}
 	viewBox="0 0 {width} {height}"
 	class="block outline-none select-none [&_*]:pointer-events-none"
-	style:touch-action={touchMode === 'draw'
-		? 'none'
-		: touchMode === 'pan'
-			? 'auto'
-			: 'pan-x pan-y pinch-zoom'}
+	style:touch-action={touchAction(touchMode)}
 	role="grid"
 	tabindex="-1"
 	aria-label={t('game.board')}
-	{onpointerdown}
-	{onpointermove}
-	{onpointerup}
-	onpointercancel={() => ((pending = null), (last = null))}
-	oncontextmenu={(e) => e.preventDefault()}
-	{ontouchstart}
+	{@attach input}
 >
 	<rect x={px(0)} y={py(0)} width={w * cellSize} height={h * cellSize} fill={colours.paper} />
 
@@ -901,17 +782,12 @@
 	{#if settings.showCoordinates && !blank}
 		<g
 			fill={colours.label}
-			font-size={Math.min(12, pad * 0.75)}
+			font-size={labelFontSize(pad)}
 			text-anchor="middle"
 			dominant-baseline="central"
 		>
-			{#each { length: w } as _, c (c)}
-				<text x={px(c + 0.5)} y={pad / 2}>{columnLabel(c)}</text>
-				<text x={px(c + 0.5)} y={height - pad / 2}>{columnLabel(c)}</text>
-			{/each}
-			{#each { length: h } as _, r (r)}
-				<text x={pad / 2} y={py(r + 0.5)}>{r + 1}</text>
-				<text x={width - pad / 2} y={py(r + 0.5)}>{r + 1}</text>
+			{#each coordinateLabels(w, h, cellSize, pad) as label, k (k)}
+				<text x={label.x} y={label.y}>{label.text}</text>
 			{/each}
 		</g>
 	{/if}

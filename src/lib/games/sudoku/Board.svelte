@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { CELEBRATION_COLOURS, colourRegions, columnLabel } from '../../core/grid';
+	import { boardPad, celebrationFills, coordinateLabels, labelFontSize } from '../../core/grid';
+	import { toBoardPoint } from '../../client/boardInput';
+	import { direction } from '../../client/keys';
 	import { colours } from '../../core/palette';
-	import type { BoardProps } from '../../core/types';
+	import type { BoardProps, KeyPress } from '../../core/types';
 	import { t } from '../../i18n/index.svelte';
 	import {
 		bit,
@@ -29,7 +31,7 @@
 		readonly,
 		lastChange,
 		blank = false,
-		keyboard = false,
+		keys,
 		celebrate = false,
 		ontool,
 		onmove,
@@ -44,7 +46,7 @@
 		puzzle.cages ? { width: size, height: size, cages: puzzle.cages } : null
 	);
 	const cageOf = $derived(calc ? cageIndex(calc) : null);
-	const pad = $derived(settings.showCoordinates && !blank ? Math.max(14, cellSize * 0.6) : 3);
+	const pad = $derived(boardPad(cellSize, settings.showCoordinates && !blank, 3));
 	const width = $derived(size * cellSize + 2 * pad);
 	const height = $derived(size * cellSize + 2 * pad);
 	const digits = $derived(Array.from({ length: size }, (_, k) => k + 1));
@@ -102,7 +104,7 @@
 
 	// Auto notes: a game without any notes gets them as soon as it is shown.
 	$effect(() => {
-		if (!settings.autoNotes || !keyboard || blank || readonly) return;
+		if (!settings.autoNotes || !keys || blank || readonly) return;
 		if (board.notes.some(Boolean) || !grid.some((d) => !d)) return;
 		onmove(board, []);
 	});
@@ -175,9 +177,7 @@
 
 	function cellAt(clientX: number, clientY: number): number {
 		const rect = svg!.getBoundingClientRect();
-		const scale = rect.width / width;
-		const x = ((clientX - rect.left) / scale - pad) / cellSize;
-		const y = ((clientY - rect.top) / scale - pad) / cellSize;
+		const { x, y } = toBoardPoint(rect, clientX, clientY, { width, pad, cellSize });
 		if (x < 0 || y < 0 || x >= size || y >= size) return -1;
 		return Math.floor(y) * size + Math.floor(x);
 	}
@@ -197,29 +197,9 @@
 		else enter(d, d !== 0 && tool === 'note');
 	}
 
-	const DIRS: Record<string, [number, number]> = {
-		ArrowUp: [-1, 0],
-		ArrowDown: [1, 0],
-		ArrowLeft: [0, -1],
-		ArrowRight: [0, 1],
-		w: [-1, 0],
-		s: [1, 0],
-		a: [0, -1],
-		d: [0, 1]
-	};
-
-	function isTyping(e: KeyboardEvent) {
-		const target = e.target as HTMLElement | null;
-		return (
-			!!target &&
-			(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-		);
-	}
-
-	function onkeydown(e: KeyboardEvent) {
-		if (!keyboard || blank || isTyping(e) || e.altKey || e.ctrlKey || e.metaKey) return;
-		if (document.querySelector('dialog[open]')) return;
-		const dir = DIRS[e.key] ?? DIRS[e.key.toLowerCase()];
+	function onkeydown(e: KeyPress): boolean {
+		if (blank || e.altKey || e.ctrlKey || e.metaKey) return false;
+		const dir = direction(e.key);
 		if (dir) {
 			e.preventDefault();
 			if (selected < 0) selected = 0;
@@ -228,40 +208,45 @@
 				const c = ((selected % size) + dir[1] + size) % size;
 				selected = r * size + c;
 			}
-			return;
+			return true;
 		}
 		// Space switches between digits and notes, with or without a selected cell. A focused
 		// button or link keeps Space for itself.
 		if (e.key === ' ') {
 			const tag = (e.target as HTMLElement | null)?.tagName;
-			if (!ontool || tag === 'BUTTON' || tag === 'A') return;
+			if (!ontool || tag === 'BUTTON' || tag === 'A') return false;
 			e.preventDefault();
 			ontool(tool === 'note' ? 'digit' : 'note');
-			return;
+			return true;
 		}
-		if (selected < 0) return;
+		if (selected < 0) return false;
 		// Digit keys by their code, so that Shift+digit (a note) works on every keyboard layout.
 		const m = /^(?:Digit|Numpad)(\d)$/.exec(e.code);
 		const d = m ? Number(m[1]) : -1;
 		if (d >= 1 && d <= size) {
 			e.preventDefault();
 			enter(d, e.shiftKey !== (tool === 'note'));
-		} else if (d === 0 || e.key === 'Backspace' || e.key === 'Delete') {
+			return true;
+		}
+		// Shift+0 is "=" on German keyboards: it erases here and must not start a new puzzle.
+		if (d === 0 || e.key === 'Backspace' || e.key === 'Delete') {
 			e.preventDefault();
 			enter(0, false);
-		} else if (e.key === 'Escape') {
+			return true;
+		}
+		if (e.key === 'Escape') {
 			selected = -1;
 			armed = null;
 		}
+		return false;
 	}
 
+	$effect(() => keys?.({ keydown: onkeydown }));
+
 	/** Win animation: every box in its own colour for a moment. */
-	const celebrationFill = $derived.by(() => {
-		if (!celebrate || blank) return null;
-		const boxes = cageOf ?? geometry(size).box;
-		const slot = colourRegions(boxes, size, size, CELEBRATION_COLOURS.length);
-		return boxes.map((b) => CELEBRATION_COLOURS[slot[b]]);
-	});
+	const celebrationFill = $derived(
+		celebrate && !blank ? celebrationFills(cageOf ?? geometry(size).box, size, size) : null
+	);
 
 	/** Notes sit in a small grid; under the cage label in Calcudoku. */
 	const noteCols = $derived(calc ? Math.ceil(Math.sqrt(size)) : box.w);
@@ -286,9 +271,6 @@
 			: cellSize / 2
 	);
 </script>
-
-<!-- Capture phase: the board handles its keys before the game's shortcuts see them -->
-<svelte:window onkeydowncapture={onkeydown} />
 
 <div class="flex flex-col items-center" style:width="{width}px">
 	<!-- Only the svg itself is hit, like the other boards. -->
@@ -461,15 +443,12 @@
 		{#if settings.showCoordinates && !blank}
 			<g
 				fill={colours.label}
-				font-size={Math.min(12, pad * 0.75)}
+				font-size={labelFontSize(pad)}
 				text-anchor="middle"
 				dominant-baseline="central"
 			>
-				{#each { length: size } as _, k (k)}
-					<text x={pad + (k + 0.5) * cellSize} y={pad / 2}>{columnLabel(k)}</text>
-					<text x={pad + (k + 0.5) * cellSize} y={height - pad / 2}>{columnLabel(k)}</text>
-					<text x={pad / 2} y={pad + (k + 0.5) * cellSize}>{k + 1}</text>
-					<text x={width - pad / 2} y={pad + (k + 0.5) * cellSize}>{k + 1}</text>
+				{#each coordinateLabels(size, size, cellSize, pad) as label, k (k)}
+					<text x={label.x} y={label.y}>{label.text}</text>
 				{/each}
 			</g>
 		{/if}
