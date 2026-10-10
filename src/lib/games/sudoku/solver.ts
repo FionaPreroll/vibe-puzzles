@@ -109,7 +109,7 @@ export type Level = (typeof Level)[keyof typeof Level];
  */
 const intersections = new Map<number, { within: number[]; clear: number[] }[]>();
 
-function lockedPairs(size: number) {
+export function lockedPairs(size: number) {
 	let out = intersections.get(size);
 	if (out) return out;
 	const { units } = geometry(size);
@@ -134,7 +134,7 @@ export interface Rating {
 }
 
 /** All k-element subsets of `items`. */
-function subsets<T>(items: readonly T[], k: number): T[][] {
+export function subsets<T>(items: readonly T[], k: number): T[][] {
 	if (k === 0) return [[]];
 	const out: T[][] = [];
 	for (let i = 0; i <= items.length - k; i++) {

@@ -7,11 +7,14 @@
 	let {
 		open = $bindable(false),
 		game,
-		tools
+		tools,
+		hint
 	}: {
 		open: boolean;
 		game: GameModule;
 		/** The tool keys work (controls are shown). */ tools: boolean;
+		/** The puzzle being played has hints. */
+		hint: boolean;
 	} = $props();
 
 	const mod =
@@ -21,7 +24,7 @@
 		[['X', 'Shift+Z', `${mod}+Y`], t('shortcuts.redo')],
 		[['Enter'], t('shortcuts.done')],
 		[['+'], t('shortcuts.newPuzzle')],
-		...(game.hint ? [[['H'], t('shortcuts.hint')]] : []),
+		...(hint ? [[['H'], t('shortcuts.hint')]] : []),
 		[[`${mod}+S`], t('shortcuts.save')],
 		[[`${mod}+Shift+S`], t('shortcuts.add')],
 		...(game.toolOptions && tools ? [[[']'], t('shortcuts.colourTool')]] : []),

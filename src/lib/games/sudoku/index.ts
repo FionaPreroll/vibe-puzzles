@@ -1,6 +1,7 @@
 import { withCommon } from '../../core/settings';
 import type { GameModule } from '../../core/types';
 import Board from './Board.svelte';
+import { sudokuHint } from './hint';
 import { sudokuLogic } from './logic';
 import { emptySudokuState, type SudokuPuzzle, type SudokuState } from './rules';
 import { CALC_TUTORIAL, CALC_TUTORIAL_STEPS } from './calcTutorial';
@@ -29,5 +30,21 @@ export const sudoku: GameModule<SudokuPuzzle, SudokuState> = {
 		calc: { puzzle: CALC_TUTORIAL, start: emptySudokuState, steps: CALC_TUTORIAL_STEPS }
 	},
 	board: Board,
-	padRows: 1.2
+	padRows: 1.2,
+	hint(puzzle, state) {
+		const hint = sudokuHint(puzzle, state);
+		if (!hint) return null;
+		const key = (k: string) => `games.sudoku.hints.${k}`;
+		if (hint.kind === 'mistake')
+			return { kind: 'mistake', spotlight: hint.cells.map(String), text: ['game.hintMistake'] };
+		const spotlight = [String(hint.cell)];
+		if (hint.kind === 'stuck') return { kind: 'stuck', spotlight, text: [key('stuck')] };
+		const { digit, unit, elimination } = hint;
+		const text = elimination
+			? [key(elimination), key(unit ? `then.${unit}` : 'thenNaked')]
+			: [key(unit ? `hidden.${unit}` : 'naked')];
+		return { kind: 'step', spotlight, text, params: { digit } };
+	},
+	// Calcudoku has cages instead of boxes; its hints are still to come.
+	hintsFor: (variant) => variant.mode !== 'calc'
 };

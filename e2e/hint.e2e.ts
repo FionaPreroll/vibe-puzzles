@@ -54,3 +54,30 @@ test.describe('320 px wide', () => {
 		await expect(board.locator('g.spotlight > *')).toHaveCount(2);
 	});
 });
+
+test('the Sudoku hint names the digit and its cell; Calcudoku has none yet', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
+	await page.goto('/sudoku?v=9e');
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await expect(board.locator('text').first()).toBeVisible();
+	const spotlight = board.locator('g.spotlight > *');
+	const status = page.getByRole('status');
+
+	await page.keyboard.press('h');
+	await expect(status).toContainText('fits only in the highlighted cell');
+	const digit = (await status.textContent())!.match(/In its box, (\d)/)![1];
+	await expect(spotlight).toHaveCount(1);
+
+	// Entering that digit in the highlighted cell is right: the next hint is another step.
+	const cell = (await spotlight.boundingBox())!;
+	await page.mouse.click(cell.x + cell.width / 2, cell.y + cell.height / 2);
+	await page.keyboard.press(digit);
+	await expect(spotlight).toHaveCount(0);
+	await page.getByRole('button', { name: 'Hint' }).click();
+	await expect(status).toContainText('fits only in the highlighted cell');
+
+	await page.goto('/sudoku?v=c5e');
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByRole('button', { name: 'Hint' })).toHaveCount(0);
+});
