@@ -1,5 +1,6 @@
 import { periodKey, type SpecialKind } from '../core/variants';
 import { load, save } from './storage';
+import { statsKey } from './storageKeys';
 
 /** Per-device statistics for one game variant. */
 export interface VariantStats {
@@ -47,10 +48,8 @@ const empty = (): VariantStats => ({
 	recent: []
 });
 
-const key = (game: string, variant: string) => `stats:${game}:${variant}`;
-
 export function getStats(game: string, variant: string): VariantStats {
-	return { ...empty(), ...load<Partial<VariantStats>>(key(game, variant), {}) };
+	return { ...empty(), ...load<Partial<VariantStats>>(statsKey(game, variant), {}) };
 }
 
 export function recordSolve(
@@ -79,7 +78,7 @@ export function recordSolve(
 		s.periodStreak = continues ? (s.periodStreak ?? 1) + 1 : 1;
 		s.lastPeriod = period;
 	}
-	save(key(game, variant), s);
+	save(statsKey(game, variant), s);
 	return s;
 }
 
@@ -88,5 +87,5 @@ export function breakStreak(game: string, variant: string) {
 	const s = getStats(game, variant);
 	if (s.streak === 0) return;
 	s.streak = 0;
-	save(key(game, variant), s);
+	save(statsKey(game, variant), s);
 }

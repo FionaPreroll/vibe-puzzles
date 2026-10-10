@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { GameModule } from '../core/types';
+	import type { AnyGame } from '../games';
 	import { t, tList, toolLabel } from '../i18n/index.svelte';
 	import Dialog from './Dialog.svelte';
 
@@ -11,7 +11,7 @@
 		hint
 	}: {
 		open: boolean;
-		game: GameModule;
+		game: AnyGame;
 		/** The tool keys work (controls are shown). */ tools: boolean;
 		/** The puzzle being played has hints. */
 		hint: boolean;

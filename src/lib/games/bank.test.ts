@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { checksDifficulty, filesToCheck, readType, typeDir } from '../../../scripts/collection';
 import { layoutType, serialize, specialPuzzleId, type BankFile } from '../core/bank';
+import type { BasePuzzle } from '../core/types';
 import { decodePuzzleId } from '../core/variants';
 import { GAME_LOGIC } from './logic';
 
@@ -57,7 +58,7 @@ describe('puzzle collection', () => {
 
 				for (const [path, file] of Object.entries(files)) {
 					if (!('puzzles' in file) || !solveAgain(join('static', path))) continue;
-					for (const { id, puzzle, period } of (file as BankFile).puzzles) {
+					for (const { id, puzzle, period } of (file as BankFile<BasePuzzle>).puzzles) {
 						expect(logic.isValidPuzzle(puzzle, variant), `#${id}`).toBe(true);
 						expect(logic.countSolutions(puzzle, 2), `#${id}`).toEqual({ count: 1, finished: true });
 						if (!checksDifficulty(kind, period)) continue;

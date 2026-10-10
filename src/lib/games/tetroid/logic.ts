@@ -1,6 +1,7 @@
 import { neighbours, packDigits, unpackDigits } from '../../core/grid';
-import type { GameLogic, Settings } from '../../core/types';
+import type { GameLogic } from '../../core/types';
 import type { Variant } from '../../core/variants';
+import type { TetroidSettingKey } from './settings';
 import { solveTetroid } from './solver';
 import { generateTetroid } from './generator';
 import {
@@ -75,7 +76,7 @@ function regionsConnected(p: TetroidPuzzle): boolean {
 const isMarkArray = (a: unknown, n: number, max: number): a is number[] =>
 	Array.isArray(a) && a.length === n && a.every((x) => Number.isInteger(x) && x >= 0 && x <= max);
 
-export const tetroidLogic: GameLogic<TetroidPuzzle, TetroidState> = {
+export const tetroidLogic: GameLogic<TetroidPuzzle, TetroidState, TetroidSettingKey> = {
 	id: 'tetroid',
 	variants: TETROID_VARIANTS,
 	generate: (v, seed) => generateTetroid(v.width, v.height, v.difficulty, seed).puzzle,
@@ -99,8 +100,8 @@ export const tetroidLogic: GameLogic<TetroidPuzzle, TetroidState> = {
 		marks: new Array(p.width * p.height).fill(EMPTY),
 		auto: new Array(p.width * p.height).fill(0)
 	}),
-	afterMove: (p, s, settings: Settings) =>
-		applyAutoCrosses(p, s, !!settings.autoCrossCorners, !!settings.autoCrossRegions),
+	afterMove: (p, s, settings) =>
+		applyAutoCrosses(p, s, settings.autoCrossCorners, settings.autoCrossRegions),
 	isSolved: (p, s) => isSolvedMarks(p, (i) => s.marks[i] === SHADED),
 	answer: (_p, s) => s.marks.map((m) => (m === SHADED ? '1' : '0')).join(''),
 	verifyAnswer(p, answer) {

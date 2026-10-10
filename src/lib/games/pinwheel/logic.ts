@@ -1,6 +1,7 @@
 import { packDigits, unpackDigits } from '../../core/grid';
 import type { GameLogic } from '../../core/types';
 import type { Variant } from '../../core/variants';
+import type { PinwheelSettingKey } from './settings';
 import { solvePinwheel } from './solver';
 import { generatePinwheel } from './generator';
 import {
@@ -68,7 +69,7 @@ function answerOf(p: PinwheelPuzzle, s: PinwheelState): string {
 		.join('');
 }
 
-export const pinwheelLogic: GameLogic<PinwheelPuzzle, PinwheelState> = {
+export const pinwheelLogic: GameLogic<PinwheelPuzzle, PinwheelState, PinwheelSettingKey> = {
 	id: 'pinwheel',
 	variants: PINWHEEL_VARIANTS,
 	generate: (v, seed) => generatePinwheel(v.width, v.height, v.difficulty, seed).puzzle,

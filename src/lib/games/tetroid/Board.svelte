@@ -2,6 +2,7 @@
 	import { boardPad, celebrationFills, coordinateLabels, labelFontSize } from '../../core/grid';
 	import { colours } from '../../core/palette';
 	import type { BoardProps, KeyPress } from '../../core/types';
+	import type { TetroidSettingKey } from './settings';
 	import { boardInput, interpolate, touchAction, type BoardPoint } from '../../client/boardInput';
 	import { direction } from '../../client/keys';
 	import { analyze, CROSS, EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from './rules';
@@ -22,7 +23,7 @@
 		onmove,
 		spotlight,
 		area
-	}: BoardProps<TetroidPuzzle, TetroidState> = $props();
+	}: BoardProps<TetroidPuzzle, TetroidState, TetroidSettingKey> = $props();
 
 	const TYPE_COLOURS: Record<string, string> = {
 		L: colours.tetrominoL,

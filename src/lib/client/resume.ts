@@ -2,6 +2,7 @@ import { periodKey } from '../core/variants';
 import { GAME_LOGIC } from '../games/logic';
 import type { SavedGame } from './session.svelte';
 import { keys, load } from './storage';
+import { parseSaveKey, SAVE_PREFIX } from './storageKeys';
 
 /**
  * The most recently played game that the home page offers to continue: unsolved, with at least
@@ -11,13 +12,16 @@ import { keys, load } from './storage';
  */
 export function latestUnfinished(now = new Date()): { gameId: string; save: SavedGame } | null {
 	let best: { gameId: string; save: SavedGame } | null = null;
-	for (const key of keys('save:')) {
-		const [, gameId, variantKey, period] = key.split(':');
+	for (const key of keys(SAVE_PREFIX)) {
+		const slot = parseSaveKey(key);
+		if (!slot) continue;
+		const { game: gameId, variant: variantKey, period } = slot;
 		const logic = GAME_LOGIC[gameId];
 		const variant = logic?.variants.find((v) => v.key === variantKey);
 		const save = load<SavedGame | null>(key, null);
 		if (!logic || !variant || !save || save.solved || save.variant !== variantKey) continue;
 		if (variant.special && period !== periodKey(variant.special, now)) continue;
+		if (!logic.isValidPuzzle(save.puzzle, variant)) continue;
 		try {
 			const started =
 				save.checkpoints?.length > 0 ||

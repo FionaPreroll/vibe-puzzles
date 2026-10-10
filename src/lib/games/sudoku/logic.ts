@@ -1,6 +1,7 @@
 import { packDigits, unpackDigits } from '../../core/grid';
-import type { GameLogic, Settings } from '../../core/types';
+import type { GameLogic } from '../../core/types';
 import type { Variant } from '../../core/variants';
+import type { SudokuSettingKey } from './settings';
 import { generateCalc } from './calc/generator';
 import { isSolvedCalc, isValidCalcPuzzle } from './calc/rules';
 import { CalcLevel, rateCalc, solveCalc } from './calc/solver';
@@ -90,7 +91,7 @@ function unpackNotes(text: string, n: number): number[] {
 	});
 }
 
-export const sudokuLogic: GameLogic<SudokuPuzzle, SudokuState> = {
+export const sudokuLogic: GameLogic<SudokuPuzzle, SudokuState, SudokuSettingKey> = {
 	id: 'sudoku',
 	variants: SUDOKU_VARIANTS,
 	generate: (v, seed) =>
@@ -137,7 +138,7 @@ export const sudokuLogic: GameLogic<SudokuPuzzle, SudokuState> = {
 		return q.givens.some(Boolean) && !conflicts(size, q.givens).some(Boolean);
 	},
 	emptyState: emptySudokuState,
-	afterMove(p, s, settings: Settings) {
+	afterMove(p, s, settings) {
 		if (settings.autoNotes) s = fillMissingNotes(p, s);
 		return settings.autoRemoveNotes ? pruneNotes(p, s) : s;
 	},

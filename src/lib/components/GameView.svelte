@@ -20,6 +20,13 @@
 		type StoredSettings
 	} from '../client/settings.svelte';
 	import { load, save, setQuotaHandler } from '../client/storage';
+	import {
+		boardZoomKey,
+		KEY,
+		settingsKey,
+		tutorialDoneKey,
+		tutorialSeenKey
+	} from '../client/storageKeys';
 	import { ask } from '../client/confirm.svelte';
 	import { trapFocus } from '../client/focus';
 	import { isTyping, KeyDispatcher } from '../client/keys';
@@ -27,7 +34,8 @@
 	import { decodePuzzleId } from '../core/variants';
 	import { CELEBRATION_COLOURS } from '../core/grid';
 	import { lightColours } from '../core/palette';
-	import type { GameModule, TouchMode } from '../core/types';
+	import type { TouchMode } from '../core/types';
+	import type { AnyGame } from '../games';
 	import { t, tList, toolHint, toolLabel, variantLabel } from '../i18n/index.svelte';
 	import HalloweenBurst from './halloween/Burst.svelte';
 	import HoldButton from './HoldButton.svelte';
@@ -35,7 +43,7 @@
 	import ShortcutsDialog from './ShortcutsDialog.svelte';
 	import VariantPicker from './VariantPicker.svelte';
 
-	let { game }: { game: GameModule } = $props();
+	let { game }: { game: AnyGame } = $props();
 
 	const settings = untrack(() => new GameSettings(game.id, game.settings));
 	const session = untrack(() => new GameSession(game, settings));
@@ -49,7 +57,7 @@
 	let touchMode = $state<TouchMode>(loadTouchMode());
 	let showSettings = $state(false);
 	let showShortcuts = $state(false);
-	let rulesHidden = $state(load<boolean>('rulesHidden', false));
+	let rulesHidden = $state(load<boolean>(KEY.rulesHidden, false));
 	let panelCollapsed = $state(false);
 	/** Phone layout: the side panel opens as a drawer. */
 	let menuOpen = $state(false);
@@ -118,15 +126,13 @@
 	});
 
 	const variant = $derived(session.variant);
-	// `boardZoom` (not `zoom`): older versions stored an absolute zoom under `zoom:`, which would
-	// otherwise blow up the board now that zoom is relative to the fitted size.
-	const zoomKey = $derived(`boardZoom:${game.id}:${variant.key}`);
+	const zoomKey = $derived(boardZoomKey(game.id, variant.key));
 	/** Zoom relative to the automatic size (1 = fit the screen). */
 	let zoom = $derived(load<number>(zoomKey, 1));
 
 	/** Largest cell size that shows the whole board without scrolling. */
 	const fitCell = $derived.by(() => {
-		const p = session.puzzle as { width: number; height: number } | null;
+		const p = session.puzzle;
 		if (!p || !areaWidth) return 36;
 		// The boards' padding in cells: up to 0.2 per side (Pinwheel), more with coordinates.
 		const margin = settings.values.showCoordinates ? 1.3 : 0.4;
@@ -311,9 +317,9 @@
 		);
 		const params = new URL(location.href).searchParams;
 		// The very first visit of a game starts with its tutorial.
-		if (game.tutorial && params.size === 0 && !load<boolean>(`tutorialSeen:${game.id}`, false)) {
-			save(`tutorialSeen:${game.id}`, true);
-			if (!load<boolean>(`tutorialDone:${game.id}`, false)) {
+		if (game.tutorial && params.size === 0 && !load<boolean>(tutorialSeenKey(game.id), false)) {
+			save(tutorialSeenKey(game.id), true);
+			if (!load<boolean>(tutorialDoneKey(game.id), false)) {
 				goto(resolve('/[game]/tutorial', { game: game.id }), { replaceState: true });
 				return;
 			}
@@ -364,7 +370,7 @@
 			hasServer = ok;
 			if (!ok || !currentPlayer()) return;
 			if (back) session.refreshFromServer();
-			const remote = await pullSave<StoredSettings>(`settings:${game.id}`);
+			const remote = await pullSave<StoredSettings>(settingsKey(game.id));
 			if (remote) settings.merge(remote.data);
 		});
 
@@ -385,7 +391,7 @@
 		JSON.stringify(settings.values);
 		if (!hasServer || !currentPlayer() || !settings.updatedAt) return;
 		const data = settings.syncable();
-		const t = setTimeout(() => pushSave(`settings:${game.id}`, data, data.updatedAt), 1500);
+		const t = setTimeout(() => pushSave(settingsKey(game.id), data, data.updatedAt), 1500);
 		return () => clearTimeout(t);
 	});
 
@@ -649,7 +655,7 @@
 						class="link text-sm"
 						onclick={() => {
 							rulesHidden = !rulesHidden;
-							save('rulesHidden', rulesHidden);
+							save(KEY.rulesHidden, rulesHidden);
 						}}>{rulesHidden ? t('game.show') : t('game.hide')}</button
 					>
 				</div>
@@ -1141,7 +1147,7 @@
 			settings={settings.values}
 			{tool}
 			{toolOption}
-			cellSize={Math.min(40, Math.floor(640 / ((session.puzzle as { width: number }).width + 1)))}
+			cellSize={Math.min(40, Math.floor(640 / (session.puzzle.width + 1)))}
 			readonly={true}
 			lastChange={new Set()}
 			blank={true}

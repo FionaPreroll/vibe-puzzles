@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { neighbours } from '../core/grid';
 import { regularCounterpart, type Variant } from '../core/variants';
 import { pinwheelLogic, PINWHEEL_VARIANTS } from './pinwheel/logic';
+import { PINWHEEL_SETTINGS } from './pinwheel/settings';
 import { generatePinwheel } from './pinwheel/generator';
 import {
 	analyze,
@@ -12,9 +13,11 @@ import {
 	type PinwheelPuzzle
 } from './pinwheel/rules';
 import { tetroidLogic, TETROID_VARIANTS } from './tetroid/logic';
+import { TETROID_SETTINGS } from './tetroid/settings';
 import { generateTetroid } from './tetroid/generator';
 import { CROSS, EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from './tetroid/rules';
 import { GAME_LOGIC } from './logic';
+import { settingValues } from '../core/settings';
 
 const variant = (variants: Variant[], key: string) => variants.find((v) => v.key === key)!;
 
@@ -172,17 +175,21 @@ describe('tetroid logic', () => {
 
 	it('adds auto crosses only when the settings ask for them, and takes them back', () => {
 		const s = solvedState();
-		const off = tetroidLogic.afterMove!(puzzle, s, {});
+		const off = tetroidLogic.afterMove!(puzzle, s, settingValues(TETROID_SETTINGS));
 		expect(off.marks.filter((m) => m === CROSS)).toHaveLength(0);
 		// Every region holds its tetromino, so all other cells get crossed.
-		const on = tetroidLogic.afterMove!(puzzle, s, { autoCrossRegions: true });
+		const on = tetroidLogic.afterMove!(
+			puzzle,
+			s,
+			settingValues(TETROID_SETTINGS, { autoCrossRegions: true })
+		);
 		expect(on.marks.every((m) => m !== EMPTY)).toBe(true);
 		expect(on.auto.filter((x) => x === 1)).toHaveLength(36 - 4 * (Math.max(...puzzle.regions) + 1));
 		// Unshading every cell removes the automatic crosses again.
 		const cleared = tetroidLogic.afterMove!(
 			puzzle,
 			{ marks: on.marks.map((m) => (m === SHADED ? EMPTY : m)), auto: on.auto },
-			{ autoCrossRegions: true }
+			settingValues(TETROID_SETTINGS, { autoCrossRegions: true })
 		);
 		expect(cleared.marks.every((m) => m === EMPTY)).toBe(true);
 	});
@@ -269,12 +276,26 @@ describe('pinwheel logic', () => {
 		const s = emptyPinwheelState(puzzle);
 		s.colors = solution.map((k) => colourOf.get(k)!);
 		expect(Math.max(...s.colors)).toBeLessThanOrEqual(9);
-		expect(pinwheelLogic.acceptAlternative!(puzzle, s, { autoSubmit: false })).toBeNull();
-		const accepted = pinwheelLogic.acceptAlternative!(puzzle, s, { autoSubmit: true });
+		expect(
+			pinwheelLogic.acceptAlternative!(
+				puzzle,
+				s,
+				settingValues(PINWHEEL_SETTINGS, { autoSubmit: false })
+			)
+		).toBeNull();
+		const accepted = pinwheelLogic.acceptAlternative!(
+			puzzle,
+			s,
+			settingValues(PINWHEEL_SETTINGS, { autoSubmit: true })
+		);
 		expect(accepted && pinwheelLogic.isSolved(puzzle, accepted)).toBe(true);
 		// An uncoloured board adds no lines, so it is not accepted.
 		expect(
-			pinwheelLogic.acceptAlternative!(puzzle, emptyPinwheelState(puzzle), { autoSubmit: true })
+			pinwheelLogic.acceptAlternative!(
+				puzzle,
+				emptyPinwheelState(puzzle),
+				settingValues(PINWHEEL_SETTINGS, { autoSubmit: true })
+			)
 		).toBeNull();
 	});
 

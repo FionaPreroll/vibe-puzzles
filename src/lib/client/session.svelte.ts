@@ -1,5 +1,5 @@
 import { formatDuration } from '../core/time';
-import type { GameModule, Hint } from '../core/types';
+import type { BasePuzzle, GameModule, Hint } from '../core/types';
 import {
 	decodePuzzleId,
 	encodePuzzleId,
@@ -8,6 +8,7 @@ import {
 	regularCounterpart,
 	SPECIAL_RETENTION_DAYS,
 	specialSeed,
+	type SpecialKind,
 	type Variant
 } from '../core/variants';
 import { currentPlayer, issuePuzzle, pullSave, pushSave, serverPuzzles, submitScore } from './api';
@@ -18,6 +19,7 @@ import { breakStreak, recordSolve } from './stats';
 import { t, variantLabel } from '../i18n/index.svelte';
 import type { ScoreResult } from './api';
 import { keys, load, remove, save } from './storage';
+import { parseSaveKey, SAVE_PREFIX, saveKey } from './storageKeys';
 
 export interface SavedGame<S = unknown> {
 	version: 1;
@@ -58,7 +60,7 @@ export interface OpenOptions {
  * One game in progress: puzzle, player state, history, checkpoints, timers, persistence and
  * submission. Game specifics come from the GameModule.
  */
-export class GameSession<P = unknown, S = unknown> {
+export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K extends string = never> {
 	variantIndex = $state(0);
 	/** 0 while the puzzle came from the server and is not solved yet (the ID reveals the seed). */
 	puzzleId = $state(0);
@@ -107,8 +109,8 @@ export class GameSession<P = unknown, S = unknown> {
 	private touched = false;
 
 	constructor(
-		readonly game: GameModule<P, S>,
-		readonly settings: GameSettings
+		readonly game: GameModule<P, S, K>,
+		readonly settings: GameSettings<K>
 	) {}
 
 	/** Storage key of the game on the board. */
@@ -176,9 +178,8 @@ export class GameSession<P = unknown, S = unknown> {
 				period = periodKey(v.special);
 			}
 		}
-		const slot = period ?? (v.special ? 'archive' : undefined);
-		const saveKey = `save:${this.game.id}:${v.key}${slot ? `:${slot}` : ''}`;
-		return { index, puzzleId, period, saveKey };
+		const key = saveKey({ game: this.game.id, variant: v.key, period, archive: !!v.special });
+		return { index, puzzleId, period, saveKey: key };
 	}
 
 	/** Whether `open` continues this saved game rather than starting the requested one. */
@@ -191,8 +192,8 @@ export class GameSession<P = unknown, S = unknown> {
 	 * puzzle type keeps one game, and the requested puzzle would take its place.
 	 */
 	replacesGame(variantKey: string, opts: OpenOptions): boolean {
-		const { index, puzzleId, saveKey } = this.target(variantKey, opts);
-		const saved = load<SavedGame<S> | null>(saveKey, null);
+		const { index, puzzleId, saveKey: key } = this.target(variantKey, opts);
+		const saved = load<SavedGame<S> | null>(key, null);
 		if (!saved || saved.solved || this.resumable(saved, puzzleId, opts)) return false;
 		if (!this.game.isValidPuzzle(saved.puzzle, this.game.variants[index])) return false;
 		return this.hasProgress(saved);
@@ -777,11 +778,11 @@ export class GameSession<P = unknown, S = unknown> {
 /** Remove saves of special periods that are over. */
 export function cleanupSpecialSaves() {
 	const now = Date.now();
-	for (const key of keys('save:')) {
-		const parts = key.split(':');
-		if (parts.length !== 4 || parts[3] === 'archive') continue;
-		const kind = parts[2] as keyof typeof SPECIAL_RETENTION_DAYS;
-		const days = SPECIAL_RETENTION_DAYS[kind];
+	for (const key of keys(SAVE_PREFIX)) {
+		const slot = parseSaveKey(key);
+		if (!slot?.period) continue;
+		// Special types are keyed by their kind (`daily`, …).
+		const days = SPECIAL_RETENTION_DAYS[slot.variant as SpecialKind];
 		if (!days) continue;
 		const saved = load<SavedGame | null>(key, null);
 		if (!saved || now - saved.updatedAt > days * 86400000) remove(key);
@@ -794,7 +795,7 @@ export function cleanupSpecialSaves() {
  * that changed longest ago. Returns whether anything was removed.
  */
 export function freeSaveSpace(keep: string, agree: () => boolean): boolean {
-	const others = keys('save:')
+	const others = keys(SAVE_PREFIX)
 		.filter((key) => key !== keep)
 		.map((key) => ({ key, save: load<SavedGame | null>(key, null) }));
 	const solved = others.filter((o) => !o.save || o.save.solved);
