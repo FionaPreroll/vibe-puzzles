@@ -314,6 +314,20 @@ html[data-theme='halloween'] .next-up {
 	transform-origin: 50% 0;
 	animation: halloween-swing 4s ease-in-out infinite;
 }
+/* A long thread swings slower and less far. */
+.halloween-sway {
+	transform-origin: 50% 0;
+	animation: halloween-sway 7s ease-in-out infinite;
+}
+@keyframes halloween-sway {
+	0%,
+	100% {
+		transform: rotate(-2deg);
+	}
+	50% {
+		transform: rotate(2deg);
+	}
+}
 @keyframes halloween-swing {
 	0%,
 	100% {
@@ -413,6 +427,7 @@ html.dark .jack-lit {
 @media (prefers-reduced-motion: reduce) {
 	.halloween-bob,
 	.halloween-swing,
+	.halloween-sway,
 	.halloween-drift,
 	.halloween-drift-slow,
 	.halloween-flap,
