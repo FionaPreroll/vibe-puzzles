@@ -391,7 +391,7 @@ const de: Dictionary = {
 				'Alle schattierten Felder hängen zusammen.',
 				'Kein 2×2-Block darf ganz schattiert sein.'
 			],
-			notes: ['Mögliche Formen sind also L, I, T und S. Das Quadrat O fällt durch Regel 4 weg.'],
+			notes: ['Oft entscheidend: Hängt noch alles zusammen, wenn das Tetromino hier liegt?'],
 			toolHint: {
 				rotate:
 					'Jeder Klick auf ein Feld schaltet weiter: leer, schattiert, Kreuz und wieder leer. Rechtsklick schaltet rückwärts.',
@@ -433,16 +433,23 @@ const de: Dictionary = {
 					done: 'Geschafft: Dieses Tetromino ist ein L. Das klappt auch in größeren Bereichen: Ein Feld, das jedes dort noch mögliche Tetromino enthält, ist immer schattiert.'
 				},
 				{
-					text: 'Kein 2×2-Block darf ganz schattiert sein. Die beiden markierten Felder würden jeweils einen 2×2-Block vollmachen, in dem schon drei Felder schattiert sind.',
-					task: 'Markiere beide Felder mit einem Kreuz: Wähle das Werkzeug Kreuz (✕) und klicke oder tippe sie an. Ein Kreuz heißt, das Feld bleibt leer.',
+					text: 'Kein 2×2-Block darf ganz schattiert sein. Die drei markierten Felder würden jeweils einen 2×2-Block vollmachen, in dem schon drei Felder schattiert sind.',
+					task: 'Markiere alle drei Felder mit einem Kreuz: Wähle das Werkzeug Kreuz (✕) und klicke oder tippe sie an. Ein Kreuz heißt, das Feld bleibt leer.',
 					done: 'Richtig: Diese Felder bleiben leer, du hast sie endgültig ausgeschlossen.'
 				},
 				{
-					text: 'Zwei weitere Regeln. Alle schattierten Felder bilden zusammen eine verbundene Gruppe. Und zwei Tetrominos derselben Form dürfen sich über eine Bereichsgrenze nicht berühren; gedrehte oder gespiegelte zählen als dieselbe Form. Ein L auf dem markierten Feld scheidet also aus: Es würde das L darüber berühren.'
+					text: 'Nächste Regel: Alle schattierten Felder bilden zusammen eine verbundene Gruppe. Die Gruppe oben links hat nur noch einen freien Nachbarn, das markierte Feld. Alle anderen sind angekreuzt. Auch unten und rechts kommen aber schattierte Felder hin.',
+					task: 'Schattiere das markierte Feld: Nur darüber kann die Gruppe den Rest erreichen.',
+					done: 'Genau: Ohne dieses Feld wäre die Gruppe oben links eingesperrt.'
 				},
 				{
-					text: 'Zwei Bereiche sind noch übrig: der unten und der große rechts. Nutze die Regeln aus den Schritten davor. Felder, die eine Regel verletzen, werden rot.',
-					task: 'Schattiere in beiden Bereichen je ein Tetromino.'
+					text: 'Unten passen nur noch zwei Tetrominos: ein I in der unteren Reihe oder ein L, das links ein Feld nach oben geht. Frag dich bei jedem: Könnte dann noch alles zusammenhängen? Mit dem L käme die Gruppe unten nur über das Feld über ihrem rechten Ende hinaus. Das Tetromino im großen Bereich enthält aber schon das Feld oben rechts und reicht nicht bis dorthin.',
+					task: 'Schattiere das Tetromino, das unten übrig bleibt.',
+					done: 'Richtig: Mit dem L wäre die Gruppe unten abgeschnitten. Das ist kein Raten: Du prüfst eine Lage und siehst sofort, dass sie scheitert. Dieser Schluss hilft oft, wenn keine andere Regel mehr greift.'
+				},
+				{
+					text: 'Die letzte Regel: Zwei Tetrominos derselben Form dürfen sich über eine Bereichsgrenze nicht berühren. Gedrehte oder gespiegelte zählen als dieselbe Form. Das Tetromino rechts berührt schon das L oben, ist also kein L. Felder, die eine Regel verletzen, werden rot.',
+					task: 'Schattiere das Tetromino im großen Bereich rechts.'
 				}
 			]
 		},

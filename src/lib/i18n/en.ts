@@ -394,7 +394,7 @@ const en = {
 				'All shaded cells form one connected area.',
 				'No 2×2 block may be fully shaded.'
 			],
-			notes: ['So the possible shapes are L, I, T and S. The square O is ruled out by rule 4.'],
+			notes: ['Often decisive: could everything still connect if the tetromino went here?'],
 			toolHint: {
 				rotate:
 					'Each click on a cell steps it from empty to shaded to cross and back. Right click goes the other way.',
@@ -434,16 +434,23 @@ const en = {
 					done: 'Done: that tetromino is an L. This works in bigger regions too: a cell that every tetromino still possible there covers is always shaded.'
 				},
 				{
-					text: 'No 2×2 block may be fully shaded. The two marked cells each sit next to three shaded cells of a 2×2 block, so shading them would complete it.',
-					task: 'Mark both cells with a cross: pick the Cross tool (✕) and click or tap them. A cross means the cell stays empty.',
+					text: 'No 2×2 block may be fully shaded. The three marked cells each sit next to three shaded cells of a 2×2 block, so shading them would complete it.',
+					task: 'Mark all three cells with a cross: pick the Cross tool (✕) and click or tap them. A cross means the cell stays empty.',
 					done: 'Right: these cells stay empty, and you have ruled them out for good.'
 				},
 				{
-					text: 'Two more rules. All shaded cells together form one connected group. And two tetrominoes of the same shape may not touch across a region border; turned or mirrored ones count as the same shape. So an L on the marked cell is ruled out: it would touch the L above it.'
+					text: 'Next rule: all shaded cells together form one connected group. The top-left group has only one free neighbour left, the marked cell. All others are crossed out. But shaded cells will come at the bottom and on the right too.',
+					task: 'Shade the marked cell: it is the only way for the group to reach the rest.',
+					done: 'Exactly: without this cell, the top-left group would be locked in.'
 				},
 				{
-					text: 'Two regions are left: the one at the bottom and the big one on the right. Use the rules from the steps before. Cells that break a rule turn red.',
-					task: 'Shade one tetromino in each of the two regions.'
+					text: 'Only two tetrominoes still fit at the bottom: an I along the bottom row, or an L that goes up one cell on the left. Ask for each: could everything still connect? With the L, the bottom group could only get out through the cell above its right end. But the tetromino in the big region already holds the top-right cell and cannot reach that far.',
+					task: 'Shade the tetromino that is left at the bottom.',
+					done: 'Right: with the L, the bottom group would be cut off. That is not guessing: you test one placement and see at once that it fails. This deduction often helps when no other rule does.'
+				},
+				{
+					text: 'The last rule: two tetrominoes of the same shape may not touch across a region border. Turned or mirrored ones count as the same shape. The tetromino on the right already touches the L above it, so it is not an L. Cells that break a rule turn red.',
+					task: 'Shade the tetromino in the big region on the right.'
 				}
 			]
 		},
