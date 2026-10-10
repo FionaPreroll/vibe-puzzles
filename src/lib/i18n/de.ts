@@ -206,7 +206,7 @@ const de: Dictionary = {
 	},
 	tool: {
 		rotate: 'Wechseln',
-		black: 'Schwarz',
+		black: 'Schattieren',
 		cross: 'Kreuz',
 		blank: 'Leeren',
 		color: 'Farbe',
@@ -383,40 +383,40 @@ const de: Dictionary = {
 	},
 	games: {
 		tetroid: {
-			tagline: 'Schwärze in jedem Bereich ein Tetromino.',
+			tagline: 'Schattiere in jedem Bereich ein Tetromino.',
 			rules: [
-				'Schwärze in jedem Bereich genau ein Tetromino (4 zusammenhängende Felder).',
+				'Schattiere in jedem Bereich genau ein Tetromino (4 zusammenhängende Felder).',
 				'Zwei gleiche Tetrominos dürfen sich nicht an einer Kante berühren. Gedrehte oder gespiegelte zählen als gleich.',
-				'Alle schwarzen Felder hängen zusammen.',
-				'Kein 2×2-Block darf ganz schwarz sein.'
+				'Alle schattierten Felder hängen zusammen.',
+				'Kein 2×2-Block darf ganz schattiert sein.'
 			],
 			notes: ['Mögliche Formen sind also L, I, T und S. Das Quadrat O fällt durch Regel 4 weg.'],
 			toolHint: {
 				rotate:
-					'Jeder Klick auf ein Feld schaltet weiter: leer, schwarz, Kreuz und wieder leer. Rechtsklick schaltet rückwärts.',
-				black: 'Ein Klick schwärzt ein Feld, ein zweiter leert es. Rechtsklick setzt ein Kreuz.',
+					'Jeder Klick auf ein Feld schaltet weiter: leer, schattiert, Kreuz und wieder leer. Rechtsklick schaltet rückwärts.',
+				black: 'Ein Klick schattiert ein Feld, ein zweiter leert es. Rechtsklick setzt ein Kreuz.',
 				cross:
 					'Ein Klick markiert ein Feld mit einem Kreuz: Es bleibt weiß. Ein zweiter Klick entfernt das Kreuz.',
 				blank: 'Leert jedes Feld, das du anklickst oder überstreichst.'
 			},
 			controlsMouse:
-				'Klicke auf ein Feld, um es zu schwärzen, Rechtsklick setzt ein Kreuz. Ziehen markiert mehrere Felder. Die Tasten 1–4 wählen ein Werkzeug.',
+				'Klicke auf ein Feld, um es zu schattieren, Rechtsklick setzt ein Kreuz. Ziehen markiert mehrere Felder. Die Tasten 1–4 wählen ein Werkzeug.',
 			controlsTouch:
-				'Tippe ein Feld an, um zwischen schwarz, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Felder.',
+				'Tippe ein Feld an, um zwischen schattiert, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Felder.',
 			hints: {
 				region:
 					'Schau, welche Tetrominos bei seiner Form und deinen Markierungen noch in den hinterlegten Bereich passen.',
 				sameShape:
 					'Streiche Tetrominos, die ein gleiches berühren würden: Alles, was in einem hinterlegten Nachbarbereich noch passt, hat diese Form.',
-				square: 'Streiche Tetrominos, die einen schwarzen 2×2-Block vervollständigen würden.',
+				square: 'Streiche Tetrominos, die einen schattierten 2×2-Block vervollständigen würden.',
 				neighbour:
 					'Streiche Tetrominos, die sich mit jeder Möglichkeit in einem hinterlegten Nachbarbereich beißen: Jede davon würde eine gleiche Form berühren oder einen 2×2-Block vervollständigen.',
 				lookAhead:
-					'Streiche Tetrominos, die die schwarzen Felder trennen würden: Frag dich, ob noch alles zusammenhängen könnte, wenn das Tetromino dort läge.',
+					'Streiche Tetrominos, die die schattierten Felder trennen würden: Frag dich, ob noch alles zusammenhängen könnte, wenn das Tetromino dort läge.',
 				assumption:
 					'Hier hilft keine einfache Regel weiter, also probier es aus: Angenommen, das Tetromino dieses Bereichs läge auf den hinterlegten Feldern. Spiel das durch, dann wird eine Regel verletzt. Also liegt es woanders.',
 				shade:
-					'Alle Tetrominos, die in diesem Bereich noch möglich sind, enthalten die markierten Felder: Schwärze sie.',
+					'Alle Tetrominos, die in diesem Bereich noch möglich sind, enthalten die markierten Felder: Schattiere sie.',
 				cross:
 					'Keins der Tetrominos, die in diesem Bereich noch möglich sind, enthält die markierten Felder: Sie bleiben leer.',
 				stuck:
@@ -424,24 +424,24 @@ const de: Dictionary = {
 			},
 			tutorial: [
 				{
-					text: 'Jeder dick umrandete Bereich braucht genau ein Tetromino: vier schwarze Felder, die mit ihren Seiten aneinanderstoßen. Es gibt vier Formen, I, L, T und S, die auch gedreht oder gespiegelt sein dürfen. Der Bereich oben links ist schon fertig: Er enthält ein S, und Kreuze markieren seine leeren Felder. Schau dir das Spielfeld erst einmal nur an: Ab Schritt 2 schwärzt du selbst.'
+					text: 'Jeder dick umrandete Bereich braucht genau ein Tetromino: vier schattierte Felder, die mit ihren Seiten aneinanderstoßen. Es gibt vier Formen, I, L, T und S, die auch gedreht oder gespiegelt sein dürfen. Der Bereich oben links ist schon fertig: Er enthält ein S, und Kreuze markieren seine leeren Felder. Schau dir das Spielfeld erst einmal nur an: Ab Schritt 2 schattierst du selbst.'
 				},
 				{
 					text: 'Der Bereich oben rechts hat genau vier Felder, sein Tetromino füllt ihn also ganz aus.',
-					task: 'Schwärze alle vier Felder dieses Bereichs.',
-					done: 'Geschafft: Dieses Tetromino ist ein L. Das klappt auch in größeren Bereichen: Ein Feld, das jedes dort noch mögliche Tetromino enthält, ist immer schwarz.'
+					task: 'Schattiere alle vier Felder dieses Bereichs.',
+					done: 'Geschafft: Dieses Tetromino ist ein L. Das klappt auch in größeren Bereichen: Ein Feld, das jedes dort noch mögliche Tetromino enthält, ist immer schattiert.'
 				},
 				{
-					text: 'Kein 2×2-Block darf ganz schwarz sein. Die beiden markierten Felder würden jeweils einen 2×2-Block vollmachen, in dem schon drei Felder schwarz sind.',
+					text: 'Kein 2×2-Block darf ganz schattiert sein. Die beiden markierten Felder würden jeweils einen 2×2-Block vollmachen, in dem schon drei Felder schattiert sind.',
 					task: 'Markiere beide Felder mit einem Kreuz: Wähle das Werkzeug Kreuz (✕) und klicke oder tippe sie an. Ein Kreuz heißt, das Feld bleibt leer.',
 					done: 'Richtig: Diese Felder bleiben leer, du hast sie endgültig ausgeschlossen.'
 				},
 				{
-					text: 'Zwei weitere Regeln. Alle schwarzen Felder bilden zusammen eine verbundene Gruppe. Und zwei Tetrominos derselben Form dürfen sich über eine Bereichsgrenze nicht berühren; gedrehte oder gespiegelte zählen als dieselbe Form. Ein L auf dem markierten Feld scheidet also aus: Es würde das L darüber berühren.'
+					text: 'Zwei weitere Regeln. Alle schattierten Felder bilden zusammen eine verbundene Gruppe. Und zwei Tetrominos derselben Form dürfen sich über eine Bereichsgrenze nicht berühren; gedrehte oder gespiegelte zählen als dieselbe Form. Ein L auf dem markierten Feld scheidet also aus: Es würde das L darüber berühren.'
 				},
 				{
 					text: 'Zwei Bereiche sind noch übrig: der unten und der große rechts. Nutze die Regeln aus den Schritten davor. Felder, die eine Regel verletzen, werden rot.',
-					task: 'Schwärze in beiden Bereichen je ein Tetromino.'
+					task: 'Schattiere in beiden Bereichen je ein Tetromino.'
 				}
 			]
 		},
