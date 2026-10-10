@@ -114,6 +114,17 @@ html:not(.dark) .only-night {
 	html[data-theme='halloween'] .panel {
 		border-radius: 1.125rem;
 	}
+	/* The board's surface: a pressed-paper edge by day, an ember glow by night. */
+	html[data-theme='halloween'] .board-stage {
+		border-radius: 1.375rem;
+		box-shadow:
+			0 0 0 1px var(--color-stone-200),
+			0 3px 0 var(--color-stone-200),
+			0 18px 36px -16px rgb(124 45 18 / 0.35);
+	}
+	html[data-theme='halloween'] .play-bar {
+		border-radius: 1rem;
+	}
 	html[data-theme='halloween'] .section-title {
 		color: var(--color-indigo-700);
 	}
@@ -144,6 +155,12 @@ html:not(.dark) .only-night {
 	}
 	html.dark[data-theme='halloween'] .panel {
 		border-radius: 0.875rem;
+	}
+	html.dark[data-theme='halloween'] .board-stage {
+		border-radius: 1rem;
+		box-shadow:
+			0 0 0 1px rgb(242 138 46 / 0.22),
+			0 18px 48px -18px rgb(242 138 46 / 0.4);
 	}
 	html.dark[data-theme='halloween'] .section-title {
 		font-family: 'Cinzel', Georgia, serif;

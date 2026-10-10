@@ -42,6 +42,7 @@ test('the board follows night mode; screenshots and prints stay light', async ({
 	await expect(page.locator('html')).toHaveClass(/\bdark\b/);
 	expect(await background(board)).toBe(DARK);
 
+	await page.getByRole('button', { name: 'More actions' }).click();
 	await page.getByRole('button', { name: 'Share board' }).click();
 	const image = page.getByRole('link', { name: 'Screenshot (PNG)' });
 	expect(await lightShare(page, (await image.getAttribute('href'))!)).toBeGreaterThan(0.5);

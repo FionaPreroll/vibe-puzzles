@@ -46,7 +46,9 @@ test('the hint first tints where to look, then points at the step, and at a wron
 test.describe('320 px wide', () => {
 	test.use({ viewport: { width: 320, height: 640 }, isMobile: true, hasTouch: true });
 
-	test('the hint sits in the "more" menu, so the toolbar keeps one row', async ({ page }) => {
+	test('the play bar at the bottom keeps undo, redo, the tools and the hint in one row', async ({
+		page
+	}) => {
 		await page.addInitScript(() => {
 			localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
 			localStorage.setItem('vp:puzzleSource', '"bank"');
@@ -54,14 +56,21 @@ test.describe('320 px wide', () => {
 		await page.goto(PUZZLE);
 		const board = page.locator('.overflow-x-auto svg[role="grid"]');
 		await expect(board).toBeVisible({ timeout: 30_000 });
-		const undo = (await page.getByRole('button', { name: 'Undo' }).boundingBox())!;
-		const zoom = (await page.getByRole('button', { name: 'Zoom' }).boundingBox())!;
-		expect(undo.y).toBe(zoom.y);
-		await expect(page.getByRole('button', { name: 'Hint' })).toBeHidden();
+		const names = ['Undo', 'Redo', 'Cycle', 'Black', 'Cross', 'Blank', 'Hint'];
+		const boxes = await Promise.all(
+			names.map(
+				async (name) => (await page.getByRole('button', { name, exact: true }).boundingBox())!
+			)
+		);
+		for (const [i, box] of boxes.entries()) {
+			expect(box.y, names[i]).toBe(boxes[0].y);
+			expect(box.x + box.width, names[i]).toBeLessThanOrEqual(320);
+		}
+		// Below the board, not on it.
+		const grid = (await board.boundingBox())!;
+		expect(boxes[0].y).toBeGreaterThan(grid.y + grid.height);
 
-		await page.getByRole('button', { name: 'More' }).click();
-		const hint = page.getByRole('group', { name: 'More' }).getByRole('button', { name: 'Hint' });
-		await hint.click();
+		await page.getByRole('button', { name: 'Hint', exact: true }).click();
 		expect(await board.locator('g.area > *').count()).toBeGreaterThan(0);
 		await page.getByRole('button', { name: 'Show the step' }).click();
 		await expect(board.locator('g.spotlight > *')).toHaveCount(2);

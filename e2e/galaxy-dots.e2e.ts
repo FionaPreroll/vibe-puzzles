@@ -34,7 +34,7 @@ test('solving hides the dots inside the galaxies', async ({ page }) => {
 
 	const [x, y] = edges[edges.length - 1];
 	await page.mouse.click(grid.x + x * cell, grid.y + y * cell);
-	await expect(page.getByRole('button', { name: 'New puzzle' })).toHaveClass(/btn-primary/);
+	await expect(page.getByRole('button', { name: 'Share success' })).toBeVisible();
 	// Five dots lie inside galaxies with no line at them (three of them under centres).
 	await expect(dots).toHaveCount(59);
 });

@@ -37,7 +37,13 @@
 	import type { TouchMode } from '../core/types';
 	import type { AnyGame } from '../games';
 	import { t, tList, toolHint, toolLabel, variantLabel } from '../i18n/index.svelte';
+	import HalloweenBat from './halloween/Bat.svelte';
 	import HalloweenBurst from './halloween/Burst.svelte';
+	import HalloweenCandle from './halloween/Candle.svelte';
+	import HalloweenCandyCorn from './halloween/CandyCorn.svelte';
+	import HalloweenCobweb from './halloween/Cobweb.svelte';
+	import HalloweenPumpkin from './halloween/Pumpkin.svelte';
+	import HalloweenSpider from './halloween/Spider.svelte';
 	import HoldButton from './HoldButton.svelte';
 	import SettingsDialog from './SettingsDialog.svelte';
 	import ShortcutsDialog from './ShortcutsDialog.svelte';
@@ -87,12 +93,16 @@
 	let viewportHeight = $state(800);
 	let wide = $state(true);
 	let toolbarHeight = $state(0);
-	/** Marks the end of the toolbar; unlike the toolbar itself it never sticks. */
-	let toolbarEnd: HTMLDivElement | undefined = $state();
-	/** Height of the tools, ID line and buttons below the board. */
+	/** Height of the play bar, ID line and buttons below the board. */
 	let belowHeight = $state(0);
-	/** Page offset of the board area's top, measured from the toolbar. */
+	/** Page offset of the board's top edge, without the board's own surface around it. */
 	let boardTop = $state(200);
+	/** Width of the board with its surface: the rows above and below it are no wider. */
+	let stageWidth = $state(0);
+	/** The play bar below the board on wide screens; the board's stage is at least as wide. */
+	let barWidth = $state(0);
+	/** Padding of the board's surface (p-2, lg:p-3), which the board's size leaves room for. */
+	const stagePad = $derived(wide ? 12 : 8);
 	/** Everything on the page below the board area: tools, buttons, paddings and the footer. */
 	let afterBoard = $state(120);
 	let pageRoot: HTMLDivElement | undefined = $state();
@@ -101,9 +111,9 @@
 	let gameColumn: HTMLElement | undefined = $state();
 
 	function measure() {
-		if (!toolbarEnd || !boardArea || !pageRoot || !gameColumn) return;
-		// Board area: mt-3 plus the scroll container's py-1.
-		boardTop = toolbarEnd.getBoundingClientRect().top + window.scrollY + 16;
+		if (!boardArea || !pageRoot || !gameColumn) return;
+		// The scroll container's py-1 sits above the board's surface.
+		boardTop = boardArea.getBoundingClientRect().top + window.scrollY + 4;
 		// Up to the page's end, but not where a longer side panel reaches beyond the game column.
 		const root = pageRoot.getBoundingClientRect().bottom;
 		const rootContent = root - parseFloat(getComputedStyle(pageRoot).paddingBottom);
@@ -147,8 +157,8 @@
 		const margin = settings.values.showCoordinates ? 1.3 : 0.4;
 		// Everything above and below the board (on phones that includes the room kept free for the
 		// fixed tool bar).
-		const chrome = boardTop + 4 + afterBoard;
-		const byWidth = areaWidth / (p.width + margin);
+		const chrome = boardTop + 4 + afterBoard + 2 * stagePad;
+		const byWidth = (areaWidth - 2 * stagePad) / (p.width + margin);
 		const byHeight =
 			Math.max(240, viewportHeight - chrome) / (p.height + margin + (game.padRows ?? 0));
 		return Math.max(16, Math.min(96, Math.floor(Math.min(byWidth, byHeight))));
@@ -277,7 +287,8 @@
 
 	/** Render the board SVG into a PNG data URL, in the light colours whatever the theme. */
 	async function screenshot(): Promise<string | null> {
-		const svg = boardArea?.querySelector('svg');
+		// The board itself, not a decoration around it.
+		const svg = boardArea?.querySelector<SVGSVGElement>('svg[role="grid"]');
 		if (!svg) return null;
 		// Sizes from now: opening the share panel can shrink the board before the image loads.
 		const width = svg.width.baseVal.value;
@@ -534,8 +545,8 @@
 	);
 	const swatchNames = $derived(tList('swatch'));
 	const showTools = $derived(!settings.values.hideControls);
-	/** Desktop: tools join the sticky top bar when that setting is on, else they sit below the board. */
-	const toolsOnTop = $derived(!!settings.values.stickyToolbar);
+	/** Halloween: room beside the board for decorations, which must not make the page scroll. */
+	const decorBeside = $derived(wide && areaWidth - stageWidth >= 2 * 96);
 	const label = $derived(variantLabel(variant));
 	// A hint's first look tints only where to look; the next press points at the step itself.
 	const hintSpotlight = $derived(
@@ -574,7 +585,7 @@
 	<title>{session.puzzle ? `${game.name} · ${label}` : game.name} · {t('app.name')}</title>
 </svelte:head>
 
-{#snippet toolButtons(compact: boolean)}
+{#snippet toolButtons()}
 	{#each game.tools as tl (tl.id)}
 		{@const name = toolLabel(game.id, tl)}
 		{@const hint = toolHint(game.id, tl.id)}
@@ -583,30 +594,114 @@
 				? game.toolOptions.values.find((o) => o.value === toolOption)?.color
 				: undefined}
 		<button
-			class={compact
-				? `flex min-w-14 flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-xs ${tool === tl.id ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100' : 'text-stone-600 dark:text-stone-300'}`
-				: `btn ${tool === tl.id ? 'btn-active' : ''}`}
+			class="play-btn {tool === tl.id ? 'play-btn-active' : ''}"
 			aria-pressed={tool === tl.id}
 			title="{name} ({tl.key}){hint ? `: ${hint}` : ''}"
 			onclick={() => {
 				if (game.toolOptions?.tool === tl.id && tool === tl.id) showSwatches = !showSwatches;
-				else if (game.toolOptions?.tool === tl.id && compact) showSwatches = true;
+				else if (game.toolOptions?.tool === tl.id && !wide) showSwatches = true;
 				setTool(tl.id);
 			}}
 		>
 			{#if swatch}
-				<span
-					class="inline-block {compact
-						? 'size-5'
-						: 'size-3'} rounded-full border border-stone-400 align-middle"
-					style:background={swatch}
-				></span>
+				<span class="size-5 rounded-full border border-stone-400" style:background={swatch}></span>
 			{:else}
-				<span class={compact ? 'text-lg leading-5' : ''} aria-hidden="true">{tl.icon}</span>
+				<span class="text-lg leading-5" aria-hidden="true">{tl.icon}</span>
 			{/if}
 			{name}
 		</button>
 	{/each}
+{/snippet}
+
+<!-- Undo, redo, the tools and the hint: below the board on wide screens, at the bottom on phones -->
+{#snippet playButtons()}
+	<HoldButton
+		class="play-btn"
+		named={false}
+		label="{t('game.undo')} (Z)"
+		action={() => session.undo()}
+		disabled={session.past.length === 0 || session.readonly}
+	>
+		<svg viewBox="0 0 24 24" class="size-5" aria-hidden="true">
+			<path
+				d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			/>
+		</svg>{t('game.undoShort')}
+	</HoldButton>
+	<HoldButton
+		class="play-btn"
+		named={false}
+		label="{t('game.redo')} (X)"
+		action={() => session.redo()}
+		disabled={session.future.length === 0 || session.readonly}
+	>
+		<svg viewBox="0 0 24 24" class="size-5" aria-hidden="true">
+			<path
+				d="m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			/>
+		</svg>{t('game.redoShort')}
+	</HoldButton>
+	{#if showTools}
+		<span class="play-sep" aria-hidden="true"></span>
+		<div class="flex flex-[999] lg:gap-0.5" role="toolbar" aria-label={t('game.tools')}>
+			{@render toolButtons()}
+		</div>
+	{/if}
+	{#if session.canHint}
+		<span class="play-sep" aria-hidden="true"></span>
+		<!-- Stays once solved, greyed out, so nothing around it moves -->
+		<button
+			class="play-btn"
+			onclick={() => session.showHint()}
+			disabled={session.readonly || session.solved}
+			title={t('game.hintTitle')}
+		>
+			<svg viewBox="0 0 20 20" class="size-5" aria-hidden="true">
+				<path
+					d="M10 2.5a5.5 5.5 0 0 0-3.2 10c.5.4.7.9.7 1.5h5c0-.6.2-1.1.7-1.5a5.5 5.5 0 0 0-3.2-10ZM8 16.5h4M8.8 18.5h2.4"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.6"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</svg>{t('game.hint')}
+		</button>
+	{/if}
+{/snippet}
+
+<!-- Halloween: cobwebs on the board's surface; beside it, where there is room, a spider, a bat,
+     a jack-o'-lantern and a candle. None of it takes a click. -->
+{#snippet stageDecor()}
+	<div class="halloween-only pointer-events-none" aria-hidden="true">
+		<HalloweenCobweb class="absolute top-0 right-0 w-14 lg:w-16" />
+		<HalloweenCobweb class="absolute bottom-0 left-0 w-10 rotate-180 lg:w-12" />
+		{#if decorBeside}
+			<HalloweenSpider class="absolute top-0 right-full mr-8 w-8" />
+			<HalloweenBat
+				eyes
+				class="halloween-bob absolute top-10 left-full ml-8 w-16 text-[#7c3aed] dark:text-[#8b5cf6]"
+			/>
+			<div class="absolute right-full bottom-0 mr-6 flex items-end gap-1">
+				<HalloweenCandyCorn class="w-4" />
+				<HalloweenPumpkin face="night" class="w-16" />
+			</div>
+			<div class="absolute bottom-0 left-full ml-8 flex items-end gap-2">
+				<HalloweenCandle class="w-5" />
+				<HalloweenCandle class="w-3.5" />
+			</div>
+		{/if}
+	</div>
 {/snippet}
 
 {#snippet swatchRow()}
@@ -738,28 +833,68 @@
 
 	<!-- Game column -->
 	<section bind:this={gameColumn} class="min-w-0 flex-1">
-		<!-- Phone: game and puzzle type, opens the drawer -->
-		<button
-			class="mb-2 flex w-full items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 text-left shadow-sm lg:hidden dark:border-stone-800 dark:bg-stone-900"
-			onclick={() => (menuOpen = true)}
-			aria-label={t('game.openMenu')}
-			aria-expanded={menuOpen}
-		>
-			<span class="text-xl" aria-hidden="true">{game.icon}</span>
-			<span class="font-semibold">{game.name}</span>
-			<span class="text-stone-500 dark:text-stone-400">· {label}</span>
-			<span class="ml-auto text-stone-400" aria-hidden="true">☰</span>
-		</button>
-
+		<!-- The top bar: on phones the game and its type (opening the drawer), then the clock, the
+		     message on wide screens, and zoom, settings and shortcuts as icons -->
 		<div
 			bind:offsetHeight={toolbarHeight}
-			class="flex flex-wrap items-center gap-1.5 sm:gap-2 {settings.values.stickyToolbar
-				? 'sticky top-0 z-10 bg-stone-50/95 py-2 backdrop-blur dark:bg-stone-950/95'
+			class="stage-column flex min-h-11 items-center gap-1 {settings.values.stickyToolbar
+				? 'sticky top-0 z-10 bg-stone-50/95 py-1 backdrop-blur dark:bg-stone-950/95'
 				: ''}"
+			style:--stage="{stageWidth}px"
 		>
-			<div class="relative" bind:this={zoomBox}>
+			<button
+				class="-ml-1 flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1.5 text-left hover:bg-stone-100 lg:hidden dark:hover:bg-stone-800"
+				onclick={() => (menuOpen = true)}
+				aria-label={t('game.openMenu')}
+				aria-expanded={menuOpen}
+			>
+				<svg viewBox="0 0 24 24" class="size-5 shrink-0 text-stone-500" aria-hidden="true">
+					<path
+						d="M4 6h16M4 12h16M4 18h16"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+					/>
+				</svg>
+				<span class="min-w-0 leading-tight">
+					<span class="block truncate font-semibold"
+						><span aria-hidden="true">{game.icon}</span> {game.name}</span
+					>
+					<span class="block truncate text-xs text-stone-500 dark:text-stone-400">{label}</span>
+				</span>
+			</button>
+			<span class="flex-1 lg:hidden"></span>
+			{#if !settings.values.hideTimer}
+				<span
+					class="shrink-0 px-1 font-mono text-lg text-stone-700 tabular-nums dark:text-stone-200"
+					aria-label={t('game.timer')}
+				>
+					<!-- Milliseconds only once solved: a running clock should not make anyone nervous -->
+					{formatDuration(clock, session.solved)}
+				</span>
+				{#if settings.values.personalTimer && !session.solved}
+					<button class="btn-sm" onclick={() => session.setManualPause(!session.manualPause)}>
+						{session.manualPause ? t('game.resume') : t('game.pause')}
+					</button>
+				{/if}
+			{/if}
+			<!-- In the top bar on wide screens, so a message never pushes the board down -->
+			{#if session.message && wide}
+				<p class="ml-2 min-w-0 rounded-full px-3 py-1 text-sm {messageClass(session.message.kind)}">
+					{session.message.text}
+					{#if teaser}
+						<button class="ml-1 font-semibold underline" onclick={() => session.showHint()}
+							>{t('game.hintShow')}</button
+						>
+					{/if}
+				</p>
+			{/if}
+			<!-- Always in the page: screen readers miss live regions added together with their text -->
+			<p class="sr-only" role="status">{session.message?.text ?? ''}</p>
+			<span class="hidden flex-1 lg:block"></span>
+			<div class="relative -mr-1.5" bind:this={zoomBox}>
 				<button
-					class="btn"
+					class="btn-icon size-11 lg:size-10"
 					onclick={() => (showZoom = !showZoom)}
 					aria-expanded={showZoom}
 					aria-label={t('game.zoom')}
@@ -774,11 +909,11 @@
 							stroke-width="2"
 							stroke-linecap="round"
 						/>
-					</svg><span class="hidden sm:inline">{t('game.zoom')}</span>
+					</svg>
 				</button>
 				{#if showZoom}
 					<div
-						class="popover absolute top-full left-0 z-20 mt-1 flex w-72 items-center gap-2"
+						class="popover absolute top-full right-0 z-20 mt-1 flex w-72 items-center gap-2"
 						{@attach (node) => trapFocus(node, () => (showZoom = false))}
 					>
 						<input
@@ -797,86 +932,39 @@
 				{/if}
 			</div>
 			<button
-				class="btn"
+				class="btn-icon size-11 lg:size-10"
 				onclick={() => (showSettings = true)}
 				aria-label={t('game.settings')}
-				title={t('game.settings')}>⚙︎</button
+				title={t('game.settings')}
 			>
-			{#if !settings.values.hideTimer}
-				<span
-					class="min-w-20 rounded-md bg-white px-3 py-1.5 text-center font-mono tabular-nums shadow-sm dark:bg-stone-800"
-					aria-label={t('game.timer')}
-				>
-					<!-- Milliseconds only once solved: a running clock should not make anyone nervous -->
-					{formatDuration(clock, session.solved)}
-				</span>
-				{#if settings.values.personalTimer && !session.solved}
-					<button class="btn" onclick={() => session.setManualPause(!session.manualPause)}>
-						{session.manualPause ? t('game.resume') : t('game.pause')}
-					</button>
-				{/if}
-			{/if}
-			<HoldButton
-				label={t('game.undo')}
-				action={() => session.undo()}
-				disabled={session.past.length === 0 || session.readonly}>↶</HoldButton
-			>
-			<HoldButton
-				label={t('game.redo')}
-				action={() => session.redo()}
-				disabled={session.future.length === 0 || session.readonly}>↷</HoldButton
-			>
-			<!-- Gone once solved, which also leaves room for the longer final time on phones. Below
-			     360px the row has no room for it: it sits in the "more" menu there -->
-			{#if session.canHint && !session.solved}
+				<svg viewBox="0 0 24 24" class="size-5" aria-hidden="true">
+					<!-- A cog: teeth from a dashed ring, a ring and a hole -->
+					<g fill="none" stroke="currentColor">
+						<circle cx="12" cy="12" r="8.6" stroke-width="3.2" stroke-dasharray="3.38 3.38" />
+						<circle cx="12" cy="12" r="6" stroke-width="2" />
+						<circle cx="12" cy="12" r="2" stroke-width="2" />
+					</g>
+				</svg>
+			</button>
+			{#if !isTouch}
 				<button
-					class="btn max-[359px]:hidden max-sm:px-2"
-					onclick={() => session.showHint()}
-					disabled={session.readonly}
-					aria-label={t('game.hint')}
-					title={t('game.hintTitle')}
+					class="btn-icon hidden size-10 lg:inline-flex"
+					onclick={() => (showShortcuts = true)}
+					aria-label={t('shortcuts.title')}
+					title={t('shortcuts.open')}
 				>
-					<!-- A light bulb -->
-					<svg viewBox="0 0 20 20" class="size-5" aria-hidden="true">
-						<path
-							d="M10 2.5a5.5 5.5 0 0 0-3.2 10c.5.4.7.9.7 1.5h5c0-.6.2-1.1.7-1.5a5.5 5.5 0 0 0-3.2-10ZM8 16.5h4M8.8 18.5h2.4"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.6"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						/>
-					</svg><span class="hidden sm:inline">{t('game.hint')}</span>
+					<svg viewBox="0 0 24 24" class="size-5" aria-hidden="true">
+						<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+							<rect x="2.5" y="6" width="19" height="12" rx="2" />
+							<path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9" />
+						</g>
+					</svg>
 				</button>
 			{/if}
-			{#if showTools && toolsOnTop}
-				<div
-					class="hidden flex-wrap items-center gap-2 lg:flex"
-					role="toolbar"
-					aria-label={t('game.tools')}
-				>
-					{@render toolButtons(false)}
-					{@render swatchRow()}
-				</div>
-			{/if}
-			<!-- In the toolbar row, so a message never pushes the board down -->
-			{#if session.message && wide}
-				<p class="rounded-md px-3 py-1.5 text-sm {messageClass(session.message.kind)}">
-					{session.message.text}
-					{#if teaser}
-						<button class="ml-1 font-semibold underline" onclick={() => session.showHint()}
-							>{t('game.hintShow')}</button
-						>
-					{/if}
-				</p>
-			{/if}
-			<!-- Always in the page: screen readers miss live regions added together with their text -->
-			<p class="sr-only" role="status">{session.message?.text ?? ''}</p>
 		</div>
 
-		<div bind:this={toolbarEnd}></div>
-
-		<div class="relative mt-3" bind:clientWidth={areaWidth}>
+		<!-- Room around the board on phones, so a quick swipe does not hit a button -->
+		<div class="relative mt-5 lg:mt-4" bind:clientWidth={areaWidth}>
 			<div
 				bind:this={boardArea}
 				class="overflow-x-auto py-1"
@@ -885,56 +973,63 @@
 			>
 				{#if session.puzzle && session.state}
 					<div
-						class="relative mx-auto w-fit rounded-sm {session.paused ? 'invisible' : ''} {celebrate
-							? 'solved-glow'
-							: ''}"
+						class="board-stage"
+						bind:offsetWidth={stageWidth}
+						style:min-width={wide && barWidth ? `${barWidth}px` : undefined}
 					>
-						<Board
-							puzzle={session.puzzle}
-							state={session.state}
-							settings={settings.values}
-							{tool}
-							{toolOption}
-							{cellSize}
-							readonly={session.readonly}
-							lastChange={session.lastChange}
-							spotlight={hintSpotlight}
-							area={hintArea}
-							keys={keys.attach}
-							ontool={showTools ? setTool : undefined}
-							{celebrate}
-							{touchMode}
-							onmove={(next, changed) => session.move(next, changed)}
-						/>
-						{#if celebrate && theme.look === 'halloween'}
-							<HalloweenBurst night={theme.night} />
-						{:else if celebrate}
-							<!-- Clipped to the board so the sparkles never resize the page -->
-							<div
-								class="solved-burst pointer-events-none absolute inset-0 overflow-hidden"
-								aria-hidden="true"
-							>
-								<!-- Confetti raining down, sparkles bursting from the middle -->
-								{#each Array.from({ length: 36 }, (_, i) => i) as i (i)}
-									<i
-										class="confetti"
-										style:--x="{(i * 37) % 100}%"
-										style:--c={CELEBRATION_COLOURS[i % CELEBRATION_COLOURS.length]}
-										style:--d="{(i % 6) * 70}ms"
-										style:--dx="{((i * 53) % 81) - 40}px"
-										style:--turn="{((i * 97) % 5) + 1}turn"
-										style:--r={i % 3 === 0 ? '50%' : '2px'}
-									></i>
-								{/each}
-								{#each Array.from({ length: 12 }, (_, i) => i) as i (i)}
-									<span
-										style:--a="{i * 30}deg"
-										style:--d="{(i % 3) * 60}ms"
-										style:--c={CELEBRATION_COLOURS[(i * 3) % CELEBRATION_COLOURS.length]}>✦</span
-									>
-								{/each}
-							</div>
-						{/if}
+						{@render stageDecor()}
+						<div
+							class="relative z-10 mx-auto w-fit rounded-sm {session.paused
+								? 'invisible'
+								: ''} {celebrate ? 'solved-glow' : ''}"
+						>
+							<Board
+								puzzle={session.puzzle}
+								state={session.state}
+								settings={settings.values}
+								{tool}
+								{toolOption}
+								{cellSize}
+								readonly={session.readonly}
+								lastChange={session.lastChange}
+								spotlight={hintSpotlight}
+								area={hintArea}
+								keys={keys.attach}
+								ontool={showTools ? setTool : undefined}
+								{celebrate}
+								{touchMode}
+								onmove={(next, changed) => session.move(next, changed)}
+							/>
+							{#if celebrate && theme.look === 'halloween'}
+								<HalloweenBurst night={theme.night} />
+							{:else if celebrate}
+								<!-- Clipped to the board so the sparkles never resize the page -->
+								<div
+									class="solved-burst pointer-events-none absolute inset-0 overflow-hidden"
+									aria-hidden="true"
+								>
+									<!-- Confetti raining down, sparkles bursting from the middle -->
+									{#each Array.from({ length: 36 }, (_, i) => i) as i (i)}
+										<i
+											class="confetti"
+											style:--x="{(i * 37) % 100}%"
+											style:--c={CELEBRATION_COLOURS[i % CELEBRATION_COLOURS.length]}
+											style:--d="{(i % 6) * 70}ms"
+											style:--dx="{((i * 53) % 81) - 40}px"
+											style:--turn="{((i * 97) % 5) + 1}turn"
+											style:--r={i % 3 === 0 ? '50%' : '2px'}
+										></i>
+									{/each}
+									{#each Array.from({ length: 12 }, (_, i) => i) as i (i)}
+										<span
+											style:--a="{i * 30}deg"
+											style:--d="{(i % 3) * 60}ms"
+											style:--c={CELEBRATION_COLOURS[(i * 3) % CELEBRATION_COLOURS.length]}>✦</span
+										>
+									{/each}
+								</div>
+							{/if}
+						</div>
 					</div>
 				{:else if !session.loading}
 					<!-- Creating the puzzle failed; the message says why -->
@@ -988,32 +1083,24 @@
 			{/if}
 		</div>
 
-		<div bind:offsetHeight={belowHeight}>
-			{#if showTools}
-				<!-- Wide screens: tools below the board, unless they sit in the sticky bar -->
-				{#if !toolsOnTop}
-					<div
-						class="mt-3 hidden flex-wrap items-center gap-2 lg:flex"
-						role="toolbar"
-						aria-label={t('game.tools')}
-					>
-						{@render toolButtons(false)}
-						{@render swatchRow()}
-					</div>
-				{/if}
-				<!-- Phones: a fixed bar at the bottom, in reach of the thumb -->
-				<div
-					bind:offsetHeight={barHeight}
-					class="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden dark:border-stone-800 dark:bg-stone-900/95"
-				>
-					{#if game.toolOptions && showSwatches}
-						<div class="mb-1.5 flex justify-center">{@render swatchRow()}</div>
-					{/if}
-					<div class="mx-auto flex max-w-md gap-1" role="toolbar" aria-label={t('game.tools')}>
-						{@render toolButtons(true)}
-					</div>
+		<div bind:offsetHeight={belowHeight} class="stage-column" style:--stage="{stageWidth}px">
+			<!-- Wide screens: the play bar right below the board, no wider than it needs -->
+			<div class="mt-4 hidden flex-col items-center gap-2 lg:flex">
+				<div class="play-bar flex w-max" bind:offsetWidth={barWidth}>
+					{@render playButtons()}
 				</div>
-			{/if}
+				{@render swatchRow()}
+			</div>
+			<!-- Phones: the play bar fixed at the bottom, in reach of the thumb -->
+			<div
+				bind:offsetHeight={barHeight}
+				class="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 px-1 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden dark:border-stone-800 dark:bg-stone-900/95"
+			>
+				{#if game.toolOptions && showSwatches}
+					<div class="mb-1.5 flex justify-center">{@render swatchRow()}</div>
+				{/if}
+				<div class="mx-auto flex max-w-md items-center">{@render playButtons()}</div>
+			</div>
 
 			{#if settings.values.showCheckpoints}
 				<div
@@ -1054,111 +1141,120 @@
 				</div>
 			{/if}
 
-			<p class="mt-4 text-xs text-stone-600 sm:text-sm dark:text-stone-400">
-				{t('game.idLine', { variant: label })}:
-				{#if session.puzzleId}
-					<span class="font-mono select-all">{session.puzzleId.toLocaleString('en-US')}</span>
-					{#if session.source === 'bank'}
-						<span class="hidden text-stone-500 sm:inline">({t('game.fromBank')})</span>
+			<!-- The puzzle's ID, then at most three buttons: one stands out only when it is the way
+			     on ("Done" without automatic submitting, "Share success" once solved) -->
+			<div
+				class="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-3 lg:mt-4 lg:justify-between"
+			>
+				<p
+					class="w-full text-center text-xs text-stone-500 lg:w-auto lg:text-left lg:text-sm dark:text-stone-400"
+				>
+					{t('game.puzzleId')}:
+					{#if session.puzzleId}
+						<span class="font-mono select-all">{session.puzzleId.toLocaleString('en-US')}</span>
+						{#if session.source === 'bank'}
+							<span class="hidden text-stone-400 sm:inline">({t('game.fromBank')})</span>
+						{/if}
+					{:else}
+						<span title={t('game.idHiddenTitle')}>{t('game.idHidden')}</span>
 					{/if}
-				{:else}
-					<span title={t('game.idHiddenTitle')}>{t('game.idHidden')}</span>
-				{/if}
-			</p>
-
-			<!-- Most used first; on narrow screens the rare actions sit in a "more" menu -->
-			{#snippet rareActions(menu: boolean)}
-				{@const cls = menu ? 'menu-item' : 'btn hidden lg:inline-flex'}
-				{#if menu && session.canHint && !session.solved}
-					<button
-						class="menu-item min-[360px]:hidden"
-						onclick={() => ((moreOpen = false), session.showHint())}
-						disabled={session.readonly}>{t('game.hint')}</button
-					>
-				{/if}
-				<button
-					class={cls}
-					onclick={() => ((moreOpen = false), startOver())}
-					disabled={session.loading}>{t('game.startOver')}</button
-				>
-				<button
-					class={cls}
-					onclick={() => ((moreOpen = false), makeShare())}
-					disabled={session.loading || !session.puzzleId}>{t('game.share')}</button
-				>
-				<button class={cls} onclick={() => ((moreOpen = false), window.print())}
-					>{t('game.print')}</button
-				>
-			{/snippet}
-			<div class="mt-3 flex flex-wrap gap-2">
-				<!-- Once solved, "New puzzle" takes over as the main action and "Share success" takes
-				     the place of "Done", so the row keeps its size and the board does not move -->
-				{#if !session.solved}
-					<button
-						class="btn btn-primary"
-						onclick={() => session.submit()}
-						disabled={session.loading}>{t('game.done')}</button
-					>
-				{/if}
-				<button
-					class="btn {session.solved ? 'btn-primary next-up' : ''}"
-					onclick={newPuzzle}
-					disabled={newBusy || session.loading}>{t('game.newPuzzle')}</button
-				>
-				{#if session.solved && session.puzzleId}
-					<button class="btn" onclick={shareSolve}>{t('game.shareSolve')}</button>
-				{/if}
-				{@render rareActions(false)}
-				<div class="relative lg:hidden">
-					<button
-						class="btn"
-						onclick={() => (moreOpen = !moreOpen)}
-						aria-expanded={moreOpen}
-						aria-label={t('game.more')}
-						title={t('game.more')}>⋯</button
-					>
-					{#if moreOpen}
+				</p>
+				<div class="flex flex-wrap items-end justify-center gap-2">
+					<!-- Halloween on phones: a jack-o'-lantern and candles beside the buttons -->
+					<HalloweenPumpkin face="night" class="halloween-only mr-2 w-10 lg:hidden" />
+					{#if !session.solved && !settings.values.autoSubmit}
 						<button
-							class="fixed inset-0 z-20 cursor-default"
-							tabindex="-1"
-							aria-hidden="true"
-							onclick={() => (moreOpen = false)}
-						></button>
-						<div
-							class="popover absolute right-0 bottom-full z-30 mb-1 flex w-48 flex-col p-1"
-							role="group"
-							aria-label={t('game.more')}
-							{@attach (node) => trapFocus(node, () => (moreOpen = false))}
+							class="btn btn-primary max-lg:min-h-11"
+							onclick={() => session.submit()}
+							disabled={session.loading}>{t('game.done')}</button
 						>
-							{@render rareActions(true)}
-						</div>
 					{/if}
-				</div>
-			</div>
-		</div>
-
-		{#if share}
-			<div class="panel mt-3 text-sm">
-				<div class="flex items-start justify-between gap-2">
-					<div class="min-w-0 space-y-2">
-						<p>
-							{t('game.shareLink')}
-							<a class="link break-all" href={share.link}>{share.link}</a>
-						</p>
-						{#if share.image}
-							<p>
-								<a class="link" href={share.image} download="{game.id}-{session.puzzleId}.png"
-									>{t('game.screenshot')}</a
+					{#if session.solved && session.puzzleId}
+						<button class="btn btn-primary next-up max-lg:min-h-11" onclick={shareSolve}
+							>{t('game.shareSolve')}</button
+						>
+					{/if}
+					<button
+						class="btn max-lg:min-h-11"
+						onclick={newPuzzle}
+						disabled={newBusy || session.loading}>{t('game.newPuzzle')}</button
+					>
+					<div class="relative">
+						<button
+							class="btn max-lg:min-h-11"
+							onclick={() => (moreOpen = !moreOpen)}
+							aria-expanded={moreOpen}
+							aria-label={t('game.more')}
+							title={t('game.more')}
+						>
+							<svg viewBox="0 0 24 24" class="size-5" fill="currentColor" aria-hidden="true">
+								<circle cx="5" cy="12" r="1.8" />
+								<circle cx="12" cy="12" r="1.8" />
+								<circle cx="19" cy="12" r="1.8" />
+							</svg>
+						</button>
+						{#if moreOpen}
+							<button
+								class="fixed inset-0 z-20 cursor-default"
+								tabindex="-1"
+								aria-hidden="true"
+								onclick={() => (moreOpen = false)}
+							></button>
+							<div
+								class="popover absolute right-0 bottom-full z-30 mb-1 flex w-56 flex-col p-1"
+								role="group"
+								aria-label={t('game.more')}
+								{@attach (node) => trapFocus(node, () => (moreOpen = false))}
+							>
+								<button
+									class="menu-item"
+									onclick={() => ((moreOpen = false), makeShare())}
+									disabled={session.loading || !session.puzzleId}>{t('game.share')}</button
 								>
-							</p>
+								<button class="menu-item" onclick={() => ((moreOpen = false), window.print())}
+									>{t('game.print')}</button
+								>
+								<hr class="mx-2 my-1 border-stone-200 dark:border-stone-700" />
+								<button
+									class="menu-item text-rose-700 dark:text-rose-400"
+									onclick={() => ((moreOpen = false), startOver())}
+									disabled={session.loading}>{t('game.startOver')}</button
+								>
+							</div>
 						{/if}
 					</div>
-					<button class="btn-icon" aria-label={t('game.closeShare')} onclick={() => (share = null)}
-						>✕</button
-					>
+					<span class="halloween-only ml-2 flex items-end gap-1.5 lg:hidden" aria-hidden="true">
+						<HalloweenCandle class="w-4" />
+						<HalloweenCandle class="w-3" />
+					</span>
 				</div>
 			</div>
-		{/if}
+
+			{#if share}
+				<div class="panel mt-3 text-sm">
+					<div class="flex items-start justify-between gap-2">
+						<div class="min-w-0 space-y-2">
+							<p>
+								{t('game.shareLink')}
+								<a class="link break-all" href={share.link}>{share.link}</a>
+							</p>
+							{#if share.image}
+								<p>
+									<a class="link" href={share.image} download="{game.id}-{session.puzzleId}.png"
+										>{t('game.screenshot')}</a
+									>
+								</p>
+							{/if}
+						</div>
+						<button
+							class="btn-icon"
+							aria-label={t('game.closeShare')}
+							onclick={() => (share = null)}>✕</button
+						>
+					</div>
+				</div>
+			{/if}
+		</div>
 	</section>
 </div>
 

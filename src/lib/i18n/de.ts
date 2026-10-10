@@ -100,6 +100,8 @@ const de: Dictionary = {
 		resume: 'Weiter',
 		undo: 'Rückgängig',
 		redo: 'Wiederholen',
+		undoShort: 'Zurück',
+		redoShort: 'Vor',
 		hint: 'Tipp',
 		hintTitle:
 			'Tipp (H): zeigt den nächsten Schritt. Danach zählt das Rätsel nicht für Bestzeit und Rangliste.',
@@ -118,7 +120,6 @@ const de: Dictionary = {
 		add: 'Neu',
 		loadCheckpoint: 'Zwischenstand {n} laden (Rechtsklick löscht)',
 		deleteCheckpoint: 'Zwischenstand {n} löschen',
-		idLine: '{variant} · Rätsel-ID',
 		idHidden: 'wird nach dem Lösen angezeigt',
 		idHiddenTitle: 'Gewertetes Server-Rätsel',
 		fromBank: 'aus der Rätselsammlung',
@@ -218,7 +219,7 @@ const de: Dictionary = {
 	swatch: ['', 'Violett', 'Rot', 'Gelb', 'Grün', 'Blau'],
 	setting: {
 		hideControls: 'Spielsteuerung ausblenden',
-		stickyToolbar: 'Leiste und Werkzeuge beim Scrollen oben halten',
+		stickyToolbar: 'Obere Leiste beim Scrollen festhalten',
 		autoSubmit: 'Automatisch abgeben',
 		showCheckpoints: 'Zwischenstände anzeigen',
 		showCoordinates: 'Koordinaten anzeigen',

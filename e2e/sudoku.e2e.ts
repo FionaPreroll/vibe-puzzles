@@ -117,7 +117,8 @@ test('the Sudoku screenshot shows the whole board', async ({ page }) => {
 	const board = page.getByRole('grid', { name: 'Puzzle board' });
 	await expect(board.locator('text').first()).toBeVisible({ timeout: 30_000 });
 	const width = Number(await board.getAttribute('width'));
-	await page.getByRole('button', { name: 'Share' }).click();
+	await page.getByRole('button', { name: 'More actions' }).click();
+	await page.getByRole('button', { name: 'Share board' }).click();
 	const link = page.locator('a[href^="data:image/png"]');
 	await expect(link).toBeAttached();
 	const size = await link.evaluate(async (a: HTMLAnchorElement) => {
@@ -169,18 +170,18 @@ test('a whole Calcudoku can be solved', async ({ page }) => {
 	const board = page.getByRole('grid', { name: 'Puzzle board' });
 	await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
-	const newPuzzle = page.getByRole('button', { name: 'New puzzle' });
+	const shareSuccess = page.getByRole('button', { name: 'Share success' });
 
 	for (const [i, d] of [...solution].entries()) {
 		if (i === solution.length - 1) {
 			// Every cell but the last: not solved yet, and nothing is marked wrong.
 			await expect(board.locator(`text[fill="${palette.error}"]`)).toHaveCount(0);
-			await expect(newPuzzle).not.toHaveClass(/btn-primary/);
+			await expect(shareSuccess).toHaveCount(0);
 		}
 		await clickCell(page, 5, Math.floor(i / 5), i % 5);
 		await page.keyboard.press(d);
 	}
-	await expect(newPuzzle).toHaveClass(/btn-primary/);
+	await expect(shareSuccess).toBeVisible();
 	await expect(page.getByRole('status')).toContainText('Solved in');
 });
 

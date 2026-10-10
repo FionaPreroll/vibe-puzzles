@@ -12,7 +12,8 @@ test.beforeEach(async ({ page }) => {
 		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
 		localStorage.setItem(
 			'vp:settings:tetroid',
-			JSON.stringify({ values: { showCheckpoints: true }, updatedAt: 1 })
+			// Without automatic submitting, so "Done" is there to check an unsolved board.
+			JSON.stringify({ values: { showCheckpoints: true, autoSubmit: false }, updatedAt: 1 })
 		);
 	});
 });

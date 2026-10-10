@@ -13,7 +13,7 @@ export const COMMON_SETTINGS = defineSettings([
 	{ key: 'hideControls', label: 'Hide game controls', default: false, deviceOnly: true },
 	{
 		key: 'stickyToolbar',
-		label: 'Keep toolbar and tools at the top while scrolling',
+		label: 'Keep the top bar in place while scrolling',
 		default: false
 	},
 	{ key: 'autoSubmit', label: 'Auto submit', default: true },
