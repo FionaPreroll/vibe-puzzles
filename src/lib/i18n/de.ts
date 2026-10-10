@@ -512,6 +512,18 @@ const de: Dictionary = {
 						'„1−“- und „5÷“-Käfige haben zwei Felder: Die größere Ziffer minus oder geteilt durch die kleinere ergibt das Ergebnis, z. B. 7 − 6 = 1 oder 5 ÷ 1 = 5.',
 						'Ein Käfig mit nur einer Zahl enthält genau diese Ziffer. Innerhalb eines Käfigs dürfen sich Ziffern wiederholen, aber nie in einer Zeile oder Spalte.'
 					],
+					hints: {
+						hidden: {
+							row: 'In ihrer Zeile passt die {digit} nur ins markierte Feld: Die anderen freien Felder dort sehen eine {digit} in ihrer Spalte, oder deine Notizen schließen sie aus.',
+							column:
+								'In ihrer Spalte passt die {digit} nur ins markierte Feld: Die anderen freien Felder dort sehen eine {digit} in ihrer Zeile, oder deine Notizen schließen sie aus.'
+						},
+						naked:
+							'Ins markierte Feld passt nur die {digit}: Zeile und Spalte enthalten alle anderen Ziffern, oder deine Notizen schließen sie aus.',
+						cage: 'Rechne aus, welche Ziffern mit der Rechenart das Ergebnis jedes Käfigs ergeben können; in einer Zeile oder Spalte müssen sie verschieden sein.',
+						nakedPair:
+							'Notiere zuerst die Kandidaten. Zwei Felder einer Zeile oder Spalte mit denselben zwei Kandidaten belegen diese Ziffern: In den anderen Feldern dort fallen sie weg.'
+					},
 					tutorial: [
 						{
 							text: 'Calcudoku ist ein Sudoku ohne Blöcke: Jede Zeile und jede Spalte enthält die Ziffern 1 bis 4 genau einmal. Statt vorgegebener Ziffern hat das Gitter Käfige, dick umrandete Gruppen von Zellen. Schau dir das Gitter erst einmal nur an: Ab Schritt 3 trägst du ein.'

@@ -138,6 +138,4 @@ export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	modeTutorials?: Record<string, GameTutorial<P, S>>;
 	/** The next step from the player's position, or null when there is none (solved). */
 	hint?(puzzle: P, state: S): Hint | null;
-	/** Whether `hint` covers puzzles of this type; all types when left out. */
-	hintsFor?(variant: Variant): boolean;
 }

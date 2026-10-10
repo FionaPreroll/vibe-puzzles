@@ -509,6 +509,19 @@ const en = {
 						'"1−" and "5÷" cages have two cells: the larger digit minus or divided by the smaller one gives the result, e.g. 7 − 6 = 1 or 5 ÷ 1 = 5.',
 						'A cage with just a number holds that digit. Digits may repeat inside a cage, but never in a row or column.'
 					],
+					/** Hint texts for Calcudoku; the conclusions come from `games.sudoku.hints`. */
+					hints: {
+						hidden: {
+							row: 'In its row, {digit} fits only in the highlighted cell: the other free cells there see a {digit} in their column, or your notes rule it out.',
+							column:
+								'In its column, {digit} fits only in the highlighted cell: the other free cells there see a {digit} in their row, or your notes rule it out.'
+						},
+						naked:
+							'Only {digit} fits in the highlighted cell: its row and column hold every other digit, or your notes rule them out.',
+						cage: "Work out which digits can give each cage's result with its operation; digits in one row or column must differ.",
+						nakedPair:
+							'Note the candidates first. Two cells of a row or column with the same two candidates take those digits: they leave the other cells there.'
+					},
 					tutorial: [
 						{
 							text: 'Calcudoku is a Sudoku without boxes: each row and each column holds the digits 1 to 4 exactly once. Instead of given digits, the grid has cages, groups of cells with a thick border. Just look for now: you start filling in step 3.'
