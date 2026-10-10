@@ -139,6 +139,10 @@ const de: Dictionary = {
 		bragHints:
 			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit {count} Tipps. Schaffst du es ohne?',
 		bragCopied: 'Ergebnis und Link kopiert. Füge sie ein, wo du sie teilen möchtest.',
+		bragManual:
+			'Kopieren hat hier nicht geklappt. Kopiere Ergebnis und Link unten und füge sie ein, wo du sie teilen möchtest.',
+		bragText: 'Dein Ergebnis und der Link',
+		copy: 'Kopieren',
 		creating: 'Rätsel wird erstellt…',
 		notCreated: 'Das Rätsel konnte nicht erstellt werden.',
 		retry: 'Erneut versuchen',
