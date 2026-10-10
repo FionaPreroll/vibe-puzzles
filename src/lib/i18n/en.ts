@@ -393,11 +393,7 @@ const en = {
 				'All shaded cells form one connected area.',
 				'No 2×2 block may be fully shaded.'
 			],
-			notes: [
-				'So the possible shapes are L, I, T and S. The square O is ruled out by rule 4.',
-				'A key deduction from rule 3: for a possible placement, ask whether all shaded cells could still connect. If not, it is ruled out. That is not guessing but one step with an immediate contradiction.',
-				'Hard puzzles also need case analysis: put a tetromino down in your head and follow it until a rule breaks.'
-			],
+			notes: ['Often decisive: could everything still connect if the tetromino went here?'],
 			toolHint: {
 				rotate:
 					'Each click on a cell steps it from empty to shaded to cross and back. Right click goes the other way.',

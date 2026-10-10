@@ -390,11 +390,7 @@ const de: Dictionary = {
 				'Alle schattierten Felder hängen zusammen.',
 				'Kein 2×2-Block darf ganz schattiert sein.'
 			],
-			notes: [
-				'Mögliche Formen sind also L, I, T und S. Das Quadrat O fällt durch Regel 4 weg.',
-				'Ein wichtiger Schluss aus Regel 3: Frag dich bei einer möglichen Lage, ob dann noch alle schattierten Felder zusammenhängen könnten. Wenn nicht, scheidet sie aus. Das ist kein Raten, sondern ein Schritt mit sofortigem Widerspruch.',
-				'Schwere Rätsel brauchen außerdem Fallunterscheidungen: Leg im Kopf ein Tetromino hin und spiel es durch, bis eine Regel verletzt wird.'
-			],
+			notes: ['Oft entscheidend: Hängt noch alles zusammen, wenn das Tetromino hier liegt?'],
 			toolHint: {
 				rotate:
 					'Jeder Klick auf ein Feld schaltet weiter: leer, schattiert, Kreuz und wieder leer. Rechtsklick schaltet rückwärts.',
