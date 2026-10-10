@@ -69,7 +69,7 @@ test('the Tetroid tutorial teaches one rule per step', async ({ page }) => {
 			box.y + 3 + (Math.floor(i / 5) + 0.5) * cell
 		);
 
-	await expect(page.getByText('Step 1 of 5')).toBeVisible();
+	await expect(page.getByText('Step 1 of 6')).toBeVisible();
 	await expect(page.getByText('Your turn')).toHaveCount(0);
 	await next.click();
 
@@ -79,18 +79,31 @@ test('the Tetroid tutorial teaches one rule per step', async ({ page }) => {
 	await expect(page.getByText('Done: that tetromino is an L.')).toBeVisible();
 	await next.click();
 
-	// Two crosses where a 2×2 block would be completed.
+	// Three crosses where a 2×2 block would be completed.
 	await expect(next).toBeDisabled();
 	await page.getByRole('button', { name: 'Cross' }).click();
-	for (const i of [8, 10]) await click(i);
+	for (const i of [8, 10, 12]) await click(i);
 	await expect(page.getByText(/these cells stay empty/)).toBeVisible();
 	await next.click();
 
-	// Read only, then the free finish: an S on the right and an I at the bottom.
+	// Connectivity: the top-left group's only way out.
+	await expect(next).toBeDisabled();
+	await page.getByRole('button', { name: 'Black' }).click();
+	await click(9);
+	await expect(page.getByText(/would be locked in/)).toBeVisible();
 	await next.click();
-	await expect(page.getByText('Step 5 of 5')).toBeVisible();
-	// The last step has the game's hint: first where to look, then the three cells both options
-	// at the bottom cover.
+
+	// The look-ahead: an L at the bottom would cut the group off, so it is the I.
+	await expect(page.getByText('Step 5 of 6')).toBeVisible();
+	await expect(next).toBeDisabled();
+	for (const i of [20, 21, 22, 23]) await click(i);
+	await expect(page.getByText(/the bottom group would be cut off/)).toBeVisible();
+	await next.click();
+
+	// The free finish: an S on the right.
+	await expect(page.getByText('Step 6 of 6')).toBeVisible();
+	// The last step has the game's hint: first where to look, then the cell below the one from
+	// step 4, which every tetromino left on the right covers.
 	const board = page.getByRole('grid', { name: 'Puzzle board' });
 	const spotlight = board.locator('g.spotlight > *');
 	const hint = page.getByRole('button', { name: 'Hint' });
@@ -100,9 +113,8 @@ test('the Tetroid tutorial teaches one rule per step', async ({ page }) => {
 	expect(await board.locator('g.area > *').count()).toBeGreaterThan(0);
 	await hint.click();
 	await expect(page.getByText(/Every tetromino left in this region covers/)).toBeVisible();
-	await expect(spotlight).toHaveCount(3);
-	await page.getByRole('button', { name: 'Black' }).click();
-	for (const i of [9, 13, 14, 18, 20, 21, 22, 23]) await click(i);
+	await expect(spotlight).toHaveCount(1);
+	for (const i of [13, 14, 18]) await click(i);
 	await expect(page.getByText('Well done!')).toBeVisible();
 });
 

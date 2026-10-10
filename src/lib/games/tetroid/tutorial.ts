@@ -23,11 +23,19 @@ export function tetroidTutorialStart(p: TetroidPuzzle): TetroidState {
 	return { marks, auto: new Array(p.width * p.height).fill(0) };
 }
 
-/** A task that marks the given cells: done once they all have `mark`; "Show me" sets them. */
-function markStep(cells: number[], mark: number): TutorialStep<TetroidPuzzle, TetroidState> {
+/**
+ * A task that marks the given cells: done once they all have `mark` and none of `unshaded` is
+ * shaded; "Show me" sets them. `spotlight` defaults to the cells.
+ */
+function markStep(
+	cells: number[],
+	mark: number,
+	{ spotlight = cells, unshaded = [] }: { spotlight?: number[]; unshaded?: number[] } = {}
+): TutorialStep<TetroidPuzzle, TetroidState> {
 	return {
-		spotlight: cells.map(String),
-		done: (_, s) => cells.every((i) => s.marks[i] === mark),
+		spotlight: spotlight.map(String),
+		done: (_, s) =>
+			cells.every((i) => s.marks[i] === mark) && unshaded.every((i) => s.marks[i] !== SHADED),
 		show: (_, s) => {
 			const marks = s.marks.slice();
 			const auto = s.auto.slice();
@@ -46,10 +54,13 @@ export const TETROID_TUTORIAL_STEPS: TutorialStep<TetroidPuzzle, TetroidState>[]
 	{ spotlight: ['0', '5', '6', '11'] },
 	// The top-right region has exactly four cells: they are its tetromino (an L).
 	markStep([2, 3, 4, 7], SHADED),
-	// No 2×2 block: each of these cells would complete one, so both stay empty.
-	markStep([8, 10], CROSS),
-	// The last two rules, still without a task; an L on cell 9 would touch the L above it.
-	{ spotlight: ['9'] },
-	// The rest alone; the tutorial ends when the board is solved.
+	// No 2×2 block: each of these cells would complete one, so all three stay empty.
+	markStep([8, 10, 12], CROSS),
+	// Connectivity: cell 9 is the top-left group's last way out, so it is shaded.
+	markStep([9], SHADED),
+	// The look-ahead of #99: an L at the bottom (15, 20, 21, 22) could only connect through cell 17,
+	// which no tetromino with cell 9 reaches. So the bottom region holds the I.
+	markStep([20, 21, 22, 23], SHADED, { spotlight: [15, 20, 21, 22, 23], unshaded: [15] }),
+	// The same-shape rule, then the big region alone; the tutorial ends when the board is solved.
 	{}
 ];
