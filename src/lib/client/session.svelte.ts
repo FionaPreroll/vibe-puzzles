@@ -272,7 +272,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.touched = false;
 		this.finishLoading(token);
 		// The new game takes the slot, whatever another tab saved in it meanwhile.
-		this.storedAt = load<SavedGame<S> | null>(this.saveKey, null)?.updatedAt ?? null;
+		this.storedAt = this.storedUpdatedAt();
 		this.persist();
 		if (!ticket) this.prefetch();
 	}
@@ -410,7 +410,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		if (this.pushTimer) clearTimeout(this.pushTimer);
 		if (this.restore(remote.data)) {
 			// Storage full: the older save stays, and must not count as another tab's.
-			if (!save(this.saveKey, remote.data)) this.storedAt = stored?.updatedAt ?? null;
+			if (!save(this.saveKey, remote.data)) this.storedAt = this.storedUpdatedAt();
 			this.message = { kind: 'info', text: t('session.continued') };
 		}
 		this.resumeClock();
@@ -421,14 +421,14 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	 * newest save wins, so a tab showing an older game never writes it back. True if it did.
 	 */
 	followStorage(): boolean {
-		if (this.loading || !this.puzzle || !this.saveKey || this.puzzleKey !== this.saveKey) {
-			return false;
-		}
+		// Not while a puzzle loads, nor without one on the board (its slot is another).
+		if (this.loading || this.puzzleKey !== this.saveKey) return false;
 		const stored = load<SavedGame<S> | null>(this.saveKey, null);
 		if (!this.playable(stored) || stored.updatedAt === this.storedAt) return false;
 		this.pauseClock();
 		if (this.pushTimer) clearTimeout(this.pushTimer);
-		if (!this.restore(stored)) return false;
+		// A playable save always restores.
+		this.restore(stored);
 		if (stored.solved) {
 			this.solved = true;
 			this.finalMs = Math.max(0, stored.updatedAt - this.startedAt);
@@ -437,6 +437,11 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.message = { kind: 'info', text: t('session.otherTab') };
 		this.resumeClock();
 		return true;
+	}
+
+	/** `updatedAt` of the save in the slot, if any. */
+	private storedUpdatedAt(): number | null {
+		return load<SavedGame<S> | null>(this.saveKey, null)?.updatedAt ?? null;
 	}
 
 	/** Re-check the server when the page becomes visible again (device switch) or on "Sync now". */

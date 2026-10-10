@@ -179,6 +179,7 @@ describe('opening a puzzle', () => {
 		vi.mocked(generate).mockRejectedValueOnce(new Error('boom'));
 		await s.open('6h');
 		expect(s.puzzle).toBeNull();
+		expect(s.followStorage()).toBe(false);
 		s.flush();
 		expect(load('save:tetroid:6h', null)).toBeNull();
 		expect(load<{ puzzleId: number } | null>('save:tetroid:6n', null)?.puzzleId).toBe(ID);
@@ -926,6 +927,34 @@ describe('other tabs', () => {
 		a.flush();
 		expect(a.puzzleId).toBe(b.puzzleId);
 		expect(stored()?.state).toEqual(game.emptyState(b.puzzle!));
+	});
+
+	it('wait while a puzzle loads', async () => {
+		const [a, b] = await tabs();
+		a.move(shaded(0), []);
+		const opening = b.open('6n');
+		expect(b.followStorage()).toBe(false);
+		await opening;
+		expect(b.state).toEqual(shaded(0));
+	});
+
+	it('keep a game from another device that storage had no room for', async () => {
+		const s = await opened({ autoSubmit: false });
+		vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
+		const later = Date.now() + 1000;
+		vi.mocked(api.pullSave).mockResolvedValueOnce({
+			key: 'save:tetroid:6n',
+			updatedAt: later,
+			data: { ...load<object>('save:tetroid:6n', {}), state: shaded(7), updatedAt: later }
+		});
+		(localStorage as MemoryStorage).full = true;
+		// Another device's game continues here, where nothing was played yet.
+		await s.refreshFromServer();
+		expect(s.state).toEqual(shaded(7));
+		// The older save left in storage is no other tab's.
+		s.flush();
+		expect(s.state).toEqual(shaded(7));
+		vi.mocked(api.currentPlayer).mockReturnValue(null);
 	});
 
 	it('write again once the slot was cleared', async () => {
