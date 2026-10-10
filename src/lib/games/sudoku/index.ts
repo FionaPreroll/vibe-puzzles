@@ -1,6 +1,7 @@
 import { withCommon } from '../../core/settings';
 import type { GameModule } from '../../core/types';
 import Board from './Board.svelte';
+import { calcHint } from './calc/hint';
 import { sudokuHint } from './hint';
 import { sudokuLogic } from './logic';
 import { emptySudokuState, type SudokuPuzzle, type SudokuState } from './rules';
@@ -32,19 +33,20 @@ export const sudoku: GameModule<SudokuPuzzle, SudokuState> = {
 	board: Board,
 	padRows: 1.2,
 	hint(puzzle, state) {
-		const hint = sudokuHint(puzzle, state);
+		const { width, height, cages } = puzzle;
+		const hint = cages ? calcHint({ width, height, cages }, state) : sudokuHint(puzzle, state);
 		if (!hint) return null;
 		const key = (k: string) => `games.sudoku.hints.${k}`;
+		// Calcudoku explains with rows, columns and cages; the conclusions are the same.
+		const own = (k: string) => (cages ? `games.sudoku.modes.calc.hints.${k}` : key(k));
 		if (hint.kind === 'mistake')
 			return { kind: 'mistake', spotlight: hint.cells.map(String), text: ['game.hintMistake'] };
 		const spotlight = [String(hint.cell)];
 		if (hint.kind === 'stuck') return { kind: 'stuck', spotlight, text: [key('stuck')] };
 		const { digit, unit, elimination } = hint;
 		const text = elimination
-			? [key(elimination), key(unit ? `then.${unit}` : 'thenNaked')]
-			: [key(unit ? `hidden.${unit}` : 'naked')];
+			? [own(elimination), key(unit ? `then.${unit}` : 'thenNaked')]
+			: [own(unit ? `hidden.${unit}` : 'naked')];
 		return { kind: 'step', spotlight, text, params: { digit } };
-	},
-	// Calcudoku has cages instead of boxes; its hints are still to come.
-	hintsFor: (variant) => variant.mode !== 'calc'
+	}
 };

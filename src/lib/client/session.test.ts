@@ -560,17 +560,17 @@ describe('hints', () => {
 		expect(s.hinted).toBe(false);
 	});
 
-	it('offer none for puzzle types the game has no hints for', async () => {
+	it('come with the digit filled in, in Sudoku and in Calcudoku', async () => {
 		const s = new GameSession(sudoku, new GameSettings('sudoku', withCommon([])));
-		await s.open('c5e');
-		expect(s.canHint).toBe(false);
-		s.showHint();
-		expect(s.hinted).toBe(false);
 		await s.open('9e');
 		expect(s.canHint).toBe(true);
 		s.showHint();
 		expect(s.hint?.kind).toBe('step');
 		expect(s.message?.text).toMatch(/^In its box, \d fits only in the highlighted cell/);
+		await s.open('c5e');
+		s.showHint();
+		expect(s.hint?.kind).toBe('step');
+		expect(s.message?.text).not.toMatch(/[{}]|games\./);
 	});
 
 	it('start a new puzzle unhinted', async () => {

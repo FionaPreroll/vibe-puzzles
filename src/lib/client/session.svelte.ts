@@ -477,9 +477,9 @@ export class GameSession<P = unknown, S = unknown> {
 		this.persist();
 	}
 
-	/** Whether the game has hints for the puzzle type being played. */
+	/** Whether the game has hints. */
 	get canHint(): boolean {
-		return !!this.game.hint && (this.game.hintsFor?.(this.variant) ?? true);
+		return !!this.game.hint;
 	}
 
 	/** Point at the next step, or at wrong marks. The game then counts as hinted. */

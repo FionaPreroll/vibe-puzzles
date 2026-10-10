@@ -66,7 +66,7 @@ Specials use these levels too: Sudoku and Tetroid daily normal, weekly and month
 
 **Complete solver** (`solveSudoku`): backtracking over row, column and box bit masks, always branching on the empty cell with the fewest candidates.
 
-**Hints** (`sudokuHint` in `hint.ts`) start from the player's board: the digits rule out their peers, and a cell with notes keeps only the noted digits. Wrong digits, and notes that leave out the right digit, come first. Otherwise the hint looks for a single: a hidden single in a box, then in a row or column, then a naked single. Without one it applies the eliminations of `ratePuzzle` (locked candidates, then naked, then hidden subsets) one at a time until a single shows up, and names the hardest one it needed. Following the hints solves every easy, normal and hard puzzle, since they use the techniques that grade them. Calcudoku has no hints yet (`hintsFor`).
+**Hints** (`sudokuHint` in `hint.ts`) start from the player's board: the digits rule out their peers, and a cell with notes keeps only the noted digits. Wrong digits, and notes that leave out the right digit, come first. Otherwise the hint looks for a single: a hidden single in a box, then in a row or column, then a naked single. Without one it applies the eliminations of `ratePuzzle` (locked candidates, then naked, then hidden subsets) one at a time until a single shows up, and names the hardest one it needed. Following the hints solves every easy, normal and hard puzzle, since they use the techniques that grade them.
 
 ## Calcudoku
 
@@ -88,6 +88,8 @@ Specials use these levels too: Sudoku and Tetroid daily normal, weekly and month
 
 - `CalcLevel.Basic`: each cage keeps only digits that occur in some digit tuple meeting its target (cells of the cage in one line must differ), and a placed digit leaves its row and column.
 - `CalcLevel.Advanced`: also hidden singles and naked pairs in rows and columns.
+
+**Hints** (`calcHint` in `calc/hint.ts`) work like the Sudoku ones, with rows, columns and cages: from the player's digits and notes, a hidden single in a row or column, else a naked single; without one, the cage arithmetic of `rateCalc` (`filterCage`), then naked pairs, until a single shows up. Following the hints solves every easy, normal and hard puzzle.
 
 ## Tetroid
 

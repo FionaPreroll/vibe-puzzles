@@ -22,7 +22,7 @@ export const CalcLevel = {
 } as const;
 export type CalcLevel = (typeof CalcLevel)[keyof typeof CalcLevel];
 
-interface Model {
+export interface Model {
 	n: number;
 	cages: Cage[];
 	/** Rows then columns. */
@@ -61,7 +61,7 @@ function cageTuples(cage: Cage, n: number): number[][] {
 	return out;
 }
 
-function model(p: CalcPuzzle): Model {
+export function model(p: CalcPuzzle): Model {
 	const n = p.width;
 	const lines: number[][] = [];
 	for (let r = 0; r < n; r++) lines.push(Array.from({ length: n }, (_, c) => r * n + c));
@@ -73,7 +73,7 @@ function model(p: CalcPuzzle): Model {
  * Narrow a cage's domains to digits that appear in some tuple meeting its target. Returns false
  * on a contradiction.
  */
-function filterCage(m: Model, k: number, dom: Int32Array): boolean | 'changed' {
+export function filterCage(m: Model, k: number, dom: Int32Array): boolean | 'changed' {
 	const cells = m.cages[k].cells;
 	const len = cells.length;
 	const support = new Array<number>(len).fill(0);

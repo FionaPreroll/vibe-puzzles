@@ -55,7 +55,7 @@ test.describe('320 px wide', () => {
 	});
 });
 
-test('the Sudoku hint names the digit and its cell; Calcudoku has none yet', async ({ page }) => {
+test('the Sudoku and Calcudoku hints name the digit and its cell', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
 	await page.goto('/sudoku?v=9e');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
@@ -79,7 +79,10 @@ test('the Sudoku hint names the digit and its cell; Calcudoku has none yet', asy
 
 	await page.goto('/sudoku?v=c5e');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	await expect(page.getByRole('button', { name: 'Hint' })).toHaveCount(0);
+	await expect(board.locator('text').first()).toBeVisible();
+	await page.getByRole('button', { name: 'Hint' }).click();
+	await expect(spotlight).toHaveCount(1);
+	await expect(status).toContainText('the highlighted cell');
 });
 
 test('the Pinwheel hint points at edges that need a line', async ({ page }) => {

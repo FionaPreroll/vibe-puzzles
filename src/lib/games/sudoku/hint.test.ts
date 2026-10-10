@@ -4,7 +4,6 @@ import en from '../../i18n/en';
 import { generateSudoku } from './generator';
 import { ELIMINATIONS, sudokuHint, type SudokuHint } from './hint';
 import { sudoku } from './index';
-import { SUDOKU_VARIANTS } from './logic';
 import { bit, emptySudokuState, type SudokuPuzzle, type SudokuState } from './rules';
 import { solveSudoku } from './solver';
 
@@ -96,7 +95,7 @@ describe('sudoku hints', () => {
 		expect(sudokuHint(puzzle, state)).toBeNull();
 	});
 
-	it('come with texts in every language, and not for Calcudoku', () => {
+	it('come with texts in every language', () => {
 		const lookup = (dict: unknown, key: string) =>
 			key.split('.').reduce((node, part) => (node as Record<string, unknown>)?.[part], dict);
 		const { puzzle } = puzzleOf('hard', 3);
@@ -142,13 +141,5 @@ describe('sudoku hints', () => {
 			expect(typeof lookup(en, key), key).toBe('string');
 			expect(typeof lookup(de, key), key).toBe('string');
 		}
-		expect(SUDOKU_VARIANTS.filter((v) => sudoku.hintsFor!(v)).map((v) => v.key)).toEqual([
-			'9e',
-			'9n',
-			'9h',
-			'daily',
-			'weekly',
-			'monthly'
-		]);
 	});
 });
