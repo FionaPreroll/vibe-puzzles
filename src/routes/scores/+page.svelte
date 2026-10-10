@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { replaceState } from '$app/navigation';
 	import { currentPlayer, leaderboard, watchServer, type Leaderboard } from '#lib/client/api.ts';
+	import { net } from '#lib/client/network.svelte.ts';
 	import { getStats, type VariantStats } from '#lib/client/stats.ts';
 	import { formatDuration } from '#lib/core/time.ts';
 	import { encodePuzzleId, periodKey, specialSeed } from '#lib/core/variants.ts';
@@ -117,7 +118,11 @@
 		</h2>
 		{#if hasServer === false}
 			<p class="mt-3 text-sm text-stone-600 dark:text-stone-400">
-				{t('scores.noServer')}
+				{net.offline
+					? t('net.offlineHint')
+					: net.status === 'unreachable'
+						? t('net.unreachableHint')
+						: t('scores.noServer')}
 			</p>
 		{:else if boardError}
 			<p class="mt-3 text-sm text-rose-600">{boardError}</p>

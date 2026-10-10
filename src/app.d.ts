@@ -7,6 +7,8 @@ declare global {
 		commit: string;
 		date: string;
 	};
+	/** Network defaults of this build (vite.config.ts, scripts/buildFlags.ts). */
+	const __NET__: import('../scripts/buildFlags').NetworkDefaults;
 	/** Open source packages that ship with the app, with their licence texts (vite.config.ts). */
 	const __LICENSES__: import('../scripts/licenses').ShippedLicense[];
 

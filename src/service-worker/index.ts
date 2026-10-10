@@ -11,10 +11,16 @@ import { self } from '$app/service-worker';
  * install: each file is cached the first time a puzzle of its type is needed, in a cache that
  * outlives new versions of the app. Such a file is served from that cache at once and refreshed in
  * the background (usually a cheap "not modified" answer).
+ *
+ * In offline mode (the page sends a message when it is switched) nothing goes to the network:
+ * pages come from the cache, and a collection file that is not cached fails, so the app generates
+ * the puzzle on the device instead.
  */
 
 const CACHE = `vibe-puzzles-${version}`;
 const COLLECTION = 'vibe-puzzles-collection';
+/** Outlives new versions too: holds whether offline mode is on. */
+const SETTINGS = 'vibe-puzzles-settings';
 const scope = new URL(self.registration.scope);
 const url = (path: string) => new URL(path.replace(/^\//, ''), scope).href;
 const inCollection = (href: string) => href.startsWith(url('puzzles/'));
@@ -25,6 +31,30 @@ const PRECACHE = [...immutable, ...assets, ...prerendered]
 	.filter((href) => !inCollection(href));
 /** The collection files of this version; cached ones that are gone are removed. */
 const COLLECTION_FILES = new Set(assets.map((f) => url(f.path)).filter(inCollection));
+
+const OFFLINE_FLAG = url('__offline-mode');
+let offline: Promise<boolean> | null = null;
+/** Read once per start of the worker; the browser stops idle workers. */
+function offlineMode(): Promise<boolean> {
+	offline ??= caches
+		.open(SETTINGS)
+		.then((cache) => cache.match(OFFLINE_FLAG))
+		.then((hit) => !!hit)
+		.catch(() => false);
+	return offline;
+}
+
+self.addEventListener('message', (event) => {
+	if (event.data?.type !== 'offline') return;
+	const on = event.data.offline === true;
+	offline = Promise.resolve(on);
+	event.waitUntil(
+		caches.open(SETTINGS).then(async (cache) => {
+			if (on) await cache.put(OFFLINE_FLAG, new Response('1'));
+			else await cache.delete(OFFLINE_FLAG);
+		})
+	);
+});
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(
@@ -44,7 +74,9 @@ self.addEventListener('activate', (event) => {
 			.keys()
 			.then((keys) =>
 				Promise.all(
-					keys.filter((k) => k !== CACHE && k !== COLLECTION).map((k) => caches.delete(k))
+					keys
+						.filter((k) => k !== CACHE && k !== COLLECTION && k !== SETTINGS)
+						.map((k) => caches.delete(k))
 				)
 			)
 			.then(pruneCollection)
@@ -63,6 +95,7 @@ async function pruneCollection() {
 async function collectionFile(event: FetchEvent): Promise<Response> {
 	const cache = await caches.open(COLLECTION);
 	const cached = await cache.match(event.request);
+	if (await offlineMode()) return cached ?? Response.error();
 	const fresh = fetch(event.request).then(async (res) => {
 		if (res.ok) await cache.put(event.request, res.clone());
 		return res;
@@ -79,16 +112,20 @@ self.addEventListener('fetch', (event) => {
 	if (target.pathname.startsWith(`${scope.pathname}api/`)) return;
 
 	if (req.mode === 'navigate') {
+		const fromCache = async () => {
+			const cache = await caches.open(CACHE);
+			const path = target.pathname.replace(/\/$/, '');
+			return (
+				(await cache.match(target.origin + path)) ??
+				(await cache.match(`${target.origin}${path}.html`)) ??
+				(await cache.match(url('')))
+			);
+		};
 		event.respondWith(
-			fetch(req).catch(async () => {
-				const cache = await caches.open(CACHE);
-				const path = target.pathname.replace(/\/$/, '');
-				return (
-					(await cache.match(target.origin + path)) ??
-					(await cache.match(`${target.origin}${path}.html`)) ??
-					(await cache.match(url(''))) ??
-					Response.error()
-				);
+			offlineMode().then(async (off) => {
+				// Offline mode: the network only for a page that was never cached.
+				if (off) return (await fromCache()) ?? fetch(req);
+				return fetch(req).catch(async () => (await fromCache()) ?? Response.error());
 			})
 		);
 		return;

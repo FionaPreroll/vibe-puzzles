@@ -12,7 +12,13 @@ export const KEY = {
 	look: 'look',
 	touch: 'touch',
 	puzzleSource: 'puzzleSource',
-	rulesHidden: 'rulesHidden'
+	rulesHidden: 'rulesHidden',
+	/** The player's choice of offline mode; the build's default until they switch it. */
+	offlineMode: 'offlineMode',
+	/** The player's choice of update checks; the build's default until they switch it. */
+	updateCheck: 'updateCheck',
+	/** Uploads that wait for the server (`outbox.ts`). */
+	outbox: 'outbox'
 } as const;
 
 /** The start of every `saveKey`, to list the saved games. */

@@ -248,8 +248,12 @@ describe('saves', () => {
 		api = await setup(offline, { signedIn: true });
 		expect(await api.pullSave('k')).toBeNull();
 		await api.pushSave('k', {}, 1);
-		expect(await api.submitScore({} as never)).toBeNull();
 		expect(fetchMock).toHaveBeenCalledTimes(1);
+		api = await setup(() => new Response('Not found', { status: 404 }), { signedIn: true });
+		expect(await api.submitScore({} as never)).toBeNull();
+		await api.pushSave('k', {}, 1);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(localStorage.getItem('vp:outbox')).toBeNull();
 	});
 });
 
@@ -289,5 +293,198 @@ describe('puzzles and scores', () => {
 		expect(await api.leaderboard('tetroid', 'daily', 42)).toMatchObject({
 			query: '?game=tetroid&variant=daily&puzzleId=42'
 		});
+	});
+});
+
+describe('outbox and offline mode', () => {
+	let doc: EventTarget & { visibilityState: DocumentVisibilityState };
+	let win: EventTarget;
+
+	/** A signed-in player in a browser, with the connection state of the fresh module. */
+	async function browser(handler: Handler) {
+		const api = await setup(handler, { signedIn: true });
+		doc = Object.assign(new EventTarget(), { visibilityState: 'visible' as const });
+		win = new EventTarget();
+		vi.stubGlobal('window', win);
+		vi.stubGlobal('document', doc);
+		const { net } = await import('./network.svelte');
+		const outbox = await import('./outbox');
+		return { api, net, outbox };
+	}
+
+	const puts = () => requests().filter((r) => r.method === 'PUT');
+	const posts = () => requests().filter((r) => r.method === 'POST');
+	const routes = {
+		'PUT /saves/save%3Aa': { stored: true },
+		'POST /scores': { ok: true, code: 'personal', message: 'Solved' }
+	};
+	const solve = {
+		game: 'tetroid',
+		variant: '6n',
+		puzzleId: 17,
+		puzzle: {},
+		answer: '01',
+		timeMs: 1,
+		playMs: 1,
+		competitive: true
+	};
+
+	it('sends a game played without a connection once the device is back online', async () => {
+		let up: Handler = offline;
+		const { api, net, outbox } = await browser((url, init) => up(url, init));
+		await api.pushSave('save:a', { v: 1 }, 1);
+		await api.pushSave('save:a', { v: 2 }, 2);
+		expect(net.status).toBe('unreachable');
+		expect(net.pending).toBe(1);
+		up = server(routes);
+		win.dispatchEvent(new Event('online'));
+		await vi.waitFor(() => expect(outbox.pendingCount()).toBe(0));
+		expect(puts()).toEqual([expect.objectContaining({ body: { data: { v: 2 }, updatedAt: 2 } })]);
+		expect(net).toMatchObject({ status: 'online', pending: 0 });
+		expect(net.latencyMs).toEqual(expect.any(Number));
+	});
+
+	it('keeps what got no answer and drops what the server refuses', async () => {
+		let status = 503;
+		const { api, outbox } = await browser((url) =>
+			url.pathname.endsWith('/health')
+				? Response.json({ ok: true })
+				: Response.json({ error: 'No' }, { status })
+		);
+		await api.pushSave('save:a', {}, 1);
+		expect(outbox.pendingCount()).toBe(1);
+		status = 400;
+		await api.flushOutbox();
+		expect(outbox.pendingCount()).toBe(0);
+	});
+
+	it('marks the server unreachable when a request gets no answer', async () => {
+		let up: Handler = server(routes);
+		const { api, net } = await browser((url, init) => up(url, init));
+		const seen: boolean[] = [];
+		api.watchServer((ok) => seen.push(ok));
+		await vi.waitFor(() => expect(seen).toEqual([true]));
+		up = offline;
+		await api.pushSave('save:a', {}, 1);
+		expect(seen).toEqual([true, false]);
+		expect(net).toMatchObject({ status: 'unreachable', pending: 1 });
+		win.dispatchEvent(new Event('offline'));
+		up = server(routes);
+		doc.dispatchEvent(new Event('visibilitychange'));
+		await vi.waitFor(() => expect(seen).toEqual([true, false, true]));
+		await vi.waitFor(() => expect(net.pending).toBe(0));
+	});
+
+	it('keeps solves timed on the device for later, but not ranked ones', async () => {
+		let up: Handler = offline;
+		const { api, outbox } = await browser((url, init) => up(url, init));
+		expect(await api.submitScore(solve)).toBe('queued');
+		await expect(api.submitScore({ ...solve, ticket: 't' })).rejects.toThrow('no connection');
+		expect(outbox.pending().scores).toEqual([solve]);
+		up = server(routes);
+		win.dispatchEvent(new Event('online'));
+		await vi.waitFor(() => expect(outbox.pendingCount()).toBe(0));
+		expect(posts()).toEqual([expect.objectContaining({ body: solve })]);
+	});
+
+	it('queues a solve whose upload gets no answer', async () => {
+		let up: Handler = server(routes);
+		const { api, outbox } = await browser((url, init) => up(url, init));
+		expect(await api.serverAvailable()).toBe(true);
+		up = (url, init) =>
+			url.pathname.endsWith('/scores') ? offline(url, init) : server(routes)(url, init);
+		await expect(api.submitScore({ ...solve, ticket: 't' })).rejects.toThrow('Failed to fetch');
+		// Now known to be unreachable.
+		expect(await api.submitScore(solve)).toBe('queued');
+		expect(outbox.pending().scores).toEqual([solve]);
+	});
+
+	it('sends nothing in offline mode until "Sync now"', async () => {
+		const { api, net, outbox } = await browser(server(routes, true));
+		api.setOfflineMode(true);
+		expect(localStorage.getItem('vp:offlineMode')).toBe('true');
+		expect(net.status).toBe('offline');
+		expect(await api.serverAvailable()).toBe(false);
+		expect(await api.serverPuzzles()).toBe(false);
+		expect(await api.pullSave('save:a')).toBeNull();
+		await api.pushSave('save:a', { v: 1 }, 1);
+		expect(await api.submitScore(solve)).toBe('queued');
+		await expect(api.leaderboard('tetroid', '6n')).rejects.toThrow('Offline mode is on.');
+		win.dispatchEvent(new Event('online'));
+		expect(fetchMock).not.toHaveBeenCalled();
+		expect(net.pending).toBe(2);
+
+		const pull = vi.fn(async () => api.pullSave('save:a'));
+		const stop = api.onSync(pull);
+		expect(await api.syncNow()).toBe(true);
+		expect(outbox.pendingCount()).toBe(0);
+		expect(puts()).toHaveLength(1);
+		expect(posts()).toEqual([expect.objectContaining({ body: solve })]);
+		expect(pull).toHaveBeenCalledTimes(1);
+		expect(net).toMatchObject({ status: 'offline', syncing: false, pending: 0 });
+		expect(net.lastSync).toEqual(expect.any(Number));
+		// Still offline afterwards.
+		const calls = fetchMock.mock.calls.length;
+		expect(await api.serverAvailable()).toBe(false);
+		stop();
+		await api.syncNow();
+		expect(pull).toHaveBeenCalledTimes(1);
+		expect(fetchMock.mock.calls.length).toBe(calls + 1);
+	});
+
+	it('asks the server again when offline mode is switched off', async () => {
+		const { api, net } = await browser(server(routes));
+		api.setOfflineMode(true);
+		const seen: boolean[] = [];
+		api.watchServer((ok) => seen.push(ok));
+		await vi.waitFor(() => expect(seen).toEqual([false]));
+		api.setOfflineMode(false);
+		await vi.waitFor(() => expect(seen).toEqual([false, true]));
+		expect(net.status).toBe('online');
+		api.setOfflineMode(true);
+		expect(seen).toEqual([false, true, false]);
+	});
+
+	it('reports a failed "Sync now"', async () => {
+		const { api, net } = await browser(offline);
+		api.setOfflineMode(true);
+		expect(await api.syncNow()).toBe(false);
+		expect(net).toMatchObject({ status: 'offline', syncing: false, lastSync: null });
+	});
+
+	it('never asks a server in a build without one', async () => {
+		const { api, net } = await browser(server(routes));
+		net.hasServer = false;
+		net.status = 'none';
+		expect(await api.serverAvailable()).toBe(false);
+		await api.pushSave('save:a', {}, 1);
+		expect(await api.submitScore(solve)).toBeNull();
+		expect(await api.syncNow()).toBe(false);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('forgets waiting uploads on sign out', async () => {
+		const { api, net, outbox } = await browser(offline);
+		await api.pushSave('save:a', {}, 1);
+		expect(net.pending).toBe(1);
+		api.signOut();
+		expect(outbox.pendingCount()).toBe(0);
+		expect(net.pending).toBe(0);
+	});
+});
+
+describe('ping', () => {
+	it('asks afresh for the latency, but never in offline mode or without a server', async () => {
+		let api = await setup(server());
+		expect(await api.pingServer()).toBe(true);
+		expect(await api.pingServer()).toBe(true);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		api.setOfflineMode(true);
+		expect(await api.pingServer()).toBe(false);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		api = await setup(() => new Response('Not found', { status: 404 }));
+		expect(await api.pingServer()).toBe(false);
+		expect(await api.pingServer()).toBe(false);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 });

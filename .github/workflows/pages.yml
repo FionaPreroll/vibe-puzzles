@@ -31,6 +31,8 @@ jobs:
       - run: pnpm build
         env:
           BASE_PATH: /${{ github.event.repository.name }}
+          # No server here: the app never asks for one (see README, "Connection defaults").
+          HAS_SERVER: 'false'
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build

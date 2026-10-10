@@ -130,7 +130,7 @@ Both deploy workflows only publish the newest commit of their branch: a newer pu
 1. In the repository settings under **Pages**, set the source to **GitHub Actions**.
 2. Push to `main`. The `Deploy to GitHub Pages` workflow builds with `BASE_PATH=/<repository name>` and publishes the site.
 
-Without a server the app keeps everything in the browser; the player page and the online leaderboard say that the server is not available.
+Without a server the app keeps everything in the browser; the player page and the online leaderboard say that the server is not available. The workflow builds with `HAS_SERVER=false`, so the app never asks for one.
 
 ### Cloudflare Workers (with server features)
 
@@ -141,6 +141,22 @@ One-time setup:
 3. Set the repository variable `CLOUDFLARE_DEPLOY` to `true` to deploy on every push to `main`, or run the `Deploy to Cloudflare Workers` workflow by hand.
 
 To deploy from a local machine instead, put the database ID into `wrangler.jsonc` and run `pnpm cf:deploy`.
+
+### Connection defaults
+
+The connection button in the header (a cloud) shows whether the server answers and how fast. Its menu switches offline mode, syncs by hand and turns the update check on or off. A player's choice is kept on that device only. The build sets the defaults with these environment variables (`true`/`false`, also `1`/`0`, `yes`/`no`, `on`/`off`):
+
+| Variable               | Default | Effect                                                                                                  |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `HAS_SERVER`           | `true`  | `false`: the build has no server, so the app never calls the API (the GitHub Pages workflow sets this). |
+| `DEFAULT_OFFLINE_MODE` | `false` | `true`: offline mode is on until the player switches it off.                                            |
+| `DEFAULT_UPDATE_CHECK` | `true`  | `false`: the app does not look for new versions by itself until the player switches it on.              |
+
+So a Cloudflare build syncs by default, and a GitHub Pages build never calls an API.
+
+- **Offline mode** sends nothing by itself: no health check, no sync, no score uploads, no update checks, and the service worker serves pages from its cache (a puzzle file that is not cached is generated on the device instead). **Sync now** in the menu still sends what waits and fetches the open game and its settings, once per tap; **Check now** looks for a new version.
+- **Outbox**: saves and settings that could not be uploaded (no connection, a server error, or offline mode) wait in local storage, newest version per key, and go out when the device is back online, the page is shown again, the server answers again, or on **Sync now**. Solves timed on the device wait the same way; a solve of a server-issued (ranked) puzzle does not, because the server measures its time up to the moment the answer arrives.
+- **Update check**: while online, the app asks for `_app/version.json` every 30 minutes and when the page is shown again (at most every 5 minutes) and offers to reload when there is a new version.
 
 ## Server
 

@@ -2,7 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { goto, replaceState } from '$app/navigation';
-	import { currentPlayer, pullSave, pushSave, watchServer } from '../client/api';
+	import { currentPlayer, onSync, pullSave, pushSave, watchServer } from '../client/api';
 	import {
 		cleanupSpecialSaves,
 		freeSaveSpace,
@@ -370,6 +370,10 @@
 		window.addEventListener('pagehide', pagehide);
 		activity();
 
+		const pullSettings = async () => {
+			const remote = await pullSave<StoredSettings>(settingsKey(game.id));
+			if (remote) settings.merge(remote.data);
+		};
 		// The server can also answer only later, e.g. when the device was offline at the start.
 		let answered = false;
 		const stopWatching = watchServer(async (ok) => {
@@ -379,12 +383,14 @@
 			hasServer = ok;
 			if (!ok || !currentPlayer()) return;
 			if (back) session.refreshFromServer();
-			const remote = await pullSave<StoredSettings>(settingsKey(game.id));
-			if (remote) settings.merge(remote.data);
+			await pullSettings();
 		});
+		// "Sync now", also in offline mode.
+		const stopSync = onSync(() => Promise.all([session.refreshFromServer(), pullSettings()]));
 
 		return () => {
 			stopWatching();
+			stopSync();
 			clearInterval(tick);
 			media.removeEventListener('change', layout);
 			document.removeEventListener('visibilitychange', visibility);
@@ -395,10 +401,10 @@
 		};
 	});
 
-	// Push setting changes for other devices.
+	// Push setting changes for other devices; without a connection they wait in the outbox.
 	$effect(() => {
 		JSON.stringify(settings.values);
-		if (!hasServer || !currentPlayer() || !settings.updatedAt) return;
+		if (!currentPlayer() || !settings.updatedAt) return;
 		const data = settings.syncable();
 		const t = setTimeout(() => pushSave(settingsKey(game.id), data, data.updatedAt), 1500);
 		return () => clearTimeout(t);

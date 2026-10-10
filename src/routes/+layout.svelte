@@ -7,9 +7,13 @@
 	import { page, updated } from '$app/state';
 	import favicon from '#lib/assets/favicon.svg';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import ConnectionMenu from '#lib/components/ConnectionMenu.svelte';
 	import Bunting from '#lib/components/halloween/Bunting.svelte';
 	import HalloweenLogo from '#lib/components/halloween/Logo.svelte';
+	import { serverAvailable } from '#lib/client/api.ts';
+	import { net, tellServiceWorker } from '#lib/client/network.svelte.ts';
 	import { followSystemTheme, setLook, setNight, theme } from '#lib/client/settings.svelte.ts';
+	import { scheduleUpdateChecks } from '#lib/client/updates.ts';
 	import { paletteCss } from '#lib/core/palette.ts';
 	import { LOOK_CHOICES, seasonalLook, type LookChoice } from '#lib/core/theme.ts';
 	import { i18n, initLocale, LOCALES, setLocale, t, type Locale } from '#lib/i18n/index.svelte.ts';
@@ -45,6 +49,14 @@
 		document.documentElement.classList.toggle('dark', theme.night);
 	});
 	$effect(followSystemTheme);
+	// The service worker keeps no copy of local storage, so it hears about offline mode on every load.
+	$effect(() => tellServiceWorker(net.offline));
+	// The connection button shows the server's state on every page (nothing is asked in offline mode).
+	$effect(() => void serverAvailable());
+	$effect(() => {
+		if (net.offline || !net.updateCheck) return;
+		return scheduleUpdateChecks(() => updated.check());
+	});
 	$effect(() => {
 		if (theme.look === 'halloween') document.documentElement.dataset.theme = theme.look;
 		else delete document.documentElement.dataset.theme;
@@ -72,8 +84,9 @@
 	{@html `<style>${paletteCss()}</style>`}
 </svelte:head>
 
+<!-- z-20: the connection menu opens over the page; drawers and dialogs stay above it -->
 <header
-	class="relative border-b border-stone-200 bg-white/80 backdrop-blur dark:border-stone-800 dark:bg-stone-900/80"
+	class="relative z-20 border-b border-stone-200 bg-white/80 backdrop-blur dark:border-stone-800 dark:bg-stone-900/80"
 >
 	<div class="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3 sm:gap-4">
 		<a
@@ -109,10 +122,9 @@
 				></button
 			>
 		{/if}
+		<ConnectionMenu class="{install ? 'sm:ml-0' : ''} ml-auto" />
 		<select
-			class="{install
-				? 'sm:ml-0'
-				: ''} ml-auto rounded-md bg-transparent px-1 py-1 text-sm text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+			class="rounded-md bg-transparent px-1 py-1 text-sm text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
 			aria-label={t('app.language')}
 			value={i18n.locale}
 			onchange={(e) => setLocale(e.currentTarget.value as Locale)}

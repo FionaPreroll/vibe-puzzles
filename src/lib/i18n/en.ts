@@ -176,6 +176,7 @@ const en = {
 		notSolved: 'Not solved yet. Keep going!',
 		solved: 'Solved in {time}!',
 		uploadFailed: 'Solved in {time}! (Score not uploaded: {error})',
+		queued: 'Solved in {time}! The time goes to the server once it can be reached.',
 		wrong: 'That is not the solution yet.',
 		repeat: 'Solved in {time}! (You solved this puzzle before.)',
 		ranked: 'Solved in {time}! Rank {rank} of {total} on {variant}.',
@@ -314,6 +315,39 @@ const en = {
 	},
 	pwa: {
 		install: 'Install app'
+	},
+	/** The connection menu in the header. */
+	net: {
+		menu: 'Connection',
+		label: 'Connection: {status}',
+		checking: 'Checking…',
+		online: 'Online',
+		latency: '{ms} ms',
+		unreachable: 'No connection',
+		offline: 'Offline mode',
+		none: 'No server',
+		noneText: 'This version has no server: games and times stay on this device.',
+		offlineMode: 'Offline mode',
+		offlineModeText: 'Sends nothing and loads pages from this device, e.g. on a train.',
+		offlineModeSync: '“Sync now” still works when you tap it.',
+		syncNow: 'Sync now',
+		syncing: 'Syncing…',
+		syncFailed: 'The server did not answer.',
+		pending: '{count} changes waiting for the server',
+		pendingOne: '1 change waiting for the server',
+		lastSync: 'Last synced at {time}',
+		lastContact: 'Last answer at {time}',
+		noPlayer: 'Pick a player name to sync between devices.',
+		updateCheck: 'Check for updates',
+		updateCheckText: 'Looks for a new version now and then, but not in offline mode.',
+		checkNow: 'Check now',
+		upToDate: 'This is the newest version.',
+		checkFailed: 'Could not check for a new version.',
+		offlineError: 'Offline mode is on.',
+		noConnection: 'no connection to the server, which ranked puzzles need when they are solved',
+		offlineHint:
+			'Offline mode is on. Switch it off in the connection menu at the top to use the server.',
+		unreachableHint: 'The server cannot be reached right now. The app asks again by itself.'
 	},
 	update: {
 		available: 'A new version is available.',

@@ -522,6 +522,17 @@ describe('solving', () => {
 		expect(s.message).toEqual({ kind: 'info', text: expect.stringContaining('offline') });
 	});
 
+	it('says when the solve waits to be uploaded', async () => {
+		vi.mocked(api.submitScore).mockResolvedValueOnce('queued');
+		const s = await opened();
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		expect(s.message).toEqual({
+			kind: 'info',
+			text: expect.stringContaining('once it can be reached')
+		});
+	});
+
 	it('breaks the streak when a started puzzle is abandoned', async () => {
 		const s = await opened();
 		s.move(solvedState(), []);
