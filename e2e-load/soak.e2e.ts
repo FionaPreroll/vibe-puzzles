@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type CDPSession, type Page } from '@playwright/test';
+import { detachedReport } from './heap';
 import { board, prepare, random } from './helpers';
 import { resources, trackResources, type Resources } from './resources';
 
@@ -268,10 +269,26 @@ async function session(page: Page, name: string, touch: boolean) {
 	for (const r of rounds) console.log(JSON.stringify(r));
 
 	expect(errors).toEqual([]);
-	for (const game of GAMES) {
+	const ends = GAMES.map((game) => {
 		const own = rounds.filter((r) => r.game === game);
-		const base = own[WARMUP].resources;
-		const end = own[own.length - 1].resources;
+		return { game, own, base: own[WARMUP].resources, end: own[own.length - 1].resources };
+	});
+	// DOM nodes kept alive fail the checks below. Before they do, save what keeps them alive: a
+	// heap snapshot and the paths to them (test-results/ is a CI artifact), for a leak that does
+	// not show up on every run.
+	if (
+		ends.some(
+			({ base, end }) =>
+				end.nodes >= base.nodes * 1.1 + 200 ||
+				end.detachedNodes >= base.detachedNodes + 200 ||
+				end.jsListeners >= base.jsListeners * 1.1 + 50
+		)
+	) {
+		const file = `test-results/soak-${name}-detached`;
+		const report = (await detachedReport(cdp, file)).split('\n');
+		console.log([...report.slice(0, 80), `(all ${report.length} lines in ${file}.txt)`].join('\n'));
+	}
+	for (const { game, own, base, end } of ends) {
 		const where = `${name}, ${game}, round ${own[WARMUP].round} → ${own[own.length - 1].round}`;
 		// Some growth is caches and lazily loaded code; a leak grows with every round.
 		// The heap varies a little from round to round, so compare the average of the first and
@@ -305,6 +322,22 @@ async function session(page: Page, name: string, touch: boolean) {
 }
 
 test.describe('soak', () => {
+	test('a leak report names what keeps detached nodes alive', async ({ page }) => {
+		await prepare(page);
+		await page.goto('/tetroid?v=6n');
+		await expect(board(page)).toBeVisible({ timeout: 30_000 });
+		await page.evaluate(() => {
+			const old = document.querySelector('main')!.cloneNode(true);
+			(window as unknown as { leakyCache: unknown }).leakyCache = { old };
+		});
+		const cdp = await page.context().newCDPSession(page);
+		const report = await detachedReport(cdp, 'test-results/soak-report-check');
+		// The largest detached subtree comes first, with its path from the window.
+		expect(report).toMatch(
+			/nodes:\n {4}Window[^\n]*\n {4}Object ←leakyCache\n {4}<main[^\n]* ←old/
+		);
+	});
+
 	test(`a desktop session of ${ROUNDS * ROUND} actions stays healthy`, async ({ page }) => {
 		await session(page, 'desktop', false);
 	});
