@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { GameSettings } from '../client/settings.svelte';
 	import { save } from '../client/storage';
-	import type { GameModule } from '../core/types';
+	import type { GameModule, Hint } from '../core/types';
 	import {
 		findTutorial,
 		tutorialDoneKey,
@@ -32,13 +32,15 @@
 	let tool = $state(untrack(() => game.defaultTool(isTouch)));
 	let lastChange = $state.raw<ReadonlySet<string>>(new Set());
 	let step = $state(0);
+	/** The hint on the board in the last step, until the next move. */
+	let hint = $state.raw<Hint | null>(null);
 
 	const steps = $derived(tSteps(tutorialTextKey(ref)));
 	const last = $derived(step === steps.length - 1);
 	const guide = $derived(tutorial.steps[step]);
 	const taskDone = $derived(!!guide?.done?.(tutorial.puzzle, current));
 	const canGoOn = $derived(!guide?.done || taskDone);
-	const spotlight = $derived(new Set(guide?.spotlight ?? []));
+	const spotlight = $derived(new Set(hint ? hint.spotlight : (guide?.spotlight ?? [])));
 	const solved = $derived(
 		game.isSolved(tutorial.puzzle, current) ||
 			!!game.acceptAlternative?.(tutorial.puzzle, current, settings.values)
@@ -61,6 +63,12 @@
 		history = [...history, current];
 		current = game.afterMove?.(tutorial.puzzle, next, settings.values) ?? next;
 		lastChange = new Set(changed);
+		hint = null;
+	}
+
+	/** The last step is the player's alone: the game's hint helps there, as in a real puzzle. */
+	function showHint() {
+		hint = game.hint?.(tutorial.puzzle, current) ?? null;
 	}
 
 	function showMe() {
@@ -72,6 +80,7 @@
 		if (!history.length) return;
 		current = history[history.length - 1] as typeof current;
 		history = history.slice(0, -1);
+		hint = null;
 	}
 
 	const playUrl = $derived.by(() => {
@@ -153,9 +162,21 @@
 				<p class="mt-2 text-sm text-stone-500 dark:text-stone-400">
 					{t(`games.${game.id}.${isTouch ? 'controlsTouch' : 'controlsMouse'}`)}
 				</p>
+				{#if game.hint}
+					<p class="mt-2 text-sm">{t('tutorial.hint')}</p>
+				{/if}
+			{/if}
+			{#if hint}
+				<p
+					class="mt-3 rounded-md px-3 py-1.5 text-sm {hint.kind === 'mistake'
+						? 'bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200'
+						: 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200'}"
+				>
+					{hint.text.map((key) => t(key, hint!.params)).join(' ')}
+				</p>
 			{/if}
 			<div class="mt-4 flex flex-wrap gap-2">
-				<button class="btn" onclick={() => step--} disabled={step === 0}
+				<button class="btn" onclick={() => ((hint = null), step--)} disabled={step === 0}
 					>{t('tutorial.back')}</button
 				>
 				{#if !last}
@@ -167,6 +188,9 @@
 				{/if}
 				{#if guide?.show && !taskDone}
 					<button class="btn" onclick={showMe}>{t('tutorial.showMe')}</button>
+				{/if}
+				{#if last && game.hint}
+					<button class="btn" onclick={showHint}>{t('game.hint')}</button>
 				{/if}
 			</div>
 			<a class="link mt-4 inline-block text-sm" href={playUrl}>{t('tutorial.skip')}</a>
