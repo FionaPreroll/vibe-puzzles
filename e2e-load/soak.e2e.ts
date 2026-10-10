@@ -84,7 +84,8 @@ async function solve(page: Page, game: Game) {
 	await more(page);
 	await page.getByRole('button', { name: 'Start over' }).click();
 	await agree(page, true);
-	// Measured after the menu: opening it may scroll the page.
+	// The puzzle ID field may have scrolled the board partly out of view.
+	await board(page).scrollIntoViewIfNeeded();
 	const grid = (await board(page).locator('rect').first().boundingBox())!;
 	const cell = grid.width / p.size;
 	for (const [x, y] of clicks) await page.mouse.click(grid.x + x * cell, grid.y + y * cell);

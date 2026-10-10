@@ -99,6 +99,8 @@
 	let boardTop = $state(200);
 	/** Width of the board with its surface: the rows above and below it are no wider. */
 	let stageWidth = $state(0);
+	/** The play bar below the board on wide screens; the board's stage is at least as wide. */
+	let barWidth = $state(0);
 	/** Padding of the board's surface (p-2, lg:p-3), which the board's size leaves room for. */
 	const stagePad = $derived(wide ? 12 : 8);
 	/** Everything on the page below the board area: tools, buttons, paddings and the footer. */
@@ -962,12 +964,16 @@
 				onpointerdown={onpanstart}
 			>
 				{#if session.puzzle && session.state}
-					<div class="board-stage" bind:offsetWidth={stageWidth}>
+					<div
+						class="board-stage"
+						bind:offsetWidth={stageWidth}
+						style:min-width={wide && barWidth ? `${barWidth}px` : undefined}
+					>
 						{@render stageDecor()}
 						<div
-							class="relative z-10 w-fit rounded-sm {session.paused ? 'invisible' : ''} {celebrate
-								? 'solved-glow'
-								: ''}"
+							class="relative z-10 mx-auto w-fit rounded-sm {session.paused
+								? 'invisible'
+								: ''} {celebrate ? 'solved-glow' : ''}"
 						>
 							<Board
 								puzzle={session.puzzle}
@@ -1072,7 +1078,9 @@
 		<div bind:offsetHeight={belowHeight} class="stage-column" style:--stage="{stageWidth}px">
 			<!-- Wide screens: the play bar right below the board, no wider than it needs -->
 			<div class="mt-4 hidden flex-col items-center gap-2 lg:flex">
-				<div class="play-bar flex w-max">{@render playButtons()}</div>
+				<div class="play-bar flex w-max" bind:offsetWidth={barWidth}>
+					{@render playButtons()}
+				</div>
 				{@render swatchRow()}
 			</div>
 			<!-- Phones: the play bar fixed at the bottom, in reach of the thumb -->
