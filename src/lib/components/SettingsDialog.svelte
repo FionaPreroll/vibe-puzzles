@@ -43,10 +43,19 @@
 						type="checkbox"
 						class="size-4 accent-indigo-600"
 						checked={settings.values[s.key]}
+						aria-describedby={s.countsAsHint ? `setting-${s.key}-note` : undefined}
 						onchange={(e) => settings.set(s.key, e.currentTarget.checked)}
 					/>
 					<span>{settingLabel(s)}</span>
 				</label>
+				{#if s.countsAsHint}
+					<p
+						id="setting-{s.key}-note"
+						class="-mt-1 pr-2 pb-1 pl-9 text-xs text-stone-500 dark:text-stone-400"
+					>
+						{t('game.countsAsHint')}
+					</p>
+				{/if}
 			</li>
 		{/each}
 	</ul>

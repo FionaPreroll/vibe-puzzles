@@ -505,6 +505,12 @@
 	$effect(() => {
 		if (!session.canHint) untrack(() => session.dismissHint());
 	});
+	// A setting that counts as a hint (painting wrong digits red) counts once it is on in a game.
+	$effect(() => {
+		if (session.assistOn && session.puzzle && !session.loading && !session.solved) {
+			untrack(() => session.noteAssist());
+		}
+	});
 </script>
 
 <svelte:window
