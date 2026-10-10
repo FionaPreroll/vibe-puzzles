@@ -1,17 +1,19 @@
+import { settingValues, type CommonKey } from '../core/settings';
 import { isLookChoice, resolveLook, type LookChoice } from '../core/theme';
 import type { SettingInfo, Settings, TouchMode } from '../core/types';
 import { load, save } from './storage';
+import { KEY, settingsKey, toolKey } from './storageKeys';
 
 const DARK_SCHEME = '(prefers-color-scheme: dark)';
 
 /** The player's choice of night mode, null until they switch it. */
-const chosenNight = () => load<boolean | null>('night', null);
+const chosenNight = () => load<boolean | null>(KEY.night, null);
 
 const systemNight = () => typeof matchMedia === 'function' && matchMedia(DARK_SCHEME).matches;
 
 /** The player's choice of look, 'auto' until they pick one. */
 function chosenLook(): LookChoice {
-	const stored = load<unknown>('look', 'auto');
+	const stored = load<unknown>(KEY.look, 'auto');
 	return isLookChoice(stored) ? stored : 'auto';
 }
 
@@ -40,45 +42,44 @@ export function followSystemTheme(): () => void {
 
 export function setNight(on: boolean) {
 	theme.night = on;
-	save('night', on);
+	save(KEY.night, on);
 }
 
 export function setLook(choice: LookChoice) {
 	theme.lookChoice = choice;
 	theme.look = resolveLook(choice, new Date());
-	save('look', choice);
+	save(KEY.look, choice);
 }
 
+/** Settings as stored and synced: they may lack newer settings and keep removed ones. */
 export interface StoredSettings {
-	values: Settings;
+	values: Partial<Record<string, boolean>>;
 	updatedAt: number;
 }
 
-/** Reactive settings of one game, persisted on every change. */
-export class GameSettings {
-	values = $state<Settings>({});
+/** Reactive settings of one game (`K`: its own setting keys), persisted on every change. */
+export class GameSettings<K extends string = never> {
+	values: Settings<K>;
 	updatedAt = 0;
 
 	constructor(
 		readonly game: string,
-		readonly info: SettingInfo[]
+		readonly info: SettingInfo<CommonKey | K>[]
 	) {
-		const stored = load<StoredSettings | null>(`settings:${game}`, null);
-		const values: Settings = {};
-		for (const s of info) values[s.key] = stored?.values[s.key] ?? s.default;
-		this.values = values;
+		const stored = load<StoredSettings | null>(settingsKey(game), null);
+		this.values = $state(settingValues(info, stored?.values));
 		this.updatedAt = stored?.updatedAt ?? 0;
 	}
 
-	set(key: string, value: boolean) {
+	set(key: CommonKey | K, value: boolean) {
 		this.values[key] = value;
 		this.updatedAt = Date.now();
-		save(`settings:${this.game}`, { values: { ...this.values }, updatedAt: this.updatedAt });
+		this.persist();
 	}
 
 	/** Settings that may follow the player to other devices. */
 	syncable(): StoredSettings {
-		const values: Settings = {};
+		const values: StoredSettings['values'] = {};
 		for (const s of this.info) if (!s.deviceOnly) values[s.key] = this.values[s.key];
 		return { values, updatedAt: this.updatedAt };
 	}
@@ -87,27 +88,31 @@ export class GameSettings {
 	merge(remote: StoredSettings) {
 		if (remote.updatedAt <= this.updatedAt) return;
 		for (const s of this.info) {
-			if (!s.deviceOnly && typeof remote.values[s.key] === 'boolean') {
-				this.values[s.key] = remote.values[s.key];
-			}
+			const value = remote.values[s.key];
+			if (!s.deviceOnly && typeof value === 'boolean') this.values[s.key] = value;
 		}
 		this.updatedAt = remote.updatedAt;
-		save(`settings:${this.game}`, { values: { ...this.values }, updatedAt: this.updatedAt });
+		this.persist();
+	}
+
+	private persist() {
+		const stored: StoredSettings = { values: { ...this.values }, updatedAt: this.updatedAt };
+		save(settingsKey(this.game), stored);
 	}
 }
 
 export function loadTool(game: string, fallback: string): string {
-	return load<string>(`tool:${game}`, fallback);
+	return load<string>(toolKey(game), fallback);
 }
 
 export function saveTool(game: string, tool: string) {
-	save(`tool:${game}`, tool);
+	save(toolKey(game), tool);
 }
 
 export function loadTouchMode(): TouchMode {
-	return load<TouchMode>('touch', 'draw');
+	return load<TouchMode>(KEY.touch, 'draw');
 }
 
 export function saveTouchMode(mode: TouchMode) {
-	save('touch', mode);
+	save(KEY.touch, mode);
 }

@@ -52,7 +52,7 @@ src/lib/core/            shared types, seeded RNG, puzzle IDs, settings, collect
 src/lib/games/<id>/      one folder per game: rules, solver, generator, logic, Board.svelte, index.ts
 src/lib/games/logic.ts   registry of game logic (used by the client and the server)
 src/lib/games/index.ts   registry of game modules (logic plus UI)
-src/lib/client/          browser-side storage, backup, API client, game session, generator web worker
+src/lib/client/          browser-side storage and its keys, backup, API client, game session, generator web worker
 src/lib/components/      game shell, tutorial and dialogs
 src/lib/i18n/            translations (en.ts is the reference, de.ts must have the same keys)
 src/service-worker/      offline cache
@@ -70,7 +70,7 @@ docs/                    technical documentation (generators.md: how puzzles and
 
 ### Adding a game
 
-1. Create `src/lib/games/<id>/` with a `logic.ts` exporting a `GameLogic` (variants, generator, solution counter, difficulty rating, state encoding, answer check) and an `index.ts` exporting a `GameModule` (name, tools, settings, an optional tutorial puzzle, an optional `hint` for the Hint button and a `Board.svelte` component).
+1. Create `src/lib/games/<id>/` with a `settings.ts` (the game's settings, `withCommon([...])`, and the type of their keys), a `logic.ts` exporting a `GameLogic` (variants, generator, solution counter, difficulty rating, state encoding, answer check) and an `index.ts` exporting a `GameModule` (name, tools, settings, an optional tutorial puzzle, an optional `hint` for the Hint button and a `Board.svelte` component). The puzzle type extends `BasePuzzle` (`width`, `height`); both take the settings' key type as their third parameter, so the board's `settings` only has the common settings and the game's own.
 2. Take every board colour from `src/lib/core/palette.ts` (`colours.<name>`), never a colour literal: that is how boards follow night mode and keep screenshots and prints light. A unit test rejects colour literals in boards and checks the contrast of the palette's colour pairs in both themes.
 3. Add the texts (tagline, rules, notes, control hints, tutorial steps) under `games.<id>` in every file in `src/lib/i18n/`.
 4. Register the logic in `src/lib/games/logic.ts` and the module in `src/lib/games/index.ts`.

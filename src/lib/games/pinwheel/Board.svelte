@@ -25,6 +25,7 @@
 		neighbours
 	} from '../../core/grid';
 	import type { BoardProps, KeyPress } from '../../core/types';
+	import type { PinwheelSettingKey } from './settings';
 	import { boardInput, interpolate, touchAction, type BoardPoint } from '../../client/boardInput';
 	import { direction } from '../../client/keys';
 	import {
@@ -61,7 +62,7 @@
 		onmove,
 		spotlight,
 		area
-	}: BoardProps<PinwheelPuzzle, PinwheelState> = $props();
+	}: BoardProps<PinwheelPuzzle, PinwheelState, PinwheelSettingKey> = $props();
 
 	type Edge = { kind: 'h' | 'v'; i: number; j: number };
 	type Pending =

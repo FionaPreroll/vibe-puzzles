@@ -6,11 +6,20 @@ import type { SavedGame } from './session.svelte';
 import { save } from './storage';
 
 const logic = GAME_LOGIC.pinwheel;
-const puzzle = logic.generate(
-	logic.variants.find((v) => v.key === '5n')!,
-	7
+const puzzles = new Map<string, unknown>();
+
+/** A puzzle of the type, as a save of it holds (none for a type that does not exist). */
+function puzzleOf(variant: string): unknown {
+	const v = logic.variants.find((v) => v.key === variant);
+	if (v && !puzzles.has(variant)) puzzles.set(variant, logic.generate(v, 7));
+	return puzzles.get(variant) ?? null;
+}
+const empty = logic.emptyState(
+	logic.generate(
+		logic.variants.find((v) => v.key === '5n')!,
+		7
+	)
 );
-const empty = logic.emptyState(puzzle);
 const NOW = new Date('2026-10-08T14:00:00Z');
 
 function game(variant: string, over: Partial<SavedGame> = {}): SavedGame {
@@ -18,7 +27,7 @@ function game(variant: string, over: Partial<SavedGame> = {}): SavedGame {
 		version: 1,
 		puzzleId: 1,
 		variant,
-		puzzle,
+		puzzle: puzzleOf(variant),
 		state: 'moved',
 		checkpoints: [],
 		currentCheckpoint: -1,
@@ -58,10 +67,12 @@ describe('the game to continue', () => {
 		expect(latestUnfinished(NOW)?.save.updatedAt).toBe(3);
 	});
 
-	it('skips games and puzzle types that no longer exist, and broken saves', () => {
+	it('skips games and puzzle types that no longer exist, and saves that cannot be resumed', () => {
 		save('save:chess:8n', game('8n', { updatedAt: 9 }));
 		save('save:pinwheel:99n', game('99n', { updatedAt: 9 }));
 		save('save:pinwheel:5n', game('5n', { puzzle: null }));
+		save('save:pinwheel:7n', game('7n', { puzzle: puzzleOf('5n') }));
+		save('save:pinwheel', game('5n', { updatedAt: 9 }));
 		expect(latestUnfinished(NOW)).toBeNull();
 	});
 });

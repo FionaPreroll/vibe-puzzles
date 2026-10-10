@@ -4,7 +4,8 @@
 	import { GameSettings } from '../client/settings.svelte';
 	import { KeyDispatcher } from '../client/keys';
 	import { save } from '../client/storage';
-	import type { GameModule, Hint } from '../core/types';
+	import type { Hint } from '../core/types';
+	import type { AnyGame } from '../games';
 	import {
 		findTutorial,
 		tutorialDoneKey,
@@ -19,7 +20,7 @@
 	 * only read, others are a task on the board that has to be done before going on. A `mode`
 	 * picks that mode's tutorial instead, e.g. Calcudoku in Sudoku.
 	 */
-	let { game, mode }: { game: GameModule; mode?: string } = $props();
+	let { game, mode }: { game: AnyGame; mode?: string } = $props();
 
 	const ref = untrack(() => findTutorial(game, mode)!);
 	const tutorial = ref.tutorial;
@@ -56,10 +57,7 @@
 	// Tutorials are small: use big cells, but stay within the screen.
 	let width = $state(400);
 	const cellSize = $derived(
-		Math.max(
-			32,
-			Math.min(64, Math.floor(width / ((tutorial.puzzle as { width: number }).width + 0.3)))
-		)
+		Math.max(32, Math.min(64, Math.floor(width / (tutorial.puzzle.width + 0.3))))
 	);
 
 	$effect(() => {

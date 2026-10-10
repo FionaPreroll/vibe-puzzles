@@ -3,6 +3,7 @@ import type { AssetPath } from '$app/types';
 import { Collection, type BankEntry } from '../core/bank';
 import type { Variant } from '../core/variants';
 import { load, save } from './storage';
+import { bankPlayedKey, KEY } from './storageKeys';
 
 /** Where new puzzles come from: generated on this device, the collection, or either at random. */
 export type PuzzleSource = 'local' | 'bank' | 'mixed';
@@ -10,12 +11,12 @@ export type PuzzleSource = 'local' | 'bank' | 'mixed';
 export const PUZZLE_SOURCES: PuzzleSource[] = ['local', 'bank', 'mixed'];
 
 export function loadPuzzleSource(): PuzzleSource {
-	const value = load<string>('puzzleSource', 'mixed');
+	const value = load<string>(KEY.puzzleSource, 'mixed');
 	return PUZZLE_SOURCES.includes(value as PuzzleSource) ? (value as PuzzleSource) : 'mixed';
 }
 
 export function savePuzzleSource(source: PuzzleSource) {
-	save('puzzleSource', source);
+	save(KEY.puzzleSource, source);
 }
 
 /**
@@ -35,9 +36,10 @@ const PLAYED = 2000;
 
 /** A collection puzzle this device has not played yet, or null. */
 export async function pickFromBank<P>(game: string, variant: string): Promise<BankEntry<P> | null> {
-	const played = new Set(load<number[]>(`bankPlayed:${game}:${variant}`, []));
+	const key = bankPlayedKey(game, variant);
+	const played = new Set(load<number[]>(key, []));
 	const pick = await collection.pick<P>(game, variant, (id) => played.has(id));
-	if (pick) save(`bankPlayed:${game}:${variant}`, [...played, pick.id].slice(-PLAYED));
+	if (pick) save(key, [...played, pick.id].slice(-PLAYED));
 	return pick;
 }
 

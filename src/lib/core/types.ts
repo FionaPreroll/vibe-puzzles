@@ -1,4 +1,5 @@
 import type { Component } from 'svelte';
+import type { CommonKey } from './settings';
 import type { Variant } from './variants';
 
 export interface ToolInfo {
@@ -11,26 +12,34 @@ export interface ToolInfo {
 	key: string;
 }
 
-export interface SettingInfo {
-	key: string;
+/** One on/off setting. `K` is the game's setting keys, so that `requires` names one of them. */
+export interface SettingInfo<K extends string = string> {
+	key: K;
 	/** English fallback; the shown text comes from `setting.<key>` in the translations. */
 	label: string;
 	default: boolean;
 	/** Only offered while this other setting has the given value. */
-	requires?: { key: string; value: boolean };
+	requires?: { key: NoInfer<K>; value: boolean };
 	/** Stays on this device even when settings sync. */
 	deviceOnly?: boolean;
 	/** Helps with knowledge of the solution: turning it on during a game counts as a hint. */
 	countsAsHint?: boolean;
 }
 
-export type Settings = Record<string, boolean>;
+/** The values of the common settings and of a game's own ones (`K`). */
+export type Settings<K extends string = never> = Record<CommonKey | K, boolean>;
+
+/** What every game's puzzle has: the size of its grid in cells. */
+export interface BasePuzzle {
+	width: number;
+	height: number;
+}
 
 /** Everything the shared game shell passes to a game's board component. */
-export interface BoardProps<P, S> {
+export interface BoardProps<P, S, K extends string = never> {
 	puzzle: P;
 	state: S;
-	settings: Settings;
+	settings: Settings<K>;
 	tool: string;
 	/** Game-specific tool option, e.g. the selected colour. */
 	toolOption: number;
@@ -50,9 +59,9 @@ export interface BoardProps<P, S> {
 	celebrate?: boolean;
 	touchMode: TouchMode;
 	/** Apply a move. `changed` lists element keys for "Highlight last change". */
-	onmove: (next: S, changed: string[]) => void;
+	onmove(next: S, changed: string[]): void;
 	/** Some boards switch tools temporarily (e.g. Shift for colour). */
-	ontool?: (tool: string) => void;
+	ontool?(tool: string): void;
 	/** Elements a tutorial step points at, in the same keys as `lastChange`. */
 	spotlight?: ReadonlySet<string>;
 	/** Elements a hint's reasoning rests on (a region, a cage, a row), tinted more softly. */
@@ -120,8 +129,18 @@ export interface Hint {
 	params?: Record<string, string | number>;
 }
 
-/** Pure game logic, shared by the client and the optional server. */
-export interface GameLogic<P = unknown, S = unknown> {
+/**
+ * Pure game logic, shared by the client and the optional server. `P` and `S` are the puzzle and
+ * the player's state, `K` the keys of the game's own settings.
+ *
+ * Every member that takes a `P`, `S` or settings is a method: methods are bivariant in their
+ * parameters, so a registry can hold each game as a `GameLogic` without a cast.
+ */
+export interface GameLogic<
+	P extends BasePuzzle = BasePuzzle,
+	S = unknown,
+	K extends string = never
+> {
 	id: string;
 	variants: Variant[];
 	generate(variant: Variant, seed: number): P;
@@ -133,10 +152,10 @@ export interface GameLogic<P = unknown, S = unknown> {
 	isValidPuzzle(puzzle: unknown, variant: Variant): puzzle is P;
 	emptyState(puzzle: P): S;
 	/** Post-processing after a move by the player (e.g. auto crosses). */
-	afterMove?(puzzle: P, state: S, settings: Settings): S;
+	afterMove?(puzzle: P, state: S, settings: Settings<K>): S;
 	isSolved(puzzle: P, state: S): boolean;
 	/** Alternative acceptance (e.g. by colours). Returns the completed state or null. */
-	acceptAlternative?(puzzle: P, state: S, settings: Settings): S | null;
+	acceptAlternative?(puzzle: P, state: S, settings: Settings<K>): S | null;
 	/** Compact answer as submitted to the server. */
 	answer(puzzle: P, state: S): string;
 	verifyAnswer(puzzle: P, answer: string): boolean;
@@ -144,6 +163,16 @@ export interface GameLogic<P = unknown, S = unknown> {
 	decodeState(puzzle: P, text: string): S | null;
 	isValidState(puzzle: P, state: unknown): state is S;
 }
+
+type Board<P, S, K extends string> = Component<BoardProps<P, S, K>>;
+
+/**
+ * A game's board component. Taken from a method so that, like the logic's methods, it is
+ * bivariant in its props: the registry's boards take any puzzle, each board its own.
+ */
+export type BoardComponent<P, S, K extends string = never> = {
+	board(...args: Parameters<Board<P, S, K>>): ReturnType<Board<P, S, K>>;
+}['board'];
 
 export interface ToolOption {
 	value: number;
@@ -156,7 +185,11 @@ export interface ToolOption {
  * A game as presented by the client. Texts (tagline, rules, notes, control hints, tutorial) live
  * in the translations under `games.<id>`.
  */
-export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
+export interface GameModule<
+	P extends BasePuzzle = BasePuzzle,
+	S = unknown,
+	K extends string = never
+> extends GameLogic<P, S, K> {
 	name: string;
 	tools: ToolInfo[];
 	defaultTool(touch: boolean): string;
@@ -164,8 +197,9 @@ export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	spaceSwitches?: [string, string];
 	/** Optional per-tool options (e.g. colours), selected with extra keys. */
 	toolOptions?: { tool: string; values: ToolOption[]; default: number };
-	settings: SettingInfo[];
-	board: Component<BoardProps<P, S>>;
+	/** The common settings and the game's own (`withCommon`). */
+	settings: SettingInfo<CommonKey | K>[];
+	board: BoardComponent<P, S, K>;
 	/** Board height in cells beyond the grid (e.g. a number pad below it), for fitting the screen. */
 	padRows?: number;
 	/** Small static preview for the home page. */

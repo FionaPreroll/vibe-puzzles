@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-// A Pinwheel 5×5 puzzle is enough here; the home page only reads the saves.
+// A daily Pinwheel (10×10) with one centre is enough here: the home page only checks that the
+// save's puzzle fits its type and reads the rest.
 const save = (variant: string, state: unknown) => ({
 	version: 1,
 	puzzleId: 1,
 	variant,
-	puzzle: { width: 5, height: 5, centres: [] },
+	puzzle: { width: 10, height: 10, centres: [[0, 0]] },
 	state,
 	checkpoints: [],
 	currentCheckpoint: -1,

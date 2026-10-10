@@ -1,5 +1,5 @@
-import { withCommon } from '../../core/settings';
 import type { GameModule } from '../../core/types';
+import { SUDOKU_SETTINGS, type SudokuSettingKey } from './settings';
 import Board from './Board.svelte';
 import { calcHint } from './calc/hint';
 import { cageLabel } from './calc/rules';
@@ -9,7 +9,7 @@ import { emptySudokuState, type SudokuPuzzle, type SudokuState } from './rules';
 import { CALC_TUTORIAL, CALC_TUTORIAL_STEPS } from './calcTutorial';
 import { SUDOKU_TUTORIAL, SUDOKU_TUTORIAL_STEPS } from './tutorial';
 
-export const sudoku: GameModule<SudokuPuzzle, SudokuState> = {
+export const sudoku: GameModule<SudokuPuzzle, SudokuState, SudokuSettingKey> = {
 	...sudokuLogic,
 	name: 'Sudoku',
 	icon: '⑨',
@@ -19,20 +19,7 @@ export const sudoku: GameModule<SudokuPuzzle, SudokuState> = {
 	],
 	spaceSwitches: ['digit', 'note'],
 	defaultTool: () => 'digit',
-	settings: withCommon([
-		{
-			key: 'markMistakes',
-			label: 'Paint wrong digits red',
-			default: false,
-			countsAsHint: true
-		},
-		{ key: 'autoNotes', label: 'Fill in notes automatically', default: false },
-		{ key: 'autoRemoveNotes', label: 'Remove notes ruled out by a new digit', default: false },
-		{ key: 'highlightLines', label: 'Highlight row, column and box', default: true },
-		{ key: 'highlightSame', label: 'Highlight the same digit', default: true },
-		{ key: 'showRemaining', label: 'Show how many of each digit are left', default: true },
-		{ key: 'digitFirst', label: 'Pick the digit first, then the cells', default: false }
-	]),
+	settings: SUDOKU_SETTINGS,
 	tutorial: { puzzle: SUDOKU_TUTORIAL, start: emptySudokuState, steps: SUDOKU_TUTORIAL_STEPS },
 	modeTutorials: {
 		calc: { puzzle: CALC_TUTORIAL, start: emptySudokuState, steps: CALC_TUTORIAL_STEPS }

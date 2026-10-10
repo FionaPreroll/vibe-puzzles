@@ -4,6 +4,7 @@
 	import { direction } from '../../client/keys';
 	import { colours } from '../../core/palette';
 	import type { BoardProps, KeyPress } from '../../core/types';
+	import type { SudokuSettingKey } from './settings';
 	import { t } from '../../i18n/index.svelte';
 	import {
 		bit,
@@ -37,7 +38,7 @@
 		onmove,
 		spotlight,
 		area
-	}: BoardProps<SudokuPuzzle, SudokuState> = $props();
+	}: BoardProps<SudokuPuzzle, SudokuState, SudokuSettingKey> = $props();
 
 	const size = $derived(puzzle.width);
 	const box = $derived(boxShape(size));

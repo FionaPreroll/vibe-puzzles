@@ -1,6 +1,6 @@
-import { withCommon } from '../../core/settings';
 import { PINWHEEL_TUTORIAL, PINWHEEL_TUTORIAL_STEPS } from './tutorial';
 import type { GameModule } from '../../core/types';
+import { PINWHEEL_SETTINGS, type PinwheelSettingKey } from './settings';
 import Board, { NOTE_COLOURS } from './Board.svelte';
 import { pinwheelHint } from './hint';
 import { pinwheelLogic } from './logic';
@@ -8,7 +8,7 @@ import { emptyPinwheelState, type PinwheelPuzzle, type PinwheelState } from './r
 
 const SWATCH_NAMES = ['', 'Violet', 'Red', 'Yellow', 'Green', 'Blue'];
 
-export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState> = {
+export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState, PinwheelSettingKey> = {
 	...pinwheelLogic,
 	name: 'Pinwheel',
 	icon: '✺',
@@ -30,13 +30,7 @@ export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState> = {
 			color: NOTE_COLOURS[value]
 		}))
 	},
-	settings: withCommon([
-		{ key: 'showGrid', label: 'Show grid', default: true },
-		{ key: 'continuousLine', label: 'Draw continuous line', default: true },
-		{ key: 'symmetryHelper', label: 'Enable symmetry helper', default: true },
-		{ key: 'blackHoles', label: 'Black hole in completed regions', default: false },
-		{ key: 'autoColor', label: 'Auto color completed regions', default: false }
-	]),
+	settings: PINWHEEL_SETTINGS,
 	tutorial: {
 		puzzle: PINWHEEL_TUTORIAL,
 		start: emptyPinwheelState,

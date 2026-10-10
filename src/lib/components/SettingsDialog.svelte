@@ -17,7 +17,7 @@
 		ontouchmode
 	}: {
 		open: boolean;
-		settings: GameSettings;
+		settings: GameSettings<string>;
 		/** Set on touch devices, which get a choice of how dragging on the board behaves. */
 		touchMode?: TouchMode;
 		ontouchmode?: (mode: TouchMode) => void;

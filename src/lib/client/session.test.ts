@@ -43,7 +43,7 @@ vi.mock('./generate', () => ({
 	})
 }));
 
-type Session = GameSession<TetroidPuzzle, TetroidState>;
+type Session = GameSession<TetroidPuzzle, TetroidState, string>;
 
 const game = GAME_LOGIC.tetroid as unknown as GameModule<TetroidPuzzle, TetroidState>;
 const DAILY = game.variants.findIndex((v) => v.key === 'daily');
@@ -536,7 +536,7 @@ describe('solving', () => {
 
 describe('hints', () => {
 	async function hinting(): Promise<Session> {
-		const settings = new GameSettings('tetroid', withCommon([]));
+		const settings = new GameSettings('tetroid', tetroid.settings);
 		const s = new GameSession(tetroid, settings);
 		await s.open('6n', { puzzleId: ID });
 		return s;
@@ -608,7 +608,7 @@ describe('hints', () => {
 	});
 
 	it('give none for a solved board that is not submitted yet', async () => {
-		const settings = new GameSettings('tetroid', withCommon([]));
+		const settings = new GameSettings('tetroid', tetroid.settings);
 		settings.values.autoSubmit = false;
 		const s = new GameSession(tetroid, settings);
 		await s.open('6n', { puzzleId: ID });
@@ -619,7 +619,7 @@ describe('hints', () => {
 	});
 
 	it('come with the digit filled in, in Sudoku and in Calcudoku', async () => {
-		const s = new GameSession(sudoku, new GameSettings('sudoku', withCommon([])));
+		const s = new GameSession(sudoku, new GameSettings('sudoku', sudoku.settings));
 		await s.open('9e');
 		expect(s.canHint).toBe(true);
 		s.showHint();
@@ -636,7 +636,7 @@ describe('hints', () => {
 	});
 
 	it('are off with the setting that hides the button', async () => {
-		const settings = new GameSettings('tetroid', withCommon([]));
+		const settings = new GameSettings('tetroid', tetroid.settings);
 		settings.values.hideHint = true;
 		const s = new GameSession(tetroid, settings);
 		await s.open('6n', { puzzleId: ID });
@@ -664,7 +664,7 @@ describe('hints', () => {
 	});
 
 	it('keep a game hinted when hints are turned off in the middle of it', async () => {
-		const settings = new GameSettings('tetroid', withCommon([]));
+		const settings = new GameSettings('tetroid', tetroid.settings);
 		const s = new GameSession(tetroid, settings);
 		await s.open('6n', { puzzleId: ID });
 		s.showHint();
@@ -692,7 +692,7 @@ describe('hints', () => {
 describe('a setting that counts as a hint', () => {
 	const info = withCommon([{ key: 'reveal', label: 'Reveal', default: false, countsAsHint: true }]);
 
-	async function assisting(on = false): Promise<[Session, GameSettings]> {
+	async function assisting(on = false): Promise<[Session, GameSettings<string>]> {
 		const settings = new GameSettings('tetroid', info);
 		settings.values.reveal = on;
 		const s = new GameSession(game, settings);

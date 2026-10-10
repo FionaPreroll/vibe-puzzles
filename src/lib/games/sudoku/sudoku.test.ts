@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { EASY_GIVENS, generateSudoku } from './generator';
 import { SUDOKU_VARIANTS, sudokuLogic } from './logic';
+import { SUDOKU_SETTINGS } from './settings';
+import { settingValues } from '../../core/settings';
 import {
 	bit,
 	boxShape,
@@ -280,20 +282,30 @@ describe('logic', () => {
 
 	it('removes ruled-out notes after a move only when asked to', () => {
 		const s = placeDigit(easy, toggleNote(easy, emptySudokuState(easy), 3, 2), 2, 2);
-		expect(sudokuLogic.afterMove!(easy, s, {})).toBe(s);
-		expect(sudokuLogic.afterMove!(easy, s, { autoRemoveNotes: true }).notes[3]).toBe(0);
+		expect(sudokuLogic.afterMove!(easy, s, settingValues(SUDOKU_SETTINGS))).toBe(s);
+		expect(
+			sudokuLogic.afterMove!(easy, s, settingValues(SUDOKU_SETTINGS, { autoRemoveNotes: true }))
+				.notes[3]
+		).toBe(0);
 	});
 
 	it('fills in notes after a move when asked to, also after erasing a digit', () => {
 		const start = emptySudokuState(easy);
-		const filled = sudokuLogic.afterMove!(easy, start, { autoNotes: true });
+		const filled = sudokuLogic.afterMove!(
+			easy,
+			start,
+			settingValues(SUDOKU_SETTINGS, { autoNotes: true })
+		);
 		expect(filled).toEqual(fillNotes(easy, start));
 		// A digit in cell 2 rules out 4 elsewhere only with note removal on.
 		const placed = placeDigit(easy, filled, 2, 4);
-		expect(digitsOf(sudokuLogic.afterMove!(easy, placed, { autoNotes: true }).notes[11])).toContain(
-			4
-		);
-		const both = { autoNotes: true, autoRemoveNotes: true };
+		expect(
+			digitsOf(
+				sudokuLogic.afterMove!(easy, placed, settingValues(SUDOKU_SETTINGS, { autoNotes: true }))
+					.notes[11]
+			)
+		).toContain(4);
+		const both = settingValues(SUDOKU_SETTINGS, { autoNotes: true, autoRemoveNotes: true });
 		const pruned = sudokuLogic.afterMove!(easy, placed, both);
 		expect(digitsOf(pruned.notes[11])).not.toContain(4);
 		// Erasing the digit keeps the cell's old notes.

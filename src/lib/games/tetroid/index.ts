@@ -1,12 +1,12 @@
-import { withCommon } from '../../core/settings';
 import { TETROID_TUTORIAL, TETROID_TUTORIAL_STEPS, tetroidTutorialStart } from './tutorial';
 import type { GameModule } from '../../core/types';
+import { TETROID_SETTINGS, type TetroidSettingKey } from './settings';
 import Board from './Board.svelte';
 import { tetroidHint } from './hint';
 import { tetroidLogic } from './logic';
 import type { TetroidPuzzle, TetroidState } from './rules';
 
-export const tetroid: GameModule<TetroidPuzzle, TetroidState> = {
+export const tetroid: GameModule<TetroidPuzzle, TetroidState, TetroidSettingKey> = {
 	...tetroidLogic,
 	name: 'Tetroid',
 	icon: '▙',
@@ -17,14 +17,7 @@ export const tetroid: GameModule<TetroidPuzzle, TetroidState> = {
 		{ id: 'blank', label: 'Blank', icon: '□', key: '4' }
 	],
 	defaultTool: (touch) => (touch ? 'rotate' : 'black'),
-	settings: withCommon([
-		{ key: 'highlightBlock', label: 'Highlight current block', default: false },
-		{ key: 'highlightGroup', label: 'Highlight current group of cells [Shift]', default: false },
-		{ key: 'thickBorders', label: 'Thicker block borders', default: false },
-		{ key: 'colorTetrominoes', label: 'Color tetrominoes', default: false },
-		{ key: 'autoCrossCorners', label: 'Auto place X on corners', default: false },
-		{ key: 'autoCrossRegions', label: 'Auto place X in completed regions', default: false }
-	]),
+	settings: TETROID_SETTINGS,
 	tutorial: {
 		puzzle: TETROID_TUTORIAL,
 		start: tetroidTutorialStart,

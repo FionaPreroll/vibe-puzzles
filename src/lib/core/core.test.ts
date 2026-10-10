@@ -13,7 +13,7 @@ import {
 	unpackDigits
 } from './grid';
 import { hashString, Rng } from './rng';
-import { COMMON_SETTINGS, withCommon } from './settings';
+import { COMMON_SETTINGS, settingValues, withCommon } from './settings';
 import { formatCountdown, formatDuration } from './time';
 import {
 	decodePuzzleId,
@@ -166,6 +166,14 @@ describe('settings', () => {
 		const keys = new Set(COMMON_SETTINGS.map((s) => s.key));
 		expect(keys.size).toBe(COMMON_SETTINGS.length);
 		for (const s of COMMON_SETTINGS) if (s.requires) expect(keys).toContain(s.requires.key);
+	});
+
+	it('gives every setting a value, the default unless one is given', () => {
+		const list = withCommon([{ key: 'x', label: 'X', default: true }]);
+		const values = settingValues(list, { autoSubmit: false, removed: true });
+		expect(Object.keys(values)).toEqual(list.map((s) => s.key));
+		expect(values).toMatchObject({ autoSubmit: false, highlightErrors: true, x: true });
+		expect(settingValues(list).autoSubmit).toBe(true);
 	});
 });
 

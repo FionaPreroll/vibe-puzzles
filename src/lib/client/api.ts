@@ -1,6 +1,7 @@
 import { resolve } from '$app/paths';
 import { t } from '../i18n/index.svelte';
 import { load, remove, save } from './storage';
+import { KEY } from './storageKeys';
 
 /**
  * Client for the optional server (Cloudflare Worker). On static hosting (GitHub Pages) the
@@ -128,7 +129,7 @@ export function issuePuzzle<P>(game: string, variant: string): Promise<IssuedPuz
 }
 
 export function currentPlayer(): Player | null {
-	return load<Player | null>('player', null);
+	return load<Player | null>(KEY.player, null);
 }
 
 async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -144,7 +145,7 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export async function register(name: string): Promise<Player> {
 	const player = await call<Player>('/player', { method: 'POST', body: JSON.stringify({ name }) });
-	save('player', player);
+	save(KEY.player, player);
 	return player;
 }
 
@@ -155,7 +156,7 @@ export async function linkDevice(code: string): Promise<Player> {
 	if (!res.ok) throw new Error(t('player.unknownCode'));
 	const body = (await res.json()) as { id: string; name: string };
 	const player = { id: body.id, name: body.name, token };
-	save('player', player);
+	save(KEY.player, player);
 	return player;
 }
 
@@ -165,12 +166,12 @@ export async function rename(name: string): Promise<Player> {
 		body: JSON.stringify({ name })
 	});
 	const player = { ...currentPlayer()!, name: body.name };
-	save('player', player);
+	save(KEY.player, player);
 	return player;
 }
 
 export function signOut() {
-	remove('player');
+	remove(KEY.player);
 }
 
 export interface RemoteSave<T = unknown> {

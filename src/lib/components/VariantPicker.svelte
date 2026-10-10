@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getStats } from '../client/stats';
-	import type { GameModule } from '../core/types';
+	import type { AnyGame } from '../games';
 	import { periodKey, type Variant } from '../core/variants';
 	import { nextDailyText, t, variantLabel } from '../i18n/index.svelte';
 
@@ -8,11 +8,8 @@
 	 * Puzzle types as a size × difficulty table (one per rule set, e.g. Calcudoku in Sudoku) plus
 	 * the specials with their status.
 	 */
-	let {
-		game,
-		current,
-		onpick
-	}: { game: GameModule; current: string; onpick: (key: string) => void } = $props();
+	let { game, current, onpick }: { game: AnyGame; current: string; onpick: (key: string) => void } =
+		$props();
 
 	const regular = $derived(game.variants.filter((v) => !v.special));
 	const specials = $derived(game.variants.filter((v) => v.special));
