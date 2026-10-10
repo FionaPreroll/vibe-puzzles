@@ -69,6 +69,11 @@
 	let menuOpen = $state(false);
 	let now = $state(Date.now());
 	let showZoom = $state(false);
+	/**
+	 * The stage's width when the zoom popover opened. The top bar keeps it while the popover is
+	 * open: following the growing board would move the slider away under the pointer.
+	 */
+	let zoomStage = $state(0);
 	/** The zoom button and its popover; a press anywhere else closes the popover. */
 	let zoomBox: HTMLDivElement | undefined = $state();
 	let moreOpen = $state(false);
@@ -840,7 +845,7 @@
 			class="stage-column flex min-h-11 items-center gap-1 {settings.values.stickyToolbar
 				? 'sticky top-0 z-10 bg-stone-50/95 py-1 backdrop-blur dark:bg-stone-950/95'
 				: ''}"
-			style:--stage="{stageWidth}px"
+			style:--stage="{showZoom ? zoomStage : stageWidth}px"
 		>
 			<button
 				class="-ml-1 flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1.5 text-left hover:bg-stone-100 lg:hidden dark:hover:bg-stone-800"
@@ -895,7 +900,7 @@
 			<div class="relative -mr-1.5" bind:this={zoomBox}>
 				<button
 					class="btn-icon size-11 lg:size-10"
-					onclick={() => (showZoom = !showZoom)}
+					onclick={() => ((zoomStage = stageWidth), (showZoom = !showZoom))}
 					aria-expanded={showZoom}
 					aria-label={t('game.zoom')}
 					title={t('game.zoom')}
