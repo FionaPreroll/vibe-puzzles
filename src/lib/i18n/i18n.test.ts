@@ -72,7 +72,7 @@ describe('t', () => {
 	it('follows the locale', () => {
 		stubBrowser([]);
 		setLocale('de');
-		expect(t('session.solved', { time: '5' })).toBe('Gelöst in 5!');
+		expect(t('session.solved', { time: '5' })).toBe('In 5 gelöst!');
 		expect(document.documentElement.lang).toBe('de');
 		expect(localStorage.getItem('vp:locale')).toBe('de');
 	});

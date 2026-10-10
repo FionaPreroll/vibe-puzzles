@@ -48,8 +48,8 @@ export const TETROID_TUTORIAL_STEPS: TutorialStep<TetroidPuzzle, TetroidState>[]
 	markStep([2, 3, 4, 7], SHADED),
 	// No 2×2 block: each of these cells would complete one, so both stay empty.
 	markStep([8, 10], CROSS),
-	// The last two rules, still without a task.
-	{},
+	// The last two rules, still without a task; an L on cell 9 would touch the L above it.
+	{ spotlight: ['9'] },
 	// The rest alone; the tutorial ends when the board is solved.
 	{}
 ];

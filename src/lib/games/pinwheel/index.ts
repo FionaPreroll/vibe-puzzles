@@ -34,8 +34,8 @@ export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState> = {
 		{ key: 'showGrid', label: 'Show grid', default: true },
 		{ key: 'continuousLine', label: 'Draw continuous line', default: true },
 		{ key: 'symmetryHelper', label: 'Enable symmetry helper', default: true },
-		{ key: 'blackHoles', label: 'Black hole in completed galaxies', default: false },
-		{ key: 'autoColor', label: 'Auto color completed galaxies', default: false }
+		{ key: 'blackHoles', label: 'Black hole in completed regions', default: false },
+		{ key: 'autoColor', label: 'Auto color completed regions', default: false }
 	]),
 	tutorial: {
 		puzzle: PINWHEEL_TUTORIAL,

@@ -32,6 +32,8 @@ export type TetroidHint =
 	/** No deduction applies: case analysis is needed. `cells` is the region with fewest options. */
 	| { kind: 'stuck'; region: number; cells: number[] };
 
+type Step = Extract<TetroidHint, { kind: 'step' }>;
+
 const models = new WeakMap<TetroidPuzzle, TetroidModel>();
 const solutions = new WeakMap<TetroidPuzzle, Uint8Array | null>();
 
@@ -91,11 +93,18 @@ class Deduction {
 		});
 	}
 
+	/**
+	 * Cells to shade first: they are what solves the puzzle, while crosses only help and are not
+	 * needed for the next deduction (it starts over from the marks anyway). So deduce on past
+	 * cells that only stay empty, and name them only when no cell to shade follows at all.
+	 */
 	next(): TetroidHint {
+		let cross: Step | null = null;
 		for (;;) {
 			const step = this.decided();
-			if (step) return step;
-			if (!this.sweep()) return this.stuck();
+			if (step?.mark === 'shade') return step;
+			cross ??= step;
+			if (!this.sweep()) return cross ?? this.stuck();
 		}
 	}
 
@@ -137,26 +146,33 @@ class Deduction {
 		return this.cover[i] > 0 && this.cover[i] === this.size[this.m.p.regions[i]];
 	}
 
-	/** The undecided cells that are now decided, in the region with the simplest reason. */
-	private decided(): TetroidHint | null {
+	/**
+	 * The undecided cells that are now decided, in the region with the simplest reason; cells to
+	 * shade before cells that stay empty. Leaves out the rest of a region that the player's own
+	 * shaded cells already settle: such crosses tell nothing new.
+	 */
+	private decided(): Step | null {
 		this.count();
-		let best: TetroidHint | null = null;
+		const { regions } = this.m.p;
+		const rank = (s: Step) =>
+			TECHNIQUES.indexOf(s.technique) + (s.mark === 'cross' ? TECHNIQUES.length : 0);
+		let best: Step | null = null;
 		for (let r = 0; r < this.size.length; r++) {
-			if (best && best.kind === 'step' && TECHNIQUES.indexOf(best.technique) <= this.level[r])
-				continue;
-			const open = this.m.p.regions.flatMap((reg, i) =>
-				reg === r && this.marks[i] === EMPTY ? [i] : []
-			);
+			if (best && rank(best) <= this.level[r]) continue;
+			const open = regions.flatMap((reg, i) => (reg === r && this.marks[i] === EMPTY ? [i] : []));
 			const shade = open.filter((i) => this.must(i));
-			const cross = open.filter((i) => this.cover[i] === 0);
+			const tidyUp =
+				this.level[r] === 0 && regions.some((reg, i) => reg === r && this.marks[i] === SHADED);
+			const cross = tidyUp ? [] : open.filter((i) => this.cover[i] === 0);
 			if (!shade.length && !cross.length) continue;
-			best = {
+			const step: Step = {
 				kind: 'step',
 				technique: TECHNIQUES[this.level[r]],
 				mark: shade.length ? 'shade' : 'cross',
 				region: r,
 				cells: shade.length ? shade : cross
 			};
+			if (!best || rank(step) < rank(best)) best = step;
 		}
 		return best;
 	}
