@@ -67,7 +67,9 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 		const values = { autoNotes: true, markMistakes: true, highlightErrors: false };
 		localStorage.setItem('vp:settings:sudoku', JSON.stringify({ values, updatedAt: 1 }));
 	});
-	await page.goto('/sudoku?v=9n');
+	// A fixed puzzle from the collection: a random one may give a digit only once, and then
+	// selecting it highlights nothing else.
+	await page.goto('/sudoku?v=9n&id=980291457');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 	const board = page.getByRole('grid', { name: 'Puzzle board' });
 
@@ -82,10 +84,15 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	const one = pad.getByRole('button', { name: '1', exact: true });
 	await expect(one).toHaveAttribute('title', /^\d left$/);
 
-	// Wrong digits: of the nine digits in an empty cell exactly one is not painted red.
-	const givenCells = await board
+	// The givens as [cell, digit], before any digit is entered.
+	const givens = await board
 		.locator('text[data-cell]')
-		.evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-cell'))));
+		.evaluateAll((els) =>
+			els.map((e) => [Number(e.getAttribute('data-cell')), e.textContent!.trim()] as const)
+		);
+	const givenCells = givens.map(([i]) => i);
+
+	// Wrong digits: of the nine digits in an empty cell exactly one is not painted red.
 	const cell = [...Array(81).keys()].find((i) => !givenCells.includes(i))!;
 	await clickCell(page, 9, Math.floor(cell / 9), cell % 9);
 	const colours: string[] = [];
@@ -95,8 +102,9 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	}
 	expect(colours.filter((c) => c === palette.error)).toHaveLength(8);
 
-	// Same digit: selecting a given highlights every cell with its digit.
-	await clickCell(page, 9, Math.floor(givenCells[0] / 9), givenCells[0] % 9);
+	// Same digit: selecting a given highlights the other cells with its digit.
+	const [pick] = givens.find(([, d]) => givens.filter(([, x]) => x === d).length > 1)!;
+	await clickCell(page, 9, Math.floor(pick / 9), pick % 9);
 	await expect(board.locator(`rect[fill="${palette.sameDigit}"]`).first()).toBeVisible();
 });
 
