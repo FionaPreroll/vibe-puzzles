@@ -502,7 +502,13 @@
 	/** Desktop: tools join the sticky top bar when that setting is on, else they sit below the board. */
 	const toolsOnTop = $derived(!!settings.values.stickyToolbar);
 	const label = $derived(variantLabel(variant));
-	const hintSpotlight = $derived(session.hint ? new Set(session.hint.spotlight) : undefined);
+	// A hint's first look tints only where to look; the next press points at the step itself.
+	const hintSpotlight = $derived(
+		session.hint && session.hintFull ? new Set(session.hint.spotlight) : undefined
+	);
+	const hintArea = $derived(session.hint?.area ? new Set(session.hint.area) : undefined);
+	/** The hint shows only where to look: the message offers the step itself. */
+	const teaser = $derived(!!session.hint && !session.hintFull);
 	// Turning hints off in the settings also takes a hint on the board away.
 	$effect(() => {
 		if (!session.canHint) untrack(() => session.dismissHint());
@@ -825,6 +831,11 @@
 			{#if session.message && wide}
 				<p class="rounded-md px-3 py-1.5 text-sm {messageClass(session.message.kind)}">
 					{session.message.text}
+					{#if teaser}
+						<button class="ml-1 font-semibold underline" onclick={() => session.showHint()}
+							>{t('game.hintShow')}</button
+						>
+					{/if}
 				</p>
 			{/if}
 			<!-- Always in the page: screen readers miss live regions added together with their text -->
@@ -856,6 +867,7 @@
 							readonly={session.readonly}
 							lastChange={session.lastChange}
 							spotlight={hintSpotlight}
+							area={hintArea}
 							keyboard={true}
 							ontool={showTools ? setTool : undefined}
 							{celebrate}
@@ -906,14 +918,28 @@
 						? 'top-full mt-1'
 						: 'top-2'}"
 				>
-					<button
-						class="flex max-w-[90%] items-start gap-2 rounded-md px-3 py-1.5 text-left text-sm shadow-lg {messageClass(
+					<div
+						class="flex max-w-[90%] items-start gap-2 rounded-md px-3 py-1.5 text-sm shadow-lg {messageClass(
 							session.message.kind
 						)}"
-						title={t('game.dismiss')}
-						onclick={() => (toast = false)}
-						>{session.message.text}<span class="opacity-60" aria-hidden="true">✕</span></button
 					>
+						<div class="grid justify-items-start gap-1">
+							<button class="text-left" title={t('game.dismiss')} onclick={() => (toast = false)}
+								>{session.message.text}</button
+							>
+							{#if teaser}
+								<button class="font-semibold underline" onclick={() => session.showHint()}
+									>{t('game.hintShow')}</button
+								>
+							{/if}
+						</div>
+						<button
+							class="opacity-60"
+							title={t('game.dismiss')}
+							aria-label={t('game.dismiss')}
+							onclick={() => (toast = false)}>✕</button
+						>
+					</div>
 				</div>
 			{/if}
 			{#if session.loading}

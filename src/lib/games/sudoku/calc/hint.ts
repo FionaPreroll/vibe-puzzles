@@ -20,7 +20,9 @@ export type CalcHint =
 	| { kind: 'mistake'; cells: number[] }
 	/**
 	 * A digit that follows: the only one left for its cell (`unit` null), or the only place left
-	 * for it in `unit`. `elimination` is the hardest one needed to get there, if any.
+	 * for it in `unit`. `elimination` is the hardest one needed to get there, if any, and
+	 * `pattern` the cells of the last one (the cages, the pair). `cage`: the one cage that decides
+	 * the digit by itself, if the last elimination was such a cage.
 	 */
 	| {
 			kind: 'step';
@@ -28,6 +30,8 @@ export type CalcHint =
 			digit: number;
 			unit: Line | null;
 			elimination: Elimination | null;
+			pattern: number[];
+			cage: number | null;
 	  }
 	/** None of the techniques finds a digit: the cell with the fewest candidates. */
 	| { kind: 'stuck'; cell: number };
@@ -64,12 +68,21 @@ export function calcHint(p: CalcPuzzle, state: SudokuState): CalcHint | null {
 		for (const line of linesOf(m, i)) for (const j of line) if (grid[j]) mask &= ~bit(grid[j]);
 		return mask;
 	});
-	const eliminate = [() => cages(m, dom), () => nakedPair(m, grid, dom)];
+	const eliminate = [() => cages(m, grid, dom), () => nakedPair(m, grid, dom)];
 	let hardest = -1;
+	let pattern: number[] = [];
+	let cage: number | null = null;
 	for (;;) {
 		const single = findSingle(m, grid, dom);
-		if (single) return { kind: 'step', ...single, elimination: ELIMINATIONS[hardest] ?? null };
-		const used = eliminate.findIndex((step) => step());
+		if (single) {
+			const elimination = ELIMINATIONS[hardest] ?? null;
+			return { kind: 'step', ...single, elimination, pattern, cage };
+		}
+		let used = -1;
+		for (let e = 0; e < eliminate.length && used < 0; e++) {
+			const found = eliminate[e]();
+			if (found) [used, pattern, cage] = [e, found.cells, found.cage ?? null];
+		}
 		if (used < 0) break;
 		hardest = Math.max(hardest, used);
 	}
@@ -100,13 +113,30 @@ function findSingle(m: Model, grid: readonly number[], dom: Int32Array) {
 	return { cell, digit: Math.log2(dom[cell]) + 1, unit: null };
 }
 
-function cages(m: Model, dom: Int32Array): boolean {
-	let changed = false;
-	for (let k = 0; k < m.cages.length; k++) if (filterCage(m, k, dom) === 'changed') changed = true;
-	return changed;
+/** What an elimination used: the cells of its pattern, and the cage if it was one alone. */
+type Found = { cells: number[]; cage?: number } | null;
+
+/**
+ * Only the digits that make each cage's target stay. A cage that leads to a single by itself
+ * comes first, to be named; else one cage after the other until a single shows up.
+ */
+function cages(m: Model, grid: readonly number[], dom: Int32Array): Found {
+	for (let k = 0; k < m.cages.length; k++) {
+		const trial = dom.slice();
+		if (filterCage(m, k, trial) !== 'changed' || !findSingle(m, grid, trial)) continue;
+		dom.set(trial);
+		return { cells: m.cages[k].cells, cage: k };
+	}
+	const cells = [];
+	for (let k = 0; k < m.cages.length; k++) {
+		if (filterCage(m, k, dom) !== 'changed') continue;
+		cells.push(...m.cages[k].cells);
+		if (findSingle(m, grid, dom)) break;
+	}
+	return cells.length ? { cells } : null;
 }
 
-function nakedPair(m: Model, grid: readonly number[], dom: Int32Array): boolean {
+function nakedPair(m: Model, grid: readonly number[], dom: Int32Array): Found {
 	for (const line of m.lines) {
 		const open = line.filter((i) => !grid[i]);
 		for (const a of open) {
@@ -120,8 +150,8 @@ function nakedPair(m: Model, grid: readonly number[], dom: Int32Array): boolean 
 					changed = true;
 				}
 			}
-			if (changed) return true;
+			if (changed) return { cells: [a, b] };
 		}
 	}
-	return false;
+	return null;
 }

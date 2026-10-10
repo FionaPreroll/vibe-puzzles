@@ -103,6 +103,7 @@ const de: Dictionary = {
 		hintTitle:
 			'Tipp (H): zeigt den nächsten Schritt. Danach zählt das Rätsel nicht für Bestzeit und Rangliste.',
 		hintMistake: 'Die markierten Einträge passen nicht zur Lösung.',
+		hintShow: 'Zeig den Schritt',
 		countsAsHint:
 			'Zählt als Tipp: keine Bestzeit und keine Rangliste für ein Rätsel, bei dem es an war.',
 		tools: 'Werkzeuge',
@@ -371,14 +372,16 @@ const de: Dictionary = {
 				'Tippe ein Feld an, um zwischen schwarz, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Felder.',
 			hints: {
 				region:
-					'Schau, welche Tetrominos bei seiner Form und deinen Markierungen noch in diesen Bereich passen.',
+					'Schau, welche Tetrominos bei seiner Form und deinen Markierungen noch in den hinterlegten Bereich passen.',
 				sameShape:
-					'Streiche Tetrominos, die ein gleiches berühren würden: Alles, was im Nachbarbereich noch passt, hat diese Form.',
+					'Streiche Tetrominos, die ein gleiches berühren würden: Alles, was in einem hinterlegten Nachbarbereich noch passt, hat diese Form.',
 				square: 'Streiche Tetrominos, die einen schwarzen 2×2-Block vervollständigen würden.',
 				neighbour:
-					'Streiche Tetrominos, die sich mit jeder Möglichkeit im Nachbarbereich beißen: Jede davon würde eine gleiche Form berühren oder einen 2×2-Block vervollständigen.',
+					'Streiche Tetrominos, die sich mit jeder Möglichkeit in einem hinterlegten Nachbarbereich beißen: Jede davon würde eine gleiche Form berühren oder einen 2×2-Block vervollständigen.',
 				lookAhead:
 					'Streiche Tetrominos, die die schwarzen Felder trennen würden: Frag dich, ob noch alles zusammenhängen könnte, wenn das Tetromino dort läge.',
+				assumption:
+					'Hier hilft keine einfache Regel weiter, also probier es aus: Angenommen, das Tetromino dieses Bereichs läge auf den hinterlegten Feldern. Spiel das durch, dann wird eine Regel verletzt. Also liegt es woanders.',
 				shade:
 					'Alle Tetrominos, die in diesem Bereich noch möglich sind, enthalten die markierten Felder: Schwärze sie.',
 				cross:
@@ -433,6 +436,7 @@ const de: Dictionary = {
 			controlsTouch:
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen. Mit dem Farbwerkzeug färbst du Felder. Einen Kreis halten sperrt einen fertigen Bereich.',
 			hints: {
+				look: 'Schau dir die hinterlegten Felder an.',
 				centre:
 					'Die Felder unter einem Kreis gehören zu seinem Bereich. Ein Feld, dessen Partnerfeld gegenüber einem Kreis außerhalb des Spielfelds läge, kann nicht zu dessen Bereich gehören.',
 				marks:
@@ -441,6 +445,8 @@ const de: Dictionary = {
 					'Ein Feld kann nur dann zum Bereich eines Kreises gehören, wenn sein Partnerfeld gegenüber diesem Kreis es auch kann.',
 				reach:
 					'Ein Bereich hängt zusammen: Ein Feld gehört nur dazu, wenn vom Kreis aus ein Weg dorthin führt, der nur über Felder geht, die zum Bereich gehören können.',
+				assumption:
+					'Hier hilft keine einfache Regel weiter, also probier es aus: Angenommen, die zwei hinterlegten Felder gehörten zum Bereich des Kreises genau zwischen ihnen. Spiel das durch, dann wird eine Regel verletzt. Also gehört keins der beiden zu diesem Bereich.',
 				line: 'Also liegen die Felder beiderseits der markierten Kanten in verschiedenen Bereichen: Zieh dort Linien.',
 				cross:
 					'Also liegen die Felder beiderseits der markierten Kanten im selben Bereich: Dort kommt keine Linie hin.',
@@ -495,6 +501,14 @@ const de: Dictionary = {
 			controlsTouch:
 				'Tippe ein Feld an, dann eine Ziffer im Ziffernblock. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
 			hints: {
+				where: {
+					box: 'Im hinterlegten Block passt eine der fehlenden Ziffern nur in ein Feld. Welche, und wohin?',
+					row: 'In der hinterlegten Zeile passt eine der fehlenden Ziffern nur in ein Feld. Welche, und wohin?',
+					column:
+						'In der hinterlegten Spalte passt eine der fehlenden Ziffern nur in ein Feld. Welche, und wohin?'
+				},
+				whereNaked:
+					'Für das Feld, in dem sich die hinterlegte Zeile und Spalte kreuzen, lassen Zeile, Spalte und Block nur eine Ziffer übrig. Welche?',
 				hidden: {
 					box: 'In ihrem Block passt die {digit} nur ins markierte Feld: Bei den anderen freien Feldern dort steht schon eine {digit} in Zeile oder Spalte, oder deine Notizen schließen sie aus.',
 					row: 'In ihrer Zeile passt die {digit} nur ins markierte Feld: Bei den anderen freien Feldern dort steht schon eine {digit} in Spalte oder Block, oder deine Notizen schließen sie aus.',
@@ -504,11 +518,11 @@ const de: Dictionary = {
 				naked:
 					'Ins markierte Feld passt nur die {digit}: Zeile, Spalte und Block enthalten alle anderen Ziffern, oder deine Notizen schließen sie aus.',
 				lockedCandidates:
-					'Notiere zuerst die Kandidaten. Passt eine Ziffer in einem Block nur in Felder einer Zeile (oder Spalte), fällt sie im Rest dieser Zeile weg; und umgekehrt.',
+					'Notiere zuerst die Kandidaten. Passt eine Ziffer in einem Block nur in Felder einer Zeile (oder Spalte), wie die hinterlegten, fällt sie im Rest dieser Zeile weg; und umgekehrt.',
 				nakedSubset:
-					'Notiere zuerst die Kandidaten. Zwei Felder einer Zeile, Spalte oder eines Blocks mit denselben zwei Kandidaten (oder drei Felder mit drei) belegen diese Ziffern: In den anderen Feldern dort fallen sie weg.',
+					'Notiere zuerst die Kandidaten. Zwei Felder einer Zeile, Spalte oder eines Blocks mit denselben zwei Kandidaten (oder drei Felder mit drei), wie die hinterlegten, belegen diese Ziffern: In den anderen Feldern dort fallen sie weg.',
 				hiddenSubset:
-					'Notiere zuerst die Kandidaten. Zwei Ziffern, die in einer Zeile, Spalte oder einem Block nur in dieselben zwei Felder passen (oder drei in drei), füllen diese Felder: Deren andere Kandidaten fallen weg.',
+					'Notiere zuerst die Kandidaten. Zwei Ziffern, die in einer Zeile, Spalte oder einem Block nur in dieselben zwei Felder passen (oder drei in drei), wie die hinterlegten, füllen diese Felder: Deren andere Kandidaten fallen weg.',
 				then: {
 					box: 'Dann passt die {digit} in ihrem Block nur ins markierte Feld.',
 					row: 'Dann passt die {digit} in ihrer Zeile nur ins markierte Feld.',
@@ -532,11 +546,17 @@ const de: Dictionary = {
 							column:
 								'In ihrer Spalte passt die {digit} nur ins markierte Feld: Bei den anderen freien Feldern dort steht schon eine {digit} in der Zeile, oder deine Notizen schließen sie aus.'
 						},
+						whereNaked:
+							'Die hinterlegte Zeile und Spalte lassen für das Feld, in dem sie sich kreuzen, nur eine Ziffer übrig. Welche?',
 						naked:
 							'Ins markierte Feld passt nur die {digit}: Zeile und Spalte enthalten alle anderen Ziffern, oder deine Notizen schließen sie aus.',
-						cage: 'Rechne bei jedem Käfig aus, welche Ziffern mit seiner Rechenart sein Ergebnis liefern können; in einer Zeile oder Spalte müssen sie verschieden sein.',
+						cage: 'Rechne bei jedem hinterlegten Käfig aus, welche Ziffern mit seiner Rechenart sein Ergebnis liefern können; in einer Zeile oder Spalte müssen sie verschieden sein.',
+						cageGiven:
+							'Ein Käfig mit nur einer Zahl, wie der hinterlegte „{cage}“, enthält genau diese Ziffer.',
+						cageOne:
+							'Rechne aus, welche Ziffern im hinterlegten Käfig „{cage}“ stehen können: Sie müssen mit seiner Rechenart sein Ergebnis liefern und in einer Zeile oder Spalte verschieden sein.',
 						nakedPair:
-							'Notiere zuerst die Kandidaten. Zwei Felder einer Zeile oder Spalte mit denselben zwei Kandidaten belegen diese Ziffern: In den anderen Feldern dort fallen sie weg.'
+							'Notiere zuerst die Kandidaten. Zwei Felder einer Zeile oder Spalte mit denselben zwei Kandidaten, wie die hinterlegten, belegen diese Ziffern: In den anderen Feldern dort fallen sie weg.'
 					},
 					tutorial: [
 						{
@@ -580,18 +600,18 @@ const de: Dictionary = {
 					done: 'Richtig: eine 3. Wenn du ein Feld auswählst, leuchten seine Zeile, Spalte und sein Block auf. So siehst du schneller, was schon dasteht.'
 				},
 				{
-					text: 'Blöcke funktionieren genauso. Der Block oben links hat 1, 2 und 4, sein leeres Feld bekommt die fehlende Ziffer.',
+					text: 'Blöcke und Spalten funktionieren genauso. Der Block oben links hat 1, 2 und 3, sein leeres Feld bekommt die fehlende Ziffer.',
 					task: 'Fülle das leere Feld im Block oben links.',
-					done: 'Genau: Dem Block fehlte seine 3.'
+					done: 'Genau: Dem Block fehlte seine 4.'
 				},
 				{
-					text: 'Bei Spalten genauso. Jetzt, wo die 3 drin ist, fehlt der linken Spalte nur noch eine Ziffer.',
-					task: 'Fülle das nächste leere Feld der linken Spalte.',
-					done: 'Gut gemacht: Ob Zeile, Block oder Spalte, der Trick ist immer, die eine fehlende Ziffer zu finden.'
+					text: 'Oft fehlt nirgends nur noch eine einzige Ziffer. Dann dreh die Frage um: Wo kann eine Ziffer hin? Der markierte Block unten rechts braucht noch eine 1. Die 1 in der dritten Zeile und die 1 in der dritten Spalte schließen drei seiner Felder aus.',
+					task: 'Setz die 1 in das einzige Feld dieses Blocks, in das sie passt.',
+					done: 'Richtig: der einzige Platz, der übrig blieb. Die meisten Schritte in echten Rätseln gehen so, und der Tipp stellt dieselbe Frage.'
 				},
 				{
-					text: 'Drei Felder sind noch übrig. Prüfe bei jedem seine Zeile, Spalte und seinen Block. Noch unsicher? Mit dem Werkzeug Notiz (✎) notierst du kleine Ziffern als Gedächtnisstütze. Doppelte Ziffern werden rot.',
-					task: 'Fülle die letzten drei Felder selbst aus.'
+					text: 'Fünf Felder sind noch übrig. Prüfe bei jedem seine Zeile, Spalte und seinen Block, oder frag, wo eine Ziffer hinkann. Noch unsicher? Mit dem Werkzeug Notiz (✎) notierst du kleine Ziffern als Gedächtnisstütze. Doppelte Ziffern werden rot.',
+					task: 'Fülle die letzten fünf Felder selbst aus.'
 				}
 			]
 		}

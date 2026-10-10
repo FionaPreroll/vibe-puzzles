@@ -33,7 +33,8 @@
 		celebrate = false,
 		ontool,
 		onmove,
-		spotlight
+		spotlight,
+		area
 	}: BoardProps<SudokuPuzzle, SudokuState> = $props();
 
 	const size = $derived(puzzle.width);
@@ -419,6 +420,26 @@
 					stroke-width="1.5"
 				/>
 			{/each}
+		{/if}
+
+		{#if area?.size && !blank}
+			<g
+				class="area"
+				fill={colours.cursor}
+				fill-opacity="0.2"
+				pointer-events="none"
+				aria-hidden="true"
+			>
+				{#each [...area] as key (key)}
+					{@const i = Number(key)}
+					<rect
+						x={pad + (i % size) * cellSize}
+						y={pad + Math.floor(i / size) * cellSize}
+						width={cellSize}
+						height={cellSize}
+					/>
+				{/each}
+			</g>
 		{/if}
 
 		{#if spotlight?.size && !blank}

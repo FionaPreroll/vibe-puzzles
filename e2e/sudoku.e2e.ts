@@ -16,11 +16,13 @@ test('the Sudoku tutorial can be solved with the number pad', async ({ page }) =
 	// Solution: 1234 / 3412 / 2143 / 4321; the empty cells and their digits.
 	const moves: [number, number, number][] = [
 		[0, 2, 3],
-		[1, 0, 3],
-		[1, 3, 2],
-		[2, 0, 2],
+		[1, 1, 4],
+		[2, 2, 4],
 		[2, 3, 3],
-		[3, 1, 3]
+		[3, 0, 4],
+		[3, 1, 3],
+		[3, 2, 2],
+		[3, 3, 1]
 	];
 	for (const [r, c, d] of moves) {
 		await clickCell(page, 4, r, c);

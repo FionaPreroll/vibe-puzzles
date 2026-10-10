@@ -42,6 +42,9 @@ describe('tetroid hints', () => {
 		const last = follow(example, empty(example), (h) => {
 			if (h.kind !== 'step') return;
 			techniques.add(h.technique);
+			// The neighbouring regions a step rests on are other regions.
+			for (const i of h.context) expect(example.regions[i]).not.toBe(h.region);
+			if (h.technique === 'sameShape') expect(h.context.length).toBeGreaterThan(0);
 			expect(h.cells.length).toBeGreaterThan(0);
 			for (const i of h.cells) {
 				expect(example.regions[i]).toBe(h.region);
@@ -59,7 +62,8 @@ describe('tetroid hints', () => {
 			technique: 'region',
 			mark: 'shade',
 			region: 2,
-			cells: [13, 19]
+			cells: [13, 19],
+			context: []
 		});
 	});
 
@@ -121,38 +125,61 @@ describe('tetroid hints', () => {
 		expect(hint.region).not.toBe(2);
 	});
 
-	it('name the region with the fewest options when hard puzzles need case analysis', () => {
-		const { puzzle } = generateTetroid(6, 6, 'hard', 1);
-		const state = empty(puzzle);
-		const last = follow(puzzle, state, (h) => {
-			if (h.kind !== 'step' || h.mark !== 'cross') return;
-			// Crosses come only from a deduction, never just from the player's own shaded cells.
-			const shadedThere = state.marks.some(
-				(m, i) => m === SHADED && puzzle.regions[i] === h.region
-			);
-			expect(h.technique === 'region' && shadedThere).toBe(false);
+	it.each([1, 2, 3])(
+		'lead through hard puzzles with assumptions that fail, and never cross for nothing (#%i)',
+		(seed) => {
+			const { puzzle } = generateTetroid(6, 6, 'hard', seed);
+			const answer = solveTetroid(puzzle).solutions[0];
+			const state = empty(puzzle);
+			let assumptions = 0;
+			const last = follow(puzzle, state, (h) => {
+				if (h.kind !== 'step') return;
+				for (const i of h.cells) expect(answer[i]).toBe(h.mark === 'shade' ? 1 : 0);
+				if (h.technique === 'assumption') {
+					assumptions++;
+					// The tried placement is not the one of the solution, and lies in the region.
+					expect(h.assumed!.every((i) => answer[i])).toBe(false);
+					expect(h.assumed!.every((i) => puzzle.regions[i] === h.region)).toBe(true);
+				}
+				if (h.mark !== 'cross') return;
+				// Crosses come only from a deduction, never just from the player's own shaded cells.
+				const shadedThere = state.marks.some(
+					(m, i) => m === SHADED && puzzle.regions[i] === h.region
+				);
+				expect(h.technique === 'region' && shadedThere).toBe(false);
+			});
+			expect(last).toBeNull();
+			expect(assumptions).toBeGreaterThan(0);
+		}
+	);
+
+	it('name the region with the fewest options when not even an assumption helps', () => {
+		// One region of 3×2 cells: several tetrominoes fit, none covers every cell or rules out
+		// another, so case analysis would find two solutions.
+		const open: TetroidPuzzle = { width: 3, height: 2, regions: [0, 0, 0, 0, 0, 0] };
+		expect(tetroidHint(open, empty(open))).toEqual({
+			kind: 'stuck',
+			region: 0,
+			cells: [0, 1, 2, 3, 4, 5]
 		});
-		expect(last?.kind).toBe('stuck');
-		if (last?.kind !== 'stuck') return;
-		expect(last.cells.length).toBeGreaterThan(4);
-		expect(last.cells.every((i) => puzzle.regions[i] === last.region)).toBe(true);
 	});
 
 	it('come with texts in every language', () => {
 		const lookup = (dict: unknown, key: string) =>
 			key.split('.').reduce((node, part) => (node as Record<string, unknown>)?.[part], dict);
-		const { puzzle: hard } = generateTetroid(6, 6, 'hard', 1);
-		const stuck = empty(hard);
-		follow(hard, stuck, () => {});
+		const open: TetroidPuzzle = { width: 3, height: 2, regions: [0, 0, 0, 0, 0, 0] };
 		const wrong = empty(example);
 		wrong.marks[2] = SHADED;
 		const hints = [
 			tetroid.hint!(example, empty(example)),
 			tetroid.hint!(example, wrong),
-			tetroid.hint!(hard, stuck)
+			tetroid.hint!(open, empty(open))
 		];
 		expect(hints.map((h) => h?.kind)).toEqual(['step', 'mistake', 'stuck']);
 		expect(hints[0]?.spotlight).toEqual(['13', '19']);
+		// A step first tints its region and names the rule; the cells come with the next press.
+		expect(hints[0]?.teaser).toEqual(hints[0]?.text.slice(0, 1));
+		expect(hints[0]?.area).toEqual(expect.arrayContaining(['13', '19']));
 		const keys = [
 			...hints.flatMap((h) => h!.text),
 			...TECHNIQUES.map((t) => `games.tetroid.hints.${t}`)

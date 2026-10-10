@@ -20,15 +20,35 @@ import { TetroidModel, TetroidSolver } from './solver';
  * - `neighbour`: everything left in a neighbouring region would break one of those two rules.
  * - `lookAhead`: with the placement, the decided cells could no longer all connect (this includes
  *   a placement cut off from them).
+ * - `assumption`: none of those applies, but trying the placement leads to a contradiction.
  */
-export const TECHNIQUES = ['region', 'sameShape', 'square', 'neighbour', 'lookAhead'] as const;
+export const TECHNIQUES = [
+	'region',
+	'sameShape',
+	'square',
+	'neighbour',
+	'lookAhead',
+	'assumption'
+] as const;
 export type Technique = (typeof TECHNIQUES)[number];
 
 export type TetroidHint =
 	/** Marks that disagree with the solution. */
 	| { kind: 'mistake'; cells: number[] }
-	/** Cells of one region that follow from the marks, and the hardest deduction needed there. */
-	| { kind: 'step'; technique: Technique; mark: 'shade' | 'cross'; region: number; cells: number[] }
+	/**
+	 * Cells of one region that follow from the marks, and the hardest deduction needed there.
+	 * `context`: cells of the neighbouring regions whose options ruled out placements here.
+	 * `assumed`: for an assumption, the placement that leads to a contradiction.
+	 */
+	| {
+			kind: 'step';
+			technique: Technique;
+			mark: 'shade' | 'cross';
+			region: number;
+			cells: number[];
+			context: number[];
+			assumed?: number[];
+	  }
 	/** No deduction applies: case analysis is needed. `cells` is the region with fewest options. */
 	| { kind: 'stuck'; region: number; cells: number[] };
 
@@ -65,8 +85,16 @@ export function tetroidHint(p: TetroidPuzzle, state: TetroidState): TetroidHint 
 	return new Deduction(modelOf(p), marks).next();
 }
 
+/** A placement ruled out by a rule within its region, not by a particular neighbour. */
+const OWN = -1;
+
+/** Trials of placements per hint at a dead end, to keep the hint quick on big boards. */
+const MAX_TRIALS = 400;
+
 class Deduction {
 	private readonly alive: Uint8Array;
+	/** Neighbouring regions whose options ruled out placements, per region. */
+	private readonly cause: Set<number>[];
 	private readonly size: Int32Array;
 	/** Hardest technique that ruled out a placement, per region. */
 	private readonly level: Int32Array;
@@ -82,6 +110,7 @@ class Deduction {
 		this.size = Int32Array.from(byRegion.map((l) => l.length));
 		this.level = new Int32Array(byRegion.length);
 		this.cover = new Int32Array(m.n);
+		this.cause = byRegion.map(() => new Set<number>());
 		const regions = m.p.regions;
 		const shaded = byRegion.map(() => [] as number[]);
 		marks.forEach((mk, i) => mk === SHADED && shaded[regions[i]].push(i));
@@ -96,7 +125,8 @@ class Deduction {
 	/**
 	 * Cells to shade first: they are what solves the puzzle, while crosses only help and are not
 	 * needed for the next deduction (it starts over from the marks anyway). So deduce on past
-	 * cells that only stay empty, and name them only when no cell to shade follows at all.
+	 * cells that only stay empty, and name them only when no cell to shade follows, not even
+	 * from an assumption.
 	 */
 	next(): TetroidHint {
 		let cross: Step | null = null;
@@ -104,31 +134,41 @@ class Deduction {
 			const step = this.decided();
 			if (step?.mark === 'shade') return step;
 			cross ??= step;
-			if (!this.sweep()) return cross ?? this.stuck();
+			if (!this.sweep()) break;
 		}
+		// A dead end: an assumption that leads to cells to shade, else cells that stay empty.
+		const tried = this.assume();
+		if (tried?.mark === 'shade') return tried;
+		return cross ?? tried ?? this.stuck();
 	}
 
-	private kill(k: number, technique: number) {
+	private kill(k: number, technique: number, by = OWN) {
 		const r = this.m.placements[k].region;
 		this.alive[k] = 0;
 		this.size[r]--;
 		this.level[r] = Math.max(this.level[r], technique);
+		if (by !== OWN) this.cause[r].add(by);
 	}
 
-	/** Rule out placements with the simplest technique that rules out any. */
+	/**
+	 * Rule out placements with the simplest technique that rules out any. Each test returns null
+	 * when the placement stays, else the neighbouring region that rules it out (or `OWN`).
+	 */
 	private sweep(): boolean {
 		this.count();
 		const tests = [
 			(k: number) => this.touchesSameShape(k),
 			(k: number) => this.makesSquare(k),
 			(k: number) => this.clashes(k),
-			(k: number) => this.disconnects(k)
+			(k: number) => (this.disconnects(k) ? OWN : null)
 		];
 		for (let t = 0; t < tests.length; t++) {
-			const dead = this.m.placements.flatMap((pl, k) =>
-				this.alive[k] && this.size[pl.region] > 1 && tests[t](k) ? [k] : []
-			);
-			for (const k of dead) this.kill(k, t + 1);
+			const dead = this.m.placements.flatMap((pl, k) => {
+				if (!this.alive[k] || this.size[pl.region] <= 1) return [];
+				const by = tests[t](k);
+				return by === null ? [] : [[k, by]];
+			});
+			for (const [k, by] of dead) this.kill(k, t + 1, by);
 			if (dead.length) return true;
 		}
 		return false;
@@ -170,13 +210,56 @@ class Deduction {
 				technique: TECHNIQUES[this.level[r]],
 				mark: shade.length ? 'shade' : 'cross',
 				region: r,
-				cells: shade.length ? shade : cross
+				cells: shade.length ? shade : cross,
+				context: regions.flatMap((reg, i) => (this.cause[r].has(reg) ? [i] : []))
 			};
 			if (!best || rank(step) < rank(best)) best = step;
 		}
 		return best;
 	}
 
+	/**
+	 * No rule decides a cell: try the placements of the regions with the fewest options. A
+	 * placement that leads to a contradiction is ruled out; named is the first one that then
+	 * decides cells to shade in its region, else the first that decides any cell.
+	 */
+	private assume(): Step | null {
+		const { byRegion, placements, p } = this.m;
+		const trials = byRegion
+			.map((_, r) => r)
+			.filter((r) => this.size[r] > 1)
+			.sort((a, b) => this.size[a] - this.size[b])
+			.flatMap((r) => byRegion[r].filter((k) => this.alive[k]).map((k) => [r, k]))
+			.slice(0, MAX_TRIALS);
+		const solver = new TetroidSolver(this.m);
+		let cross: Step | null = null;
+		for (const [r, k] of trials) {
+			const open = p.regions.flatMap((reg, i) => (reg === r && this.marks[i] === EMPTY ? [i] : []));
+			const rest = byRegion[r].filter((q) => q !== k && this.alive[q]);
+			const covered = (i: number) => rest.filter((q) => placements[q].cells.includes(i)).length;
+			const shade = open.filter((i) => covered(i) === rest.length);
+			const empty = open.filter((i) => covered(i) === 0);
+			if (!shade.length && (!empty.length || cross)) continue;
+			const dom = { alive: this.alive.slice(), size: this.size.slice() };
+			for (const q of rest) dom.alive[q] = 0;
+			dom.size[r] = 1;
+			if (solver.consistent(dom)) continue;
+			const step: Step = {
+				kind: 'step',
+				technique: 'assumption',
+				mark: shade.length ? 'shade' : 'cross',
+				region: r,
+				cells: shade.length ? shade : empty,
+				context: [],
+				assumed: placements[k].cells
+			};
+			if (shade.length) return step;
+			cross = step;
+		}
+		return cross;
+	}
+
+	/** Not even an assumption helps: the region with the fewest options, to start case analysis. */
 	private stuck(): TetroidHint {
 		let region = -1;
 		for (let r = 0; r < this.size.length; r++) {
@@ -186,12 +269,19 @@ class Deduction {
 		return { kind: 'stuck', region, cells };
 	}
 
-	/** Alive placements of the regions next to placement `k`. */
-	private neighbourOptions(k: number): number[][] {
+	/** The regions next to placement `k`, each with its alive placements. */
+	private neighbourOptions(k: number): [number, number[]][] {
 		const { placements, byRegion, regionNeighbours } = this.m;
-		return regionNeighbours[placements[k].region].map((r) =>
+		return regionNeighbours[placements[k].region].map((r) => [
+			r,
 			byRegion[r].filter((q) => this.alive[q])
-		);
+		]);
+	}
+
+	/** The first neighbouring region whose every option `rules` out placement `k`, or null. */
+	private blockingNeighbour(k: number, rules: (q: number) => boolean): number | null {
+		for (const [r, options] of this.neighbourOptions(k)) if (options.every(rules)) return r;
+		return null;
 	}
 
 	private touches(a: number[], b: number[]): boolean {
@@ -203,8 +293,8 @@ class Deduction {
 		return a.type === b.type && this.touches(a.cells, b.cells);
 	}
 
-	private touchesSameShape(k: number): boolean {
-		return this.neighbourOptions(k).some((options) => options.every((q) => this.sameShape(k, q)));
+	private touchesSameShape(k: number): number | null {
+		return this.blockingNeighbour(k, (q) => this.sameShape(k, q));
 	}
 
 	/** Whether shading `cells` (and the decided cells) completes a 2×2 block. */
@@ -216,20 +306,17 @@ class Deduction {
 		);
 	}
 
-	private makesSquare(k: number): boolean {
+	private makesSquare(k: number): number | null {
 		const own = this.m.placements[k].cells;
-		if (this.square(own)) return true;
-		return this.neighbourOptions(k).some((options) =>
-			options.every((q) => this.square([...own, ...this.m.placements[q].cells]))
-		);
+		if (this.square(own)) return OWN;
+		return this.blockingNeighbour(k, (q) => this.square([...own, ...this.m.placements[q].cells]));
 	}
 
-	private clashes(k: number): boolean {
+	private clashes(k: number): number | null {
 		const own = this.m.placements[k].cells;
-		return this.neighbourOptions(k).some((options) =>
-			options.every(
-				(q) => this.sameShape(k, q) || this.square([...own, ...this.m.placements[q].cells])
-			)
+		return this.blockingNeighbour(
+			k,
+			(q) => this.sameShape(k, q) || this.square([...own, ...this.m.placements[q].cells])
 		);
 	}
 

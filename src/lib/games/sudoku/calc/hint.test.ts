@@ -38,6 +38,7 @@ const open4: CalcPuzzle = {
 describe('calcudoku hints', () => {
 	it('lead from the empty board to the solution, every digit right', () => {
 		const eliminations = new Set<string>();
+		let named = 0;
 		for (const [n, difficulty, seed] of [
 			[5, 'easy', 1],
 			[5, 'hard', 1],
@@ -49,10 +50,16 @@ describe('calcudoku hints', () => {
 				if (h.kind !== 'step') return;
 				expect(h.digit).toBe(solution[h.cell]);
 				if (h.elimination) eliminations.add(h.elimination);
+				expect(h.pattern.length > 0).toBe(!!h.elimination);
+				if (h.cage === null) return;
+				// One cage decides the digit by itself: its cells are the pattern.
+				expect(h.pattern).toEqual(puzzle.cages[h.cage].cells);
+				named++;
 			});
 			expect(last, `${n} ${difficulty} ${seed}`).toBeNull();
 		}
 		expect([...eliminations].sort()).toEqual([...ELIMINATIONS].sort());
+		expect(named).toBeGreaterThan(0);
 	});
 
 	it('point at wrong digits and at notes that leave out the right digit', () => {
@@ -116,6 +123,25 @@ describe('calcudoku hints', () => {
 			'games.sudoku.modes.calc.hints.nakedPair',
 			expect.stringMatching(/^games\.sudoku\.hints\.then/)
 		]);
+		// A cage that decides a digit by itself: tinted, and named by its label. A cage of one cell
+		// just holds its number.
+		const start = empty(puzzle);
+		const seen = new Set<string>();
+		for (let caged = calcHint(puzzle, start); caged?.kind === 'step';) {
+			if (caged.cage !== null) {
+				const named = sudoku.hint!(asSudoku(puzzle), start)!;
+				const { op, cells } = puzzle.cages[caged.cage];
+				const key = `games.sudoku.modes.calc.hints.${op === '=' ? 'cageGiven' : 'cageOne'}`;
+				expect(named.teaser?.at(-1)).toBe(key);
+				expect(named.text).toContain(key);
+				expect(named.params?.cage).toMatch(op === '=' ? /^\d+$/ : /^\d+[+−×÷]$/);
+				expect(named.area).toEqual(cells.map(String));
+				seen.add(key);
+			}
+			start.values[caged.cell] = caged.digit;
+			caged = calcHint(puzzle, start);
+		}
+		expect(seen.size).toBe(2);
 		const wrong = empty(puzzle);
 		wrong.values[0] = (solution[0] % 9) + 1;
 		expect(sudoku.hint!(asSudoku(puzzle), wrong)).toMatchObject({
@@ -126,9 +152,15 @@ describe('calcudoku hints', () => {
 			kind: 'stuck',
 			text: ['games.sudoku.hints.stuck']
 		});
-		const keys = ['hidden.row', 'hidden.column', 'naked', ...ELIMINATIONS].map(
-			(k) => `games.sudoku.modes.calc.hints.${k}`
-		);
+		const keys = [
+			'hidden.row',
+			'hidden.column',
+			'naked',
+			'whereNaked',
+			'cageOne',
+			'cageGiven',
+			...ELIMINATIONS
+		].map((k) => `games.sudoku.modes.calc.hints.${k}`);
 		for (const key of keys) {
 			expect(typeof lookup(en, key), key).toBe('string');
 			expect(typeof lookup(de, key), key).toBe('string');

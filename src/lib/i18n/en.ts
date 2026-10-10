@@ -103,6 +103,8 @@ const en = {
 		hint: 'Hint',
 		hintTitle: 'Hint (H): point at the next step. The puzzle then gets no best time and no rank.',
 		hintMistake: 'The highlighted marks do not match the solution.',
+		/** Shown with a hint's first look: the step itself, as a second press of Hint does. */
+		hintShow: 'Show the step',
 		countsAsHint: 'Counts as a hint: no best time and no rank for a puzzle played with it on.',
 		tools: 'Tools',
 		colour: 'Colour {name}',
@@ -372,14 +374,16 @@ const en = {
 			/** What the hint button says: why tetrominoes are ruled out, then what follows. */
 			hints: {
 				region:
-					'Look at which tetrominoes still fit in this region, given its shape and your marks.',
+					'Look at which tetrominoes still fit in the tinted region, given its shape and your marks.',
 				sameShape:
-					'Rule out tetrominoes that would touch an identical one: everything left in a neighbouring region has that shape.',
+					'Rule out tetrominoes that would touch an identical one: everything left in a tinted neighbouring region has that shape.',
 				square: 'Rule out tetrominoes that would complete a shaded 2×2 block.',
 				neighbour:
-					'Rule out tetrominoes that clash with everything left in a neighbouring region: each option there would touch an identical shape or complete a 2×2 block.',
+					'Rule out tetrominoes that clash with everything left in a tinted neighbouring region: each option there would touch an identical shape or complete a 2×2 block.',
 				lookAhead:
 					'Rule out tetrominoes that would cut the shaded cells apart: ask whether everything could still connect if the tetromino went there.',
+				assumption:
+					'No simple rule helps here, so try it out: suppose the tetromino of this region lay on the tinted cells. Play it through and a rule breaks. So it lies elsewhere.',
 				shade: 'Every tetromino left in this region covers the highlighted cells: shade them.',
 				cross: 'No tetromino left in this region covers the highlighted cells: they stay empty.',
 				stuck:
@@ -432,6 +436,7 @@ const en = {
 				'Tap between dots to draw a line. Pick the Colour tool to colour cells. Hold a circle to lock a finished region.',
 			/** What the hint button says: why a circle's region is ruled out, then what follows. */
 			hints: {
+				look: 'Look at the tinted cells.',
 				centre:
 					"A circle's own cells belong to its region, and a cell whose partner across a circle would lie outside the grid cannot belong to that circle's region.",
 				marks: 'Your lines keep cells in different regions, and your crosses join cells into one.',
@@ -439,6 +444,8 @@ const en = {
 					"A cell can belong to a circle's region only if its partner across that circle can too.",
 				reach:
 					'A region is connected: a cell its circle cannot reach through cells that may belong to it is not part of it.',
+				assumption:
+					'No simple rule helps here, so try it out: suppose the two tinted cells belonged to the region of the circle halfway between them. Play it through and a rule breaks. So neither belongs to that region.',
 				line: 'So the cells on either side of the highlighted edges lie in different regions: draw lines there.',
 				cross:
 					'So the cells on either side of the highlighted edges lie in the same region: no line goes there.',
@@ -493,6 +500,14 @@ const en = {
 				'Tap a cell, then a digit on the number pad. Pick the Note tool to add or remove small notes instead. ⌫ erases.',
 			/** What the hint button says. With an elimination first, then the digit it leads to. */
 			hints: {
+				where: {
+					box: 'In the tinted box, one of the missing digits fits in only one cell. Which one, and where?',
+					row: 'In the tinted row, one of the missing digits fits in only one cell. Which one, and where?',
+					column:
+						'In the tinted column, one of the missing digits fits in only one cell. Which one, and where?'
+				},
+				whereNaked:
+					'The tinted row, column and box leave only one digit for the cell where they cross. Which one?',
 				hidden: {
 					box: 'In its box, {digit} fits only in the highlighted cell: the other free cells there see a {digit} in their row or column, or your notes rule it out.',
 					row: 'In its row, {digit} fits only in the highlighted cell: the other free cells there see a {digit} in their column or box, or your notes rule it out.',
@@ -502,11 +517,11 @@ const en = {
 				naked:
 					'Only {digit} fits in the highlighted cell: its row, column and box hold every other digit, or your notes rule them out.',
 				lockedCandidates:
-					'Note the candidates first. When a digit fits in a box only in cells of one row (or column), it leaves the rest of that row; and the other way round.',
+					'Note the candidates first. When a digit fits in a box only in cells of one row (or column), like the tinted ones, it leaves the rest of that row; and the other way round.',
 				nakedSubset:
-					'Note the candidates first. Two cells of a row, column or box with the same two candidates (or three cells with three) take those digits: they leave the other cells there.',
+					'Note the candidates first. Two cells of a row, column or box with the same two candidates (or three cells with three), like the tinted ones, take those digits: they leave the other cells there.',
 				hiddenSubset:
-					'Note the candidates first. Two digits that fit in a row, column or box only in the same two cells (or three in three) fill those cells: their other candidates go.',
+					'Note the candidates first. Two digits that fit in a row, column or box only in the same two cells (or three in three), like the tinted ones, fill those cells: their other candidates go.',
 				then: {
 					box: 'Then {digit} fits only in the highlighted cell of its box.',
 					row: 'Then {digit} fits only in the highlighted cell of its row.',
@@ -531,11 +546,16 @@ const en = {
 							column:
 								'In its column, {digit} fits only in the highlighted cell: the other free cells there see a {digit} in their row, or your notes rule it out.'
 						},
+						whereNaked:
+							'The tinted row and column leave only one digit for the cell where they cross. Which one?',
 						naked:
 							'Only {digit} fits in the highlighted cell: its row and column hold every other digit, or your notes rule them out.',
-						cage: "Work out which digits can give each cage's result with its operation; digits in one row or column must differ.",
+						cage: "Work out which digits can give each tinted cage's result with its operation; digits in one row or column must differ.",
+						cageGiven: 'A cage with just a number, like the tinted "{cage}", holds that digit.',
+						cageOne:
+							'Work out which digits the tinted cage "{cage}" can hold: they must give its result with its operation, and differ within a row or column.',
 						nakedPair:
-							'Note the candidates first. Two cells of a row or column with the same two candidates take those digits: they leave the other cells there.'
+							'Note the candidates first. Two cells of a row or column with the same two candidates, like the tinted ones, take those digits: they leave the other cells there.'
 					},
 					tutorial: [
 						{
@@ -579,18 +599,18 @@ const en = {
 					done: 'Right: a 3. When you select a cell, its row, column and box light up to help you look.'
 				},
 				{
-					text: 'Boxes work the same way. The top-left box has 1, 2 and 4, so its empty cell takes the missing digit.',
+					text: 'Boxes and columns work the same way. The top-left box has 1, 2 and 3, so its empty cell takes the missing digit.',
 					task: 'Fill the empty cell of the top-left box.',
-					done: 'Exactly: the box needed its 3.'
+					done: 'Exactly: the box needed its 4.'
 				},
 				{
-					text: 'And columns too. Now that the 3 is in, the left column lacks only one digit.',
-					task: 'Fill the next empty cell of the left column.',
-					done: 'Well done: row, box or column, the trick is always to find the one missing digit.'
+					text: 'Often no row, column or box lacks just one digit. Then turn the question round: where can a digit go? The marked box at the bottom right still needs a 1. The 1 in the third row and the 1 in the third column rule out three of its cells.',
+					task: 'Put the 1 in the one cell of that box where it fits.',
+					done: 'Right: the only place left. Most steps in real puzzles work like this, and the hint asks the same question.'
 				},
 				{
-					text: 'Three cells are left. For each, check its row, column and box. Not sure yet? The Note tool (✎) jots down small digits as reminders. Repeated digits turn red.',
-					task: 'Fill in the last three cells on your own.'
+					text: 'Five cells are left. For each, check its row, column and box, or ask where a digit can go. Not sure yet? The Note tool (✎) jots down small digits as reminders. Repeated digits turn red.',
+					task: 'Fill in the last five cells on your own.'
 				}
 			]
 		}

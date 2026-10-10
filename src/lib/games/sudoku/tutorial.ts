@@ -9,9 +9,9 @@ export const SUDOKU_TUTORIAL: SudokuPuzzle = {
 	// prettier-ignore
 	givens: [
 		1, 2, 0, 4,
-		0, 4, 1, 0,
-		0, 1, 4, 0,
-		4, 0, 2, 1
+		3, 0, 1, 2,
+		2, 1, 0, 0,
+		0, 0, 0, 0
 	]
 };
 
@@ -25,18 +25,19 @@ export const SUDOKU_TUTORIAL_SOLUTION = [
 ];
 
 /**
- * Texts under `games.sudoku.tutorial`, one per step. Each task finds the missing digit in a
- * different unit: a row, a box, then a column; the player fills the rest alone.
+ * Texts under `games.sudoku.tutorial`, one per step. The first two tasks find the one digit a row
+ * and a box lack; the third turns the question round, as most steps in real puzzles do: where can
+ * a digit go in a box? Then the player fills the rest alone.
  */
 export const SUDOKU_TUTORIAL_STEPS: TutorialStep<SudokuPuzzle, SudokuState>[] = [
 	// The rules, with the top-left box as an example.
 	{ spotlight: ['0', '1', '4', '5'] },
 	// The top row lacks only the 3.
 	digitStep(SUDOKU_TUTORIAL_SOLUTION, [2]),
-	// The top-left box lacks only the 3.
-	digitStep(SUDOKU_TUTORIAL_SOLUTION, [4]),
-	// The left column lacks only the 2.
-	digitStep(SUDOKU_TUTORIAL_SOLUTION, [8]),
+	// The top-left box lacks only the 4.
+	digitStep(SUDOKU_TUTORIAL_SOLUTION, [5]),
+	// The bottom-right box needs a 1: the 1s in the third row and column leave it one cell.
+	{ ...digitStep(SUDOKU_TUTORIAL_SOLUTION, [15]), spotlight: ['10', '11', '14', '15'] },
 	// The rest alone; the tutorial ends when the board is solved.
 	{}
 ];

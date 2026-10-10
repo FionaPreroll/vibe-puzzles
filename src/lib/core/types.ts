@@ -52,6 +52,8 @@ export interface BoardProps<P, S> {
 	ontool?: (tool: string) => void;
 	/** Elements a tutorial step points at, in the same keys as `lastChange`. */
 	spotlight?: ReadonlySet<string>;
+	/** Elements a hint's reasoning rests on (a region, a cage, a row), tinted more softly. */
+	area?: ReadonlySet<string>;
 }
 
 export interface GameTutorial<P, S> {
@@ -80,6 +82,13 @@ export interface Hint {
 	kind: 'mistake' | 'step' | 'stuck';
 	/** Elements to point at, in the board's `lastChange` keys. */
 	spotlight: string[];
+	/** Elements the reasoning rests on (a box, a region, a cage), tinted more softly. */
+	area?: string[];
+	/**
+	 * Translation keys of a first look, shown with `area` before the rest: where to look and which
+	 * rule applies, without the result. The next press of the hint button shows the hint itself.
+	 */
+	teaser?: string[];
 	/** Translation keys of the sentences that explain it, shown one after the other. */
 	text: string[];
 	/** Values for the placeholders in those sentences, e.g. `{digit}`. */

@@ -51,6 +51,15 @@ export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState> = {
 		const spotlight = hint.edges.map((e) => `${e.kind}:${e.i}:${e.j}`);
 		if (hint.kind === 'mistake') return { kind: 'mistake', spotlight, text: ['game.hintMistake'] };
 		const key = (k: string) => `games.pinwheel.hints.${k}`;
-		return { kind: 'step', spotlight, text: [key(hint.technique), key(hint.mark)] };
+		// The assumption names its cells itself; other deductions first say where to look.
+		const why =
+			hint.technique === 'assumption' ? [key(hint.technique)] : [key('look'), key(hint.technique)];
+		return {
+			kind: 'step',
+			spotlight,
+			area: hint.area.map((c) => `c:${c}`),
+			teaser: why,
+			text: [...why, key(hint.mark)]
+		};
 	}
 };
