@@ -115,6 +115,29 @@ for (const screen of SCREENS) {
 			});
 		}
 
+		test('the footer stays reachable below the board and the tool bar', async ({ page }) => {
+			const footer = page.getByRole('contentinfo');
+			for (const path of ['/tetroid?v=6n', '/pinwheel?v=5n']) {
+				await openGame(page, path);
+				for (const control of [
+					footer.getByRole('link', { name: 'About' }),
+					footer.getByRole('combobox')
+				]) {
+					// Scrolled to the end, nothing lies on top of it: a tap on its middle reaches it.
+					const reachable = () =>
+						control.evaluate((el) => {
+							window.scrollTo(0, document.documentElement.scrollHeight);
+							const r = el.getBoundingClientRect();
+							const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+							return !!hit && el.contains(hit);
+						});
+					await expect
+						.poll(reachable, { message: `${path}: ${await control.textContent()}` })
+						.toBe(true);
+				}
+			}
+		});
+
 		test(`shows the ${wide ? 'desktop' : 'phone'} layout`, async ({ page }) => {
 			await openGame(page, '/tetroid?v=6n');
 			const panel = page.getByRole('complementary', { name: 'Tetroid menu' });
