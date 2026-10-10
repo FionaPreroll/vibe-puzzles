@@ -95,8 +95,14 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	}
 	expect(colours.filter((c) => c === palette.error)).toHaveLength(8);
 
-	// Same digit: selecting a given highlights every cell with its digit.
-	await clickCell(page, 9, Math.floor(givenCells[0] / 9), givenCells[0] % 9);
+	// Same digit: selecting a given highlights the other cells with its digit. Take a given
+	// whose digit shows up more than once: in some puzzles a digit is given only once.
+	const givenDigits = await board
+		.locator('text[data-cell]')
+		.evaluateAll((els) => els.map((e) => e.textContent!.trim()));
+	const shared = givenDigits.findIndex((d) => givenDigits.filter((x) => x === d).length > 1);
+	const pick = givenCells[shared];
+	await clickCell(page, 9, Math.floor(pick / 9), pick % 9);
 	await expect(board.locator(`rect[fill="${palette.sameDigit}"]`).first()).toBeVisible();
 });
 
