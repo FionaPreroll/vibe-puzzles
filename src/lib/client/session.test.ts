@@ -703,6 +703,18 @@ describe('a setting that counts as a hint', () => {
 		expect(s.hints).toBe(1);
 	});
 
+	it('counts nothing while there is no puzzle', async () => {
+		vi.mocked(generate).mockRejectedValueOnce(new Error('boom'));
+		const [s] = await assisting(true);
+		expect(s.loading).toBe(false);
+		expect(s.puzzle).toBeNull();
+		s.noteAssist();
+		expect(s.hints).toBe(0);
+		await s.retry();
+		s.noteAssist();
+		expect(s.hints).toBe(1);
+	});
+
 	it('keeps the solve out of the best time and the ranking', async () => {
 		const [s] = await assisting(true);
 		s.noteAssist();

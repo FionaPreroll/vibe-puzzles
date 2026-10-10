@@ -523,8 +523,7 @@ export class GameSession<P = unknown, S = unknown> {
 	 * when it is turned on before the puzzle is solved. Called by the page whenever either changes.
 	 */
 	noteAssist() {
-		if (this.assisted || !this.assistOn || this.loading || this.solved) return;
-		if (!this.puzzle || !this.state) return;
+		if (this.assisted || !this.assistOn || this.loading || this.solved || !this.puzzle) return;
 		this.assisted = true;
 		this.hints++;
 		this.persist();
