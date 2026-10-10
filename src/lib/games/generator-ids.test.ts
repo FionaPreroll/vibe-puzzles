@@ -73,8 +73,14 @@ const PINNED: Record<string, string> = {
 	'sudoku c9n 2': 'fb76d99a75b2a786',
 	'sudoku c9h 1': '7c5013b70677a45c',
 	'sudoku c9h 2': '6459a1f29ab946b2',
-	'loop 5n 1': 'd0776dab15a623d4',
-	'loop 5n 2': 'cdfb602fde10c8ea'
+	'loop 5n 1': '809cc2688282ee29',
+	'loop 5n 2': '2b2be3b66c453043',
+	'loop 5h 1': 'eb66db073a0c07da',
+	'loop 5h 2': '1cb13d13e6c2d549',
+	'loop 7n 1': 'd0421f34c7840e6f',
+	'loop 7n 2': 'f0b2ed39e5cb8e1f',
+	'loop 7h 1': 'ba714946c189a79d',
+	'loop 7h 2': '3a796f1fa84091e4'
 };
 
 const fingerprint = (puzzle: unknown) =>

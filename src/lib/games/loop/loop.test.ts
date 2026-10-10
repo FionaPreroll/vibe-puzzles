@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Rng } from '../../core/rng';
 import { isPlayable } from '../../core/variants';
-import { generateLoop, randomLoop, solvesWithoutGuessing } from './generator';
+import { fitsLoopDifficulty, generateLoop, randomLoop } from './generator';
 import { LOOP_VARIANTS, loopLogic } from './logic';
 import {
 	analyze,
@@ -19,7 +19,7 @@ import {
 	type LoopPuzzle,
 	type LoopState
 } from './rules';
-import { LoopSolver, solveLoop } from './solver';
+import { LoopLevel, rateLoop, solveLoop } from './solver';
 
 /** A state with lines on the given edges, as `h:i:j` / `v:i:j` keys. */
 function lines(p: LoopPuzzle, ...keys: string[]): LoopState {
@@ -101,21 +101,99 @@ describe('rules', () => {
 	});
 });
 
-describe('solver', () => {
-	it('solves a generated normal puzzle by propagation alone', () => {
-		const { puzzle } = generateLoop(5, 5, 'normal', 3);
-		const res = solveLoop(puzzle, { branch: false });
-		expect(res.solutions).toHaveLength(1);
-		expect(res.branched).toBe(false);
-		expect(isSolvedState(puzzle, stateFromEdges(puzzle, res.solutions[0]))).toBe(true);
+/** The edge number of an `h:i:j` / `v:i:j` key. */
+const edge = (p: LoopPuzzle, key: string) => edgeValues(lines(p, key)).indexOf(LINE);
+const OPEN_EDGE = 0;
+
+describe('rating solver', () => {
+	it('draws the outer edges of a 3 in the corner of the grid', () => {
+		// The corner dot has only those two edges: both lines or none, and a 3 needs one of them.
+		const p: LoopPuzzle = { width: 3, height: 3, clues: '3........' };
+		const { solved, edges } = rateLoop(p, LoopLevel.Basic);
+		expect(solved).toBe(false);
+		expect(edges[edge(p, 'h:0:0')]).toBe(LINE);
+		expect(edges[edge(p, 'v:0:0')]).toBe(LINE);
+		expect(edges.filter((x) => x !== 0)).toHaveLength(2);
 	});
 
-	it('needs case analysis where no rule decides an edge', () => {
-		expect(solveLoop(square, { branch: false }).solutions).toHaveLength(0);
-		const res = solveLoop(square);
+	it('passes a corner on to the cell diagonally across its dot', () => {
+		// Two 3s on a diagonal: each uses one edge at the dot between them, so the far sides of
+		// both are drawn.
+		const q: LoopPuzzle = { width: 4, height: 4, clues: '.....3....3.....' };
+		const { edges } = rateLoop(q, LoopLevel.Basic);
+		for (const key of ['h:1:1', 'v:1:1', 'h:3:2', 'v:2:3'])
+			expect(edges[edge(q, key)], key).toBe(LINE);
+	});
+
+	it('crosses an edge that would close a loop too early', () => {
+		// Three sides of the left cell are drawn. Closing the fourth would leave the 1 on the
+		// right without a line.
+		const p: LoopPuzzle = { width: 3, height: 1, clues: '..1' };
+		const drawn = edgeValues(lines(p, 'h:0:0', 'v:0:0', 'h:1:0'));
+		expect(rateLoop(p, LoopLevel.Basic, drawn).edges[edge(p, 'v:0:1')]).toBe(CROSS);
+		// Without the 1, that loop is a solution, so the edge is drawn.
+		const free: LoopPuzzle = { ...p, clues: '...' };
+		expect(rateLoop(free, LoopLevel.Basic, drawn).edges[edge(free, 'v:0:1')]).not.toBe(CROSS);
+	});
+
+	it('solves a normal puzzle with the basic techniques alone', () => {
+		const { puzzle, solution } = generateLoop(5, 5, 'normal', 3);
+		const r = rateLoop(puzzle);
+		expect(r).toMatchObject({ solved: true, level: LoopLevel.Basic, advancedSteps: 0 });
+		expect(
+			stateFromEdges(
+				puzzle,
+				r.edges.map((x) => (x === LINE ? LINE : 0))
+			)
+		).toEqual(solution);
+	});
+
+	it('needs inside and outside for a hard puzzle', () => {
+		const { puzzle, solution } = generateLoop(5, 5, 'hard', 1);
+		expect(rateLoop(puzzle, LoopLevel.Basic).solved).toBe(false);
+		const r = rateLoop(puzzle);
+		expect(r.solved).toBe(true);
+		expect(r.level).toBe(LoopLevel.Advanced);
+		expect(r.advancedSteps).toBeGreaterThan(0);
+		expect(
+			stateFromEdges(
+				puzzle,
+				r.edges.map((x) => (x === LINE ? LINE : 0))
+			)
+		).toEqual(solution);
+		// Four 2s: the loop runs around the grid. Only inside and outside sees that.
+		expect(rateLoop(square, LoopLevel.Basic).solved).toBe(false);
+		expect(rateLoop(square).solved).toBe(true);
+	});
+
+	it('stops without guessing on an ambiguous or impossible puzzle', () => {
+		expect(rateLoop({ width: 3, height: 3, clues: '.........' })).toMatchObject({
+			solved: false,
+			level: LoopLevel.Advanced
+		});
+		expect(rateLoop({ width: 2, height: 2, clues: '3333' }).solved).toBe(false);
+		expect(rateLoop({ width: 1, height: 1, clues: '0' }).solved).toBe(false);
+		// One line leaves the dots around the middle cell, which the basic rules let pass: the
+		// cells around them would have to be inside and outside at once.
+		const open: LoopPuzzle = { width: 3, height: 3, clues: '.........' };
+		const out = ['v:0:1', 'h:1:0', 'v:0:2', 'h:1:2', 'h:2:0', 'v:2:1', 'h:2:2', 'v:2:2'];
+		const from = edgeValues(lines(open, out[0]));
+		for (const key of out.slice(1)) from[edge(open, key)] = CROSS;
+		expect(
+			rateLoop(open, LoopLevel.Basic, from).edges.filter((x) => x === OPEN_EDGE).length
+		).toBeGreaterThan(0);
+		expect(rateLoop(open, LoopLevel.Advanced, from).solved).toBe(false);
+	});
+});
+
+describe('complete solver', () => {
+	it('solves a puzzle that the rules alone do not, by case analysis', () => {
+		const p: LoopPuzzle = { width: 3, height: 3, clues: '.1.....1.' };
+		expect(solveLoop(p, { branch: false }).solutions).toHaveLength(0);
+		const res = solveLoop(p, { limit: 1 });
 		expect(res.solutions).toHaveLength(1);
 		expect(res.branched).toBe(true);
-		expect(isSolvedState(square, stateFromEdges(square, res.solutions[0]))).toBe(true);
+		expect(isSolvedState(p, stateFromEdges(p, res.solutions[0]))).toBe(true);
 	});
 
 	it('finds several solutions of an ambiguous puzzle, and none of an impossible one', () => {
@@ -124,21 +202,6 @@ describe('solver', () => {
 		// Four 3s around a 2×2 grid cannot all hold, and a 0 leaves no line for a loop.
 		expect(solveLoop({ width: 2, height: 2, clues: '3333' }).solutions).toHaveLength(0);
 		expect(solveLoop({ width: 1, height: 1, clues: '0' }).solutions).toHaveLength(0);
-	});
-
-	it('crosses an edge that would close a loop too early', () => {
-		// Three sides of the left cell are drawn. Closing the fourth would leave the 1 on the
-		// right without a line.
-		const p: LoopPuzzle = { width: 3, height: 1, clues: '..1' };
-		const v = Uint8Array.from(edgeValues(lines(p, 'h:0:0', 'v:0:0', 'h:1:0')));
-		const closing = edgeValues(lines(p, 'v:0:1')).indexOf(LINE);
-		expect(new LoopSolver(p).propagate(v)).toBe(true);
-		expect(v[closing]).toBe(CROSS);
-		// Without the 1, that loop is a solution, so the edge stays open.
-		const free: LoopPuzzle = { ...p, clues: '...' };
-		const w = Uint8Array.from(edgeValues(lines(free, 'h:0:0', 'v:0:0', 'h:1:0')));
-		expect(new LoopSolver(free).propagate(w)).toBe(true);
-		expect(w[closing]).toBe(0);
 	});
 
 	it('gives up after its node budget', () => {
@@ -171,29 +234,47 @@ describe('generator', () => {
 		}
 	});
 
-	it.each([1, 2, 3, 4, 5])(
-		'makes a uniquely solvable 5×5 normal puzzle that propagation solves (seed %i)',
-		(seed) => {
-			const { puzzle, solution } = generateLoop(5, 5, 'normal', seed);
+	it.each([
+		[5, 'normal', 1],
+		[5, 'normal', 2],
+		[5, 'hard', 1],
+		[5, 'hard', 2],
+		[7, 'normal', 1],
+		[7, 'normal', 2],
+		[7, 'hard', 1],
+		[7, 'hard', 2]
+	] as const)(
+		'makes a unique %i×%i… %s puzzle that fits its level (seed %i)',
+		(size, difficulty, seed) => {
+			const { puzzle, solution } = generateLoop(size, size, difficulty, seed);
 			expect(isSolvedState(puzzle, solution)).toBe(true);
 			expect(loopLogic.countSolutions(puzzle, 2)).toEqual({ count: 1, finished: true });
-			expect(solvesWithoutGuessing(puzzle)).toBe(true);
-			// Some clues go, or it would be no puzzle.
-			expect(puzzle.clues).toContain('.');
-			expect(generateLoop(5, 5, 'normal', seed).puzzle).toEqual(puzzle);
+			expect(fitsLoopDifficulty(puzzle, difficulty)).toBe(true);
+			expect(fitsLoopDifficulty(puzzle, difficulty === 'hard' ? 'normal' : 'hard')).toBe(false);
+			expect(generateLoop(size, size, difficulty, seed).puzzle).toEqual(puzzle);
 		}
 	);
 
-	it('gives up on a board where propagation solves no loop even with every clue', () => {
-		// On 2×2 the loop always goes around two cells, and no rule tells which two.
-		expect(() => generateLoop(2, 2, 'normal', 1)).toThrow('generation failed');
+	it('keeps a puzzle with a clue to spare out of its level', () => {
+		const { puzzle, solution } = generateLoop(5, 5, 'normal', 1);
+		const full = puzzle.clues.indexOf('.');
+		const r = Math.floor(full / 5);
+		const c = full % 5;
+		const count =
+			[hIndex(puzzle, r, c), hIndex(puzzle, r + 1, c)].filter((e) => solution.h[e]).length +
+			[vIndex(puzzle, r, c), vIndex(puzzle, r, c + 1)].filter((e) => solution.v[e]).length;
+		const more = {
+			...puzzle,
+			clues: `${puzzle.clues.slice(0, full)}${count}${puzzle.clues.slice(full + 1)}`
+		};
+		expect(rateLoop(more, LoopLevel.Basic).solved).toBe(true);
+		expect(fitsLoopDifficulty(more, 'normal')).toBe(false);
 	});
 
-	it('makes a hard puzzle that needs case analysis', () => {
-		const { puzzle, solution } = generateLoop(5, 5, 'hard', 1);
-		expect(isSolvedState(puzzle, solution)).toBe(true);
-		expect(loopLogic.countSolutions(puzzle, 2)).toEqual({ count: 1, finished: true });
-		expect(solvesWithoutGuessing(puzzle)).toBe(false);
+	it('falls back to a puzzle the basic techniques solve where no hard one exists', () => {
+		// The loop around the single cell of a 1×1 grid.
+		const { puzzle } = generateLoop(1, 1, 'hard', 1);
+		expect(rateLoop(puzzle, LoopLevel.Basic).solved).toBe(true);
 	});
 });
 
@@ -201,9 +282,9 @@ describe('loop logic', () => {
 	const v = LOOP_VARIANTS[0];
 	const { puzzle, solution } = generateLoop(5, 5, 'normal', 31);
 
-	it('lists all fifteen types, of which only 5×5 Normal is playable yet', () => {
+	it('lists all fifteen types, of which 5×5 and 7×7 are playable yet', () => {
 		expect(LOOP_VARIANTS).toHaveLength(15);
-		expect(LOOP_VARIANTS.filter(isPlayable).map((x) => x.key)).toEqual(['5n']);
+		expect(LOOP_VARIANTS.filter(isPlayable).map((x) => x.key)).toEqual(['5n', '5h', '7n', '7h']);
 		expect(LOOP_VARIANTS.find((x) => x.key === '25x30h')).toMatchObject({ width: 25, height: 30 });
 	});
 
@@ -211,7 +292,7 @@ describe('loop logic', () => {
 		expect(loopLogic.generate(v, 31)).toEqual(puzzle);
 	});
 
-	it('rates puzzles by whether they need case analysis', () => {
+	it('rates puzzles by the techniques they need', () => {
 		expect(loopLogic.fitsDifficulty(puzzle, v)).toBe(true);
 		expect(loopLogic.fitsDifficulty(puzzle, LOOP_VARIANTS[1])).toBe(false);
 	});

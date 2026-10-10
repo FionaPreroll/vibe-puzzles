@@ -8,7 +8,7 @@ A collection of logic puzzles that runs in the browser, in English and German. E
 - **Pinwheel**: divide the grid into regions with one circle each, every region point-symmetric around its circle.
 - **Sudoku**: fill the 9×9 grid so that every row, column and 3×3 box holds the digits 1 to 9 once.
 - **Calcudoku**, a mode of Sudoku: 5×5, 7×7 or 9×9 without boxes; every row and column holds each digit once, and the digits of each cage give its target with its operation (+, −, ×, ÷).
-- **Loop** (early access): draw one closed loop along the grid lines; a number in a cell tells how many of its four sides the loop uses. So far only 5×5 Normal is playable; the other sizes, hard puzzles and specials are listed as coming soon.
+- **Loop** (early access): draw one closed loop along the grid lines; a number in a cell tells how many of its four sides the loop uses. So far 5×5 and 7×7 (Normal and Hard) are playable; the larger sizes and the specials are listed as coming soon.
 
 Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4. The optional server runs on Cloudflare Workers with D1.
 

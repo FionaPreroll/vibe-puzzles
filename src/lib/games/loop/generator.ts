@@ -2,7 +2,7 @@ import { neighbours } from '../../core/grid';
 import { Rng } from '../../core/rng';
 import type { Difficulty } from '../../core/variants';
 import { emptyLoopState, hIndex, LINE, vIndex, type LoopPuzzle, type LoopState } from './rules';
-import { solveLoop } from './solver';
+import { LoopLevel, rateLoop } from './solver';
 
 export interface GeneratedLoop {
 	puzzle: LoopPuzzle;
@@ -12,8 +12,6 @@ export interface GeneratedLoop {
 
 /** Attempts per puzzle: a new random loop each, with the same `Rng`. */
 const ATTEMPTS = 40;
-/** Node budget of the uniqueness search while digging hard puzzles. */
-const MAX_NODES = 20_000;
 
 /**
  * A random loop, as the cells inside it. Grows a region from one cell, adding neighbouring cells
@@ -117,19 +115,33 @@ const puzzleOf = (w: number, h: number, clues: number[]): LoopPuzzle => ({
 	clues: clues.map((x) => (x < 0 ? '.' : String(x))).join('')
 });
 
-/** Solvable by propagation alone, which also proves the solution unique. */
-export const solvesWithoutGuessing = (p: LoopPuzzle) =>
-	solveLoop(p, { branch: false, limit: 1 }).solutions.length === 1;
+/** The techniques each difficulty may use. */
+const LEVEL: Record<string, LoopLevel> = { normal: LoopLevel.Basic, hard: LoopLevel.Advanced };
 
-function isUnique(p: LoopPuzzle): boolean {
-	const res = solveLoop(p, { limit: 2, maxNodes: MAX_NODES });
-	return res.finished && res.solutions.length === 1;
+/** Solvable with the techniques up to `level`, which also proves the solution unique. */
+const solves = (p: LoopPuzzle, level: LoopLevel) => rateLoop(p, level).solved;
+
+/**
+ * Whether a puzzle is what `difficulty` asks for: solvable with its techniques (hard: and not with
+ * the basic ones alone), and with as few clues as they allow, so that removing any clue would
+ * leave them stuck.
+ */
+export function fitsLoopDifficulty(p: LoopPuzzle, difficulty: Difficulty): boolean {
+	const level = LEVEL[difficulty];
+	if (!solves(p, level)) return false;
+	if (level > LoopLevel.Basic && solves(p, LoopLevel.Basic)) return false;
+	for (let c = 0; c < p.clues.length; c++) {
+		if (p.clues[c] === '.') continue;
+		const fewer = { ...p, clues: `${p.clues.slice(0, c)}.${p.clues.slice(c + 1)}` };
+		if (solves(fewer, level)) return false;
+	}
+	return true;
 }
 
 /**
  * A puzzle of the given size: a random loop with every clue shown, then clues removed in random
- * order while the puzzle stays as easy as asked. Normal puzzles stay solvable by propagation
- * alone. Hard puzzles only stay unique, and count when propagation alone no longer solves them.
+ * order while the techniques of the difficulty still solve the puzzle, which proves it unique.
+ * Hard puzzles count when the basic techniques alone no longer solve them.
  */
 export function generateLoop(
 	w: number,
@@ -138,18 +150,18 @@ export function generateLoop(
 	seed: number
 ): GeneratedLoop {
 	const rng = new Rng(seed);
+	const level = LEVEL[difficulty];
 	let fallback: GeneratedLoop | null = null;
 	for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
 		const { clues, lines } = loopOf(w, h, randomLoop(w, h, rng));
-		if (!solvesWithoutGuessing(puzzleOf(w, h, clues))) continue;
-		const keeps = difficulty === 'hard' ? isUnique : solvesWithoutGuessing;
+		if (!solves(puzzleOf(w, h, clues), level)) continue;
 		for (const c of rng.shuffle(Array.from({ length: w * h }, (_, k) => k))) {
 			const clue = clues[c];
 			clues[c] = -1;
-			if (!keeps(puzzleOf(w, h, clues))) clues[c] = clue;
+			if (!solves(puzzleOf(w, h, clues), level)) clues[c] = clue;
 		}
 		const result = { puzzle: puzzleOf(w, h, clues), solution: lines };
-		if (difficulty !== 'hard' || !solvesWithoutGuessing(result.puzzle)) return result;
+		if (level === LoopLevel.Basic || !solves(result.puzzle, LoopLevel.Basic)) return result;
 		fallback ??= result;
 	}
 	if (fallback) return fallback;

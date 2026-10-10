@@ -24,11 +24,12 @@ test('Loop is marked as early access on the home page and in its menu', async ({
 });
 
 test('announced types are greyed out, and a link to one opens 5×5 Normal', async ({ page }) => {
-	await page.goto('/loop?v=7n');
+	await page.goto('/loop?v=10n');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 	await expect(page).toHaveURL(/v=5n/);
 	await expect(page.getByRole('button', { name: '5×5 Normal', exact: true })).toBeEnabled();
-	await expect(page.getByRole('button', { name: '7×7 Normal: coming soon' })).toBeDisabled();
+	await expect(page.getByRole('button', { name: '7×7 Hard', exact: true })).toBeEnabled();
+	await expect(page.getByRole('button', { name: '10×10 Normal: coming soon' })).toBeDisabled();
 	await expect(page.getByRole('button', { name: 'Daily: coming soon' })).toBeDisabled();
 });
 
