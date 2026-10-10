@@ -168,6 +168,25 @@ describe('game settings', () => {
 		expect(new GameSettings('g', INFO).values.autoSubmit).toBe(false);
 	});
 
+	it('never writes back what another tab changed meanwhile', () => {
+		vi.useFakeTimers({ now: 1000 });
+		const a = new GameSettings('g', INFO);
+		const b = new GameSettings('g', INFO);
+		a.set('autoSubmit', false);
+		b.set('hideControls', true);
+		expect(load('settings:g', null)).toEqual({
+			values: { hideControls: true, autoSubmit: false },
+			updatedAt: 1001
+		});
+		a.reload();
+		expect(a.values).toEqual({ hideControls: true, autoSubmit: false });
+		// A newer setting from another device lands on top of the other tab's change too.
+		const c = new GameSettings('g', INFO);
+		a.set('autoSubmit', true);
+		c.merge({ values: { hideControls: false }, updatedAt: 5000 });
+		expect(c.values).toEqual({ hideControls: true, autoSubmit: true });
+	});
+
 	it('ignores remote values of the wrong type', () => {
 		const s = new GameSettings('g', INFO);
 		s.merge({ values: { autoSubmit: 'no' } as never, updatedAt: 20 });
