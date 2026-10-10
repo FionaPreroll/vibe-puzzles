@@ -8,14 +8,26 @@
 		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/icon-192.png" />
 		<script>
-			// Night mode before the first paint, by the rule of `theme` in settings.svelte.ts.
-			try {
-				const night = JSON.parse(localStorage.getItem('vp:night'));
+			// Night mode and the look before the first paint, by the rules of `theme` in
+			// settings.svelte.ts and seasonalLook() in theme.ts.
+			{
+				let night = null;
+				let look = null;
+				try {
+					night = JSON.parse(localStorage.getItem('vp:night'));
+					look = JSON.parse(localStorage.getItem('vp:look'));
+				} catch {
+					// No storage: the defaults apply, as they do in the app.
+				}
 				if (night ?? matchMedia('(prefers-color-scheme: dark)').matches) {
 					document.documentElement.classList.add('dark');
 				}
-			} catch {
-				// No storage: the app applies night mode once it starts.
+				if (look !== 'classic' && look !== 'halloween') {
+					const now = new Date();
+					const october = now.getMonth() === 9;
+					look = october || (now.getMonth() === 10 && now.getDate() === 1) ? 'halloween' : '';
+				}
+				if (look === 'halloween') document.documentElement.dataset.theme = 'halloween';
 			}
 		</script>
 		%sveltekit.head%

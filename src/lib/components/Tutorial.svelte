@@ -123,7 +123,7 @@
 	</section>
 
 	<aside class="panel order-1 md:order-2" aria-live="polite">
-		<h1 class="text-xl font-bold tracking-tight">
+		<h1 class="font-display text-xl font-bold tracking-tight">
 			<span aria-hidden="true">{game.icon}</span>
 			{t('tutorial.title', { game: name })}
 		</h1>

@@ -52,6 +52,14 @@ const de: Dictionary = {
 		dayMode: 'Zum Tagmodus wechseln',
 		nightMode: 'Zum Nachtmodus wechseln'
 	},
+	look: {
+		label: 'Design',
+		auto: 'Automatisch ({look})',
+		classic: 'Klassisch',
+		halloween: 'Halloween',
+		tagline: 'Süßes oder Rätsel?',
+		taglineNight: 'Rätsel bei Mondschein'
+	},
 	home: {
 		title: 'Logikrätsel, nur einen Klick entfernt',
 		intro: 'Jedes Rätsel hat genau eine Lösung. Wähle ein Spiel und leg los.',

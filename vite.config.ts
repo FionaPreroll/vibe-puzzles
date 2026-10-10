@@ -7,11 +7,19 @@ import { readFileSync } from 'node:fs';
 import { checkShippedLicenses, readLicense } from './scripts/licenses.ts';
 
 /**
- * Open source packages whose code (or, for Tailwind CSS, generated styles) ships with the app.
- * The About page shows each with its licence text; the build fails if the browser code holds a
- * package that is missing here.
+ * Open source packages whose code (or, for Tailwind CSS, generated styles, and for the fonts,
+ * font files) ships with the app. The About page shows each with its licence text; the build
+ * fails if the browser code holds a package that is missing here.
  */
-const SHIPPED_PACKAGES = ['svelte', '@sveltejs/kit', 'devalue', 'clsx', 'tailwindcss'];
+const SHIPPED_PACKAGES = [
+	'svelte',
+	'@sveltejs/kit',
+	'devalue',
+	'clsx',
+	'tailwindcss',
+	'@fontsource/fredoka',
+	'@fontsource/cinzel'
+];
 
 function commit(): string {
 	if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;

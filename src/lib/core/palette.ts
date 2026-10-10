@@ -1,7 +1,8 @@
 /**
- * Board colours for the light and the dark theme. Boards never use colour literals: they take
- * `colours.<name>`, a CSS variable that follows night mode. Screenshots and prints use the light
- * theme (see `lightColours` and the `board-light` class).
+ * Board colours for the light and the dark theme, in the classic and the Halloween look. Boards
+ * never use colour literals: they take `colours.<name>`, a CSS variable that follows night mode
+ * and the look. Screenshots and prints use the classic light theme (see `lightColours` and the
+ * `board-light` class).
  */
 
 const LIGHT = {
@@ -66,7 +67,13 @@ const LIGHT = {
 	note6: '#f5b9da',
 	note7: '#d4d4d4',
 	note8: '#b4ebda',
-	note9: '#f9d1a8'
+	note9: '#f9d1a8',
+	/** Pinwheel's centres in the Halloween look: pumpkins, lit by a candle once complete. */
+	pumpkin: '#f97316',
+	pumpkinShade: '#ea580c',
+	stem: '#4d7c0f',
+	pumpkinFace: '#7c2d12',
+	candle: '#facc15'
 };
 
 export type ColourName = keyof typeof LIGHT;
@@ -113,10 +120,56 @@ const DARK: Palette = {
 	note6: '#76345a',
 	note7: '#4a4a4a',
 	note8: '#22614f',
-	note9: '#7a4a1f'
+	note9: '#7a4a1f',
+	pumpkin: '#ea580c',
+	pumpkinShade: '#c2410c',
+	stem: '#65a30d',
+	pumpkinFace: '#431407',
+	candle: '#fde047'
 };
 
-export const PALETTES: { light: Palette; dark: Palette } = { light: LIGHT, dark: DARK };
+/** Halloween by day: aubergine ink on white, purple for the player's digits, orange highlights. */
+const HALLOWEEN_LIGHT: Palette = {
+	...LIGHT,
+	paper: '#fff9f0',
+	ink: '#2a1b3d',
+	line: '#2a1b3d',
+	gridLine: '#6b5876',
+	faint: '#b9a6c9',
+	dot: '#4e3d5e',
+	label: '#6b5876',
+	entered: '#6d28d9',
+	selection: '#fed7aa',
+	sameDigit: '#e9d5ff',
+	unit: '#fff1e3',
+	cursor: '#c2410c',
+	recent: '#7c3aed'
+};
+
+/** Halloween by night: a violet night board, ember digits and highlights. */
+const HALLOWEEN_DARK: Palette = {
+	...DARK,
+	surface: '#1b1528',
+	paper: '#1b1528',
+	ink: '#f4effb',
+	line: '#b8aecb',
+	gridLine: '#6e6482',
+	faint: '#4e4366',
+	dot: '#b8aecb',
+	label: '#c4b9d6',
+	entered: '#fdba74',
+	selection: '#5a3512',
+	sameDigit: '#3a2b66',
+	unit: '#241c36',
+	recent: '#b79cff'
+};
+
+export const PALETTES = {
+	light: LIGHT,
+	dark: DARK,
+	halloweenLight: HALLOWEEN_LIGHT,
+	halloweenDark: HALLOWEEN_DARK
+} satisfies Record<string, Palette>;
 
 const NAMES = Object.keys(LIGHT) as ColourName[];
 
@@ -132,14 +185,18 @@ const declarations = (palette: Palette) =>
 	NAMES.map((name) => `${variable(name)}:${palette[name]};`).join('');
 
 /**
- * The CSS variables: dark when the page has the `dark` class, light otherwise and inside an
- * element with the class `board-light` (the printed board).
+ * The CSS variables: dark when the page has the `dark` class, light otherwise, in the Halloween
+ * colours when it has `data-theme="halloween"`, and always classic light inside an element with
+ * the class `board-light` (the printed board).
  */
 export function paletteCss(): string {
+	const halloween = ':root[data-theme="halloween"]';
 	return (
 		`:root,.board-light{${declarations(LIGHT)}}` +
 		`:root.dark{${declarations(DARK)}}` +
-		`:root.dark .board-light{${declarations(LIGHT)}}`
+		`${halloween}{${declarations(HALLOWEEN_LIGHT)}}` +
+		`${halloween}.dark{${declarations(HALLOWEEN_DARK)}}` +
+		`:root.dark .board-light,${halloween} .board-light{${declarations(LIGHT)}}`
 	);
 }
 
