@@ -50,9 +50,13 @@ export function withCommon<K extends string = never>(
 /** A value for every setting of `list`: the one in `values`, else the default. */
 export function settingValues<K extends string>(
 	list: SettingInfo<K>[],
-	values: Partial<Record<string, boolean>> = {}
+	values?: Partial<Record<string, boolean>> | null
 ): Record<K, boolean> {
 	const out = {} as Record<K, boolean>;
-	for (const s of list) out[s.key] = values[s.key] ?? s.default;
+	for (const s of list) {
+		// Stored values may come from anywhere (another version, another device).
+		const value = values && typeof values === 'object' ? values[s.key] : undefined;
+		out[s.key] = typeof value === 'boolean' ? value : s.default;
+	}
 	return out;
 }

@@ -31,7 +31,7 @@
 	import { trapFocus } from '../client/focus';
 	import { isTyping, KeyDispatcher } from '../client/keys';
 	import { formatDuration } from '../core/time';
-	import { decodePuzzleId } from '../core/variants';
+	import { decodePuzzleId, parsePuzzleId } from '../core/variants';
 	import { CELEBRATION_COLOURS } from '../core/grid';
 	import { lightColours } from '../core/palette';
 	import type { TouchMode } from '../core/types';
@@ -215,8 +215,13 @@
 	}
 
 	async function openById() {
-		const id = Number(idInput.replace(/[^0-9]/g, ''));
-		if (!id) return;
+		const digits = idInput.replace(/[^0-9]/g, '');
+		if (!digits) return;
+		const id = parsePuzzleId(digits, game.variants.length);
+		if (!id) {
+			session.message = { kind: 'error', text: t('game.unknownId') };
+			return;
+		}
 		if (session.replacesGame(variant.key, { puzzleId: id }) && !(await askReplace())) return;
 		idInput = '';
 		openVariant(variant.key, id);
@@ -333,7 +338,7 @@
 				return;
 			}
 		}
-		const id = Number(params.get('id')) || undefined;
+		const id = parsePuzzleId(params.get('id'), game.variants.length);
 		const start = async () => {
 			let variantKey = params.get('v') ?? game.variants[0].key;
 			let opts: OpenOptions = { puzzleId: id, shared: params.get('s') ?? undefined };
@@ -343,6 +348,9 @@
 				opts = {};
 			}
 			await session.open(variantKey, opts);
+			if (params.has('id') && !id && !session.message) {
+				session.message = { kind: 'error', text: t('game.unknownId') };
+			}
 			if (params.has('s') || params.has('id')) replaceState(variantUrl(session.variant.key), {});
 		};
 		start();

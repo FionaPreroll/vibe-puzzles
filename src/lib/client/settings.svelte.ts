@@ -68,7 +68,7 @@ export class GameSettings<K extends string = never> {
 	) {
 		const stored = load<StoredSettings | null>(settingsKey(game), null);
 		this.values = $state(settingValues(info, stored?.values));
-		this.updatedAt = stored?.updatedAt ?? 0;
+		this.updatedAt = Number.isFinite(stored?.updatedAt) ? stored!.updatedAt : 0;
 	}
 
 	set(key: CommonKey | K, value: boolean) {
@@ -86,7 +86,8 @@ export class GameSettings<K extends string = never> {
 
 	/** Apply settings from another device if they are newer. */
 	merge(remote: StoredSettings) {
-		if (remote.updatedAt <= this.updatedAt) return;
+		if (!remote || !Number.isFinite(remote.updatedAt) || remote.updatedAt <= this.updatedAt) return;
+		if (!remote.values || typeof remote.values !== 'object') return;
 		for (const s of this.info) {
 			const value = remote.values[s.key];
 			if (!s.deviceOnly && typeof value === 'boolean') this.values[s.key] = value;

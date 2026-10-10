@@ -124,7 +124,9 @@ describe('tetroid logic', () => {
 			{ ...puzzle, regions: puzzle.regions.slice(1) },
 			{ ...puzzle, regions: 'x'.repeat(36) },
 			{ ...puzzle, regions: puzzle.regions.map((r, i) => (i === 0 ? -1 : r)) },
-			{ ...puzzle, regions: puzzle.regions.map((r, i) => (i === 0 ? 1.5 : r)) }
+			{ ...puzzle, regions: puzzle.regions.map((r, i) => (i === 0 ? 1.5 : r)) },
+			// A region number far beyond the cells (checking it once ran out of memory).
+			{ ...puzzle, regions: puzzle.regions.map((r, i) => (i === 0 ? 1e9 : r)) }
 		];
 		for (const p of bad) expect(tetroidLogic.isValidPuzzle(p, v)).toBe(false);
 	});

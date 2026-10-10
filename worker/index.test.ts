@@ -33,6 +33,21 @@ describe('worker', () => {
 		expect(limit).toHaveBeenCalledWith({ key: '203.0.113.7' });
 	});
 
+	it('ignores the rate limiters with RATE_LIMITS=off', async () => {
+		const limit = vi.fn(async () => ({ success: false }));
+		const e = { ...env(), REGISTER_LIMIT: { limit }, RATE_LIMITS: 'off' } as unknown as Env;
+		const DB = {
+			prepare: () => ({ bind: () => ({ run: async () => ({ meta: { changes: 1 } }) }) })
+		};
+		const req = new Request('https://example.test/api/player', {
+			method: 'POST',
+			body: JSON.stringify({ name: 'A' })
+		});
+		const res = await worker.fetch(req as never, { ...e, DB } as Env, {} as ExecutionContext);
+		expect(res.status).toBe(201);
+		expect(limit).not.toHaveBeenCalled();
+	});
+
 	it('switches server puzzles on with the SERVER_PUZZLES variable', async () => {
 		const res = await call('https://example.test/api/health', env('true'));
 		expect(await res.json()).toEqual({ ok: true, serverPuzzles: true });

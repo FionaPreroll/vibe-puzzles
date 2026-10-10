@@ -1,4 +1,4 @@
-import { GAME_LOGIC } from '../src/lib/games/logic';
+import { gameLogic } from '../src/lib/games/logic';
 import type { BankEntry, Collection } from '../src/lib/core/bank';
 import type { Variant } from '../src/lib/core/variants';
 import {
@@ -62,16 +62,56 @@ function newToken(): string {
 	return [...bytes].map((b) => alphabet[b % alphabet.length]).join('');
 }
 
+/**
+ * Control and formatting characters, which could hide a name or reverse how the ones next to it
+ * read. Joiners (emoji sequences, some scripts) and tag characters (flag emoji) stay.
+ */
+const INVISIBLE = /[\p{Cc}\p{Cf}]/u;
+const KEPT = /\u200c|\u200d|[\u{e0020}-\u{e007f}]/u;
+const visible = (text: string) =>
+	[...text].filter((c) => !INVISIBLE.test(c) || KEPT.test(c)).join('');
+
 function cleanName(value: unknown): string {
-	const name = typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+	const name = typeof value === 'string' ? visible(value.replace(/\s+/g, ' ')).trim() : '';
 	if (name.length < 1 || name.length > 24)
 		throw new HttpError(400, 'Names have 1 to 24 characters');
+	if (!/[\p{L}\p{N}\p{P}\p{S}]/u.test(name))
+		throw new HttpError(400, 'Names need a visible character');
 	return name;
 }
 
+/** A save of MAX_SAVE_BYTES characters takes up to three bytes per character in UTF-8. */
+const MAX_BODY_BYTES = MAX_SAVE_BYTES * 4;
+
+/** The request body as text, read no further than the limit (a body can be far larger). */
+async function readBody(req: Request): Promise<string> {
+	const tooLarge = () => new HttpError(413, 'Request too large');
+	if (Number(req.headers.get('content-length')) > MAX_BODY_BYTES) throw tooLarge();
+	if (!req.body) return '';
+	const reader = req.body.getReader();
+	const chunks: Uint8Array[] = [];
+	let size = 0;
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		size += value.byteLength;
+		if (size > MAX_BODY_BYTES) {
+			await reader.cancel();
+			throw tooLarge();
+		}
+		chunks.push(value);
+	}
+	const bytes = new Uint8Array(size);
+	let at = 0;
+	for (const c of chunks) {
+		bytes.set(c, at);
+		at += c.byteLength;
+	}
+	return new TextDecoder().decode(bytes);
+}
+
 async function body(req: Request): Promise<Record<string, unknown>> {
-	const text = await req.text();
-	if (text.length > MAX_SAVE_BYTES * 2) throw new HttpError(413, 'Request too large');
+	const text = await readBody(req);
 	try {
 		const value = JSON.parse(text);
 		if (value && typeof value === 'object') return value;
@@ -98,7 +138,7 @@ function formatTime(ms: number) {
 }
 
 function scopeOf(game: string, variantKey: string, puzzleId: number | null): Scope {
-	const logic = GAME_LOGIC[game];
+	const logic = gameLogic(game);
 	const variant = logic?.variants.find((v) => v.key === variantKey);
 	if (!variant) throw new HttpError(400, 'Unknown game or puzzle type');
 	// Special types rank one puzzle; regular types rank best times over all puzzles.
@@ -134,9 +174,9 @@ async function issuePuzzle(req: Request, store: Store, options: ApiOptions) {
 	await checkLimit(options.limits?.puzzles, player.id);
 	const b = await body(req);
 	const game = String(b.game);
-	const logic = GAME_LOGIC[game];
+	const logic = gameLogic(game);
 	const index = logic ? logic.variants.findIndex((v) => v.key === b.variant) : -1;
-	if (index < 0) throw new HttpError(400, 'Unknown game or puzzle type');
+	if (!logic || index < 0) throw new HttpError(400, 'Unknown game or puzzle type');
 	const variant = logic.variants[index];
 	let puzzleId: number;
 	let puzzle: unknown;
@@ -183,7 +223,7 @@ async function submitTicket(player: { id: string }, b: Record<string, unknown>, 
 		});
 	}
 	if (ticket.playerId !== player.id) throw new HttpError(400, 'Unknown puzzle ticket');
-	const logic = GAME_LOGIC[ticket.game];
+	const logic = gameLogic(ticket.game)!;
 	const puzzle = JSON.parse(ticket.puzzle);
 	if (typeof b.answer !== 'string' || !logic.verifyAnswer(puzzle, b.answer)) {
 		return json({ ok: false, code: 'wrong', message: 'That is not the solution yet.' });
@@ -198,12 +238,14 @@ async function submitTicket(player: { id: string }, b: Record<string, unknown>, 
 			message: 'Solved! (You solved this puzzle before.)'
 		});
 	}
-	const playMs = Math.max(0, Math.round(Number(b.playMs)) || 0);
+	const timeMs = now - ticket.issuedAt;
+	// The personal timer cannot have run longer than the puzzle was out.
+	const playMs = Math.min(timeMs, Math.max(0, Math.round(Number(b.playMs)) || 0));
 	return recordScore(player, store, {
 		game: ticket.game,
 		variant: logic.variants.find((v) => v.key === ticket.variant)!,
 		puzzleId: ticket.puzzleId,
-		timeMs: now - ticket.issuedAt,
+		timeMs,
 		playMs,
 		competitive: b.competitive !== false,
 		hinted: b.hinted === true,
@@ -218,7 +260,7 @@ async function submitScore(req: Request, store: Store, options: ApiOptions) {
 		return submitTicket(player, b, store);
 	}
 	const game = String(b.game);
-	const logic = GAME_LOGIC[game];
+	const logic = gameLogic(game);
 	if (!logic) throw new HttpError(400, 'Unknown game');
 	const puzzleId = Number(b.puzzleId);
 	if (!Number.isSafeInteger(puzzleId) || puzzleId <= 0)
@@ -236,7 +278,9 @@ async function submitScore(req: Request, store: Store, options: ApiOptions) {
 	}
 	const timeMs = Math.round(Number(b.timeMs));
 	const playMs = Math.round(Number(b.playMs));
-	if (!(timeMs > 0) || !(playMs >= 0)) throw new HttpError(400, 'Invalid time');
+	// Whole milliseconds the database can store; Infinity (`1e400` in JSON) would be no score.
+	if (!Number.isSafeInteger(timeMs) || timeMs <= 0 || !Number.isSafeInteger(playMs) || playMs < 0)
+		throw new HttpError(400, 'Invalid time');
 	return recordScore(player, store, {
 		game,
 		variant,
@@ -309,11 +353,15 @@ async function recordScore(
 }
 
 async function getBoard(url: URL, req: Request, store: Store) {
-	const puzzleId = url.searchParams.get('puzzleId');
+	const puzzleId = url.searchParams.get('puzzleId')
+		? Number(url.searchParams.get('puzzleId'))
+		: null;
+	if (puzzleId != null && !Number.isSafeInteger(puzzleId))
+		throw new HttpError(400, 'Invalid puzzle ID');
 	const scope = scopeOf(
 		url.searchParams.get('game') ?? '',
 		url.searchParams.get('variant') ?? '',
-		puzzleId ? Number(puzzleId) : null
+		puzzleId
 	);
 	const me = await auth(req, store).catch(() => null);
 	const [rows, players, mine] = await Promise.all([
@@ -387,7 +435,12 @@ export async function handleApi(
 
 		const save = path.match(/^\/saves\/(.+)$/);
 		if (save) {
-			const key = decodeURIComponent(save[1]);
+			let key: string;
+			try {
+				key = decodeURIComponent(save[1]);
+			} catch {
+				throw new HttpError(400, 'Invalid key');
+			}
 			if (key.length > 128) throw new HttpError(400, 'Key too long');
 			const player = await auth(req, store);
 			if (method === 'GET') {

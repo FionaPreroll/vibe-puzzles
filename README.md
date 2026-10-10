@@ -32,9 +32,9 @@ pnpm dev            # dev server without the API
 pnpm cf:dev         # build and run with the API and a local D1 database
 pnpm lint           # prettier and eslint (pnpm format fixes the formatting)
 pnpm check          # svelte-check and type checks of the worker and service worker
-pnpm test           # unit tests (pnpm test:unit watches, pnpm test:coverage measures coverage)
+pnpm test           # unit tests (pnpm test:unit watches, pnpm test:coverage measures coverage); *.fuzz.test.ts feed the API, game logic and storage random input (FUZZ_RUNS, FUZZ_SEED)
 pnpm test:e2e       # browser tests
-pnpm test:server    # browser tests against the server: sync between devices, settings, offline start
+pnpm test:server    # browser tests against the server: a ranked solve and the leaderboard, sync between devices, settings, offline start
 pnpm test:soak      # long play sessions (desktop, phone): nothing leaks (SOAK_ACTIONS=600, SOAK_SEED)
 pnpm test:perf      # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
 pnpm bank:grow      # add puzzles to the collection (--per-variant N --max-minutes M)

@@ -287,12 +287,31 @@ describe('puzzles and scores', () => {
 		};
 		expect(await api.submitScore(submission)).toEqual(result);
 		expect(requests()[1].body).toEqual(submission);
-		expect(await api.leaderboard('tetroid', '6n')).toMatchObject({
-			query: '?game=tetroid&variant=6n'
-		});
-		expect(await api.leaderboard('tetroid', 'daily', 42)).toMatchObject({
-			query: '?game=tetroid&variant=daily&puzzleId=42'
-		});
+		expect(await api.leaderboard('tetroid', '6n')).toEqual(board);
+		expect(requests().at(-1)!.url).toMatch(/\/api\/scores\?game=tetroid&variant=6n$/);
+		await api.leaderboard('tetroid', 'daily', 42);
+		expect(requests().at(-1)!.url).toMatch(/\?game=tetroid&variant=daily&puzzleId=42$/);
+	});
+
+	it('shows only leaderboard entries it can show', async () => {
+		const me = { rank: 3, name: 'Me', timeMs: 9, playMs: 9, puzzleId: 1, at: 'x', me: true };
+		const answers: unknown[] = [
+			{ entries: [me, { rank: 1 }, null, 'x'], me: { rank: 2 }, players: 4 },
+			{},
+			null,
+			[]
+		];
+		const api = await setup(
+			(url) =>
+				url.pathname.endsWith('/health')
+					? Response.json({ ok: true })
+					: Response.json(answers.shift()),
+			{ signedIn: true }
+		);
+		expect(await api.leaderboard('tetroid', '6n')).toEqual({ entries: [me], me: null, players: 4 });
+		for (let i = 0; i < 3; i++) {
+			expect(await api.leaderboard('tetroid', '6n')).toEqual({ entries: [], me: null, players: 0 });
+		}
 	});
 });
 

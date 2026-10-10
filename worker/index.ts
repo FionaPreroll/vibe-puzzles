@@ -10,6 +10,11 @@ export interface Env {
 	/** Rate limiters (`ratelimits` in wrangler.jsonc); without them requests are not limited. */
 	REGISTER_LIMIT?: RateLimit;
 	PUZZLE_LIMIT?: RateLimit;
+	/**
+	 * "off" ignores the rate limiters: the server tests (`--var RATE_LIMITS:off`) register more
+	 * players a minute than one address may.
+	 */
+	RATE_LIMITS?: string;
 }
 
 /** A Cloudflare rate limiter as the API expects it. */
@@ -25,7 +30,10 @@ export default {
 				serverPuzzles: env.SERVER_PUZZLES === 'true',
 				// The deployed server never generates puzzles itself: it hands out pre-generated ones.
 				collection: assetCollection(env.ASSETS),
-				limits: { register: limiter(env.REGISTER_LIMIT), puzzles: limiter(env.PUZZLE_LIMIT) }
+				limits:
+					env.RATE_LIMITS === 'off'
+						? undefined
+						: { register: limiter(env.REGISTER_LIMIT), puzzles: limiter(env.PUZZLE_LIMIT) }
 			});
 		return env.ASSETS.fetch(req);
 	},
