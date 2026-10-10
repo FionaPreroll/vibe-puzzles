@@ -822,10 +822,13 @@ describe('syncing with other devices', () => {
 		s.move(shaded(0, 1), []);
 		vi.advanceTimersByTime(1500);
 		expect(api.pushSave).toHaveBeenCalledTimes(1);
+		// The time of the last move, also when moves come within the same millisecond.
+		const { updatedAt } = load<{ updatedAt: number }>('save:tetroid:6n', { updatedAt: 0 });
+		expect(updatedAt).toBeGreaterThanOrEqual(Date.now() - 1500);
 		expect(api.pushSave).toHaveBeenCalledWith(
 			'save:tetroid:6n',
 			expect.objectContaining({ state: shaded(0, 1) }),
-			Date.now() - 1500
+			updatedAt
 		);
 	});
 
@@ -853,6 +856,84 @@ describe('syncing with other devices', () => {
 			await Promise.resolve();
 			expect(s.state).toEqual(shaded(1));
 		}
+	});
+});
+
+describe('other tabs', () => {
+	const stored = () =>
+		load<{ state: TetroidState; solved: boolean } | null>('save:tetroid:6n', null);
+
+	/** Two tabs of the same game type, both showing its saved game. */
+	async function tabs() {
+		const a = await opened({ autoSubmit: false });
+		const b = session({ autoSubmit: false });
+		await b.open('6n');
+		expect(b.puzzleId).toBe(ID);
+		return [a, b];
+	}
+
+	it('never roll back a game another tab saved since', async () => {
+		const [a, b] = await tabs();
+		a.move(shaded(0), []);
+		a.move(shaded(0, 1), []);
+		// Leaving the tab that shows the older game (switching away, closing) keeps the newer one.
+		b.flush();
+		expect(stored()?.state).toEqual(shaded(0, 1));
+		expect(b.state).toEqual(shaded(0, 1));
+		expect(b.message?.text).toBe('Continued your game from another tab.');
+		expect(a.followStorage()).toBe(false);
+	});
+
+	it('show what another tab played, and play on from there', async () => {
+		const [a, b] = await tabs();
+		a.move(shaded(0), []);
+		expect(b.followStorage()).toBe(true);
+		expect(b.state).toEqual(shaded(0));
+		b.move(shaded(0, 1), []);
+		expect(stored()?.state).toEqual(shaded(0, 1));
+		a.followStorage();
+		expect(a.state).toEqual(shaded(0, 1));
+		a.flush();
+		b.flush();
+		expect(stored()?.state).toEqual(shaded(0, 1));
+	});
+
+	it('take a newer save over instead of a move made on an older game', async () => {
+		const [a, b] = await tabs();
+		a.move(shaded(0), []);
+		b.move(shaded(5), []);
+		expect(b.state).toEqual(shaded(0));
+		expect(stored()?.state).toEqual(shaded(0));
+	});
+
+	it('show a game solved in another tab as solved', async () => {
+		const [a, b] = await tabs();
+		a.move(solvedState(), []);
+		await a.submit();
+		expect(b.followStorage()).toBe(true);
+		expect(b.solved).toBe(true);
+		expect(b.readonly).toBe(true);
+		b.flush();
+		expect(stored()?.solved).toBe(true);
+	});
+
+	it('follow a new puzzle another tab started in the slot', async () => {
+		const [a, b] = await tabs();
+		a.move(shaded(0), []);
+		b.followStorage();
+		await b.newPuzzle();
+		expect(b.puzzleId).not.toBe(ID);
+		a.flush();
+		expect(a.puzzleId).toBe(b.puzzleId);
+		expect(stored()?.state).toEqual(game.emptyState(b.puzzle!));
+	});
+
+	it('write again once the slot was cleared', async () => {
+		const [a] = await tabs();
+		a.move(shaded(0), []);
+		localStorage.clear();
+		a.flush();
+		expect(stored()?.state).toEqual(shaded(0));
 	});
 });
 
