@@ -32,7 +32,8 @@ export type SudokuHint =
 	| { kind: 'mistake'; cells: number[] }
 	/**
 	 * A digit that follows: the only one left for its cell (`unit` null), or the only place left
-	 * for it in `unit`. `elimination` is the hardest one needed to get there, if any.
+	 * for it in `unit`. `elimination` is the hardest one needed to get there, if any, and
+	 * `pattern` the cells of the last one (the box-line intersection, the subset).
 	 */
 	| {
 			kind: 'step';
@@ -40,6 +41,7 @@ export type SudokuHint =
 			digit: number;
 			unit: Unit | null;
 			elimination: Elimination | null;
+			pattern: number[];
 	  }
 	/** None of the techniques finds a digit: the cell with the fewest candidates. */
 	| { kind: 'stuck'; cell: number };
@@ -78,10 +80,17 @@ export function sudokuHint(p: SudokuPuzzle, state: SudokuState): SudokuHint | nu
 		() => hiddenSubset(size, grid, cand)
 	];
 	let hardest = -1;
+	let pattern: number[] = [];
 	for (;;) {
 		const single = findSingle(size, grid, cand);
-		if (single) return { kind: 'step', ...single, elimination: ELIMINATIONS[hardest] ?? null };
-		const used = eliminate.findIndex((step) => step());
+		if (single) {
+			return { kind: 'step', ...single, elimination: ELIMINATIONS[hardest] ?? null, pattern };
+		}
+		let used = -1;
+		for (let e = 0; e < eliminate.length && used < 0; e++) {
+			const cells = eliminate[e]();
+			if (cells) [used, pattern] = [e, cells];
+		}
 		if (used < 0) break;
 		hardest = Math.max(hardest, used);
 	}
@@ -93,6 +102,16 @@ export function sudokuHint(p: SudokuPuzzle, state: SudokuState): SudokuHint | nu
 }
 
 const UNITS: Unit[] = ['row', 'column', 'box'];
+
+/** The cells of the row, column or box of `cell` (rows and columns only for a grid without boxes). */
+export function unitCells(size: number, cell: number, unit: Unit): number[] {
+	if (unit === 'box') {
+		const { units, unitsOf } = geometry(size);
+		return units[unitsOf[cell][2]];
+	}
+	const [r, c] = [Math.floor(cell / size), cell % size];
+	return Array.from({ length: size }, (_, k) => (unit === 'row' ? r * size + k : k * size + c));
+}
 
 /** A hidden single (boxes first, then rows and columns), else a naked single. */
 function findSingle(size: number, grid: readonly number[], cand: readonly number[]) {
@@ -123,17 +142,18 @@ function remove(cand: number[], cells: Iterable<number>, mask: number): boolean 
 	return changed;
 }
 
-function lockedCandidates(size: number, grid: readonly number[], cand: number[]): boolean {
-	for (const { within, clear } of lockedPairs(size)) {
+/** Each elimination returns the cells of the pattern it used, or null if it changed nothing. */
+function lockedCandidates(size: number, grid: readonly number[], cand: number[]): number[] | null {
+	for (const { shared, within, clear } of lockedPairs(size)) {
 		// Digits the unit can only hold inside the intersection.
 		let outside = 0;
 		for (const i of within) outside |= cand[i] | (grid[i] ? bit(grid[i]) : 0);
-		if (remove(cand, clear, allMask(size) & ~outside)) return true;
+		if (remove(cand, clear, allMask(size) & ~outside)) return shared;
 	}
-	return false;
+	return null;
 }
 
-function nakedSubset(size: number, grid: readonly number[], cand: number[]): boolean {
+function nakedSubset(size: number, grid: readonly number[], cand: number[]): number[] | null {
 	for (const unit of geometry(size).units) {
 		const open = unit.filter((i) => !grid[i]);
 		for (let k = 2; k <= 3 && k < open.length; k++) {
@@ -147,14 +167,14 @@ function nakedSubset(size: number, grid: readonly number[], cand: number[]): boo
 						mask
 					)
 				)
-					return true;
+					return group;
 			}
 		}
 	}
-	return false;
+	return null;
 }
 
-function hiddenSubset(size: number, grid: readonly number[], cand: number[]): boolean {
+function hiddenSubset(size: number, grid: readonly number[], cand: number[]): number[] | null {
 	for (const unit of geometry(size).units) {
 		const open = unit.filter((i) => !grid[i]);
 		const missing = [];
@@ -164,9 +184,9 @@ function hiddenSubset(size: number, grid: readonly number[], cand: number[]): bo
 				const mask = digits.reduce((m, d) => m | bit(d), 0);
 				const spots = open.filter((i) => cand[i] & mask);
 				if (spots.length !== k) continue;
-				if (remove(cand, spots, allMask(size) & ~mask)) return true;
+				if (remove(cand, spots, allMask(size) & ~mask)) return spots;
 			}
 		}
 	}
-	return false;
+	return null;
 }

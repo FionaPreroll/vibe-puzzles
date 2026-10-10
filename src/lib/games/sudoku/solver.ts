@@ -103,11 +103,11 @@ export const Level = {
 export type Level = (typeof Level)[keyof typeof Level];
 
 /**
- * Box-line intersections of at least two cells, seen from one of the two units: `within` are its
- * cells outside the intersection, `clear` the other unit's. A digit with no spot in `within` must
- * go in the intersection, so it leaves the cells of `clear`.
+ * Box-line intersections of at least two cells (`shared`), seen from one of the two units:
+ * `within` are its cells outside the intersection, `clear` the other unit's. A digit with no spot
+ * in `within` must go in the intersection, so it leaves the cells of `clear`.
  */
-const intersections = new Map<number, { within: number[]; clear: number[] }[]>();
+const intersections = new Map<number, { shared: number[]; within: number[]; clear: number[] }[]>();
 
 export function lockedPairs(size: number) {
 	let out = intersections.get(size);
@@ -117,8 +117,14 @@ export function lockedPairs(size: number) {
 	for (const a of units) {
 		const inA = new Set(a);
 		for (const b of units) {
-			if (a === b || b.filter((i) => inA.has(i)).length < 2) continue;
-			out.push({ within: a.filter((i) => !b.includes(i)), clear: b.filter((i) => !inA.has(i)) });
+			if (a === b) continue;
+			const shared = b.filter((i) => inA.has(i));
+			if (shared.length < 2) continue;
+			out.push({
+				shared,
+				within: a.filter((i) => !b.includes(i)),
+				clear: b.filter((i) => !inA.has(i))
+			});
 		}
 	}
 	intersections.set(size, out);

@@ -50,7 +50,8 @@
 		celebrate = false,
 		touchMode,
 		onmove,
-		spotlight
+		spotlight,
+		area
 	}: BoardProps<PinwheelPuzzle, PinwheelState> = $props();
 
 	type Edge = { kind: 'h' | 'v'; i: number; j: number };
@@ -758,6 +759,23 @@
 						height={e.kind === 'v' ? cellSize : 8}
 						rx="3"
 					/>
+				{/if}
+			{/each}
+		</g>
+	{/if}
+
+	{#if area?.size && !blank}
+		<g
+			class="area"
+			fill={colours.cursor}
+			fill-opacity="0.2"
+			pointer-events="none"
+			aria-hidden="true"
+		>
+			{#each [...area] as key (key)}
+				{#if key.startsWith('c:')}
+					{@const i = Number(key.slice(2))}
+					<rect x={px(i % w)} y={py(Math.floor(i / w))} width={cellSize} height={cellSize} />
 				{/if}
 			{/each}
 		</g>

@@ -34,13 +34,18 @@
 	let step = $state(0);
 	/** The hint on the board in the last step, until the next move. */
 	let hint = $state.raw<Hint | null>(null);
+	/** Whether the hint shows its result, or only its first look. */
+	let hintFull = $state(false);
 
 	const steps = $derived(tSteps(tutorialTextKey(ref)));
 	const last = $derived(step === steps.length - 1);
 	const guide = $derived(tutorial.steps[step]);
 	const taskDone = $derived(!!guide?.done?.(tutorial.puzzle, current));
 	const canGoOn = $derived(!guide?.done || taskDone);
-	const spotlight = $derived(new Set(hint ? hint.spotlight : (guide?.spotlight ?? [])));
+	const spotlight = $derived(
+		new Set(hint ? (hintFull ? hint.spotlight : []) : (guide?.spotlight ?? []))
+	);
+	const area = $derived(hint?.area ? new Set(hint.area) : undefined);
 	const solved = $derived(
 		game.isSolved(tutorial.puzzle, current) ||
 			!!game.acceptAlternative?.(tutorial.puzzle, current, settings.values)
@@ -66,9 +71,14 @@
 		hint = null;
 	}
 
-	/** The last step is the player's alone: the game's hint helps there, as in a real puzzle. */
+	/**
+	 * The last step is the player's alone: the game's hint helps there, as in a real puzzle, first
+	 * with where to look, then with the step itself.
+	 */
 	function showHint() {
-		hint = game.hint?.(tutorial.puzzle, current) ?? null;
+		const shown = hint;
+		hint = shown ?? game.hint?.(tutorial.puzzle, current) ?? null;
+		hintFull = !!shown || !hint?.teaser;
 	}
 
 	function showMe() {
@@ -106,6 +116,7 @@
 				readonly={solved}
 				{lastChange}
 				spotlight={solved ? undefined : spotlight}
+				area={solved ? undefined : area}
 				keyboard={true}
 				touchMode="auto"
 				onmove={move}
@@ -172,7 +183,12 @@
 						? 'bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200'
 						: 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200'}"
 				>
-					{hint.text.map((key) => t(key, hint!.params)).join(' ')}
+					{(hintFull ? hint.text : hint.teaser!).map((key) => t(key, hint!.params)).join(' ')}
+					{#if !hintFull}
+						<button class="ml-1 font-semibold underline" onclick={showHint}
+							>{t('game.hintShow')}</button
+						>
+					{/if}
 				</p>
 			{/if}
 			<div class="mt-4 flex flex-wrap gap-2">

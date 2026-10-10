@@ -70,6 +70,8 @@ export class GameSession<P = unknown, S = unknown> {
 	lastChange = $state.raw<ReadonlySet<string>>(new Set());
 	/** The hint on the board, until the next change. */
 	hint = $state.raw<Hint | null>(null);
+	/** Whether the hint shows its result, or only its first look (`Hint.teaser`). */
+	hintFull = $state(false);
 	/** A hint was shown for this puzzle. */
 	hinted = $state(false);
 	loading = $state(true);
@@ -482,16 +484,23 @@ export class GameSession<P = unknown, S = unknown> {
 		return !!this.game.hint;
 	}
 
-	/** Point at the next step, or at wrong marks. The game then counts as hinted. */
+	/**
+	 * Point at where to look and which rule applies, and on the next press at the step itself (at
+	 * once for wrong marks). The game then counts as hinted.
+	 */
 	showHint() {
 		if (this.readonly || !this.puzzle || !this.state || !this.game.hint || !this.canHint) return;
-		const hint = this.game.hint(this.puzzle, this.state);
+		// A hint still on the board is for the same position: it only goes on to its result.
+		const shown = this.hint;
+		const hint = shown ?? this.game.hint(this.puzzle, this.state);
 		if (!hint) return;
 		this.hint = hint;
+		this.hintFull = !!shown || !hint.teaser;
 		this.hinted = true;
+		const keys = this.hintFull ? hint.text : hint.teaser!;
 		this.message = {
 			kind: hint.kind === 'mistake' ? 'error' : 'info',
-			text: hint.text.map((key) => t(key, hint.params)).join(' ')
+			text: keys.map((key) => t(key, hint.params)).join(' ')
 		};
 		this.persist();
 	}

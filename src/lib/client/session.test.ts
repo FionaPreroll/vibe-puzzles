@@ -524,12 +524,34 @@ describe('hints', () => {
 		expect(again.hinted).toBe(true);
 	});
 
+	it('first say where to look and why, then on the next press point at the step', async () => {
+		const s = await hinting();
+		s.showHint();
+		const first = s.hint;
+		expect(first?.area?.length).toBeGreaterThan(0);
+		expect(s.hintFull).toBe(false);
+		expect(s.message?.text).toMatch(/tinted region/);
+		expect(s.message?.text).not.toMatch(/shade them/);
+		expect(s.hinted).toBe(true);
+		s.showHint();
+		expect(s.hint).toBe(first);
+		expect(s.hintFull).toBe(true);
+		expect(s.message?.text).toMatch(/shade them\.$/);
+		// A third press keeps the step; a move starts over with a first look.
+		s.showHint();
+		expect(s.hintFull).toBe(true);
+		s.move(shaded(solution.indexOf(1)), []);
+		s.showHint();
+		expect(s.hintFull).toBe(false);
+	});
+
 	it('point at a wrong mark', async () => {
 		const s = await hinting();
 		const wrong = solution.indexOf(0);
 		s.move(shaded(wrong), []);
 		s.showHint();
 		expect(s.hint).toMatchObject({ kind: 'mistake', spotlight: [String(wrong)] });
+		expect(s.hintFull).toBe(true);
 		expect(s.message?.kind).toBe('error');
 	});
 
@@ -566,10 +588,14 @@ describe('hints', () => {
 		expect(s.canHint).toBe(true);
 		s.showHint();
 		expect(s.hint?.kind).toBe('step');
+		expect(s.message?.text).toMatch(/^In the tinted box, one of the missing digits fits/);
+		s.showHint();
 		expect(s.message?.text).toMatch(/^In its box, \d fits only in the highlighted cell/);
 		await s.open('c5e');
 		s.showHint();
 		expect(s.hint?.kind).toBe('step');
+		expect(s.message?.text).not.toMatch(/[{}]|games\./);
+		s.showHint();
 		expect(s.message?.text).not.toMatch(/[{}]|games\./);
 	});
 

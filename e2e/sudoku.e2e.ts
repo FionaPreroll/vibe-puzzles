@@ -16,11 +16,13 @@ test('the Sudoku tutorial can be solved with the number pad', async ({ page }) =
 	// Solution: 1234 / 3412 / 2143 / 4321; the empty cells and their digits.
 	const moves: [number, number, number][] = [
 		[0, 2, 3],
-		[1, 0, 3],
-		[1, 3, 2],
-		[2, 0, 2],
+		[1, 1, 4],
+		[2, 2, 4],
 		[2, 3, 3],
-		[3, 1, 3]
+		[3, 0, 4],
+		[3, 1, 3],
+		[3, 2, 2],
+		[3, 3, 1]
 	];
 	for (const [r, c, d] of moves) {
 		await clickCell(page, 4, r, c);
@@ -83,9 +85,10 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	await expect(one).toHaveAttribute('title', /^\d left$/);
 
 	// Wrong digits: of the nine digits in an empty cell exactly one is not painted red.
-	const givenCells = await board
+	const givens = await board
 		.locator('text[data-cell]')
-		.evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-cell'))));
+		.evaluateAll((els) => els.map((e) => [Number(e.getAttribute('data-cell')), e.textContent]));
+	const givenCells = givens.map(([i]) => i as number);
 	const cell = [...Array(81).keys()].find((i) => !givenCells.includes(i))!;
 	await clickCell(page, 9, Math.floor(cell / 9), cell % 9);
 	const colours: string[] = [];
@@ -95,8 +98,9 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	}
 	expect(colours.filter((c) => c === palette.error)).toHaveLength(8);
 
-	// Same digit: selecting a given highlights every cell with its digit.
-	await clickCell(page, 9, Math.floor(givenCells[0] / 9), givenCells[0] % 9);
+	// Same digit: selecting a given highlights every cell with its digit (one given at least twice).
+	const shared = givens.find(([, d]) => givens.filter(([, e]) => e === d).length > 1)![0] as number;
+	await clickCell(page, 9, Math.floor(shared / 9), shared % 9);
 	await expect(board.locator(`rect[fill="${palette.sameDigit}"]`).first()).toBeVisible();
 });
 

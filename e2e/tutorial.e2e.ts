@@ -89,9 +89,16 @@ test('the Tetroid tutorial teaches one rule per step', async ({ page }) => {
 	// Read only, then the free finish: an S on the right and an I at the bottom.
 	await next.click();
 	await expect(page.getByText('Step 5 of 5')).toBeVisible();
-	// The last step has the game's hint: the three cells both options at the bottom cover.
-	const spotlight = page.getByRole('grid', { name: 'Puzzle board' }).locator('g.spotlight > *');
-	await page.getByRole('button', { name: 'Hint' }).click();
+	// The last step has the game's hint: first where to look, then the three cells both options
+	// at the bottom cover.
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const spotlight = board.locator('g.spotlight > *');
+	const hint = page.getByRole('button', { name: 'Hint' });
+	await hint.click();
+	await expect(page.getByRole('button', { name: 'Show the step' })).toBeVisible();
+	await expect(spotlight).toHaveCount(0);
+	expect(await board.locator('g.area > *').count()).toBeGreaterThan(0);
+	await hint.click();
 	await expect(page.getByText(/Every tetromino left in this region covers/)).toBeVisible();
 	await expect(spotlight).toHaveCount(3);
 	await page.getByRole('button', { name: 'Black' }).click();
@@ -158,7 +165,7 @@ test('a Calcudoku game links the Calcudoku tutorial', async ({ page }) => {
 	);
 });
 
-test('the Sudoku tutorial finds the missing digit in a row, a box and a column', async ({
+test('the Sudoku tutorial finds the missing digit of a row and a box, then where a 1 goes', async ({
 	page
 }) => {
 	await page.goto('/sudoku/tutorial');
@@ -176,11 +183,11 @@ test('the Sudoku tutorial finds the missing digit in a row, a box and a column',
 
 	await expect(page.getByText('Step 1 of 5')).toBeVisible();
 	await next.click();
-	// Row, box, column: each waits for its digit.
+	// Row, box, then the one place for a 1 in a box: each waits for its digit.
 	for (const [i, d, done] of [
 		[2, 3, /Right: a 3/],
-		[4, 3, /the box needed its 3/],
-		[8, 2, /find the one missing digit/]
+		[5, 4, /the box needed its 4/],
+		[15, 1, /the only place left/]
 	] as const) {
 		await expect(next).toBeDisabled();
 		await enter(i, d);
@@ -189,9 +196,11 @@ test('the Sudoku tutorial finds the missing digit in a row, a box and a column',
 	}
 	await expect(page.getByText('Step 5 of 5')).toBeVisible();
 	for (const [i, d] of [
-		[7, 2],
+		[10, 4],
 		[11, 3],
-		[13, 3]
+		[12, 4],
+		[13, 3],
+		[14, 2]
 	]) {
 		await enter(i, d);
 	}

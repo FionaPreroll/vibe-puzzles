@@ -189,6 +189,15 @@ export class TetroidSolver {
 		return this.propagate(dom) ? dom : null;
 	}
 
+	/**
+	 * Propagation from `dom`, which it narrows in place: false on a contradiction. A hint uses it
+	 * to try out a placement.
+	 */
+	consistent(dom: Domain): boolean {
+		this.advanced = true;
+		return this.propagate(dom);
+	}
+
 	private search(dom: Domain, depth = 0): void {
 		if (this.aborted || this.solutions.length >= this.limit) return;
 		if (++this.nodes > this.maxNodes) {

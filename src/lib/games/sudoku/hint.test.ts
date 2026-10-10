@@ -44,6 +44,32 @@ describe('sudoku hints', () => {
 		expect([...eliminations].sort()).toEqual(['hiddenSubset', 'lockedCandidates', 'nakedSubset']);
 	});
 
+	it('tint where to look: the unit with the only place, or all three units of the cell', () => {
+		const sizes = new Set<number>();
+		for (const [difficulty, seed] of [
+			['normal', 1],
+			['hard', 3]
+		] as const) {
+			const { puzzle } = puzzleOf(difficulty, seed);
+			const state = emptySudokuState(puzzle);
+			for (let hint = sudokuHint(puzzle, state); hint?.kind === 'step';) {
+				const shown = sudoku.hint!(puzzle, state)!;
+				const size = shown.area!.length;
+				if (hint.elimination) {
+					expect(shown.area).toEqual(hint.pattern.map(String));
+				} else {
+					expect(shown.area).toContain(String(hint.cell));
+					// A row, column or box; else row, column and box: 27 cells, 6 counted twice.
+					expect(size).toBe(hint.unit ? 9 : 21);
+				}
+				sizes.add(size);
+				state.values[hint.cell] = hint.digit;
+				hint = sudokuHint(puzzle, state);
+			}
+		}
+		expect([...sizes]).toEqual(expect.arrayContaining([2, 9, 21]));
+	});
+
 	it('start with a digit that has one place left in its box', () => {
 		const { puzzle, solution } = puzzleOf('easy', 1);
 		const hint = sudokuHint(puzzle, emptySudokuState(puzzle));
@@ -112,9 +138,19 @@ describe('sudoku hints', () => {
 			expect.stringMatching(/^games\.sudoku\.hints\.then/)
 		]);
 		expect(deduced.params?.digit).toBeGreaterThan(0);
+		// First the elimination alone, with its two or three cells tinted.
+		expect(deduced.teaser).toEqual(['games.sudoku.hints.nakedSubset']);
+		expect(deduced.area?.length).toBeGreaterThanOrEqual(2);
+		expect(deduced.area?.length).toBeLessThanOrEqual(3);
 
 		const first = sudoku.hint!(puzzle, emptySudokuState(puzzle))!;
-		expect(first).toMatchObject({ kind: 'step', text: ['games.sudoku.hints.hidden.box'] });
+		expect(first).toMatchObject({
+			kind: 'step',
+			teaser: ['games.sudoku.hints.where.box'],
+			text: ['games.sudoku.hints.hidden.box']
+		});
+		expect(first.area).toHaveLength(9);
+		expect(first.area).toContain(first.spotlight[0]);
 		const wrong = emptySudokuState(puzzle);
 		const cell = puzzle.givens.indexOf(0);
 		wrong.notes[cell] = 0;
@@ -132,7 +168,9 @@ describe('sudoku hints', () => {
 
 		const keys = [
 			...['box', 'row', 'column'].flatMap((u) => [`hidden.${u}`, `then.${u}`]),
+			...['box', 'row', 'column'].map((u) => `where.${u}`),
 			'naked',
+			'whereNaked',
 			'thenNaked',
 			'stuck',
 			...ELIMINATIONS

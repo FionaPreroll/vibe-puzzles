@@ -39,6 +39,16 @@ export const tetroid: GameModule<TetroidPuzzle, TetroidState> = {
 		if (hint.kind === 'stuck')
 			return { kind: 'stuck', spotlight, text: ['games.tetroid.hints.stuck'] };
 		const key = (k: string) => `games.tetroid.hints.${k}`;
-		return { kind: 'step', spotlight, text: [key(hint.technique), key(hint.mark)] };
+		// The region and the neighbours its options hang on, or the placement that was tried.
+		const area =
+			hint.assumed ??
+			puzzle.regions.flatMap((r, i) => (r === hint.region || hint.context.includes(i) ? [i] : []));
+		return {
+			kind: 'step',
+			spotlight,
+			area: area.map(String),
+			teaser: [key(hint.technique)],
+			text: [key(hint.technique), key(hint.mark)]
+		};
 	}
 };

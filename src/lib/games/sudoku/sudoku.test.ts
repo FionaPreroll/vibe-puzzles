@@ -382,6 +382,27 @@ describe('logic', () => {
 	});
 });
 
+describe('Sudoku tutorial', () => {
+	it('has the solution the solver finds', async () => {
+		const { SUDOKU_TUTORIAL: p, SUDOKU_TUTORIAL_SOLUTION } = await import('./tutorial');
+		expect(solveSudoku(p.givens, 4, { limit: 2 }).solutions).toEqual([SUDOKU_TUTORIAL_SOLUTION]);
+	});
+
+	it('asks in its third task where the 1 goes in a box, not for the last digit of a unit', async () => {
+		const { SUDOKU_TUTORIAL: p, SUDOKU_TUTORIAL_STEPS: steps } = await import('./tutorial');
+		let s = emptySudokuState(p);
+		for (const step of steps.slice(1, 3)) s = step.show!(p, s);
+		expect(steps[2].done!(p, s)).toBe(true);
+		const grid = currentGrid(p, s);
+		const box = steps[3].spotlight!.map(Number);
+		// Only one cell of the box can take a 1, and that cell could still take another digit.
+		const ones = box.filter((i) => !grid[i] && candidates(4, grid, i) & bit(1));
+		expect(ones).toEqual([15]);
+		expect(candidates(4, grid, 15)).not.toBe(bit(1));
+		expect(steps[3].done!(p, steps[3].show!(p, s))).toBe(true);
+	});
+});
+
 describe('Calcudoku tutorial', () => {
 	it('has the solution the solver finds, without guessing', async () => {
 		const { CALC_TUTORIAL: p, CALC_TUTORIAL_SOLUTION } = await import('./calcTutorial');

@@ -25,17 +25,27 @@ import { solvePinwheel } from './solver';
  * - `marks`: the player's lines keep cells apart, crosses join them.
  * - `symmetry`: a cell belongs to a galaxy only if its mirror can too.
  * - `reach`: the centre must reach the cell through cells that may belong to its galaxy.
+ * - `assumption`: none of those applies, but trying a galaxy for a cell leads to a contradiction.
  */
-export const TECHNIQUES = ['centre', 'marks', 'symmetry', 'reach'] as const;
+export const TECHNIQUES = ['centre', 'marks', 'symmetry', 'reach', 'assumption'] as const;
 export type Technique = (typeof TECHNIQUES)[number];
 
 export type PinwheelHint =
 	/** Lines between cells of one galaxy, and crosses between different galaxies. */
 	| { kind: 'mistake'; edges: EdgeRef[] }
-	/** Edges that follow, with the hardest deduction needed for them. */
-	| { kind: 'step'; technique: Technique; mark: 'line' | 'cross'; edges: EdgeRef[] }
+	/**
+	 * Edges that follow, with the hardest deduction needed for them. `area`: the cells known to
+	 * belong to the galaxy they border (else the cells beside them), or for an assumption the cell
+	 * and its mirror that were tried in the galaxy between them.
+	 */
+	| { kind: 'step'; technique: Technique; mark: 'line' | 'cross'; edges: EdgeRef[]; area: number[] }
 	/** No deduction applies: case analysis is needed, best at the cell with the fewest options. */
 	| { kind: 'stuck'; cell: number };
+
+type Step = Extract<PinwheelHint, { kind: 'step' }>;
+
+/** Trials of a galaxy for a cell per hint at a dead end, to keep the hint quick on big boards. */
+const MAX_TRIALS = 300;
 
 const solutions = new WeakMap<PinwheelPuzzle, Int32Array | null>();
 
@@ -98,13 +108,60 @@ class Deduction {
 	}
 
 	next(): PinwheelHint {
-		const sweeps = [() => this.marks(), () => this.symmetry(), () => this.reach()];
 		for (;;) {
 			const step = this.decided();
 			if (step) return step;
-			const used = sweeps.findIndex((sweep) => sweep());
-			if (used < 0) return this.stuck();
+			if (!this.sweep()) return this.assume() ?? this.stuck();
 		}
+	}
+
+	/** Rules out galaxies with the simplest deduction that rules out any; whether it did. */
+	private sweep(): boolean {
+		return this.marks() || this.symmetry() || this.reach();
+	}
+
+	/** Sweeps until nothing changes; false if a cell is left without a galaxy. */
+	private consistent(): boolean {
+		while (this.sweep());
+		for (let c = 0; c < this.n; c++) if (!this.options(c)) return false;
+		return true;
+	}
+
+	private copy(): Deduction {
+		return Object.assign(Object.create(Deduction.prototype), this, {
+			dom: this.dom.slice(),
+			level: this.level.slice()
+		});
+	}
+
+	/**
+	 * No deduction decides an edge: try the galaxies left for the cells with the fewest options. A
+	 * galaxy that leads to a contradiction is ruled out for the cell (and so for its mirror);
+	 * named is the first one after which edges follow, with the cell and its mirror.
+	 */
+	private assume(): Step | null {
+		const { n, g, p } = this;
+		const cells = [...Array(n).keys()]
+			.filter((c) => this.options(c) > 1)
+			.sort((a, b) => this.options(a) - this.options(b));
+		let trials = 0;
+		for (const c of cells) {
+			for (let k = 0; k < g; k++) {
+				if (!this.has(c, k)) continue;
+				if (++trials > MAX_TRIALS) return null;
+				const trial = this.copy();
+				for (let o = 0; o < g; o++) if (o !== k) trial.remove(c, o, 0);
+				if (trial.consistent()) continue;
+				const after = this.copy();
+				after.remove(c, k, TECHNIQUES.indexOf('assumption'));
+				let step = after.decided();
+				while (!step && after.sweep()) step = after.decided();
+				if (!step) continue;
+				const area = [c, mirrorCell(p, c, p.centres[k])];
+				return { ...step, technique: 'assumption', area };
+			}
+		}
+		return null;
 	}
 
 	private has(c: number, k: number) {
@@ -116,6 +173,13 @@ class Deduction {
 		this.dom[c * this.g + k] = 0;
 		this.level[c] = Math.max(this.level[c], technique);
 		return true;
+	}
+
+	/** Number of centres left for a cell. */
+	private options(c: number): number {
+		let count = 0;
+		for (let k = 0; k < this.g; k++) count += this.dom[c * this.g + k];
+		return count;
 	}
 
 	/** The only centre left for a cell, or -1. */
@@ -190,7 +254,7 @@ class Deduction {
 	}
 
 	/** Open edges that are now decided, the simplest first, around one galaxy. */
-	private decided(): PinwheelHint | null {
+	private decided(): Step | null {
 		const facts = this.edges.flatMap((e) => {
 			if (edgeValue(this.p, this.state, e.kind, e.i, e.j) !== OPEN) return [];
 			const owner = this.owner(e.a);
@@ -203,17 +267,23 @@ class Deduction {
 		});
 		if (!facts.length) return null;
 		// Lines first: they are what solves the puzzle; crosses only help.
-		const rank = (f: (typeof facts)[number]) => f.technique + (f.mark === 'line' ? 0 : 4);
+		const rank = (f: (typeof facts)[number]) =>
+			f.technique + (f.mark === 'line' ? 0 : TECHNIQUES.length);
 		const first = facts.reduce((best, f) => (rank(f) < rank(best) ? f : best));
 		const group = facts.filter(
 			(f) =>
 				f === first || (rank(f) === rank(first) && first.galaxy >= 0 && f.galaxy === first.galaxy)
 		);
+		const area =
+			first.galaxy >= 0
+				? [...Array(this.n).keys()].filter((c) => this.owner(c) === first.galaxy)
+				: [first.e.a, first.e.b];
 		return {
 			kind: 'step',
 			technique: TECHNIQUES[first.technique],
 			mark: first.mark as 'line' | 'cross',
-			edges: group.map(({ e }) => ({ kind: e.kind, i: e.i, j: e.j }))
+			edges: group.map(({ e }) => ({ kind: e.kind, i: e.i, j: e.j })),
+			area
 		};
 	}
 
@@ -221,8 +291,7 @@ class Deduction {
 		let cell = -1;
 		let fewest = Infinity;
 		for (let c = 0; c < this.n; c++) {
-			let count = 0;
-			for (let k = 0; k < this.g; k++) count += this.dom[c * this.g + k];
+			const count = this.options(c);
 			if (count > 1 && count < fewest) {
 				cell = c;
 				fewest = count;
