@@ -25,18 +25,31 @@
 
 	function start(e: PointerEvent) {
 		if (disabled || e.button !== 0) return;
+		stop();
 		action();
 		const repeat = () => {
 			action();
 			timer = setTimeout(repeat, 150);
 		};
 		timer = setTimeout(repeat, 500);
+		// Once its action disables the button, Svelte no longer hands it the release (unless it
+		// lands on the button itself rather than its icon or text), so listen for it on the window.
+		window.addEventListener('pointerup', stop, { once: true });
+		window.addEventListener('pointercancel', stop, { once: true });
 	}
 
 	function stop() {
 		if (timer) clearTimeout(timer);
 		timer = null;
+		window.removeEventListener('pointerup', stop);
+		window.removeEventListener('pointercancel', stop);
 	}
+
+	// Nothing left to repeat once disabled, nor once gone.
+	$effect(() => {
+		if (disabled) stop();
+	});
+	$effect(() => stop);
 </script>
 
 <button
