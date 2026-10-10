@@ -943,6 +943,15 @@ describe('cleaning up saves', () => {
 });
 
 describe('saves from anywhere', () => {
+	// A save that cannot be continued starts a new puzzle: the same one, without generating it.
+	const generating = vi.mocked(generate).getMockImplementation()!;
+	beforeEach(() => {
+		vi.mocked(generate).mockImplementation(async () => puzzle);
+	});
+	afterEach(() => {
+		vi.mocked(generate).mockImplementation(generating);
+	});
+
 	/** A valid save of `puzzle` with one field set to `value` (anything JSON can hold). */
 	const field = fc.constantFrom(
 		'version',
