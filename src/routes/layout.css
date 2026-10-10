@@ -47,6 +47,27 @@
 	.menu-item {
 		@apply rounded-md px-3 py-2 text-left text-sm hover:bg-stone-100 disabled:opacity-50 dark:hover:bg-stone-800;
 	}
+	/* The board sits on its own surface, the one thing on the page that stands out. */
+	.board-stage {
+		@apply relative isolate mx-auto w-fit rounded-2xl bg-white p-2 shadow-[0_1px_2px_rgb(28_25_23/0.05),0_14px_32px_-14px_rgb(28_25_23/0.22)] ring-1 ring-stone-200/80 lg:p-3 dark:bg-stone-900 dark:shadow-[0_14px_32px_-14px_rgb(0_0_0/0.6)] dark:ring-stone-800;
+	}
+	/* The row above and the rows below the board are no wider than the board (at least 20rem). */
+	.stage-column {
+		@apply lg:mx-auto lg:w-full lg:max-w-[max(var(--stage),20rem)];
+	}
+	/* Undo, redo, the tools and the hint: an icon with a short word below it. */
+	.play-bar {
+		@apply items-center gap-0.5 rounded-xl border border-stone-200 bg-white p-1 dark:border-stone-800 dark:bg-stone-900;
+	}
+	.play-btn {
+		@apply flex min-w-10 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-0.5 py-1.5 text-[10px] leading-3 font-medium whitespace-nowrap text-stone-700 select-none hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent lg:px-1.5 lg:text-xs dark:text-stone-300 dark:hover:bg-stone-800;
+	}
+	.play-btn-active {
+		@apply bg-indigo-100 text-indigo-800 ring-1 ring-indigo-300 hover:bg-indigo-100 dark:bg-indigo-900 dark:text-indigo-100 dark:ring-indigo-700 dark:hover:bg-indigo-900;
+	}
+	.play-sep {
+		@apply h-7 w-px shrink-0 bg-stone-200 lg:mx-0.5 dark:bg-stone-700;
+	}
 	.section-title {
 		@apply text-xs font-semibold tracking-wider text-stone-500 uppercase dark:text-stone-400;
 	}

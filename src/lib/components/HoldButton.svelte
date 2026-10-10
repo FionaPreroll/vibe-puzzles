@@ -1,13 +1,25 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	/** A button that repeats its action while held: after 500 ms, then every 150 ms. */
+	/**
+	 * A button that repeats its action while held: after 500 ms, then every 150 ms. `label` is its
+	 * tooltip, and its name too unless it shows text of its own (`named` false).
+	 */
 	let {
 		action,
 		disabled = false,
 		label,
+		named = true,
+		class: className = 'btn',
 		children
-	}: { action: () => void; disabled?: boolean; label: string; children: Snippet } = $props();
+	}: {
+		action: () => void;
+		disabled?: boolean;
+		label: string;
+		named?: boolean;
+		class?: string;
+		children: Snippet;
+	} = $props();
 
 	let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -28,8 +40,8 @@
 </script>
 
 <button
-	class="btn"
-	aria-label={label}
+	class={className}
+	aria-label={named ? label : undefined}
 	title={label}
 	{disabled}
 	onpointerdown={start}

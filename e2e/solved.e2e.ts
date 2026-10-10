@@ -8,7 +8,7 @@ const SOLUTION = '101111111000100101111111100001100000';
 function measure(page: Page) {
 	return page.evaluate(() => {
 		const area = document.querySelector('.overflow-x-auto')!;
-		const svg = area.querySelector('svg')!;
+		const svg = area.querySelector('svg[role="grid"]')!;
 		const box = svg.getBoundingClientRect();
 		return {
 			board: { x: box.x, y: box.y, width: box.width, height: box.height },
@@ -68,9 +68,9 @@ for (const [width, height, locale] of [
 			expect(before.boardFocused).toBe(true);
 
 			await tap(cells[cells.length - 1]);
-			await expect(page.getByRole('button', { name: /^(New puzzle|Neues Rätsel)$/ })).toHaveClass(
-				/btn-primary/
-			);
+			await expect(
+				page.getByRole('button', { name: /^(Share success|Erfolg teilen)$/ })
+			).toBeVisible();
 			// Wait out the celebration.
 			await page.waitForTimeout(2000);
 			const after = await measure(page);

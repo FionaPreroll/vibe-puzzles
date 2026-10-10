@@ -101,6 +101,9 @@ const en = {
 		resume: 'Resume',
 		undo: 'Undo',
 		redo: 'Redo',
+		/** Under the icons of the play bar, where only a short word fits. */
+		undoShort: 'Undo',
+		redoShort: 'Redo',
 		hint: 'Hint',
 		hintTitle: 'Hint (H): point at the next step. The puzzle then gets no best time and no rank.',
 		hintMistake: 'The highlighted marks do not match the solution.',
@@ -118,7 +121,6 @@ const en = {
 		add: 'Add',
 		loadCheckpoint: 'Load checkpoint {n} (right click deletes)',
 		deleteCheckpoint: 'Delete checkpoint {n}',
-		idLine: '{variant} · Puzzle ID',
 		idHidden: 'shown once solved',
 		idHiddenTitle: 'Ranked server puzzle',
 		fromBank: 'from the puzzle collection',
@@ -219,7 +221,7 @@ const en = {
 	swatch: ['', 'Violet', 'Red', 'Yellow', 'Green', 'Blue'],
 	setting: {
 		hideControls: 'Hide game controls',
-		stickyToolbar: 'Keep toolbar and tools at the top while scrolling',
+		stickyToolbar: 'Keep the top bar in place while scrolling',
 		autoSubmit: 'Auto submit',
 		showCheckpoints: 'Show checkpoints',
 		showCoordinates: 'Show board coordinates',

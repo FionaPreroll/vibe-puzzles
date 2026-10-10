@@ -38,10 +38,9 @@ const GAMES = ['tetroid', 'pinwheel'] as const;
 
 type Game = (typeof GAMES)[number];
 
-/** Rare actions sit in a "More actions" menu on narrow screens and in plain sight on wide ones. */
+/** Rare actions sit in the "More actions" menu. */
 async function more(page: Page) {
-	const button = page.getByRole('button', { name: 'More actions' });
-	if (await button.isVisible()) await button.click();
+	await page.getByRole('button', { name: 'More actions' }).click();
 }
 
 /**
@@ -72,8 +71,6 @@ async function solve(page: Page, game: Game) {
 			(await page.locator('.font-mono.select-all').textContent())?.replace(/\D/g, '')
 		)
 		.toBe(p.id);
-	const grid = (await board(page).locator('rect').first().boundingBox())!;
-	const cell = grid.width / p.size;
 	const clicks =
 		'cells' in p
 			? [...p.cells].flatMap((c, i) =>
@@ -87,6 +84,9 @@ async function solve(page: Page, game: Game) {
 	await more(page);
 	await page.getByRole('button', { name: 'Start over' }).click();
 	await agree(page, true);
+	// Measured after the menu: opening it may scroll the page.
+	const grid = (await board(page).locator('rect').first().boundingBox())!;
+	const cell = grid.width / p.size;
 	for (const [x, y] of clicks) await page.mouse.click(grid.x + x * cell, grid.y + y * cell);
 	await expect(page.locator('.solved-glow')).toHaveCount(1);
 	// Let the celebration finish.
@@ -253,8 +253,11 @@ async function session(page: Page, name: string, touch: boolean) {
 					await page.mouse.up();
 				}
 			} else {
-				const button = page.getByRole('button', { name: kind === 'undo' ? 'Undo' : 'Redo' });
-				if (await button.first().isEnabled()) await button.first().click();
+				// The play bar sits below the board on wide screens and at the bottom on phones.
+				const button = page
+					.getByRole('button', { name: kind === 'undo' ? 'Undo' : 'Redo' })
+					.filter({ visible: true });
+				if (await button.isEnabled()) await button.click();
 			}
 		}
 		// Every round of a game ends in the same state: its solved puzzle.

@@ -143,30 +143,34 @@ for (const screen of SCREENS) {
 			const panel = page.getByRole('complementary', { name: 'Tetroid menu' });
 			const menuButton = page.getByRole('button', { name: 'Puzzle types and rules' });
 			const more = page.getByRole('button', { name: 'More actions' });
-			const startOver = page.getByRole('button', { name: 'Start over' });
-			await expect(page.getByRole('button', { name: 'Done' })).toBeVisible();
-			await expect(page.getByRole('button', { name: 'New puzzle' })).toBeVisible();
+			// Submitting is automatic by default, so there is no "Done"; nothing stands out.
+			await expect(page.getByRole('button', { name: 'Done' })).toHaveCount(0);
+			await expect(page.getByRole('button', { name: 'New puzzle' })).not.toHaveClass(/btn-primary/);
+			await expect(page.getByRole('button', { name: 'Start over' })).toBeHidden();
 			const tools = page.getByRole('toolbar', { name: 'Tools' }).filter({ visible: true });
 			await expect(tools).toHaveCount(1);
 			await expect(tools.getByRole('button')).toHaveCount(4);
+			const board = (await page.getByRole('grid', { name: 'Puzzle board' }).first().boundingBox())!;
+			const bar = (await tools.boundingBox())!;
+			// Undo, redo and the hint share the play bar with the tools.
+			for (const name of ['Undo', 'Redo', 'Hint']) {
+				const box = (await page.getByRole('button', { name, exact: true }).boundingBox())!;
+				expect(box.y, name).toBe(bar.y);
+			}
 
 			if (wide) {
 				await expect(panel).toBeVisible();
 				await expect(panel.getByRole('heading', { name: 'Tetroid' })).toBeVisible();
 				await expect(menuButton).toBeHidden();
-				await expect(more).toBeHidden();
-				await expect(startOver).toBeVisible();
-				// Tools below the board.
-				const board = (await page
-					.getByRole('grid', { name: 'Puzzle board' })
-					.first()
-					.boundingBox())!;
-				expect((await tools.boundingBox())!.y).toBeGreaterThan(board.y + board.height);
+				// The play bar right below the board, no wider than the board's surface.
+				expect(bar.y).toBeGreaterThan(board.y + board.height);
+				const stage = (await page.locator('.board-stage').boundingBox())!;
+				const playBar = (await page.locator('.play-bar').filter({ visible: true }).boundingBox())!;
+				expect(playBar.x).toBeGreaterThanOrEqual(stage.x - 1);
+				expect(playBar.x + playBar.width).toBeLessThanOrEqual(stage.x + stage.width + 1);
 			} else {
 				await expect(panel).toBeHidden();
-				await expect(startOver).toBeHidden();
-				// The tool bar is fixed to the bottom of the screen.
-				const bar = (await tools.boundingBox())!;
+				// The play bar is fixed to the bottom of the screen.
 				expect(bar.y + bar.height).toBeGreaterThan(screen.height - 80);
 
 				// The drawer holds the puzzle types and rules.
@@ -176,21 +180,21 @@ for (const screen of SCREENS) {
 				await expect(panel).toBeHidden();
 				await expect(menuButton).toContainText('8×8 Normal');
 				await expect(page).toHaveURL(/v=8n/);
-
-				// Rare actions sit in the "more" menu.
-				await more.click();
-				const menu = page.getByRole('group', { name: 'More actions' });
-				await expect(menu.getByRole('button')).toHaveText(['Start over', 'Share board', 'Print…']);
-				// The focus moves into the menu and comes back when Escape closes it.
-				await expect(menu.getByRole('button', { name: 'Start over' })).toBeFocused();
-				await page.keyboard.press('Escape');
-				await expect(menu).toBeHidden();
-				await expect(more).toBeFocused();
-				await more.click();
-				await menu.getByRole('button', { name: 'Share board' }).click();
-				await expect(page.getByText('Link to your progress:')).toBeVisible();
-				await expectNoSideScroll(page);
 			}
+
+			// Rare actions sit in the "more" menu, "Start over" last and set apart.
+			await more.click();
+			const menu = page.getByRole('group', { name: 'More actions' });
+			await expect(menu.getByRole('button')).toHaveText(['Share board', 'Print…', 'Start over']);
+			// The focus moves into the menu and comes back when Escape closes it.
+			await expect(menu.getByRole('button', { name: 'Share board' })).toBeFocused();
+			await page.keyboard.press('Escape');
+			await expect(menu).toBeHidden();
+			await expect(more).toBeFocused();
+			await more.click();
+			await menu.getByRole('button', { name: 'Share board' }).click();
+			await expect(page.getByText('Link to your progress:')).toBeVisible();
+			await expectNoSideScroll(page);
 		});
 
 		test(`${screen.touch ? 'taps' : 'clicks'} on the board make moves`, async ({ page }) => {
