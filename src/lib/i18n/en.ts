@@ -207,6 +207,7 @@ const en = {
 		showCheckpoints: 'Show checkpoints',
 		showCoordinates: 'Show board coordinates',
 		hideTimer: 'Hide the timer',
+		hideHint: 'Hide the hint button',
 		personalTimer: 'Non-competitive (personal) timer',
 		highlightErrors: 'Highlight errors',
 		blueErrors: 'Use blue for errors',

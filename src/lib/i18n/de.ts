@@ -206,6 +206,7 @@ const de: Dictionary = {
 		showCheckpoints: 'Zwischenstände anzeigen',
 		showCoordinates: 'Koordinaten anzeigen',
 		hideTimer: 'Zeit ausblenden',
+		hideHint: 'Tipp-Button ausblenden',
 		personalTimer: 'Persönliche Zeit (ohne Wertung)',
 		highlightErrors: 'Fehler markieren',
 		blueErrors: 'Fehler blau statt rot',

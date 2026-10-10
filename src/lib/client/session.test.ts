@@ -573,6 +573,17 @@ describe('hints', () => {
 		expect(s.message?.text).not.toMatch(/[{}]|games\./);
 	});
 
+	it('are off with the setting that hides the button', async () => {
+		const settings = new GameSettings('tetroid', withCommon([]));
+		settings.values.hideHint = true;
+		const s = new GameSession(tetroid, settings);
+		await s.open('6n', { puzzleId: ID });
+		expect(s.canHint).toBe(false);
+		s.showHint();
+		expect(s.hint).toBeNull();
+		expect(s.hinted).toBe(false);
+	});
+
 	it('start a new puzzle unhinted', async () => {
 		const s = await hinting();
 		s.showHint();

@@ -477,9 +477,9 @@ export class GameSession<P = unknown, S = unknown> {
 		this.persist();
 	}
 
-	/** Whether the game has hints. */
+	/** Whether the game has hints and the player wants the button. */
 	get canHint(): boolean {
-		return !!this.game.hint;
+		return !!this.game.hint && !this.settings.values.hideHint;
 	}
 
 	/** Point at the next step, or at wrong marks. The game then counts as hinted. */

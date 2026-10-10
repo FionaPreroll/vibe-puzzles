@@ -105,3 +105,22 @@ test('the Pinwheel hint points at edges that need a line', async ({ page }) => {
 	await page.keyboard.press('h');
 	await expect(status).toContainText('draw lines there');
 });
+
+test('a setting hides the hint button and its key', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		localStorage.setItem(
+			'vp:settings:tetroid',
+			JSON.stringify({ values: { hideHint: true }, updatedAt: 1 })
+		);
+	});
+	await page.goto(PUZZLE);
+	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Hint' })).toHaveCount(0);
+	await page.keyboard.press('h');
+	await expect(board.locator('g.spotlight > *')).toHaveCount(0);
+	await expect(page.getByRole('status')).toHaveText('');
+});
