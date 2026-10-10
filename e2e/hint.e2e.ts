@@ -105,3 +105,63 @@ test('the Pinwheel hint points at edges that need a line', async ({ page }) => {
 	await page.keyboard.press('h');
 	await expect(status).toContainText('draw lines there');
 });
+
+test('a setting hides the hint button and its key', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		localStorage.setItem(
+			'vp:settings:tetroid',
+			JSON.stringify({ values: { hideHint: true }, updatedAt: 1 })
+		);
+	});
+	await page.goto(PUZZLE);
+	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Hint' })).toHaveCount(0);
+	await page.keyboard.press('h');
+	await expect(board.locator('g.spotlight > *')).toHaveCount(0);
+	await expect(page.getByRole('status')).toHaveText('');
+});
+
+test('turning hints off mid-game hides the hint, and sharing tells how many were used', async ({
+	page
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		// Catch what "Share success" would hand to the messenger.
+		Object.defineProperty(navigator, 'share', {
+			value: async (data: ShareData) => {
+				(window as unknown as { shared: ShareData }).shared = data;
+			}
+		});
+	});
+	await page.goto(PUZZLE);
+	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	const spotlight = board.locator('g.spotlight > *');
+	await page.getByRole('button', { name: 'Hint' }).click();
+	await expect(spotlight).toHaveCount(2);
+
+	await page.getByRole('button', { name: 'Settings' }).click();
+	await page.getByRole('checkbox', { name: 'Hide the hint button' }).check();
+	await page.keyboard.press('Escape');
+	await expect(spotlight).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Hint' })).toHaveCount(0);
+
+	// Solve it: the hint still counts.
+	const grid = (await board.locator('rect').first().boundingBox())!;
+	const cell = grid.width / 6;
+	for (const [i, c] of [...SOLUTION].entries()) {
+		if (c !== '1') continue;
+		await page.mouse.click(
+			grid.x + ((i % 6) + 0.5) * cell,
+			grid.y + (Math.floor(i / 6) + 0.5) * cell
+		);
+	}
+	await page.getByRole('button', { name: 'Share success' }).click();
+	const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
+	expect(shared.text).toContain(', with 1 hint. Can you do it without?');
+});

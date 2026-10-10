@@ -33,8 +33,10 @@ export interface SavedGame<S = unknown> {
 	updatedAt: number;
 	/** Puzzle issued by the server (ranked); its ID is 0 until solved. */
 	ticket?: string;
-	/** A hint was shown: no best time, not ranked. */
+	/** A hint was shown: no best time, not ranked. Kept for saves from before `hints`. */
 	hinted?: boolean;
+	/** How many hints were shown. */
+	hints?: number;
 }
 
 export interface Message {
@@ -70,8 +72,8 @@ export class GameSession<P = unknown, S = unknown> {
 	lastChange = $state.raw<ReadonlySet<string>>(new Set());
 	/** The hint on the board, until the next change. */
 	hint = $state.raw<Hint | null>(null);
-	/** A hint was shown for this puzzle. */
-	hinted = $state(false);
+	/** How many hints were shown for this puzzle. */
+	hints = $state(0);
 	loading = $state(true);
 	message = $state<Message | null>(null);
 
@@ -249,7 +251,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.currentCheckpoint = -1;
 		this.lastChange = new Set();
 		this.hint = null;
-		this.hinted = false;
+		this.hints = 0;
 		this.solved = false;
 		this.manualPause = false;
 		this.startedAt = startedAt;
@@ -318,7 +320,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.currentCheckpoint = Math.min(s.currentCheckpoint ?? -1, this.checkpoints.length - 1);
 		this.lastChange = new Set();
 		this.hint = null;
-		this.hinted = !!s.hinted;
+		this.hints = s.hints ?? (s.hinted ? 1 : 0);
 		this.solved = false;
 		this.manualPause = false;
 		this.startedAt = s.startedAt;
@@ -340,7 +342,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.currentCheckpoint = -1;
 		this.lastChange = new Set();
 		this.hint = null;
-		this.hinted = false;
+		this.hints = 0;
 		this.solved = false;
 	}
 
@@ -419,7 +421,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.future = [];
 		this.state = after;
 		this.lastChange = new Set(changed);
-		this.clearHint();
+		this.dismissHint();
 		this.touched = true;
 		this.persist();
 		this.checkSolved();
@@ -431,7 +433,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.state = this.past[this.past.length - 1];
 		this.past = this.past.slice(0, -1);
 		this.lastChange = new Set();
-		this.clearHint();
+		this.dismissHint();
 		this.touched = true;
 		this.persist();
 	}
@@ -442,7 +444,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.state = this.future[0];
 		this.future = this.future.slice(1);
 		this.lastChange = new Set();
-		this.clearHint();
+		this.dismissHint();
 		this.touched = true;
 		this.persist();
 	}
@@ -454,7 +456,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.future = [];
 		this.state = next;
 		this.lastChange = new Set();
-		this.clearHint();
+		this.dismissHint();
 		this.touched = true;
 	}
 
@@ -464,7 +466,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.past = [];
 		this.future = [];
 		this.lastChange = new Set();
-		this.clearHint();
+		this.dismissHint();
 		this.solved = false;
 		this.manualPause = false;
 		// The server measures ranked time from when it issued the puzzle.
@@ -477,18 +479,26 @@ export class GameSession<P = unknown, S = unknown> {
 		this.persist();
 	}
 
-	/** Whether the game has hints. */
+	/** Whether the game has hints and the player wants the button. */
 	get canHint(): boolean {
-		return !!this.game.hint;
+		return !!this.game.hint && !this.settings.values.hideHint;
 	}
 
-	/** Point at the next step, or at wrong marks. The game then counts as hinted. */
+	/** A hint was shown: the solve gets no best time and is not ranked. */
+	get hinted(): boolean {
+		return this.hints > 0;
+	}
+
+	/**
+	 * Point at the next step, or at wrong marks. Each new hint counts; asking again before the
+	 * next move shows the same one and does not.
+	 */
 	showHint() {
 		if (this.readonly || !this.puzzle || !this.state || !this.game.hint || !this.canHint) return;
-		const hint = this.game.hint(this.puzzle, this.state);
+		const hint = this.hint ?? this.game.hint(this.puzzle, this.state);
 		if (!hint) return;
+		if (!this.hint) this.hints++;
 		this.hint = hint;
-		this.hinted = true;
 		this.message = {
 			kind: hint.kind === 'mistake' ? 'error' : 'info',
 			text: hint.text.map((key) => t(key, hint.params)).join(' ')
@@ -496,8 +506,8 @@ export class GameSession<P = unknown, S = unknown> {
 		this.persist();
 	}
 
-	/** The board changed: the hint and its message no longer apply. */
-	private clearHint() {
+	/** Take the hint off the board, with its message: after a move, or when hints are turned off. */
+	dismissHint() {
 		if (!this.hint) return;
 		this.hint = null;
 		this.message = null;
@@ -717,7 +727,7 @@ export class GameSession<P = unknown, S = unknown> {
 			playMs: this.playMs + running,
 			updatedAt: this.changedAt,
 			...(this.ticket ? { ticket: this.ticket } : {}),
-			...(this.hinted ? { hinted: true } : {})
+			...(this.hints ? { hinted: true, hints: this.hints } : {})
 		};
 		save(this.saveKey, data);
 		if (this.pushTimer) clearTimeout(this.pushTimer);
