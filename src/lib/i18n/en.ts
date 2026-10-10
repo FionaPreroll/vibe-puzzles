@@ -94,6 +94,9 @@ const en = {
 		resume: 'Resume',
 		undo: 'Undo',
 		redo: 'Redo',
+		hint: 'Hint',
+		hintTitle: 'Hint (H): point at the next step. The game then counts as solved with help.',
+		hintMistake: 'The highlighted marks do not match the solution.',
 		tools: 'Tools',
 		colour: 'Colour {name}',
 		touch: 'Touch input',
@@ -134,6 +137,7 @@ const en = {
 		general: 'Game',
 		undo: 'Undo',
 		redo: 'Redo',
+		hint: 'Hint',
 		newPuzzle: 'New puzzle',
 		done: 'Check the solution',
 		save: 'Save checkpoint',
@@ -163,6 +167,7 @@ const en = {
 		yourBest: 'Your best is {time}.',
 		unrankedPersonal: 'Solved in {time}! Personal timer: not ranked.',
 		unrankedLocal: 'Solved in {time}! Not ranked: only puzzles from the server are ranked.',
+		unrankedHinted: 'Solved in {time}, with a hint: not ranked.',
 		expired: 'Solved in {time}! Not ranked: the server no longer keeps this old puzzle.'
 	},
 	difficulty: {
@@ -349,6 +354,22 @@ const en = {
 				'Click a cell to shade it, right click to place a cross. Drag to paint several cells. Keys 1–4 pick a tool.',
 			controlsTouch:
 				'Tap a cell to cycle through shaded, cross and empty. Hold a moment, then drag to paint several cells.',
+			/** What the hint button says: why tetrominoes are ruled out, then what follows. */
+			hints: {
+				region:
+					'Look at which tetrominoes still fit in this region, given its shape and your marks.',
+				sameShape:
+					'Rule out tetrominoes that would touch an identical one: everything left in a neighbouring region has that shape.',
+				square: 'Rule out tetrominoes that would complete a shaded 2×2 block.',
+				neighbour:
+					'Rule out tetrominoes that clash with everything left in a neighbouring region: each option there would touch an identical shape or complete a 2×2 block.',
+				lookAhead:
+					'Rule out tetrominoes that would cut the shaded cells apart: ask whether everything could still connect if the tetromino went there.',
+				shade: 'Every tetromino left in this region covers the highlighted cells: shade them.',
+				cross: 'No tetromino left in this region covers the highlighted cells: they stay empty.',
+				stuck:
+					'No rule decides a cell here. Hard puzzles need case analysis: put a tetromino in the highlighted region in your head and follow it until a rule breaks.'
+			},
 			tutorial: [
 				{
 					text: 'Each region with a thick border needs exactly one tetromino: four shaded cells joined along their sides. There are four shapes, I, L, T and S, which may be turned or mirrored. The top-left region is already done: it holds an S, and crosses mark its empty cells. Just look for now: you start shading in step 2.'

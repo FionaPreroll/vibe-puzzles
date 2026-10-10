@@ -57,7 +57,8 @@
 	let moreOpen = $state(false);
 	/**
 	 * Phones show messages as a toast over the board, so they never push the layout around.
-	 * Errors stay until tapped away.
+	 * Errors stay until tapped away, hints until the next move; a hint sits below the board, so
+	 * it does not hide the cells it points at.
 	 */
 	let toast = $state(false);
 	/** The side panel, which keeps the focus while it is open as a drawer on phones. */
@@ -405,7 +406,7 @@
 		const message = session.message;
 		if (!message) return void (toast = false);
 		toast = true;
-		if (message.kind === 'error') return;
+		if (message.kind === 'error' || session.hint) return;
 		const timer = setTimeout(() => (toast = false), 4000);
 		return () => clearTimeout(timer);
 	});
@@ -451,6 +452,9 @@
 		} else if ((e.key === '=' || e.key === '+') && !mod && !e.altKey) {
 			e.preventDefault();
 			newPuzzle();
+		} else if (key === 'h' && !mod && !e.altKey && game.hint) {
+			e.preventDefault();
+			session.showHint();
 		} else if (e.key === ']') {
 			if (game.toolOptions)
 				setTool(tool === game.toolOptions.tool ? previousTool : game.toolOptions.tool);
@@ -494,6 +498,7 @@
 	/** Desktop: tools join the sticky top bar when that setting is on, else they sit below the board. */
 	const toolsOnTop = $derived(!!settings.values.stickyToolbar);
 	const label = $derived(variantLabel(variant));
+	const hintSpotlight = $derived(session.hint ? new Set(session.hint.spotlight) : undefined);
 </script>
 
 <svelte:window
@@ -696,7 +701,7 @@
 
 		<div
 			bind:offsetHeight={toolbarHeight}
-			class="flex flex-wrap items-center gap-2 {settings.values.stickyToolbar
+			class="flex flex-wrap items-center gap-1.5 sm:gap-2 {settings.values.stickyToolbar
 				? 'sticky top-0 z-10 bg-stone-50/95 py-2 backdrop-blur dark:bg-stone-950/95'
 				: ''}"
 		>
@@ -769,6 +774,29 @@
 				action={() => session.redo()}
 				disabled={session.future.length === 0 || session.readonly}>↷</HoldButton
 			>
+			<!-- Gone once solved, which also leaves room for the longer final time on phones. Below
+			     360px the row has no room for it: it sits in the "more" menu there -->
+			{#if game.hint && !session.solved}
+				<button
+					class="btn max-[359px]:hidden max-sm:px-2"
+					onclick={() => session.showHint()}
+					disabled={session.readonly}
+					aria-label={t('game.hint')}
+					title={t('game.hintTitle')}
+				>
+					<!-- A light bulb -->
+					<svg viewBox="0 0 20 20" class="size-5" aria-hidden="true">
+						<path
+							d="M10 2.5a5.5 5.5 0 0 0-3.2 10c.5.4.7.9.7 1.5h5c0-.6.2-1.1.7-1.5a5.5 5.5 0 0 0-3.2-10ZM8 16.5h4M8.8 18.5h2.4"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.6"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+					</svg><span class="hidden sm:inline">{t('game.hint')}</span>
+				</button>
+			{/if}
 			{#if showTools && toolsOnTop}
 				<div
 					class="hidden flex-wrap items-center gap-2 lg:flex"
@@ -813,6 +841,7 @@
 							{cellSize}
 							readonly={session.readonly}
 							lastChange={session.lastChange}
+							spotlight={hintSpotlight}
 							keyboard={true}
 							{celebrate}
 							{touchMode}
@@ -855,7 +884,11 @@
 				{/if}
 			</div>
 			{#if session.message && toast && !wide}
-				<div class="absolute inset-x-0 top-2 z-10 flex justify-center">
+				<div
+					class="absolute inset-x-0 z-10 flex justify-center {session.hint
+						? 'top-full mt-1'
+						: 'top-2'}"
+				>
 					<button
 						class="flex max-w-[90%] items-start gap-2 rounded-md px-3 py-1.5 text-left text-sm shadow-lg {messageClass(
 							session.message.kind
@@ -960,6 +993,13 @@
 			<!-- Most used first; on narrow screens the rare actions sit in a "more" menu -->
 			{#snippet rareActions(menu: boolean)}
 				{@const cls = menu ? 'menu-item' : 'btn hidden lg:inline-flex'}
+				{#if menu && game.hint && !session.solved}
+					<button
+						class="menu-item min-[360px]:hidden"
+						onclick={() => ((moreOpen = false), session.showHint())}
+						disabled={session.readonly}>{t('game.hint')}</button
+					>
+				{/if}
 				<button
 					class={cls}
 					onclick={() => ((moreOpen = false), startOver())}

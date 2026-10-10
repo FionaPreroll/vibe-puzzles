@@ -145,6 +145,30 @@ describe('api', () => {
 		expect((await api('GET', '/scores?game=tetroid&variant=6n')).body.players).toBe(0);
 	});
 
+	it('does not rank a game solved with a hint', async () => {
+		const api = client();
+		const a = (await api('POST', '/player', { name: 'A' })).body.token as string;
+		const res = await api(
+			'POST',
+			'/scores',
+			{
+				game: 'tetroid',
+				variant: '6n',
+				puzzleId,
+				puzzle,
+				answer,
+				timeMs: 1000,
+				playMs: 900,
+				competitive: true,
+				hinted: true
+			},
+			a
+		);
+		expect(res.body).toMatchObject({ ok: true, code: 'hinted', timeMs: 1000 });
+		expect(res.body.message).toContain('a hint was used');
+		expect((await api('GET', '/scores?game=tetroid&variant=6n')).body.players).toBe(0);
+	});
+
 	describe('server puzzles', () => {
 		async function setup() {
 			const api = client({ serverPuzzles: true });
@@ -183,6 +207,19 @@ describe('api', () => {
 			expect(entry.timeMs).toBeGreaterThanOrEqual(0);
 			expect(entry.timeMs).toBeLessThan(60000);
 			expect((await submit(solved)).body.message).toContain('before');
+		});
+
+		it('does not rank a ticket solved with a hint', async () => {
+			const { api, token, issued, solved } = await setup();
+			const res = await api(
+				'POST',
+				'/scores',
+				{ ticket: issued.ticket, answer: solved, timeMs: 1, playMs: 1, hinted: true },
+				token
+			);
+			expect(res.body).toMatchObject({ ok: true, code: 'hinted' });
+			expect(res.body.puzzleId).toBeGreaterThan(0);
+			expect((await api('GET', '/scores?game=tetroid&variant=6n')).body.players).toBe(0);
 		});
 
 		it('does not rank a ticket the server has cleaned up', async () => {

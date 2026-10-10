@@ -206,6 +206,7 @@ async function submitTicket(player: { id: string }, b: Record<string, unknown>, 
 		timeMs: now - ticket.issuedAt,
 		playMs,
 		competitive: b.competitive !== false,
+		hinted: b.hinted === true,
 		unranked: null
 	});
 }
@@ -243,6 +244,7 @@ async function submitScore(req: Request, store: Store, options: ApiOptions) {
 		timeMs,
 		playMs,
 		competitive: b.competitive !== false,
+		hinted: b.hinted === true,
 		// With server puzzles only those are ranked: a client that knows the seed knows the solution.
 		unranked: options.serverPuzzles ? 'only puzzles from the server are ranked' : null
 	});
@@ -258,11 +260,13 @@ async function recordScore(
 		timeMs: number;
 		playMs: number;
 		competitive: boolean;
+		/** The player used a hint. */
+		hinted: boolean;
 		unranked: string | null;
 	}
 ) {
 	const { game, variant, puzzleId, timeMs, playMs } = s;
-	const competitive = s.competitive && !s.unranked;
+	const competitive = s.competitive && !s.hinted && !s.unranked;
 	const added = await store.addScore({
 		playerId: player.id,
 		game,
@@ -283,10 +287,10 @@ async function recordScore(
 		});
 	}
 	if (!competitive) {
-		const why = s.unranked ?? 'personal timer';
+		const why = s.hinted ? 'a hint was used' : (s.unranked ?? 'personal timer');
 		return json({
 			...base,
-			code: s.unranked ? 'local' : 'personal',
+			code: s.hinted ? 'hinted' : s.unranked ? 'local' : 'personal',
 			message: `Solved in ${formatTime(shown)}! Not ranked: ${why}.`
 		});
 	}

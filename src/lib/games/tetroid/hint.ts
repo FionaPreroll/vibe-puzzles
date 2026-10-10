@@ -1,0 +1,250 @@
+import {
+	CROSS,
+	EMPTY,
+	isSolvedMarks,
+	SHADED,
+	type TetroidPuzzle,
+	type TetroidState
+} from './rules';
+import { TetroidModel, TetroidSolver } from './solver';
+
+/**
+ * Deductions a hint can name, from the simplest to the hardest. Each rules out placements of a
+ * tetromino; a cell is decided once all placements left in its region cover it (shaded) or none
+ * does (empty).
+ *
+ * - `region`: only the player's marks, within the region.
+ * - `sameShape`: every placement left in a neighbouring region would touch an identical tetromino.
+ * - `square`: the placement would complete a shaded 2×2 block, alone with decided cells or with
+ *   whatever is left in a neighbouring region.
+ * - `neighbour`: everything left in a neighbouring region would break one of those two rules.
+ * - `lookAhead`: with the placement, the decided cells could no longer all connect (this includes
+ *   a placement cut off from them).
+ */
+export const TECHNIQUES = ['region', 'sameShape', 'square', 'neighbour', 'lookAhead'] as const;
+export type Technique = (typeof TECHNIQUES)[number];
+
+export type TetroidHint =
+	/** Marks that disagree with the solution. */
+	| { kind: 'mistake'; cells: number[] }
+	/** Cells of one region that follow from the marks, and the hardest deduction needed there. */
+	| { kind: 'step'; technique: Technique; mark: 'shade' | 'cross'; region: number; cells: number[] }
+	/** No deduction applies: case analysis is needed. `cells` is the region with fewest options. */
+	| { kind: 'stuck'; region: number; cells: number[] };
+
+const models = new WeakMap<TetroidPuzzle, TetroidModel>();
+const solutions = new WeakMap<TetroidPuzzle, Uint8Array | null>();
+
+function modelOf(p: TetroidPuzzle): TetroidModel {
+	let m = models.get(p);
+	if (!m) models.set(p, (m = new TetroidModel(p)));
+	return m;
+}
+
+function solutionOf(p: TetroidPuzzle): Uint8Array | null {
+	if (!solutions.has(p)) {
+		const res = new TetroidSolver(modelOf(p)).solve({ limit: 1, maxNodes: 2_000_000 });
+		solutions.set(p, res.solutions[0] ?? null);
+	}
+	return solutions.get(p)!;
+}
+
+/** The next step from the player's marks: a mistake, the cells that follow, or none (stuck). */
+export function tetroidHint(p: TetroidPuzzle, state: TetroidState): TetroidHint | null {
+	const { marks } = state;
+	if (isSolvedMarks(p, (i) => marks[i] === SHADED)) return null;
+	const solution = solutionOf(p);
+	if (solution) {
+		const wrong = marks.flatMap((mk, i) =>
+			(mk === SHADED && !solution[i]) || (mk === CROSS && solution[i]) ? [i] : []
+		);
+		if (wrong.length) return { kind: 'mistake', cells: wrong };
+	}
+	return new Deduction(modelOf(p), marks).next();
+}
+
+class Deduction {
+	private readonly alive: Uint8Array;
+	private readonly size: Int32Array;
+	/** Hardest technique that ruled out a placement, per region. */
+	private readonly level: Int32Array;
+	/** Alive placements of the cell's region that cover it. */
+	private readonly cover: Int32Array;
+
+	constructor(
+		private readonly m: TetroidModel,
+		private readonly marks: readonly number[]
+	) {
+		const { placements, byRegion } = m;
+		this.alive = new Uint8Array(placements.length).fill(1);
+		this.size = Int32Array.from(byRegion.map((l) => l.length));
+		this.level = new Int32Array(byRegion.length);
+		this.cover = new Int32Array(m.n);
+		const regions = m.p.regions;
+		const shaded = byRegion.map(() => [] as number[]);
+		marks.forEach((mk, i) => mk === SHADED && shaded[regions[i]].push(i));
+		placements.forEach((pl, k) => {
+			const fits =
+				pl.cells.every((i) => marks[i] !== CROSS) &&
+				shaded[pl.region].every((i) => pl.cells.includes(i));
+			if (!fits) this.kill(k, 0);
+		});
+	}
+
+	next(): TetroidHint {
+		for (;;) {
+			const step = this.decided();
+			if (step) return step;
+			if (!this.sweep()) return this.stuck();
+		}
+	}
+
+	private kill(k: number, technique: number) {
+		const r = this.m.placements[k].region;
+		this.alive[k] = 0;
+		this.size[r]--;
+		this.level[r] = Math.max(this.level[r], technique);
+	}
+
+	/** Rule out placements with the simplest technique that rules out any. */
+	private sweep(): boolean {
+		this.count();
+		const tests = [
+			(k: number) => this.touchesSameShape(k),
+			(k: number) => this.makesSquare(k),
+			(k: number) => this.clashes(k),
+			(k: number) => this.disconnects(k)
+		];
+		for (let t = 0; t < tests.length; t++) {
+			const dead = this.m.placements.flatMap((pl, k) =>
+				this.alive[k] && this.size[pl.region] > 1 && tests[t](k) ? [k] : []
+			);
+			for (const k of dead) this.kill(k, t + 1);
+			if (dead.length) return true;
+		}
+		return false;
+	}
+
+	private count() {
+		this.cover.fill(0);
+		this.m.placements.forEach((pl, k) => {
+			if (this.alive[k]) for (const i of pl.cells) this.cover[i]++;
+		});
+	}
+
+	/** Shaded in every solution left: all placements of its region cover it. */
+	private must(i: number): boolean {
+		return this.cover[i] > 0 && this.cover[i] === this.size[this.m.p.regions[i]];
+	}
+
+	/** The undecided cells that are now decided, in the region with the simplest reason. */
+	private decided(): TetroidHint | null {
+		this.count();
+		let best: TetroidHint | null = null;
+		for (let r = 0; r < this.size.length; r++) {
+			if (best && best.kind === 'step' && TECHNIQUES.indexOf(best.technique) <= this.level[r])
+				continue;
+			const open = this.m.p.regions.flatMap((reg, i) =>
+				reg === r && this.marks[i] === EMPTY ? [i] : []
+			);
+			const shade = open.filter((i) => this.must(i));
+			const cross = open.filter((i) => this.cover[i] === 0);
+			if (!shade.length && !cross.length) continue;
+			best = {
+				kind: 'step',
+				technique: TECHNIQUES[this.level[r]],
+				mark: shade.length ? 'shade' : 'cross',
+				region: r,
+				cells: shade.length ? shade : cross
+			};
+		}
+		return best;
+	}
+
+	private stuck(): TetroidHint {
+		let region = -1;
+		for (let r = 0; r < this.size.length; r++) {
+			if (this.size[r] > 1 && (region < 0 || this.size[r] < this.size[region])) region = r;
+		}
+		const cells = this.m.p.regions.flatMap((reg, i) => (reg === region ? [i] : []));
+		return { kind: 'stuck', region, cells };
+	}
+
+	/** Alive placements of the regions next to placement `k`. */
+	private neighbourOptions(k: number): number[][] {
+		const { placements, byRegion, regionNeighbours } = this.m;
+		return regionNeighbours[placements[k].region].map((r) =>
+			byRegion[r].filter((q) => this.alive[q])
+		);
+	}
+
+	private touches(a: number[], b: number[]): boolean {
+		return a.some((i) => this.m.nb[i].some((j) => b.includes(j)));
+	}
+
+	private sameShape(k: number, q: number): boolean {
+		const [a, b] = [this.m.placements[k], this.m.placements[q]];
+		return a.type === b.type && this.touches(a.cells, b.cells);
+	}
+
+	private touchesSameShape(k: number): boolean {
+		return this.neighbourOptions(k).some((options) => options.every((q) => this.sameShape(k, q)));
+	}
+
+	/** Whether shading `cells` (and the decided cells) completes a 2×2 block. */
+	private square(cells: number[]): boolean {
+		const w = this.m.p.width;
+		const on = (i: number) => cells.includes(i) || this.must(i);
+		return cells.some((i) =>
+			[...this.m.squares[i]].some((t) => on(t) && on(t + 1) && on(t + w) && on(t + w + 1))
+		);
+	}
+
+	private makesSquare(k: number): boolean {
+		const own = this.m.placements[k].cells;
+		if (this.square(own)) return true;
+		return this.neighbourOptions(k).some((options) =>
+			options.every((q) => this.square([...own, ...this.m.placements[q].cells]))
+		);
+	}
+
+	private clashes(k: number): boolean {
+		const own = this.m.placements[k].cells;
+		return this.neighbourOptions(k).some((options) =>
+			options.every(
+				(q) => this.sameShape(k, q) || this.square([...own, ...this.m.placements[q].cells])
+			)
+		);
+	}
+
+	/**
+	 * Components of the cells that can still be shaded, where the cells of `region` count only if
+	 * in `own`. Returns whether all decided cells (and `own`) lie in one of them.
+	 */
+	private connected(region: number, own: number[]): boolean {
+		const { nb, n } = this.m;
+		const regions = this.m.p.regions;
+		const possible = (i: number) => (regions[i] === region ? own.includes(i) : this.cover[i] > 0);
+		const needed = (i: number) => (regions[i] === region ? own.includes(i) : this.must(i));
+		const start = own[0];
+		const seen = new Uint8Array(n);
+		seen[start] = 1;
+		const stack = [start];
+		while (stack.length) {
+			for (const j of nb[stack.pop()!]) {
+				if (!seen[j] && possible(j)) {
+					seen[j] = 1;
+					stack.push(j);
+				}
+			}
+		}
+		for (let i = 0; i < n; i++) if (needed(i) && !seen[i]) return false;
+		return true;
+	}
+
+	/** With the placement, the decided cells could no longer all connect. */
+	private disconnects(k: number): boolean {
+		const pl = this.m.placements[k];
+		return !this.connected(pl.region, pl.cells);
+	}
+}

@@ -59,7 +59,9 @@ export function recordSolve(
 	puzzleId: number,
 	timeMs: number,
 	period?: string,
-	kind?: SpecialKind
+	kind?: SpecialKind,
+	/** Solved with a hint: counts as solved, but its time is no record. */
+	hinted = false
 ): VariantStats {
 	const s = getStats(game, variant);
 	// Starting over after a solve, or opening the same puzzle again, is no new solve. A server
@@ -69,7 +71,7 @@ export function recordSolve(
 	s.solved++;
 	s.streak++;
 	s.bestStreak = Math.max(s.bestStreak, s.streak);
-	s.bestMs = s.bestMs == null ? timeMs : Math.min(s.bestMs, timeMs);
+	if (!hinted) s.bestMs = s.bestMs == null ? timeMs : Math.min(s.bestMs, timeMs);
 	s.totalMs += timeMs;
 	s.recent = [{ puzzleId, timeMs, at: Date.now() }, ...s.recent].slice(0, 20);
 	if (period && s.lastPeriod !== period) {

@@ -9,6 +9,7 @@ import {
 	SPECIAL_RETENTION_DAYS
 } from '../core/variants';
 import { GAME_LOGIC } from '../games/logic';
+import { tetroid } from '../games/tetroid';
 import { generateTetroid } from '../games/tetroid/generator';
 import { EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from '../games/tetroid/rules';
 import { MemoryStorage } from '../../test/memory-storage';
@@ -445,6 +446,7 @@ describe('solving', () => {
 		[{ ok: true, code: 'repeat' }, 'success', '(You solved this puzzle before.)'],
 		[{ ok: true, code: 'personal' }, 'success', 'Personal timer: not ranked.'],
 		[{ ok: true, code: 'local' }, 'success', 'only puzzles from the server are ranked'],
+		[{ ok: true, code: 'hinted' }, 'success', 'with a hint: not ranked'],
 		[{ ok: true, code: 'ranked', rank: 1, total: 1 }, 'success', 'Rank 1 of 1'],
 		[{ ok: true, message: 'From the server' }, 'success', 'From the server']
 	] as const)('shows the server answer %o', async (res, kind, text) => {
@@ -492,6 +494,76 @@ describe('solving', () => {
 		s.move(shaded(0), []);
 		await s.newPuzzle();
 		expect(getStats('tetroid', '6n').streak).toBe(0);
+	});
+});
+
+describe('hints', () => {
+	async function hinting(): Promise<Session> {
+		const settings = new GameSettings('tetroid', withCommon([]));
+		const s = new GameSession(tetroid, settings);
+		await s.open('6n', { puzzleId: ID });
+		return s;
+	}
+
+	it('point at the next step until the next change; the game counts as hinted', async () => {
+		const s = await hinting();
+		s.showHint();
+		expect(s.hint?.kind).toBe('step');
+		expect(s.hint?.spotlight.length).toBeGreaterThan(0);
+		expect(s.message?.kind).toBe('info');
+		expect(s.message?.text).not.toContain('games.tetroid');
+		expect(s.hinted).toBe(true);
+		s.move(shaded(solution.indexOf(1)), []);
+		expect(s.hint).toBeNull();
+		expect(s.message).toBeNull();
+		expect(s.hinted).toBe(true);
+
+		// Kept in the save, also for another visit.
+		const again = await hinting();
+		expect(again.hinted).toBe(true);
+	});
+
+	it('point at a wrong mark', async () => {
+		const s = await hinting();
+		const wrong = solution.indexOf(0);
+		s.move(shaded(wrong), []);
+		s.showHint();
+		expect(s.hint).toMatchObject({ kind: 'mistake', spotlight: [String(wrong)] });
+		expect(s.message?.kind).toBe('error');
+	});
+
+	it('keep a hinted solve out of the best time and the ranking', async () => {
+		const s = await hinting();
+		s.showHint();
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		expect(s.solved).toBe(true);
+		expect(api.submitScore).toHaveBeenCalledWith(expect.objectContaining({ hinted: true }));
+		expect(getStats('tetroid', '6n')).toMatchObject({ solved: 1, bestMs: null });
+		// No hint once solved, and none for games without hints.
+		s.showHint();
+		expect(s.hint).toBeNull();
+		const plain = await opened();
+		plain.showHint();
+		expect(plain.hinted).toBe(false);
+	});
+
+	it('give none for a solved board that is not submitted yet', async () => {
+		const settings = new GameSettings('tetroid', withCommon([]));
+		settings.values.autoSubmit = false;
+		const s = new GameSession(tetroid, settings);
+		await s.open('6n', { puzzleId: ID });
+		s.move(solvedState(), []);
+		s.showHint();
+		expect(s.hint).toBeNull();
+		expect(s.hinted).toBe(false);
+	});
+
+	it('start a new puzzle unhinted', async () => {
+		const s = await hinting();
+		s.showHint();
+		await s.newPuzzle();
+		expect(s.hinted).toBe(false);
 	});
 });
 

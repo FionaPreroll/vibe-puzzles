@@ -1,5 +1,5 @@
 import { formatDuration } from '../core/time';
-import type { GameModule } from '../core/types';
+import type { GameModule, Hint } from '../core/types';
 import {
 	decodePuzzleId,
 	encodePuzzleId,
@@ -33,6 +33,8 @@ export interface SavedGame<S = unknown> {
 	updatedAt: number;
 	/** Puzzle issued by the server (ranked); its ID is 0 until solved. */
 	ticket?: string;
+	/** A hint was shown: no best time, not ranked. */
+	hinted?: boolean;
 }
 
 export interface Message {
@@ -66,6 +68,10 @@ export class GameSession<P = unknown, S = unknown> {
 	checkpoints = $state.raw<S[]>([]);
 	currentCheckpoint = $state(-1);
 	lastChange = $state.raw<ReadonlySet<string>>(new Set());
+	/** The hint on the board, until the next change. */
+	hint = $state.raw<Hint | null>(null);
+	/** A hint was shown for this puzzle. */
+	hinted = $state(false);
 	loading = $state(true);
 	message = $state<Message | null>(null);
 
@@ -242,6 +248,8 @@ export class GameSession<P = unknown, S = unknown> {
 		this.checkpoints = [];
 		this.currentCheckpoint = -1;
 		this.lastChange = new Set();
+		this.hint = null;
+		this.hinted = false;
 		this.solved = false;
 		this.manualPause = false;
 		this.startedAt = startedAt;
@@ -309,6 +317,8 @@ export class GameSession<P = unknown, S = unknown> {
 		this.checkpoints = (s.checkpoints ?? []).filter((c) => this.game.isValidState(puzzle, c));
 		this.currentCheckpoint = Math.min(s.currentCheckpoint ?? -1, this.checkpoints.length - 1);
 		this.lastChange = new Set();
+		this.hint = null;
+		this.hinted = !!s.hinted;
 		this.solved = false;
 		this.manualPause = false;
 		this.startedAt = s.startedAt;
@@ -329,6 +339,8 @@ export class GameSession<P = unknown, S = unknown> {
 		this.checkpoints = [];
 		this.currentCheckpoint = -1;
 		this.lastChange = new Set();
+		this.hint = null;
+		this.hinted = false;
 		this.solved = false;
 	}
 
@@ -407,6 +419,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.future = [];
 		this.state = after;
 		this.lastChange = new Set(changed);
+		this.clearHint();
 		this.touched = true;
 		this.persist();
 		this.checkSolved();
@@ -418,6 +431,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.state = this.past[this.past.length - 1];
 		this.past = this.past.slice(0, -1);
 		this.lastChange = new Set();
+		this.clearHint();
 		this.touched = true;
 		this.persist();
 	}
@@ -428,6 +442,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.state = this.future[0];
 		this.future = this.future.slice(1);
 		this.lastChange = new Set();
+		this.clearHint();
 		this.touched = true;
 		this.persist();
 	}
@@ -439,6 +454,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.future = [];
 		this.state = next;
 		this.lastChange = new Set();
+		this.clearHint();
 		this.touched = true;
 	}
 
@@ -448,6 +464,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.past = [];
 		this.future = [];
 		this.lastChange = new Set();
+		this.clearHint();
 		this.solved = false;
 		this.manualPause = false;
 		// The server measures ranked time from when it issued the puzzle.
@@ -458,6 +475,27 @@ export class GameSession<P = unknown, S = unknown> {
 		this.touched = true;
 		this.resumeClock();
 		this.persist();
+	}
+
+	/** Point at the next step, or at wrong marks. The game then counts as hinted. */
+	showHint() {
+		if (this.readonly || !this.puzzle || !this.state || !this.game.hint) return;
+		const hint = this.game.hint(this.puzzle, this.state);
+		if (!hint) return;
+		this.hint = hint;
+		this.hinted = true;
+		this.message = {
+			kind: hint.kind === 'mistake' ? 'error' : 'info',
+			text: hint.text.map((key) => t(key)).join(' ')
+		};
+		this.persist();
+	}
+
+	/** The board changed: the hint and its message no longer apply. */
+	private clearHint() {
+		if (!this.hint) return;
+		this.hint = null;
+		this.message = null;
 	}
 
 	// ---- Checkpoints ------------------------------------------------------------------------
@@ -567,7 +605,8 @@ export class GameSession<P = unknown, S = unknown> {
 			this.puzzleId,
 			shown,
 			this.period,
-			this.variant.special
+			this.variant.special,
+			this.hinted
 		);
 		this.persist();
 		this.message = {
@@ -586,6 +625,7 @@ export class GameSession<P = unknown, S = unknown> {
 				timeMs: this.finalMs,
 				playMs: this.finalPlayMs,
 				competitive,
+				hinted: this.hinted,
 				ticket: this.ticket ?? undefined
 			});
 			if (res?.puzzleId && !this.puzzleId) {
@@ -620,6 +660,8 @@ export class GameSession<P = unknown, S = unknown> {
 				return t('session.unrankedPersonal', { time });
 			case 'local':
 				return t('session.unrankedLocal', { time });
+			case 'hinted':
+				return t('session.unrankedHinted', { time });
 			case 'expired':
 				return t('session.expired', { time });
 			case 'ranked': {
@@ -669,7 +711,8 @@ export class GameSession<P = unknown, S = unknown> {
 			startedAt: this.startedAt,
 			playMs: this.playMs + running,
 			updatedAt: this.changedAt,
-			...(this.ticket ? { ticket: this.ticket } : {})
+			...(this.ticket ? { ticket: this.ticket } : {}),
+			...(this.hinted ? { hinted: true } : {})
 		};
 		save(this.saveKey, data);
 		if (this.pushTimer) clearTimeout(this.pushTimer);
