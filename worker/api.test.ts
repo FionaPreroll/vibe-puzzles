@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Collection, layoutType, specialPuzzleId } from '../src/lib/core/bank';
 import { decodePuzzleId, encodePuzzleId, periodKey } from '../src/lib/core/variants';
 import { generateTetroid } from '../src/lib/games/tetroid/generator';
@@ -121,6 +121,44 @@ describe('api', () => {
 		expect(entries[1].me).toBe(true);
 		expect(board.body.players).toBe(2);
 		expect((await api('GET', '/scores?game=nope&variant=6n')).status).toBe(400);
+	});
+
+	it('rejects a body that is not a JSON object', async () => {
+		for (const text of ['{name: "A"', 'null', '42', '"A"']) {
+			const res = await handleApi(
+				new Request('https://example.test/api/player', { method: 'POST', body: text }),
+				new MemoryStore()
+			);
+			expect(res.status, text).toBe(400);
+			expect(await res.json()).toEqual({ error: 'Invalid JSON' });
+		}
+	});
+
+	it('rejects a score whose puzzle ID is not a positive whole number', async () => {
+		const api = client();
+		const token = (await api('POST', '/player', { name: 'A' })).body.token as string;
+		for (const id of [0, -puzzleId, puzzleId + 0.5, 2 ** 53, 'abc', null]) {
+			const res = await api(
+				'POST',
+				'/scores',
+				{ game: 'tetroid', variant: '6n', puzzleId: id, puzzle, answer, timeMs: 1, playMs: 1 },
+				token
+			);
+			expect(res, String(id)).toEqual({ status: 400, body: { error: 'Invalid puzzle ID' } });
+		}
+	});
+
+	it('answers an unexpected error with a 500 that does not reveal it', async () => {
+		const store = new MemoryStore();
+		store.createPlayer = async () => {
+			throw new Error('D1_ERROR: no such table: players');
+		};
+		const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const res = await client({}, store)('POST', '/player', { name: 'A' });
+		expect(res).toEqual({ status: 500, body: { error: 'Server error' } });
+		// The details go to the log only.
+		expect(logged).toHaveBeenCalledWith(expect.objectContaining({ message: expect.any(String) }));
+		logged.mockRestore();
 	});
 
 	it('does not rank the personal timer', async () => {
