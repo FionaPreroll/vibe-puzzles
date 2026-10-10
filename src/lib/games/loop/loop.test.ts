@@ -121,8 +121,9 @@ describe('solver', () => {
 	it('finds several solutions of an ambiguous puzzle, and none of an impossible one', () => {
 		const open: LoopPuzzle = { width: 3, height: 3, clues: '.........' };
 		expect(solveLoop(open, { limit: 2 }).solutions).toHaveLength(2);
-		// Four 3s around a 2×2 grid cannot all hold.
+		// Four 3s around a 2×2 grid cannot all hold, and a 0 leaves no line for a loop.
 		expect(solveLoop({ width: 2, height: 2, clues: '3333' }).solutions).toHaveLength(0);
+		expect(solveLoop({ width: 1, height: 1, clues: '0' }).solutions).toHaveLength(0);
 	});
 
 	it('crosses an edge that would close a loop too early', () => {
@@ -182,6 +183,11 @@ describe('generator', () => {
 			expect(generateLoop(5, 5, 'normal', seed).puzzle).toEqual(puzzle);
 		}
 	);
+
+	it('gives up on a board where propagation solves no loop even with every clue', () => {
+		// On 2×2 the loop always goes around two cells, and no rule tells which two.
+		expect(() => generateLoop(2, 2, 'normal', 1)).toThrow('generation failed');
+	});
 
 	it('makes a hard puzzle that needs case analysis', () => {
 		const { puzzle, solution } = generateLoop(5, 5, 'hard', 1);

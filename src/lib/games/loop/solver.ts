@@ -77,7 +77,6 @@ export class LoopSolver {
 	}
 
 	private search(v: Uint8Array, branch: boolean) {
-		if (this.solutions.length >= this.limit || this.aborted) return;
 		if (++this.nodes > this.maxNodes) {
 			this.aborted = true;
 			return;
@@ -124,15 +123,12 @@ export class LoopSolver {
 		this.size++;
 	}
 
-	/** Sets an edge; false if it already has the other value. */
-	private set(v: Uint8Array, e: number, value: number): boolean {
-		if (v[e] === value) return true;
-		if (v[e] !== OPEN) return false;
+	/** Decides an open edge and queues the rules around it. */
+	private set(v: Uint8Array, e: number, value: number) {
 		v[e] = value;
 		for (const c of [this.edgeCells[2 * e], this.edgeCells[2 * e + 1]]) if (c >= 0) this.push(c);
 		this.push(this.n + this.g.ends[2 * e]);
 		this.push(this.n + this.g.ends[2 * e + 1]);
-		return true;
 	}
 
 	/** Applies the rules until nothing changes; false on a contradiction. */
@@ -169,7 +165,7 @@ export class LoopSolver {
 		const fill = lines === clue ? CROSS : lines + open === clue ? LINE : OPEN;
 		if (fill === OPEN) return true;
 		for (let k = 4 * c; k < 4 * c + 4; k++) {
-			if (v[edges[k]] === OPEN && !this.set(v, edges[k], fill)) return false;
+			if (v[edges[k]] === OPEN) this.set(v, edges[k], fill);
 		}
 		return true;
 	}
@@ -193,11 +189,11 @@ export class LoopSolver {
 		if (lines === 2) {
 			for (let k = 4 * d; k < 4 * d + 4; k++) {
 				const e = edges[k];
-				if (e >= 0 && v[e] === OPEN && !this.set(v, e, CROSS)) return false;
+				if (e >= 0 && v[e] === OPEN) this.set(v, e, CROSS);
 			}
 			return true;
 		}
-		if (open === 1) return this.set(v, last, lines === 1 ? LINE : CROSS);
+		if (open === 1) this.set(v, last, lines === 1 ? LINE : CROSS);
 		return true;
 	}
 
@@ -248,7 +244,7 @@ export class LoopSolver {
 			if (pieceLines[root] === 0 || root !== find(ends[2 * e + 1])) continue;
 			// Both ends of one path: the edge closes it. Only the whole solution may close.
 			if (pieceLines[root] === lines && this.closesSolution(v, e)) continue;
-			if (!this.set(v, e, CROSS)) return null;
+			this.set(v, e, CROSS);
 			changed = true;
 		}
 		return changed;
