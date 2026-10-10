@@ -16,6 +16,9 @@ test('Loop is marked as early access on the home page and in its menu', async ({
 		.getByRole('listitem')
 		.filter({ has: page.getByRole('heading', { name: 'Loop' }) });
 	await expect(card.getByText('Early access')).toBeVisible();
+	// Its daily puzzle is not out yet.
+	await expect(card.getByText('Daily puzzle waiting')).toHaveCount(0);
+	await expect(card.getByRole('link', { name: 'Play' })).toBeVisible();
 	await page.goto('/loop');
 	await expect(page.getByRole('heading', { name: /Loop/ }).getByText('Early access')).toBeVisible();
 });

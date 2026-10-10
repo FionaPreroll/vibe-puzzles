@@ -13,7 +13,7 @@
 	import type { SavedGame } from '#lib/client/session.svelte.ts';
 	import { currentPeriodStreak, getStats } from '#lib/client/stats.ts';
 	import { load } from '#lib/client/storage.ts';
-	import { periodKey } from '#lib/core/variants.ts';
+	import { isPlayable, periodKey } from '#lib/core/variants.ts';
 	import { GAMES } from '#lib/games/index.ts';
 	import { tutorialDoneKey, tutorialsOf, type TutorialRef } from '#lib/games/tutorials.ts';
 	import { nextDailyText, t, variantLabel } from '#lib/i18n/index.svelte.ts';
@@ -53,8 +53,9 @@
 		return () => clearInterval(tick);
 	});
 
+	/** The game's daily type, unless it is only announced. */
 	const dailyKey = (game: (typeof GAMES)[number]) =>
-		game.variants.find((v) => v.special === 'daily')?.key;
+		game.variants.find((v) => v.special === 'daily' && isPlayable(v))?.key;
 
 	const gameUrl = (id: string, variant?: string) =>
 		`${resolve('/[game]', { game: id })}${variant ? `?v=${variant}` : ''}`;

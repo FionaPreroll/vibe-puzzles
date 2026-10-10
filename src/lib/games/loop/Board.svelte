@@ -50,7 +50,7 @@
 
 	const w = $derived(puzzle.width);
 	const h = $derived(puzzle.height);
-	const pad = $derived(boardPad(cellSize, settings.showCoordinates && !blank, cellSize * 0.25));
+	const pad = $derived(boardPad(cellSize, settings.showCoordinates && !blank, cellSize * 0.2));
 	const width = $derived(w * cellSize + 2 * pad);
 	const height = $derived(h * cellSize + 2 * pad);
 	const errorColour = $derived(settings.blueErrors ? colours.blueErrorCell : colours.errorCell);
