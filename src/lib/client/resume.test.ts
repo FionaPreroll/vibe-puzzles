@@ -72,6 +72,7 @@ describe('the game to continue', () => {
 		save('save:pinwheel:99n', game('99n', { updatedAt: 9 }));
 		save('save:pinwheel:5n', game('5n', { puzzle: null }));
 		save('save:pinwheel:7n', game('7n', { puzzle: puzzleOf('5n') }));
+		save('save:pinwheel', game('5n', { updatedAt: 9 }));
 		expect(latestUnfinished(NOW)).toBeNull();
 	});
 });
