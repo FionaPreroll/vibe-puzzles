@@ -8,6 +8,7 @@ import {
 	specialSeed,
 	SPECIAL_RETENTION_DAYS
 } from '../core/variants';
+import { GAMES } from '../games';
 import { GAME_LOGIC } from '../games/logic';
 import { sudoku } from '../games/sudoku';
 import { tetroid } from '../games/tetroid';
@@ -659,6 +660,73 @@ describe('hints', () => {
 		s.showHint();
 		await s.newPuzzle();
 		expect(s.hinted).toBe(false);
+	});
+});
+
+describe('a setting that counts as a hint', () => {
+	const info = withCommon([{ key: 'reveal', label: 'Reveal', default: false, countsAsHint: true }]);
+
+	async function assisting(on = false): Promise<[Session, GameSettings]> {
+		const settings = new GameSettings('tetroid', info);
+		settings.values.reveal = on;
+		const s = new GameSession(game, settings);
+		await s.open('6n', { puzzleId: ID });
+		return [s, settings];
+	}
+
+	it('counts once when turned on during a game, and stays counted when turned off', async () => {
+		const [s, settings] = await assisting();
+		s.noteAssist();
+		expect(s.hinted).toBe(false);
+		settings.values.reveal = true;
+		expect(s.assistOn).toBe(true);
+		s.noteAssist();
+		s.noteAssist();
+		expect(s.hints).toBe(1);
+		settings.values.reveal = false;
+		s.noteAssist();
+		expect(s.hints).toBe(1);
+
+		// The save keeps it, and turning it on again in the same game counts nothing more.
+		const [again] = await assisting(true);
+		again.noteAssist();
+		expect(again.hints).toBe(1);
+	});
+
+	it('counts at the start of every game it is on for', async () => {
+		const [s] = await assisting(true);
+		s.noteAssist();
+		expect(s.hints).toBe(1);
+		await s.newPuzzle();
+		expect(s.hints).toBe(0);
+		s.noteAssist();
+		expect(s.hints).toBe(1);
+	});
+
+	it('keeps the solve out of the best time and the ranking', async () => {
+		const [s] = await assisting(true);
+		s.noteAssist();
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		expect(api.submitScore).toHaveBeenCalledWith(expect.objectContaining({ hinted: true }));
+		expect(getStats('tetroid', '6n').bestMs).toBeNull();
+	});
+
+	it('does not count once the puzzle is solved', async () => {
+		const [s, settings] = await assisting();
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		settings.values.reveal = true;
+		s.noteAssist();
+		expect(s.hinted).toBe(false);
+		expect(getStats('tetroid', '6n').bestMs).not.toBeNull();
+	});
+
+	it('is only painting wrong digits red in Sudoku and Calcudoku', () => {
+		const flagged = GAMES.flatMap((g) =>
+			g.settings.filter((s) => s.countsAsHint).map((s) => `${g.id}.${s.key}`)
+		);
+		expect(flagged).toEqual(['sudoku.markMistakes']);
 	});
 });
 

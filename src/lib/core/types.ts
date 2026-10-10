@@ -20,6 +20,8 @@ export interface SettingInfo {
 	requires?: { key: string; value: boolean };
 	/** Stays on this device even when settings sync. */
 	deviceOnly?: boolean;
+	/** Helps with knowledge of the solution: turning it on during a game counts as a hint. */
+	countsAsHint?: boolean;
 }
 
 export type Settings = Record<string, boolean>;

@@ -165,3 +165,44 @@ test('turning hints off mid-game hides the hint, and sharing tells how many were
 	const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
 	expect(shared.text).toContain(', with 1 hint. Can you do it without?');
 });
+
+test('painting wrong digits red counts as a hint, and the settings say so', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		Object.defineProperty(navigator, 'share', {
+			value: async (data: ShareData) => {
+				(window as unknown as { shared: ShareData }).shared = data;
+			}
+		});
+	});
+	// Calcudoku 5×5 Easy #513322150 from the bundled collection, and its only solution.
+	await page.goto('/sudoku?v=c5e&id=513322150');
+	const solution = '1254321354452315341234125';
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+
+	await page.getByRole('button', { name: 'Settings' }).click();
+	const setting = page.getByRole('checkbox', { name: 'Paint wrong digits red' });
+	await expect(setting).toHaveAccessibleDescription(/^Counts as a hint/);
+	// Other settings carry no such note.
+	await expect(
+		page.getByRole('checkbox', { name: 'Highlight errors' })
+	).toHaveAccessibleDescription('');
+	await setting.check();
+	await page.keyboard.press('Escape');
+
+	const box = (await board.boundingBox())!;
+	const cell = (box.width - 6) / 5;
+	for (const [i, d] of [...solution].entries()) {
+		await page.mouse.click(
+			box.x + 3 + ((i % 5) + 0.5) * cell,
+			box.y + 3 + (Math.floor(i / 5) + 0.5) * cell
+		);
+		await page.keyboard.press(d);
+	}
+	await page.getByRole('button', { name: 'Share success' }).click();
+	const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
+	expect(shared.text).toContain(', with 1 hint. Can you do it without?');
+});

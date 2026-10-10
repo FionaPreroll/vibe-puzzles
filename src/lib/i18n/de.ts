@@ -95,6 +95,8 @@ const de: Dictionary = {
 		hintTitle:
 			'Tipp (H): zeigt den nächsten Schritt. Danach zählt das Rätsel nicht für Bestzeit und Rangliste.',
 		hintMistake: 'Die markierten Einträge passen nicht zur Lösung.',
+		countsAsHint:
+			'Zählt als Tipp: keine Bestzeit und keine Rangliste für ein Rätsel, bei dem es an war.',
 		tools: 'Werkzeuge',
 		colour: 'Farbe {name}',
 		touch: 'Touch-Bedienung',

@@ -37,6 +37,8 @@ export interface SavedGame<S = unknown> {
 	hinted?: boolean;
 	/** How many hints were shown. */
 	hints?: number;
+	/** A setting that counts as a hint was on during the game; it is one of `hints`. */
+	assisted?: boolean;
 }
 
 export interface Message {
@@ -74,6 +76,8 @@ export class GameSession<P = unknown, S = unknown> {
 	hint = $state.raw<Hint | null>(null);
 	/** How many hints were shown for this puzzle. */
 	hints = $state(0);
+	/** A setting that counts as a hint was on during this game (counted once in `hints`). */
+	private assisted = false;
 	loading = $state(true);
 	message = $state<Message | null>(null);
 
@@ -252,6 +256,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.lastChange = new Set();
 		this.hint = null;
 		this.hints = 0;
+		this.assisted = false;
 		this.solved = false;
 		this.manualPause = false;
 		this.startedAt = startedAt;
@@ -321,6 +326,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.lastChange = new Set();
 		this.hint = null;
 		this.hints = s.hints ?? (s.hinted ? 1 : 0);
+		this.assisted = !!s.assisted;
 		this.solved = false;
 		this.manualPause = false;
 		this.startedAt = s.startedAt;
@@ -343,6 +349,7 @@ export class GameSession<P = unknown, S = unknown> {
 		this.lastChange = new Set();
 		this.hint = null;
 		this.hints = 0;
+		this.assisted = false;
 		this.solved = false;
 	}
 
@@ -503,6 +510,23 @@ export class GameSession<P = unknown, S = unknown> {
 			kind: hint.kind === 'mistake' ? 'error' : 'info',
 			text: hint.text.map((key) => t(key, hint.params)).join(' ')
 		};
+		this.persist();
+	}
+
+	/** Whether a setting that counts as a hint is on, such as painting wrong digits red. */
+	get assistOn(): boolean {
+		return this.settings.info.some((s) => s.countsAsHint && this.settings.values[s.key]);
+	}
+
+	/**
+	 * Count a setting that counts as a hint, once per game: when the game starts with it on, or
+	 * when it is turned on before the puzzle is solved. Called by the page whenever either changes.
+	 */
+	noteAssist() {
+		if (this.assisted || !this.assistOn || this.loading || this.solved) return;
+		if (!this.puzzle || !this.state) return;
+		this.assisted = true;
+		this.hints++;
 		this.persist();
 	}
 
@@ -727,7 +751,8 @@ export class GameSession<P = unknown, S = unknown> {
 			playMs: this.playMs + running,
 			updatedAt: this.changedAt,
 			...(this.ticket ? { ticket: this.ticket } : {}),
-			...(this.hints ? { hinted: true, hints: this.hints } : {})
+			...(this.hints ? { hinted: true, hints: this.hints } : {}),
+			...(this.assisted ? { assisted: true } : {})
 		};
 		save(this.saveKey, data);
 		if (this.pushTimer) clearTimeout(this.pushTimer);

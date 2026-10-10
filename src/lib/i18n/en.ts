@@ -93,6 +93,7 @@ const en = {
 		hint: 'Hint',
 		hintTitle: 'Hint (H): point at the next step. The puzzle then gets no best time and no rank.',
 		hintMistake: 'The highlighted marks do not match the solution.',
+		countsAsHint: 'Counts as a hint: no best time and no rank for a puzzle played with it on.',
 		tools: 'Tools',
 		colour: 'Colour {name}',
 		touch: 'Touch input',
