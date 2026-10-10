@@ -23,6 +23,12 @@ describe('assetCollection', () => {
 		expect(await collection.index('g', 'missing')).toBeNull();
 	});
 
+	it('knows the size of every deployed type without loading an index', () => {
+		const collection = assetCollection(assets() as never);
+		expect(collection.size('tetroid', '6n')).toBeGreaterThan(0);
+		expect(collection.size('tetroid', 'daily')).toBe(0);
+	});
+
 	it('starts over for other assets and tries a failed file again', async () => {
 		const fetch = vi
 			.fn()

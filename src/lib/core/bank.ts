@@ -7,8 +7,10 @@ import { encodePuzzleId, periodKey, specialSeed, type SpecialKind } from './vari
  *
  * A regular type is split into chunks of CHUNK_SIZE puzzles (`0000.json`, `0001.json`, …) in the
  * order they were added, plus an `index.json` with the IDs of each chunk. New puzzles fill the
- * last chunk, so full chunks never change. Picking or looking up a puzzle loads the index and one
- * chunk instead of the whole type.
+ * last chunk, so full chunks never change. `puzzles/sizes.json` holds the number of puzzles of
+ * every regular type and ships with the code, so a random pick loads one chunk and no index;
+ * opening a puzzle by its ID loads the index and one chunk. A regular type grows up to
+ * MAX_PER_TYPE puzzles.
  *
  * Special types (daily, weekly, monthly) hold the puzzle of each period ahead of time, tagged
  * with its period key, in one file per month (daily) or year (weekly, monthly), e.g.
@@ -16,6 +18,13 @@ import { encodePuzzleId, periodKey, specialSeed, type SpecialKind } from './vari
  */
 
 export const CHUNK_SIZE = 100;
+
+/**
+ * The most puzzles a regular type holds; the collection stops growing a type there. This bounds
+ * its index (about 25 KB compressed). A puzzle ID is a seed, so a puzzle beyond the cap is still
+ * generated on the device.
+ */
+export const MAX_PER_TYPE = 5000;
 
 export interface BankEntry<P = unknown> {
 	id: number;
@@ -40,7 +49,11 @@ export interface BankIndex {
 	chunks: number[][];
 }
 
+/** The number of puzzles of each regular type, by game and type key. */
+export type BankSizes = Record<string, Record<string, number>>;
+
 const dir = (game: string, variant: string) => `puzzles/${game}/${variant}`;
+export const sizesPath = 'puzzles/sizes.json';
 export const indexPath = (game: string, variant: string) => `${dir(game, variant)}/index.json`;
 export const chunkPath = (game: string, variant: string, chunk: number) =>
 	`${dir(game, variant)}/${String(chunk).padStart(4, '0')}.json`;
@@ -81,6 +94,16 @@ export function layoutType(
 	return files;
 }
 
+/** The sizes of the regular types whose index is among `files`. */
+export function sizesOf(files: Iterable<BankFile | BankIndex>): BankSizes {
+	const sizes: BankSizes = {};
+	for (const file of files) {
+		if (!('chunks' in file)) continue;
+		(sizes[file.game] ??= {})[file.variant] = file.chunks.reduce((n, ids) => n + ids.length, 0);
+	}
+	return sizes;
+}
+
 /** File text with one puzzle (or one chunk of IDs) per line, so diffs stay small. */
 export function serialize(file: BankFile | BankIndex): string {
 	const { version, game, variant } = file;
@@ -103,6 +126,7 @@ export class Collection {
 
 	constructor(
 		private readonly read: ReadFile,
+		private readonly sizes: BankSizes,
 		private readonly keep = 16
 	) {}
 
@@ -129,17 +153,37 @@ export class Collection {
 		return (await this.file<BankFile<P>>(chunkPath(game, variant, chunk)))?.puzzles ?? [];
 	}
 
-	/** A random puzzle of a regular type that `skip` does not rule out, or null. */
+	/** How many puzzles a regular type holds. */
+	size(game: string, variant: string): number {
+		return this.sizes[game]?.[variant] ?? 0;
+	}
+
+	/**
+	 * A random puzzle of a regular type that `skip` does not rule out, or null. Loads no index:
+	 * the chunk of a random position comes first, so every puzzle is as likely to be picked; if
+	 * `skip` rules out all of its puzzles, the other chunks follow in random order.
+	 */
 	async pick<P>(
 		game: string,
 		variant: string,
 		skip: (id: number) => boolean = () => false,
 		random: () => number = Math.random
 	): Promise<BankEntry<P> | null> {
-		const index = await this.index(game, variant);
-		const ids = index?.chunks.flat().filter((id) => !skip(id)) ?? [];
-		if (!ids.length) return null;
-		return this.find<P>(game, variant, ids[Math.floor(random() * ids.length)]);
+		const size = this.size(game, variant);
+		if (!size) return null;
+		const first = Math.floor(Math.floor(random() * size) / CHUNK_SIZE);
+		const others = Array.from({ length: Math.ceil(size / CHUNK_SIZE) }, (_, k) => k).filter(
+			(k) => k !== first
+		);
+		for (let k = others.length - 1; k > 0; k--) {
+			const j = Math.floor(random() * (k + 1));
+			[others[k], others[j]] = [others[j], others[k]];
+		}
+		for (const chunk of [first, ...others]) {
+			const open = (await this.chunk<P>(game, variant, chunk)).filter((p) => !skip(p.id));
+			if (open.length) return open[Math.floor(random() * open.length)];
+		}
+		return null;
 	}
 
 	/** The puzzle of a regular type with this ID, or null. */

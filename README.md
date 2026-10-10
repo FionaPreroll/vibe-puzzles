@@ -83,7 +83,10 @@ docs/                    technical documentation (generators.md: how puzzles and
 
 `static/puzzles/<game>/<type>/` holds pre-generated puzzles with their IDs; `scripts/collection.ts` reads and writes this layout.
 
-- A regular type is split into chunks of 100 puzzles (`0000.json`, `0001.json`, …) in the order they were added, with an `index.json` listing the IDs of each chunk. New puzzles fill the last chunk, so full chunks never change, and opening a puzzle loads only the index and one chunk.
+- A regular type is split into chunks of 100 puzzles (`0000.json`, `0001.json`, …) in the order they were added, with an `index.json` listing the IDs of each chunk. New puzzles fill the last chunk, so full chunks never change.
+- `puzzles/sizes.json` holds the number of puzzles of every regular type. The app and the server bundle it at build time, so a random pick loads one chunk and no index: it takes a puzzle from that chunk that the device (or, on the server, the player) has not had yet, and tries another chunk if every one in it was played. Opening a puzzle by its ID (links, history) loads the index and one chunk, or generates the puzzle on the device when the ID is not in the collection.
+- A regular type holds at most 5000 puzzles (`MAX_PER_TYPE` in `src/lib/core/bank.ts`), which bounds its index at about 50 KB (25 KB compressed). Daily, weekly and monthly types have no cap; the calendar bounds them. A puzzle ID is a seed, so nothing is lost at the cap: other puzzles are generated on the device.
+- A device remembers every collection puzzle it played, up to the cap of 5000 per type (about 55 KB in the browser's storage at most), so it sees no puzzle twice until it has played all of a type; then it generates new ones on the device.
 - Special types keep one file per month (daily) or year (weekly, monthly), e.g. `daily/2026-10.json`.
 
 The collection also saves generating time when a puzzle is opened by an ID it contains.
@@ -93,7 +96,7 @@ The collection also saves generating time when a puzzle is opened by an ID it co
 The `Grow puzzle collection` workflow runs every Monday, or by hand with the number of new puzzles per type and a time limit.
 
 1. It stores the special puzzles of the coming periods first.
-2. Then it adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. Each puzzle is checked for a unique solution and for its type's difficulty before it is stored; a seed that fails is skipped, which changes no ID.
+2. Then it adds puzzles with fresh random seeds to every type in turns, so a time limit still leaves each type with new puzzles. A type at the cap of 5000 gets none; its turns go to the others. The run ends by updating `puzzles/sizes.json`. Each puzzle is checked for a unique solution and for its type's difficulty before it is stored; a seed that fails is skipped, which changes no ID.
 3. It proposes the new puzzles in a pull request against `main` from the branch `feature/grow_puzzle_collection`. While that pull request is open, later runs add to it, and it merges itself once CI passes (auto-merge).
 
 The unit tests check every stored puzzle again (valid, one solution, the difficulty of its type): on `main` all of them, in a pull request only the collection files it changes, unless it changes the game logic (`src/lib/games`, `src/lib/core`). Locally, `BANK_TEST_SINCE=origin/main pnpm test` does the same. Special puzzles of periods before `DIFFICULTY_CHECKED_FROM` (`scripts/collection.ts`) are exempt from the difficulty check: they were stored before the generators were fixed and may have been played. `pnpm bank:regrade` replaces puzzles that miss their difficulty with new ones in their place, for example after a generator change (see [docs/generators.md](docs/generators.md#changing-a-generator)).
