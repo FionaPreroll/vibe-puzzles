@@ -88,7 +88,8 @@
 <header
 	class="relative z-20 border-b border-stone-200 bg-white/80 backdrop-blur dark:border-stone-800 dark:bg-stone-900/80"
 >
-	<div class="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3 sm:gap-4">
+	<!-- Tight gaps on phones, so the connection button fits next to the menu -->
+	<div class="mx-auto flex max-w-7xl items-center gap-0.5 px-4 py-3 sm:gap-4">
 		<a
 			href={resolve('/')}
 			class="flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight whitespace-nowrap"
@@ -97,12 +98,12 @@
 			<HalloweenLogo class="halloween-only size-6" />
 			<span class="font-display hidden sm:inline">{t('app.name')}</span>
 		</a>
-		<nav class="flex min-w-0 gap-0.5 text-sm sm:gap-1" aria-label="Main">
+		<nav class="flex min-w-0 text-sm sm:gap-1" aria-label="Main">
 			{#each nav as item (item.href)}
 				{@const active = item.match(page.url.pathname)}
 				<a
 					href={item.href}
-					class="rounded-md px-2 py-1 whitespace-nowrap hover:bg-stone-100 sm:px-2.5 dark:hover:bg-stone-800 {active
+					class="rounded-md px-1.5 py-1 whitespace-nowrap hover:bg-stone-100 sm:px-2.5 dark:hover:bg-stone-800 {active
 						? 'font-semibold'
 						: ''}"
 					aria-current={active ? 'page' : undefined}>{item.label}</a
@@ -124,7 +125,7 @@
 		{/if}
 		<ConnectionMenu class="{install ? 'sm:ml-0' : ''} ml-auto" />
 		<select
-			class="rounded-md bg-transparent px-1 py-1 text-sm text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+			class="rounded-md bg-transparent px-0.5 py-1 text-sm text-stone-600 hover:bg-stone-100 sm:px-1 dark:text-stone-300 dark:hover:bg-stone-800"
 			aria-label={t('app.language')}
 			value={i18n.locale}
 			onchange={(e) => setLocale(e.currentTarget.value as Locale)}
@@ -133,7 +134,7 @@
 				>{/each}
 		</select>
 		<button
-			class="btn-icon shrink-0"
+			class="btn-icon size-7 shrink-0 sm:size-8"
 			aria-label={theme.night ? t('nav.dayMode') : t('nav.nightMode')}
 			title={theme.night ? t('nav.dayMode') : t('nav.nightMode')}
 			onclick={() => setNight(!theme.night)}>{theme.night ? '☀︎' : '☾'}</button

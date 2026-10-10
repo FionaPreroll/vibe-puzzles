@@ -85,7 +85,7 @@
 
 <div class="relative shrink-0 {className}" bind:this={box}>
 	<button
-		class="btn-icon w-auto gap-1 px-1.5"
+		class="btn-icon w-auto gap-1 px-0.5 sm:px-1.5"
 		aria-label={label}
 		title={label}
 		aria-expanded={open}
@@ -112,8 +112,9 @@
 			{/if}
 		</span>
 		{#if short}<span class="hidden text-xs tabular-nums sm:inline">{short}</span>{/if}
-		{#if net.pending && server}<span class="text-xs tabular-nums" aria-hidden="true"
-				>↑{net.pending}</span
+		{#if net.pending && server}<span
+				class="hidden text-xs tabular-nums sm:inline"
+				aria-hidden="true">↑{net.pending}</span
 			>{/if}
 	</button>
 	{#if open}

@@ -1,3 +1,4 @@
+import { pendingCount } from './outbox';
 import { load, save } from './storage';
 import { KEY } from './storageKeys';
 
@@ -26,8 +27,8 @@ export const net = $state({
 	lastContact: null as number | null,
 	/** When "Sync now" last went through. */
 	lastSync: null as number | null,
-	/** Uploads waiting in the outbox. */
-	pending: 0,
+	/** Uploads waiting in the outbox, also from before a reload. */
+	pending: pendingCount(),
 	/** "Sync now" is running. */
 	syncing: false
 });
