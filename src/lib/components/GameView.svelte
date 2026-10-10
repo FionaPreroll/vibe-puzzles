@@ -889,20 +889,29 @@
 					</button>
 				{/if}
 			{/if}
-			<!-- In the top bar on wide screens, so a message never pushes the board down -->
+			<!-- In the top bar on wide screens, so a message never pushes the board down: centred in
+			     the space between the clock and the icons, and out of the flow, so that a message on two
+			     or three lines reaches into the room above and below rather than making the bar taller -->
 			{#if session.message && wide}
-				<p class="ml-2 min-w-0 rounded-full px-3 py-1 text-sm {messageClass(session.message.kind)}">
-					{session.message.text}
-					{#if teaser}
-						<button class="ml-1 font-semibold underline" onclick={() => session.showHint()}
-							>{t('game.hintShow')}</button
-						>
-					{/if}
-				</p>
+				<div class="relative ml-2 min-w-0 flex-1 self-stretch">
+					<p
+						class="absolute inset-x-0 top-1/2 z-20 mx-auto w-fit max-w-full -translate-y-1/2 rounded-xl px-3 py-1.5 text-center text-xs leading-4 {messageClass(
+							session.message.kind
+						)}"
+					>
+						{session.message.text}
+						{#if teaser}
+							<button class="ml-1 font-semibold underline" onclick={() => session.showHint()}
+								>{t('game.hintShow')}</button
+							>
+						{/if}
+					</p>
+				</div>
+			{:else}
+				<span class="hidden flex-1 lg:block"></span>
 			{/if}
 			<!-- Always in the page: screen readers miss live regions added together with their text -->
 			<p class="sr-only" role="status">{session.message?.text ?? ''}</p>
-			<span class="hidden flex-1 lg:block"></span>
 			<div class="relative -mr-1.5" bind:this={zoomBox}>
 				<button
 					class="btn-icon size-11 lg:size-10"
@@ -1166,13 +1175,14 @@
 				</div>
 			{/if}
 
-			<!-- The puzzle's ID, then at most three buttons: one stands out only when it is the way
-			     on ("Done" without automatic submitting, "Share success" once solved) -->
+			<!-- The puzzle's ID on a line of its own, then at most three buttons: one stands out only when
+			     it is the way on ("Done" without automatic submitting, "Share success" once solved). On
+			     one line, the buttons that come with solving would wrap them and shrink the board. -->
 			<div
-				class="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-3 lg:mt-4 lg:justify-between"
+				class="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-3 lg:mt-4 lg:justify-start"
 			>
 				<p
-					class="w-full text-center text-xs text-stone-500 lg:w-auto lg:text-left lg:text-sm dark:text-stone-400"
+					class="w-full text-center text-xs text-stone-500 lg:text-left lg:text-sm dark:text-stone-400"
 				>
 					{t('game.puzzleId')}:
 					{#if session.puzzleId}
