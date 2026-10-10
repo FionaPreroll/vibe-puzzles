@@ -260,3 +260,36 @@ test('picking the digit first: the pad arms a digit, left click enters it, right
 	await page.mouse.click(p.x, p.y);
 	await expect(board.locator(`text[data-cell="${a}"]`)).toHaveCount(0);
 });
+
+test('Space switches between digits and notes in Sudoku and Calcudoku, and the help lists it', async ({
+	page
+}) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
+	const digit = page.getByRole('button', { name: 'Digit', exact: true });
+	const note = page.getByRole('button', { name: 'Note', exact: true });
+	for (const variant of ['9e', 'c5e']) {
+		await page.goto(`/sudoku?v=${variant}`);
+		// The board takes keys once it shows the puzzle.
+		const board = page.getByRole('grid', { name: 'Puzzle board' });
+		await expect(board.locator('text').first()).toBeVisible({ timeout: 30_000 });
+		await expect(digit).toHaveAttribute('aria-pressed', 'true');
+		// No cell needs to be selected.
+		await page.keyboard.press('Space');
+		await expect(note, variant).toHaveAttribute('aria-pressed', 'true');
+		await page.keyboard.press('Space');
+		await expect(digit, variant).toHaveAttribute('aria-pressed', 'true');
+	}
+
+	// A focused button keeps Space: it presses the button instead.
+	await note.focus();
+	await page.keyboard.press('Space');
+	await expect(note).toHaveAttribute('aria-pressed', 'true');
+	await page.keyboard.press('Space');
+	await expect(note).toHaveAttribute('aria-pressed', 'true');
+
+	await page.locator('body').focus();
+	await page.keyboard.press('?');
+	const help = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+	await expect(help.locator('dt', { hasText: 'Space' })).toBeVisible();
+	await expect(help.getByText('Switch between Digit and Note')).toBeVisible();
+});

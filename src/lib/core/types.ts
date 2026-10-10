@@ -126,6 +126,8 @@ export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	name: string;
 	tools: ToolInfo[];
 	defaultTool(touch: boolean): string;
+	/** Two tools that Space switches between (the board handles the key), e.g. digit and note. */
+	spaceSwitches?: [string, string];
 	/** Optional per-tool options (e.g. colours), selected with extra keys. */
 	toolOptions?: { tool: string; values: ToolOption[]; default: number };
 	settings: SettingInfo[];

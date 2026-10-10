@@ -144,6 +144,8 @@ const en = {
 		save: 'Save checkpoint',
 		add: 'Add a checkpoint',
 		colourTool: 'Colour tool and back',
+		space: 'Space',
+		switchTools: 'Switch between {a} and {b}',
 		escape: 'Close a menu or the zoom',
 		help: 'This list',
 		tools: 'Tools',

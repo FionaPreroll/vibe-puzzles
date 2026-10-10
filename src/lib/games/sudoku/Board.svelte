@@ -229,6 +229,15 @@
 			}
 			return;
 		}
+		// Space switches between digits and notes, with or without a selected cell. A focused
+		// button or link keeps Space for itself.
+		if (e.key === ' ') {
+			const tag = (e.target as HTMLElement | null)?.tagName;
+			if (!ontool || tag === 'BUTTON' || tag === 'A') return;
+			e.preventDefault();
+			ontool(tool === 'note' ? 'digit' : 'note');
+			return;
+		}
 		if (selected < 0) return;
 		// Digit keys by their code, so that Shift+digit (a note) works on every keyboard layout.
 		const m = /^(?:Digit|Numpad)(\d)$/.exec(e.code);
@@ -239,9 +248,6 @@
 		} else if (d === 0 || e.key === 'Backspace' || e.key === 'Delete') {
 			e.preventDefault();
 			enter(0, false);
-		} else if (e.key === ' ') {
-			e.preventDefault();
-			ontool?.(tool === 'note' ? 'digit' : 'note');
 		} else if (e.key === 'Escape') {
 			selected = -1;
 			armed = null;

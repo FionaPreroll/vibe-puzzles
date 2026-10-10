@@ -205,7 +205,7 @@ test('Space switches between digits and notes in the Sudoku tutorial, as its tex
 	const digit = page.getByRole('button', { name: 'Digit' });
 	const note = page.getByRole('button', { name: 'Note' });
 	await expect(digit).toHaveAttribute('aria-pressed', 'true');
-	// Select a cell, as the board only takes keys with a cell selected.
+	// With a cell selected, as a player would have one while entering digits.
 	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
 	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 	await page.keyboard.press('Space');

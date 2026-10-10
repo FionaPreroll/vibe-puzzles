@@ -16,6 +16,7 @@ export const sudoku: GameModule<SudokuPuzzle, SudokuState> = {
 		{ id: 'digit', label: 'Digit', icon: '9', key: 'v' },
 		{ id: 'note', label: 'Note', icon: '✎', key: 'n' }
 	],
+	spaceSwitches: ['digit', 'note'],
 	defaultTool: () => 'digit',
 	settings: withCommon([
 		{
