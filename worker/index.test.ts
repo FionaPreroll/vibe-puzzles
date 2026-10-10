@@ -37,4 +37,27 @@ describe('worker', () => {
 		const res = await call('https://example.test/api/health', env('true'));
 		expect(await res.json()).toEqual({ ok: true, serverPuzzles: true });
 	});
+
+	it('deletes old tickets on the daily schedule, and waits for it', async () => {
+		const sql: string[] = [];
+		const DB = {
+			prepare: (query: string) => {
+				sql.push(query);
+				return { bind: () => ({ run: async () => ({ meta: { changes: 3 } }) }) };
+			}
+		};
+		const waiting: Promise<unknown>[] = [];
+		const ctx = { waitUntil: (p: Promise<unknown>) => waiting.push(p) };
+		const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+		await worker.scheduled(
+			{} as ScheduledController,
+			{ ...env(), DB } as unknown as Env,
+			ctx as unknown as ExecutionContext
+		);
+		expect(waiting).toHaveLength(1);
+		await Promise.all(waiting);
+		expect(sql).toEqual([expect.stringMatching(/^DELETE FROM tickets/)]);
+		expect(log).toHaveBeenCalledWith('Deleted 3 old tickets');
+		log.mockRestore();
+	});
 });
