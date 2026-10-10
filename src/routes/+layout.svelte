@@ -142,10 +142,11 @@
 		<a class="hover:underline" href={resolve('/about')}>{t('about.link')}</a>
 		· v{__BUILD__.version} ({__BUILD__.commit.slice(0, 7)})
 	</span>
+	<!-- One line, as tall as the text: the board's fitted size leaves room for the footer -->
 	<label class="flex items-center gap-1">
-		{t('look.label')}
+		<span class="sr-only sm:not-sr-only">{t('look.label')}</span>
 		<select
-			class="rounded-md bg-transparent px-1 py-1 hover:bg-stone-100 dark:hover:bg-stone-800"
+			class="h-4 rounded-md bg-transparent px-1 leading-4 hover:bg-stone-100 dark:hover:bg-stone-800"
 			value={theme.lookChoice}
 			onchange={(e) => setLook(e.currentTarget.value as LookChoice)}
 		>

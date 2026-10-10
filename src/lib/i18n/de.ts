@@ -54,7 +54,7 @@ const de: Dictionary = {
 	},
 	look: {
 		label: 'Design',
-		auto: 'Automatisch ({look})',
+		auto: '{look} (automatisch)',
 		classic: 'Klassisch',
 		halloween: 'Halloween',
 		tagline: 'Süßes oder Rätsel?',

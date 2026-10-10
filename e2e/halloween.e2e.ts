@@ -18,7 +18,7 @@ test('the calendar picks Halloween in October; the player can switch it off and 
 	await page.clock.setFixedTime(OCTOBER);
 	await page.goto('/');
 	await expect(root(page)).toHaveAttribute('data-theme', 'halloween');
-	await expect(themeSelect(page).locator('option:checked')).toHaveText('Automatic (Halloween)');
+	await expect(themeSelect(page).locator('option:checked')).toHaveText('Halloween (automatic)');
 	await expect(page.getByText('Trick or puzzle?')).toBeVisible();
 
 	await themeSelect(page).selectOption('classic');
@@ -37,7 +37,7 @@ test('outside the season the look stays classic unless the player picks Hallowee
 }) => {
 	await page.clock.setFixedTime(MARCH);
 	await page.goto('/');
-	await expect(themeSelect(page).locator('option:checked')).toHaveText('Automatic (Classic)');
+	await expect(themeSelect(page).locator('option:checked')).toHaveText('Classic (automatic)');
 	await expect(root(page)).not.toHaveAttribute('data-theme');
 
 	await themeSelect(page).selectOption('halloween');
@@ -77,6 +77,24 @@ for (const night of [false, true]) {
 		});
 	});
 }
+
+test.describe('on a small phone in German', () => {
+	test.use({ viewport: { width: 360, height: 740 }, locale: 'de-DE' });
+
+	test('the theme switch keeps the footer one line high, so boards keep their size', async ({
+		page
+	}) => {
+		await page.clock.setFixedTime(OCTOBER);
+		await page.goto('/about');
+		const select = page.getByRole('combobox', { name: 'Design' });
+		await expect(select.locator('option:checked')).toHaveText('Halloween (automatisch)');
+		const footer = page.locator('footer');
+		const height = await footer.evaluate(
+			(el) => el.getBoundingClientRect().height - parseFloat(getComputedStyle(el).paddingBottom)
+		);
+		expect(height).toBeLessThanOrEqual(16);
+	});
+});
 
 // Pinwheel 7×7 Normal #1027244002 from the bundled bank and its solution lines, as in
 // galaxy-dots.e2e.ts.

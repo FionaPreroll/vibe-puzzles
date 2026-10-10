@@ -54,7 +54,7 @@ const en = {
 	/** The site's look: the everyday one or a seasonal one. */
 	look: {
 		label: 'Theme',
-		auto: 'Automatic ({look})',
+		auto: '{look} (automatic)',
 		classic: 'Classic',
 		halloween: 'Halloween',
 		/** Above the home page's title in the Halloween look, by day and by night. */
