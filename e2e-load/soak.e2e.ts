@@ -332,10 +332,8 @@ test.describe('soak', () => {
 		});
 		const cdp = await page.context().newCDPSession(page);
 		const report = await detachedReport(cdp, 'test-results/soak-report-check');
-		// The largest detached subtree comes first, with its path from the window.
-		expect(report).toMatch(
-			/nodes:\n {4}Window[^\n]*\n {4}Object ←leakyCache\n {4}<main[^\n]* ←old/
-		);
+		// The path ends in the leak; the roots above it differ between Chromium versions.
+		expect(report).toMatch(/\n {4}Object ←leakyCache\n {4}<main[^\n]* ←old\n/);
 	});
 
 	test(`a desktop session of ${ROUNDS * ROUND} actions stays healthy`, async ({ page }) => {
