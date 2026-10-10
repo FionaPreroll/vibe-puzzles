@@ -448,6 +448,7 @@ describe('solving', () => {
 		[{ ok: true, code: 'personal' }, 'success', 'Personal timer: not ranked.'],
 		[{ ok: true, code: 'local' }, 'success', 'only puzzles from the server are ranked'],
 		[{ ok: true, code: 'hinted' }, 'success', 'with a hint: not ranked'],
+		[{ ok: true, code: 'expired' }, 'success', 'no longer keeps this old puzzle'],
 		[{ ok: true, code: 'ranked', rank: 1, total: 1 }, 'success', 'Rank 1 of 1'],
 		[{ ok: true, message: 'From the server' }, 'success', 'From the server']
 	] as const)('shows the server answer %o', async (res, kind, text) => {
@@ -457,6 +458,40 @@ describe('solving', () => {
 		await s.submit();
 		expect(s.message).toEqual({ kind, text: expect.stringContaining(text) });
 	});
+
+	it.each([true, false])(
+		'accepts a solution the game takes as an alternative (autoSubmit %s)',
+		async (autoSubmit) => {
+			// A game that also takes the solution with its first shaded cell left out, and fills it in.
+			const first = solution.indexOf(1);
+			const almost = solvedState();
+			almost.marks[first] = EMPTY;
+			const lenient: GameModule<TetroidPuzzle, TetroidState> = {
+				...game,
+				acceptAlternative: (_p, state) =>
+					JSON.stringify(state.marks) === JSON.stringify(almost.marks) ? solvedState() : null
+			};
+			const settings = new GameSettings('tetroid', withCommon([]));
+			settings.values.autoSubmit = autoSubmit;
+			const s = new GameSession(lenient, settings);
+			await s.open('6n', { puzzleId: ID });
+			s.move(shaded(first), []);
+			await s.submit();
+			expect(s.solved).toBe(false);
+			s.move(almost, []);
+			if (!autoSubmit) {
+				expect(s.solved).toBe(false);
+				await s.submit();
+			}
+			await vi.waitFor(() => expect(s.submitting).toBe(false));
+			expect(s.solved).toBe(true);
+			// The board shows the solution the game made of it, and that is what is submitted.
+			expect(s.state).toEqual(solvedState());
+			expect(api.submitScore).toHaveBeenCalledWith(
+				expect.objectContaining({ answer: solution.join('') })
+			);
+		}
+	);
 
 	it('reveals the ID of a server puzzle once solved', async () => {
 		vi.mocked(api.serverPuzzles).mockResolvedValueOnce(true);
