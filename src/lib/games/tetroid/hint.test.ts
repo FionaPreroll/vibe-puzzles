@@ -99,15 +99,39 @@ describe('tetroid hints', () => {
 			const answer = solveTetroid(puzzle).solutions[0];
 			const last = follow(puzzle, empty(puzzle), (h) => {
 				if (h.kind !== 'step') return;
-				for (const i of h.cells) expect(answer[i]).toBe(h.mark === 'shade' ? 1 : 0);
+				// Something to shade always follows, so no hint asks for crosses along the way.
+				expect(h.mark).toBe('shade');
+				for (const i of h.cells) expect(answer[i]).toBe(1);
 			});
 			expect(last, `${size}×${size} seed ${seed}`).toBeNull();
 		}
 	});
 
+	it('shade before they cross, and leave out the rest of a region the player has shaded', () => {
+		// Regions A and C shaded as in the solution, nothing crossed: their other cells stay empty,
+		// but that tells nothing new, so the hint goes on with cells to shade elsewhere.
+		const state = empty(example);
+		example.regions.forEach((r, i) => {
+			if ((r === 0 || r === 2) && solution[i]) state.marks[i] = SHADED;
+		});
+		const hint = tetroidHint(example, state);
+		expect(hint).toMatchObject({ kind: 'step', mark: 'shade' });
+		if (hint?.kind !== 'step') return;
+		expect(hint.region).not.toBe(0);
+		expect(hint.region).not.toBe(2);
+	});
+
 	it('name the region with the fewest options when hard puzzles need case analysis', () => {
 		const { puzzle } = generateTetroid(6, 6, 'hard', 1);
-		const last = follow(puzzle, empty(puzzle), () => {});
+		const state = empty(puzzle);
+		const last = follow(puzzle, state, (h) => {
+			if (h.kind !== 'step' || h.mark !== 'cross') return;
+			// Crosses come only from a deduction, never just from the player's own shaded cells.
+			const shadedThere = state.marks.some(
+				(m, i) => m === SHADED && puzzle.regions[i] === h.region
+			);
+			expect(h.technique === 'region' && shadedThere).toBe(false);
+		});
 		expect(last?.kind).toBe('stuck');
 		if (last?.kind !== 'stuck') return;
 		expect(last.cells.length).toBeGreaterThan(4);

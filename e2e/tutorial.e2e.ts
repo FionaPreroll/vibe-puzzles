@@ -89,6 +89,11 @@ test('the Tetroid tutorial teaches one rule per step', async ({ page }) => {
 	// Read only, then the free finish: an S on the right and an I at the bottom.
 	await next.click();
 	await expect(page.getByText('Step 5 of 5')).toBeVisible();
+	// The last step has the game's hint: the three cells both options at the bottom cover.
+	const spotlight = page.getByRole('grid', { name: 'Puzzle board' }).locator('g.spotlight > *');
+	await page.getByRole('button', { name: 'Hint' }).click();
+	await expect(page.getByText(/Every tetromino left in this region covers/)).toBeVisible();
+	await expect(spotlight).toHaveCount(3);
 	await page.getByRole('button', { name: 'Black' }).click();
 	for (const i of [9, 13, 14, 18, 20, 21, 22, 23]) await click(i);
 	await expect(page.getByText('Well done!')).toBeVisible();
@@ -200,7 +205,7 @@ test('Space switches between digits and notes in the Sudoku tutorial, as its tex
 	const digit = page.getByRole('button', { name: 'Digit' });
 	const note = page.getByRole('button', { name: 'Note' });
 	await expect(digit).toHaveAttribute('aria-pressed', 'true');
-	// Select a cell, as the board only takes keys with a cell selected.
+	// With a cell selected, as a player would have one while entering digits.
 	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
 	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 	await page.keyboard.press('Space');

@@ -105,3 +105,104 @@ test('the Pinwheel hint points at edges that need a line', async ({ page }) => {
 	await page.keyboard.press('h');
 	await expect(status).toContainText('draw lines there');
 });
+
+test('a setting hides the hint button and its key', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		localStorage.setItem(
+			'vp:settings:tetroid',
+			JSON.stringify({ values: { hideHint: true }, updatedAt: 1 })
+		);
+	});
+	await page.goto(PUZZLE);
+	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Hint' })).toHaveCount(0);
+	await page.keyboard.press('h');
+	await expect(board.locator('g.spotlight > *')).toHaveCount(0);
+	await expect(page.getByRole('status')).toHaveText('');
+});
+
+test('turning hints off mid-game hides the hint, and sharing tells how many were used', async ({
+	page
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		// Catch what "Share success" would hand to the messenger.
+		Object.defineProperty(navigator, 'share', {
+			value: async (data: ShareData) => {
+				(window as unknown as { shared: ShareData }).shared = data;
+			}
+		});
+	});
+	await page.goto(PUZZLE);
+	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	const spotlight = board.locator('g.spotlight > *');
+	await page.getByRole('button', { name: 'Hint' }).click();
+	await expect(spotlight).toHaveCount(2);
+
+	await page.getByRole('button', { name: 'Settings' }).click();
+	await page.getByRole('checkbox', { name: 'Hide the hint button' }).check();
+	await page.keyboard.press('Escape');
+	await expect(spotlight).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Hint' })).toHaveCount(0);
+
+	// Solve it: the hint still counts.
+	const grid = (await board.locator('rect').first().boundingBox())!;
+	const cell = grid.width / 6;
+	for (const [i, c] of [...SOLUTION].entries()) {
+		if (c !== '1') continue;
+		await page.mouse.click(
+			grid.x + ((i % 6) + 0.5) * cell,
+			grid.y + (Math.floor(i / 6) + 0.5) * cell
+		);
+	}
+	await page.getByRole('button', { name: 'Share success' }).click();
+	const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
+	expect(shared.text).toContain(', with 1 hint. Can you do it without?');
+});
+
+test('painting wrong digits red counts as a hint, and the settings say so', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		Object.defineProperty(navigator, 'share', {
+			value: async (data: ShareData) => {
+				(window as unknown as { shared: ShareData }).shared = data;
+			}
+		});
+	});
+	// Calcudoku 5×5 Easy #513322150 from the bundled collection, and its only solution.
+	await page.goto('/sudoku?v=c5e&id=513322150');
+	const solution = '1254321354452315341234125';
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+
+	await page.getByRole('button', { name: 'Settings' }).click();
+	const setting = page.getByRole('checkbox', { name: 'Paint wrong digits red' });
+	await expect(setting).toHaveAccessibleDescription(/^Counts as a hint/);
+	// Other settings carry no such note.
+	await expect(
+		page.getByRole('checkbox', { name: 'Highlight errors' })
+	).toHaveAccessibleDescription('');
+	await setting.check();
+	await page.keyboard.press('Escape');
+
+	const box = (await board.boundingBox())!;
+	const cell = (box.width - 6) / 5;
+	for (const [i, d] of [...solution].entries()) {
+		await page.mouse.click(
+			box.x + 3 + ((i % 5) + 0.5) * cell,
+			box.y + 3 + (Math.floor(i / 5) + 0.5) * cell
+		);
+		await page.keyboard.press(d);
+	}
+	await page.getByRole('button', { name: 'Share success' }).click();
+	const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
+	expect(shared.text).toContain(', with 1 hint. Can you do it without?');
+});

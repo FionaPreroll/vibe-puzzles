@@ -8,6 +8,7 @@ import {
 	specialSeed,
 	SPECIAL_RETENTION_DAYS
 } from '../core/variants';
+import { GAMES } from '../games';
 import { GAME_LOGIC } from '../games/logic';
 import { sudoku } from '../games/sudoku';
 import { tetroid } from '../games/tetroid';
@@ -448,6 +449,7 @@ describe('solving', () => {
 		[{ ok: true, code: 'personal' }, 'success', 'Personal timer: not ranked.'],
 		[{ ok: true, code: 'local' }, 'success', 'only puzzles from the server are ranked'],
 		[{ ok: true, code: 'hinted' }, 'success', 'with a hint: not ranked'],
+		[{ ok: true, code: 'expired' }, 'success', 'no longer keeps this old puzzle'],
 		[{ ok: true, code: 'ranked', rank: 1, total: 1 }, 'success', 'Rank 1 of 1'],
 		[{ ok: true, message: 'From the server' }, 'success', 'From the server']
 	] as const)('shows the server answer %o', async (res, kind, text) => {
@@ -457,6 +459,40 @@ describe('solving', () => {
 		await s.submit();
 		expect(s.message).toEqual({ kind, text: expect.stringContaining(text) });
 	});
+
+	it.each([true, false])(
+		'accepts a solution the game takes as an alternative (autoSubmit %s)',
+		async (autoSubmit) => {
+			// A game that also takes the solution with its first shaded cell left out, and fills it in.
+			const first = solution.indexOf(1);
+			const almost = solvedState();
+			almost.marks[first] = EMPTY;
+			const lenient: GameModule<TetroidPuzzle, TetroidState> = {
+				...game,
+				acceptAlternative: (_p, state) =>
+					JSON.stringify(state.marks) === JSON.stringify(almost.marks) ? solvedState() : null
+			};
+			const settings = new GameSettings('tetroid', withCommon([]));
+			settings.values.autoSubmit = autoSubmit;
+			const s = new GameSession(lenient, settings);
+			await s.open('6n', { puzzleId: ID });
+			s.move(shaded(first), []);
+			await s.submit();
+			expect(s.solved).toBe(false);
+			s.move(almost, []);
+			if (!autoSubmit) {
+				expect(s.solved).toBe(false);
+				await s.submit();
+			}
+			await vi.waitFor(() => expect(s.submitting).toBe(false));
+			expect(s.solved).toBe(true);
+			// The board shows the solution the game made of it, and that is what is submitted.
+			expect(s.state).toEqual(solvedState());
+			expect(api.submitScore).toHaveBeenCalledWith(
+				expect.objectContaining({ answer: solution.join('') })
+			);
+		}
+	);
 
 	it('reveals the ID of a server puzzle once solved', async () => {
 		vi.mocked(api.serverPuzzles).mockResolvedValueOnce(true);
@@ -573,11 +609,136 @@ describe('hints', () => {
 		expect(s.message?.text).not.toMatch(/[{}]|games\./);
 	});
 
+	it('are off with the setting that hides the button', async () => {
+		const settings = new GameSettings('tetroid', withCommon([]));
+		settings.values.hideHint = true;
+		const s = new GameSession(tetroid, settings);
+		await s.open('6n', { puzzleId: ID });
+		expect(s.canHint).toBe(false);
+		s.showHint();
+		expect(s.hint).toBeNull();
+		expect(s.hinted).toBe(false);
+	});
+
+	it('count each new hint, not another look at the one on the board', async () => {
+		const s = await hinting();
+		s.showHint();
+		s.showHint();
+		expect(s.hints).toBe(1);
+		s.move(shaded(solution.indexOf(1)), []);
+		s.showHint();
+		expect(s.hints).toBe(2);
+		expect((await hinting()).hints).toBe(2);
+		// Saves from before the count only knew that hints were used.
+		const key = s.slot;
+		const saved = load<Record<string, unknown>>(key, {});
+		delete saved.hints;
+		save(key, saved);
+		expect((await hinting()).hints).toBe(1);
+	});
+
+	it('keep a game hinted when hints are turned off in the middle of it', async () => {
+		const settings = new GameSettings('tetroid', withCommon([]));
+		const s = new GameSession(tetroid, settings);
+		await s.open('6n', { puzzleId: ID });
+		s.showHint();
+		settings.values.hideHint = true;
+		expect(s.canHint).toBe(false);
+		s.dismissHint();
+		expect(s.hint).toBeNull();
+		expect(s.message).toBeNull();
+		s.showHint();
+		expect(s.hints).toBe(1);
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		expect(api.submitScore).toHaveBeenCalledWith(expect.objectContaining({ hinted: true }));
+		expect(getStats('tetroid', '6n').bestMs).toBeNull();
+	});
+
 	it('start a new puzzle unhinted', async () => {
 		const s = await hinting();
 		s.showHint();
 		await s.newPuzzle();
 		expect(s.hinted).toBe(false);
+	});
+});
+
+describe('a setting that counts as a hint', () => {
+	const info = withCommon([{ key: 'reveal', label: 'Reveal', default: false, countsAsHint: true }]);
+
+	async function assisting(on = false): Promise<[Session, GameSettings]> {
+		const settings = new GameSettings('tetroid', info);
+		settings.values.reveal = on;
+		const s = new GameSession(game, settings);
+		await s.open('6n', { puzzleId: ID });
+		return [s, settings];
+	}
+
+	it('counts once when turned on during a game, and stays counted when turned off', async () => {
+		const [s, settings] = await assisting();
+		s.noteAssist();
+		expect(s.hinted).toBe(false);
+		settings.values.reveal = true;
+		expect(s.assistOn).toBe(true);
+		s.noteAssist();
+		s.noteAssist();
+		expect(s.hints).toBe(1);
+		settings.values.reveal = false;
+		s.noteAssist();
+		expect(s.hints).toBe(1);
+
+		// The save keeps it, and turning it on again in the same game counts nothing more.
+		const [again] = await assisting(true);
+		again.noteAssist();
+		expect(again.hints).toBe(1);
+	});
+
+	it('counts at the start of every game it is on for', async () => {
+		const [s] = await assisting(true);
+		s.noteAssist();
+		expect(s.hints).toBe(1);
+		await s.newPuzzle();
+		expect(s.hints).toBe(0);
+		s.noteAssist();
+		expect(s.hints).toBe(1);
+	});
+
+	it('counts nothing while there is no puzzle', async () => {
+		vi.mocked(generate).mockRejectedValueOnce(new Error('boom'));
+		const [s] = await assisting(true);
+		expect(s.loading).toBe(false);
+		expect(s.puzzle).toBeNull();
+		s.noteAssist();
+		expect(s.hints).toBe(0);
+		await s.retry();
+		s.noteAssist();
+		expect(s.hints).toBe(1);
+	});
+
+	it('keeps the solve out of the best time and the ranking', async () => {
+		const [s] = await assisting(true);
+		s.noteAssist();
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		expect(api.submitScore).toHaveBeenCalledWith(expect.objectContaining({ hinted: true }));
+		expect(getStats('tetroid', '6n').bestMs).toBeNull();
+	});
+
+	it('does not count once the puzzle is solved', async () => {
+		const [s, settings] = await assisting();
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		settings.values.reveal = true;
+		s.noteAssist();
+		expect(s.hinted).toBe(false);
+		expect(getStats('tetroid', '6n').bestMs).not.toBeNull();
+	});
+
+	it('is only painting wrong digits red in Sudoku and Calcudoku', () => {
+		const flagged = GAMES.flatMap((g) =>
+			g.settings.filter((s) => s.countsAsHint).map((s) => `${g.id}.${s.key}`)
+		);
+		expect(flagged).toEqual(['sudoku.markMistakes']);
 	});
 });
 

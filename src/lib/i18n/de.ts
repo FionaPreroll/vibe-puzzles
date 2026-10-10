@@ -21,7 +21,7 @@ const de: Dictionary = {
 		},
 		startOver: {
 			title: 'Neu beginnen?',
-			text: 'Das leert das Brett und startet die Zeit neu.',
+			text: 'Das leert das Spielfeld und startet die Zeit neu.',
 			ok: 'Neu beginnen'
 		},
 		deleteCheckpoint: {
@@ -65,16 +65,12 @@ const de: Dictionary = {
 		intro: 'Jedes Rätsel hat genau eine Lösung. Wähle ein Spiel und leg los.',
 		continue: 'Weiterspielen',
 		continueGame: '{game} · {variant}',
-		today: 'Heute',
 		dailyOpen: 'Tagesrätsel wartet',
 		dailyDone: 'Tagesrätsel gelöst',
 		streak: 'Serie {count}',
-		newHere: 'Neu hier? Jedes Tutorial dauert nur wenige Minuten.',
+		newHere: 'Neu hier? Jedes Tutorial dauert nur eine Minute.',
 		learn: '{game} lernen',
-		play: 'Spielen',
-		daily: 'Täglich',
-		weekly: 'Wöchentlich',
-		monthly: 'Monatlich'
+		play: 'Spielen'
 	},
 	game: {
 		menu: '{game}-Menü',
@@ -84,11 +80,11 @@ const de: Dictionary = {
 		collapsePanel: 'Seitenleiste einklappen',
 		rules: 'Regeln',
 		controls: 'Steuerung',
-		show: 'Zeigen',
+		show: 'Einblenden',
 		hide: 'Ausblenden',
 		puzzleType: 'Rätseltyp',
 		size: 'Größe',
-		specials: 'Specials',
+		specials: 'Sonderrätsel',
 		puzzleId: 'Rätsel-ID',
 		openById: 'Rätsel per ID öffnen',
 		open: 'Öffnen',
@@ -104,8 +100,11 @@ const de: Dictionary = {
 		undo: 'Rückgängig',
 		redo: 'Wiederholen',
 		hint: 'Tipp',
-		hintTitle: 'Tipp (H): zeigt den nächsten Schritt. Das Spiel gilt dann als mit Hilfe gelöst.',
-		hintMistake: 'Die markierten Zellen stimmen nicht mit der Lösung überein.',
+		hintTitle:
+			'Tipp (H): zeigt den nächsten Schritt. Danach zählt das Rätsel nicht für Bestzeit und Rangliste.',
+		hintMistake: 'Die markierten Einträge passen nicht zur Lösung.',
+		countsAsHint:
+			'Zählt als Tipp: keine Bestzeit und keine Rangliste für ein Rätsel, bei dem es an war.',
 		tools: 'Werkzeuge',
 		colour: 'Farbe {name}',
 		touch: 'Touch-Bedienung',
@@ -132,13 +131,17 @@ const de: Dictionary = {
 		closeShare: 'Teilen schließen',
 		shareSolve: 'Erfolg teilen',
 		brag: 'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst! Schaffst du es schneller?',
+		bragHint:
+			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit 1 Tipp. Schaffst du es ohne?',
+		bragHints:
+			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit {count} Tipps. Schaffst du es ohne?',
 		bragCopied: 'Ergebnis und Link kopiert. Füge sie ein, wo du sie teilen möchtest.',
 		creating: 'Rätsel wird erstellt…',
 		notCreated: 'Das Rätsel konnte nicht erstellt werden.',
 		retry: 'Erneut versuchen',
 		paused: 'Pausiert. Zum Fortsetzen klicken',
 		dismiss: 'Schließen',
-		board: 'Spielbrett'
+		board: 'Spielfeld'
 	},
 	shortcuts: {
 		title: 'Tastenkürzel',
@@ -152,11 +155,13 @@ const de: Dictionary = {
 		save: 'Zwischenstand speichern',
 		add: 'Neuen Zwischenstand anlegen',
 		colourTool: 'Farbwerkzeug und zurück',
+		space: 'Leertaste',
+		switchTools: 'Zwischen {a} und {b} wechseln',
 		escape: 'Menü oder Zoom schließen',
 		help: 'Diese Liste',
 		tools: 'Werkzeuge',
 		colours: 'Farben',
-		board: 'Auf dem Brett',
+		board: 'Auf dem Spielfeld',
 		or: 'oder'
 	},
 	daily: {
@@ -166,18 +171,18 @@ const de: Dictionary = {
 		createFailed: 'Das Rätsel konnte nicht erstellt werden: {error}',
 		serverFailed:
 			'Der Server konnte kein Rätsel erstellen. Dieses wird offline gespielt und nicht gewertet.',
-		continued: 'Dein Spiel von einem anderen Gerät wurde fortgesetzt.',
-		notSolved: 'Noch nicht gelöst. Weiter so!',
-		solved: 'Gelöst in {time}!',
-		uploadFailed: 'Gelöst in {time}! (Zeit nicht hochgeladen: {error})',
+		continued: 'Spielstand von deinem anderen Gerät übernommen.',
+		notSolved: 'Noch nicht gelöst. Bleib dran!',
+		solved: 'In {time} gelöst!',
+		uploadFailed: 'In {time} gelöst! (Zeit nicht hochgeladen: {error})',
 		wrong: 'Das ist noch nicht die Lösung.',
-		repeat: 'Gelöst in {time}! (Du hast dieses Rätsel schon einmal gelöst.)',
-		ranked: 'Gelöst in {time}! Platz {rank} von {total} bei {variant}.',
+		repeat: 'In {time} gelöst! (Du hast dieses Rätsel schon einmal gelöst.)',
+		ranked: 'In {time} gelöst! Platz {rank} von {total} bei {variant}.',
 		yourBest: 'Deine Bestzeit ist {time}.',
-		unrankedPersonal: 'Gelöst in {time}! Persönliche Zeit: nicht gewertet.',
-		unrankedLocal: 'Gelöst in {time}! Nicht gewertet: Nur Rätsel vom Server kommen in die Wertung.',
-		unrankedHinted: 'Gelöst in {time}, mit Tipp: nicht gewertet.',
-		expired: 'Gelöst in {time}! Nicht gewertet: Der Server hebt dieses alte Rätsel nicht mehr auf.'
+		unrankedPersonal: 'In {time} gelöst! Persönliche Zeit: nicht gewertet.',
+		unrankedLocal: 'In {time} gelöst! Nicht gewertet: Nur Rätsel vom Server kommen in die Wertung.',
+		unrankedHinted: 'Mit Tipp in {time} gelöst: nicht gewertet.',
+		expired: 'In {time} gelöst! Nicht gewertet: Der Server speichert dieses alte Rätsel nicht mehr.'
 	},
 	difficulty: {
 		easy: 'Leicht',
@@ -214,25 +219,26 @@ const de: Dictionary = {
 		showCheckpoints: 'Zwischenstände anzeigen',
 		showCoordinates: 'Koordinaten anzeigen',
 		hideTimer: 'Zeit ausblenden',
+		hideHint: 'Tipp-Button ausblenden',
 		personalTimer: 'Persönliche Zeit (ohne Wertung)',
 		highlightErrors: 'Fehler markieren',
 		blueErrors: 'Fehler blau statt rot',
 		highlightLastChange: 'Letzte Änderung hervorheben',
 		solvedAnimation: 'Animation beim Lösen',
 		highlightBlock: 'Aktuellen Bereich hervorheben',
-		highlightGroup: 'Aktuelle Zellgruppe hervorheben [Shift]',
+		highlightGroup: 'Aktuelle Feldgruppe hervorheben [Shift]',
 		thickBorders: 'Dickere Bereichsgrenzen',
 		colorTetrominoes: 'Tetrominos einfärben',
-		autoCrossCorners: 'Automatisch X an Ecken setzen',
-		autoCrossRegions: 'Automatisch X in fertigen Bereichen setzen',
+		autoCrossCorners: 'Kreuze an Ecken automatisch setzen',
+		autoCrossRegions: 'Fertige Bereiche automatisch mit Kreuzen füllen',
 		showGrid: 'Gitter anzeigen',
 		continuousLine: 'Durchgehende Linie zeichnen',
 		symmetryHelper: 'Symmetriehilfe',
-		blackHoles: 'Schwarzes Loch in fertigen Galaxien',
-		autoColor: 'Fertige Galaxien automatisch einfärben',
+		blackHoles: 'Schwarzes Loch in fertigen Bereichen',
+		autoColor: 'Fertige Bereiche automatisch einfärben',
 		markMistakes: 'Falsche Ziffern rot färben',
 		autoNotes: 'Notizen automatisch eintragen',
-		autoRemoveNotes: 'Notizen entfernen, die eine neue Ziffer ausschließt',
+		autoRemoveNotes: 'Notizen entfernen, wenn eine neue Ziffer sie ausschließt',
 		highlightLines: 'Zeile, Spalte und Block hervorheben',
 		highlightSame: 'Gleiche Ziffer hervorheben',
 		showRemaining: 'Anzeigen, wie oft jede Ziffer noch fehlt',
@@ -261,7 +267,7 @@ const de: Dictionary = {
 		currentPuzzle: '{variant}: aktuelles Rätsel',
 		noServer: 'Online-Bestenlisten brauchen den optionalen Server, der hier nicht läuft.',
 		loading: 'Lädt…',
-		empty: 'Noch keine Zeiten. Sei die erste Person!',
+		empty: 'Noch keine Zeiten. Mach den Anfang!',
 		players: '{count} Spieler',
 		player: '1 Spieler',
 		you: 'Du: Platz {rank} mit {time}',
@@ -272,7 +278,7 @@ const de: Dictionary = {
 		title: 'Spieler',
 		checking: 'Suche nach dem Server…',
 		noServer:
-			'Diese Version hat keinen Server. Spielstände bleiben in diesem Browser, und es gibt keine Online-Bestenlisten. Alles andere funktioniert wie gewohnt.',
+			'Diese Seite läuft ohne Server. Spielstände bleiben in diesem Browser, und es gibt keine Online-Bestenlisten. Alles andere funktioniert wie gewohnt.',
 		pickName: 'Wähle einen Namen',
 		pickNameText:
 			'Dein Name erscheint in den Bestenlisten. Spielstände und Einstellungen werden mit dem Server abgeglichen, damit du auf einem anderen Gerät weiterspielen kannst. Ohne E-Mail und Passwort.',
@@ -284,8 +290,8 @@ const de: Dictionary = {
 		rename: 'Umbenennen',
 		syncCode: 'Sync-Code',
 		syncCodeText:
-			'Gib diesen Code auf einem anderen Gerät ein, um dort weiterzuspielen. Halte ihn geheim: Er ist der Schlüssel zu deinem Spieler.',
-		show: 'Zeigen',
+			'Gib diesen Code auf einem anderen Gerät ein, um dort weiterzuspielen. Halte ihn geheim: Wer ihn kennt, kann als du spielen.',
+		show: 'Einblenden',
 		hide: 'Ausblenden',
 		signOut: 'Abmelden',
 		unknownCode: 'Unbekannter Sync-Code'
@@ -299,6 +305,7 @@ const de: Dictionary = {
 		skip: 'Tutorial überspringen',
 		yourTurn: 'Du bist dran',
 		showMe: 'Zeig es mir',
+		hint: 'Kommst du nicht weiter? Tipp zeigt dir den nächsten Schritt, wie in einem echten Rätsel.',
 		wellDone: 'Gut gemacht!',
 		solvedAll: 'Du hast dein erstes Rätsel gelöst. Bereit für ein echtes?'
 	},
@@ -342,73 +349,72 @@ const de: Dictionary = {
 	},
 	games: {
 		tetroid: {
-			tagline: 'Schattiere ein Tetromino in jedem Bereich.',
+			tagline: 'Schwärze in jedem Bereich ein Tetromino.',
 			rules: [
-				'Schattiere in jedem Bereich genau ein Tetromino (4 zusammenhängende Zellen).',
+				'Schwärze in jedem Bereich genau ein Tetromino (4 zusammenhängende Felder).',
 				'Zwei gleiche Tetrominos dürfen sich nicht an einer Kante berühren. Gedrehte oder gespiegelte zählen als gleich.',
-				'Alle schattierten Zellen hängen zusammen.',
-				'Kein 2×2-Block darf ganz schattiert sein.'
+				'Alle schwarzen Felder hängen zusammen.',
+				'Kein 2×2-Block darf ganz schwarz sein.'
 			],
 			notes: ['Mögliche Formen sind also L, I, T und S. Das Quadrat O fällt durch Regel 4 weg.'],
 			toolHint: {
 				rotate:
-					'Jeder Klick auf eine Zelle schaltet weiter: leer, schattiert, Kreuz und wieder leer. Rechtsklick schaltet rückwärts.',
-				black:
-					'Klick schattiert eine Zelle, ein zweiter Klick leert sie. Rechtsklick setzt ein Kreuz.',
+					'Jeder Klick auf ein Feld schaltet weiter: leer, schwarz, Kreuz und wieder leer. Rechtsklick schaltet rückwärts.',
+				black: 'Ein Klick schwärzt ein Feld, ein zweiter leert es. Rechtsklick setzt ein Kreuz.',
 				cross:
-					'Klick markiert eine Zelle mit einem Kreuz: Sie bleibt unschattiert. Ein zweiter Klick entfernt es.',
-				blank: 'Leert jede Zelle, die du anklickst oder überstreichst.'
+					'Ein Klick markiert ein Feld mit einem Kreuz: Es bleibt weiß. Ein zweiter Klick entfernt das Kreuz.',
+				blank: 'Leert jedes Feld, das du anklickst oder überstreichst.'
 			},
 			controlsMouse:
-				'Klicke eine Zelle zum Schattieren, Rechtsklick setzt ein Kreuz. Ziehen markiert mehrere Zellen. Tasten 1–4 wählen ein Werkzeug.',
+				'Klicke auf ein Feld, um es zu schwärzen, Rechtsklick setzt ein Kreuz. Ziehen markiert mehrere Felder. Die Tasten 1–4 wählen ein Werkzeug.',
 			controlsTouch:
-				'Tippe eine Zelle an, um zwischen schattiert, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Zellen.',
+				'Tippe ein Feld an, um zwischen schwarz, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Felder.',
 			hints: {
 				region:
-					'Schau, welche Tetrominos in diesen Bereich noch passen, nach seiner Form und deinen Markierungen.',
+					'Schau, welche Tetrominos bei seiner Form und deinen Markierungen noch in diesen Bereich passen.',
 				sameShape:
 					'Streiche Tetrominos, die ein gleiches berühren würden: Alles, was im Nachbarbereich noch passt, hat diese Form.',
-				square: 'Streiche Tetrominos, die einen schattierten 2×2-Block vervollständigen würden.',
+				square: 'Streiche Tetrominos, die einen schwarzen 2×2-Block vervollständigen würden.',
 				neighbour:
-					'Streiche Tetrominos, die mit allem kollidieren, was im Nachbarbereich noch passt: Jede Möglichkeit dort würde eine gleiche Form berühren oder einen 2×2-Block vervollständigen.',
+					'Streiche Tetrominos, die sich mit jeder Möglichkeit im Nachbarbereich beißen: Jede davon würde eine gleiche Form berühren oder einen 2×2-Block vervollständigen.',
 				lookAhead:
-					'Streiche Tetrominos, die die schattierten Zellen trennen würden: Frag dich, ob noch alles zusammenhängen könnte, wenn das Tetromino dort läge.',
+					'Streiche Tetrominos, die die schwarzen Felder trennen würden: Frag dich, ob noch alles zusammenhängen könnte, wenn das Tetromino dort läge.',
 				shade:
-					'Jedes Tetromino, das in diesem Bereich übrig bleibt, bedeckt die markierten Zellen: Schattiere sie.',
+					'Alle Tetrominos, die in diesem Bereich noch möglich sind, enthalten die markierten Felder: Schwärze sie.',
 				cross:
-					'Kein Tetromino, das in diesem Bereich übrig bleibt, bedeckt die markierten Zellen: Sie bleiben leer.',
+					'Keins der Tetrominos, die in diesem Bereich noch möglich sind, enthält die markierten Felder: Sie bleiben leer.',
 				stuck:
-					'Hier entscheidet keine Regel eine Zelle. Schwere Rätsel brauchen eine Fallunterscheidung: Leg im Kopf ein Tetromino in den markierten Bereich und verfolge es, bis eine Regel bricht.'
+					'Hier legt keine Regel ein weiteres Feld fest. Schwere Rätsel brauchen eine Fallunterscheidung: Leg im Kopf ein Tetromino in den markierten Bereich und spiel es durch, bis eine Regel verletzt wird.'
 			},
 			tutorial: [
 				{
-					text: 'Jeder dick umrandete Bereich braucht genau ein Tetromino: vier schattierte Zellen, die mit ihren Seiten aneinanderstoßen. Es gibt vier Formen, I, L, T und S, die auch gedreht oder gespiegelt sein dürfen. Der Bereich oben links ist schon fertig: Er enthält ein S, und Kreuze markieren seine leeren Zellen. Schau dir das Brett erst einmal nur an: Ab Schritt 2 schattierst du.'
+					text: 'Jeder dick umrandete Bereich braucht genau ein Tetromino: vier schwarze Felder, die mit ihren Seiten aneinanderstoßen. Es gibt vier Formen, I, L, T und S, die auch gedreht oder gespiegelt sein dürfen. Der Bereich oben links ist schon fertig: Er enthält ein S, und Kreuze markieren seine leeren Felder. Schau dir das Spielfeld erst einmal nur an: Ab Schritt 2 schwärzt du selbst.'
 				},
 				{
-					text: 'Der Bereich oben rechts hat genau vier Zellen, sein Tetromino füllt ihn also ganz aus.',
-					task: 'Schattiere alle vier Zellen dieses Bereichs.',
-					done: 'Geschafft: Dieses Tetromino ist ein L.'
+					text: 'Der Bereich oben rechts hat genau vier Felder, sein Tetromino füllt ihn also ganz aus.',
+					task: 'Schwärze alle vier Felder dieses Bereichs.',
+					done: 'Geschafft: Dieses Tetromino ist ein L. Das klappt auch in größeren Bereichen: Ein Feld, das jedes dort noch mögliche Tetromino enthält, ist immer schwarz.'
 				},
 				{
-					text: 'Keine 2×2-Fläche darf ganz schattiert sein. Die beiden markierten Zellen liegen jeweils neben drei schattierten Zellen einer 2×2-Fläche: Schattiert würden sie sie vervollständigen.',
-					task: 'Markiere beide Zellen mit einem Kreuz: Wähle das Werkzeug Kreuz (✕) und klicke oder tippe sie an. Ein Kreuz heißt, die Zelle bleibt leer.',
-					done: 'Richtig: Diese Zellen bleiben leer, du hast sie endgültig ausgeschlossen.'
+					text: 'Kein 2×2-Block darf ganz schwarz sein. Die beiden markierten Felder würden jeweils einen 2×2-Block vollmachen, in dem schon drei Felder schwarz sind.',
+					task: 'Markiere beide Felder mit einem Kreuz: Wähle das Werkzeug Kreuz (✕) und klicke oder tippe sie an. Ein Kreuz heißt, das Feld bleibt leer.',
+					done: 'Richtig: Diese Felder bleiben leer, du hast sie endgültig ausgeschlossen.'
 				},
 				{
-					text: 'Zwei weitere Regeln. Alle schattierten Zellen bilden zusammen eine verbundene Gruppe. Und zwei Tetrominos derselben Form dürfen sich über eine Bereichsgrenze nicht berühren; gedrehte oder gespiegelte zählen als dieselbe Form.'
+					text: 'Zwei weitere Regeln. Alle schwarzen Felder bilden zusammen eine verbundene Gruppe. Und zwei Tetrominos derselben Form dürfen sich über eine Bereichsgrenze nicht berühren; gedrehte oder gespiegelte zählen als dieselbe Form. Ein L auf dem markierten Feld scheidet also aus: Es würde das L darüber berühren.'
 				},
 				{
-					text: 'Zwei Bereiche sind noch übrig: der unten und der große rechts. Nutze die Regeln aus den Schritten davor. Zellen, die eine Regel verletzen, werden rot.',
-					task: 'Schattiere in beiden Bereichen je ein Tetromino.'
+					text: 'Zwei Bereiche sind noch übrig: der unten und der große rechts. Nutze die Regeln aus den Schritten davor. Felder, die eine Regel verletzen, werden rot.',
+					task: 'Schwärze in beiden Bereichen je ein Tetromino.'
 				}
 			]
 		},
 		pinwheel: {
-			tagline: 'Teile das Gitter in Bereiche, die auf dem Kopf gleich aussehen.',
+			tagline: 'Teile das Gitter in Bereiche, die auf den Kopf gestellt gleich aussehen.',
 			rules: [
 				'Teile das Gitter entlang der Linien in Bereiche mit je genau einem Kreis.',
 				'Jeder Bereich ist punktsymmetrisch zu seinem Kreis: Um 180° gedreht, deckt er sich genau mit sich selbst.',
-				'Linien trennen nur verschiedene Bereiche, nie zwei Zellen desselben Bereichs.'
+				'Linien trennen nur verschiedene Bereiche, nie zwei Felder desselben Bereichs.'
 			],
 			notes: [],
 			tool: { black: 'Linie' },
@@ -420,57 +426,57 @@ const de: Dictionary = {
 				cross:
 					'Klick markiert eine Kante mit einem Kreuz: Dort kommt keine Linie hin. Ein zweiter Klick entfernt es.',
 				blank: 'Leert jede Kante, die du anklickst oder überstreichst.',
-				color: 'Färbt eine Zelle in der gewählten Farbe. Klick auf eine gefärbte Zelle leert sie.'
+				color: 'Färbt ein Feld in der gewählten Farbe. Ein Klick auf ein gefärbtes Feld leert es.'
 			},
 			controlsMouse:
-				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen. Rechtsklick setzt ein Kreuz, Shift+Klick färbt eine Zelle. Rechtsklick auf einen Kreis sperrt einen fertigen Bereich.',
+				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen. Rechtsklick setzt ein Kreuz, Shift+Klick färbt ein Feld. Rechtsklick auf einen Kreis sperrt einen fertigen Bereich.',
 			controlsTouch:
-				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen. Mit dem Farbwerkzeug färbst du Zellen. Einen Kreis halten sperrt einen fertigen Bereich.',
+				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen. Mit dem Farbwerkzeug färbst du Felder. Einen Kreis halten sperrt einen fertigen Bereich.',
 			hints: {
 				centre:
-					'Die Zellen unter einem Kreis gehören zu seinem Bereich, und eine Zelle, deren Spiegelbild durch einen Kreis außerhalb des Gitters läge, kann nicht zu dessen Bereich gehören.',
+					'Die Felder unter einem Kreis gehören zu seinem Bereich. Ein Feld, dessen Partnerfeld gegenüber einem Kreis außerhalb des Spielfelds läge, kann nicht zu dessen Bereich gehören.',
 				marks:
-					'Deine Linien trennen Zellen in verschiedene Bereiche, deine Kreuze verbinden Zellen zu einem.',
+					'Deine Linien trennen Felder in verschiedene Bereiche, deine Kreuze verbinden Felder zu einem.',
 				symmetry:
-					'Eine Zelle kann nur dann zum Bereich eines Kreises gehören, wenn ihr Spiegelbild durch diesen Kreis es auch kann.',
+					'Ein Feld kann nur dann zum Bereich eines Kreises gehören, wenn sein Partnerfeld gegenüber diesem Kreis es auch kann.',
 				reach:
-					'Ein Bereich hängt zusammen: Eine Zelle, die sein Kreis nicht über Zellen erreicht, die zu ihm gehören können, gehört nicht dazu.',
-				line: 'Also liegen die Zellen beiderseits der markierten Kanten in verschiedenen Bereichen: Zieh dort Linien.',
+					'Ein Bereich hängt zusammen: Ein Feld gehört nur dazu, wenn vom Kreis aus ein Weg dorthin führt, der nur über Felder geht, die zum Bereich gehören können.',
+				line: 'Also liegen die Felder beiderseits der markierten Kanten in verschiedenen Bereichen: Zieh dort Linien.',
 				cross:
-					'Also liegen die Zellen beiderseits der markierten Kanten im selben Bereich: Dort kommt keine Linie hin.',
+					'Also liegen die Felder beiderseits der markierten Kanten im selben Bereich: Dort kommt keine Linie hin.',
 				stuck:
-					'Hier entscheidet keine Regel eine Kante. Schwere Rätsel brauchen eine Fallunterscheidung: Probier im Kopf einen Bereich für die markierte Zelle aus und verfolge ihn, bis eine Regel bricht.'
+					'Hier legt keine Regel eine weitere Kante fest. Schwere Rätsel brauchen eine Fallunterscheidung: Probier im Kopf einen Bereich für das markierte Feld aus und spiel ihn durch, bis eine Regel verletzt wird.'
 			},
 			tutorial: [
 				{
-					text: 'Bei Pinwheel teilst du das Brett in Bereiche. Jeder Kreis ist die Mitte von genau einem Bereich, und jeder Bereich enthält genau einen Kreis. Schau dir das Brett erst einmal nur an: Ab Schritt 3 zeichnest du.'
+					text: 'Bei Pinwheel teilst du das Spielfeld in Bereiche. Jeder Kreis ist die Mitte von genau einem Bereich, und jeder Bereich enthält genau einen Kreis. Schau dir das Spielfeld erst einmal nur an: Ab Schritt 3 zeichnest du.'
 				},
 				{
-					text: 'Die wichtigste Regel: Dreh einen Bereich um 180° um seinen Kreis, und er deckt wieder genau dieselben Zellen ab. Jede Zelle eines Bereichs hat also eine Partnerzelle genau gegenüber auf der anderen Seite des Kreises, und die gehört auch dazu.'
+					text: 'Die wichtigste Regel: Dreh einen Bereich um 180° um seinen Kreis, und er deckt wieder genau dieselben Felder ab. Jedes Feld eines Bereichs hat also ein Partnerfeld genau gegenüber auf der anderen Seite des Kreises, und das gehört auch dazu.'
 				},
 				{
-					text: 'Ein Kreis kann mitten in einer Zelle sitzen, so wie der in der Ecke oben links. Sein Bereich ist nur diese eine Zelle: Jede weitere Zelle bräuchte eine Partnerzelle gegenüber, und die läge außerhalb des Bretts.',
-					task: 'Ziehe Linien zwischen den Punkten, um die Zelle oben links abzutrennen. Der Rand des Bretts zählt schon als Linie, zwei Linien genügen also.',
+					text: 'Ein Kreis kann mitten in einem Feld sitzen, so wie der in der Ecke oben links. Sein Bereich ist nur dieses eine Feld: Jedes weitere Feld bräuchte ein Partnerfeld gegenüber, und das läge außerhalb des Spielfelds.',
+					task: 'Ziehe Linien zwischen den Punkten, um das Feld oben links abzutrennen. Der Rand des Spielfelds zählt schon als Linie, zwei Linien genügen also.',
 					done: 'Geschafft: ein Kreis, ein Bereich.'
 				},
 				{
-					text: 'Ein Kreis auf einer Kante sitzt zwischen zwei Zellen, und beide gehören zu seinem Bereich. Der nächste Kreis in der oberen Reihe kann nicht nach unten wachsen: Die Partnerzellen lägen über dem Brett.',
-					task: 'Trenne die beiden Zellen des nächsten Kreises in der oberen Reihe ab.',
+					text: 'Ein Kreis auf einer Kante sitzt zwischen zwei Feldern, und beide gehören zu seinem Bereich. Der nächste Kreis in der oberen Reihe kann nicht nach unten wachsen: Die Partnerfelder lägen über dem Spielfeld.',
+					task: 'Trenne die beiden Felder des nächsten Kreises in der oberen Reihe ab.',
 					done: 'Richtig. Durch einen Kreis kann keine Linie gehen: Sie würde seinen Bereich zerschneiden.'
 				},
 				{
-					text: 'Ein Kreis auf einer Ecke berührt vier Zellen, und alle vier gehören zu seinem Bereich. Oben rechts sind diese vier Zellen schon der ganze Bereich.',
-					task: 'Trenne die vier Zellen um den Kreis oben rechts ab.',
+					text: 'Ein Kreis auf einer Ecke berührt vier Felder, und alle vier gehören zu seinem Bereich. Oben rechts sind diese vier Felder schon der ganze Bereich.',
+					task: 'Trenne die vier Felder um den Kreis oben rechts ab.',
 					done: 'Drei Bereiche fertig. Der nächste ist etwas kniffliger.'
 				},
 				{
-					text: 'Bereiche müssen keine Rechtecke sein. Die Symmetriehilfe findet Partnerzellen für dich: Drücke auf einen Kreis und ziehe auf eine Zelle (auf einem Touchscreen den Kreis kurz halten, dann wischen). Die Zelle und ihre Partnerzelle leuchten auf.',
-					task: 'Die markierte Zelle gehört zum Kreis in der Mitte. Finde mit der Hilfe ihre Partnerzelle und trenne dann den Bereich ab: vier Zellen im Zickzack.',
+					text: 'Bereiche müssen keine Rechtecke sein. Die Symmetriehilfe findet Partnerfelder für dich: Drücke auf einen Kreis und ziehe auf ein Feld (auf einem Touchscreen den Kreis kurz halten, dann wischen). Das Feld und sein Partnerfeld leuchten auf.',
+					task: 'Das markierte Feld gehört zum Kreis in der Mitte. Finde mit der Hilfe sein Partnerfeld und trenne dann den Bereich ab: vier Felder im Zickzack.',
 					done: 'Genau: Um seinen Kreis gedreht, sieht der Zickzack gleich aus.'
 				},
 				{
 					text: 'Vier Bereiche sind noch übrig, zwei davon sind auch Zickzacks. Wird ein abgetrennter Bereich rot, hat er keinen Kreis. Wird ein Kreis rot, ist sein Bereich noch nicht symmetrisch.',
-					task: 'Teile den Rest des Bretts allein auf.'
+					task: 'Teile den Rest selbst auf.'
 				}
 			]
 		},
@@ -485,15 +491,15 @@ const de: Dictionary = {
 				'Kleine Ziffern in einem Feld sind Notizen: die Ziffern, die dort noch möglich sind. Für die Lösung zählen sie nicht.'
 			],
 			controlsMouse:
-				'Klicke ein Feld an und tippe eine Ziffer oder nutze das Zahlenfeld. Umschalt+Ziffer setzt oder entfernt eine Notiz, die Leertaste wechselt zwischen Ziffern und Notizen. Rücktaste oder 0 löscht. Pfeiltasten bewegen. Lieber erst die Ziffer wählen? Schalte „Erst die Ziffer wählen“ in den Einstellungen ein.',
+				'Klicke ein Feld an und tippe eine Ziffer oder nutze den Ziffernblock. Umschalt+Ziffer setzt oder entfernt eine Notiz, die Leertaste wechselt zwischen Ziffern und Notizen. Rücktaste oder 0 löscht. Mit den Pfeiltasten wechselst du das Feld. Lieber erst die Ziffer wählen? Schalte „Erst die Ziffer wählen“ in den Einstellungen ein.',
 			controlsTouch:
-				'Tippe ein Feld an, dann eine Ziffer im Zahlenfeld. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
+				'Tippe ein Feld an, dann eine Ziffer im Ziffernblock. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
 			hints: {
 				hidden: {
-					box: 'In ihrem Block passt die {digit} nur ins markierte Feld: Die anderen freien Felder dort sehen eine {digit} in ihrer Zeile oder Spalte, oder deine Notizen schließen sie aus.',
-					row: 'In ihrer Zeile passt die {digit} nur ins markierte Feld: Die anderen freien Felder dort sehen eine {digit} in ihrer Spalte oder ihrem Block, oder deine Notizen schließen sie aus.',
+					box: 'In ihrem Block passt die {digit} nur ins markierte Feld: Bei den anderen freien Feldern dort steht schon eine {digit} in Zeile oder Spalte, oder deine Notizen schließen sie aus.',
+					row: 'In ihrer Zeile passt die {digit} nur ins markierte Feld: Bei den anderen freien Feldern dort steht schon eine {digit} in Spalte oder Block, oder deine Notizen schließen sie aus.',
 					column:
-						'In ihrer Spalte passt die {digit} nur ins markierte Feld: Die anderen freien Felder dort sehen eine {digit} in ihrer Zeile oder ihrem Block, oder deine Notizen schließen sie aus.'
+						'In ihrer Spalte passt die {digit} nur ins markierte Feld: Bei den anderen freien Feldern dort steht schon eine {digit} in Zeile oder Block, oder deine Notizen schließen sie aus.'
 				},
 				naked:
 					'Ins markierte Feld passt nur die {digit}: Zeile, Spalte und Block enthalten alle anderen Ziffern, oder deine Notizen schließen sie aus.',
@@ -516,52 +522,52 @@ const de: Dictionary = {
 				calc: {
 					rules: [
 						'Calcudoku („Rechen-Sudoku“): Trage in jedes Feld eine Ziffer von 1 bis zur Gittergröße ein. Jede Zeile und jede Spalte enthält jede Ziffer genau einmal; Blöcke gibt es nicht.',
-						'Jeder dick umrandete Käfig zeigt ein Ergebnis und danach eine Rechenart. Seine Ziffern müssen dieses Ergebnis ergeben: „12+“ ergibt addiert 12, „60×“ multipliziert 60.',
+						'Jeder dick umrandete Käfig zeigt ein Ergebnis und danach eine Rechenart. Seine Ziffern müssen dieses Ergebnis ergeben: „12+“ heißt Summe 12, „60×“ heißt Produkt 60.',
 						'„1−“- und „5÷“-Käfige haben zwei Felder: Die größere Ziffer minus oder geteilt durch die kleinere ergibt das Ergebnis, z. B. 7 − 6 = 1 oder 5 ÷ 1 = 5.',
 						'Ein Käfig mit nur einer Zahl enthält genau diese Ziffer. Innerhalb eines Käfigs dürfen sich Ziffern wiederholen, aber nie in einer Zeile oder Spalte.'
 					],
 					hints: {
 						hidden: {
-							row: 'In ihrer Zeile passt die {digit} nur ins markierte Feld: Die anderen freien Felder dort sehen eine {digit} in ihrer Spalte, oder deine Notizen schließen sie aus.',
+							row: 'In ihrer Zeile passt die {digit} nur ins markierte Feld: Bei den anderen freien Feldern dort steht schon eine {digit} in der Spalte, oder deine Notizen schließen sie aus.',
 							column:
-								'In ihrer Spalte passt die {digit} nur ins markierte Feld: Die anderen freien Felder dort sehen eine {digit} in ihrer Zeile, oder deine Notizen schließen sie aus.'
+								'In ihrer Spalte passt die {digit} nur ins markierte Feld: Bei den anderen freien Feldern dort steht schon eine {digit} in der Zeile, oder deine Notizen schließen sie aus.'
 						},
 						naked:
 							'Ins markierte Feld passt nur die {digit}: Zeile und Spalte enthalten alle anderen Ziffern, oder deine Notizen schließen sie aus.',
-						cage: 'Rechne aus, welche Ziffern mit der Rechenart das Ergebnis jedes Käfigs ergeben können; in einer Zeile oder Spalte müssen sie verschieden sein.',
+						cage: 'Rechne bei jedem Käfig aus, welche Ziffern mit seiner Rechenart sein Ergebnis liefern können; in einer Zeile oder Spalte müssen sie verschieden sein.',
 						nakedPair:
 							'Notiere zuerst die Kandidaten. Zwei Felder einer Zeile oder Spalte mit denselben zwei Kandidaten belegen diese Ziffern: In den anderen Feldern dort fallen sie weg.'
 					},
 					tutorial: [
 						{
-							text: 'Calcudoku ist ein Sudoku ohne Blöcke: Jede Zeile und jede Spalte enthält die Ziffern 1 bis 4 genau einmal. Statt vorgegebener Ziffern hat das Gitter Käfige, dick umrandete Gruppen von Zellen. Schau dir das Gitter erst einmal nur an: Ab Schritt 3 trägst du ein.'
+							text: 'Calcudoku ist ein Sudoku ohne Blöcke: Jede Zeile und jede Spalte enthält die Ziffern 1 bis 4 genau einmal. Statt vorgegebener Ziffern hat das Gitter Käfige, dick umrandete Gruppen von Feldern. Schau dir das Gitter erst einmal nur an: Ab Schritt 3 trägst du ein.'
 						},
 						{
 							text: 'Die Beschriftung in der Ecke eines Käfigs ist ein Ergebnis und eine Rechenart. Die Ziffern im Käfig müssen dieses Ergebnis ergeben: „7+“ heißt, sie ergeben zusammen 7, „18×“ (markiert), dass ihr Produkt 18 ist. In einem „3−“- oder „2÷“-Käfig ergibt die größere seiner beiden Ziffern minus oder geteilt durch die kleinere das Ergebnis.'
 						},
 						{
-							text: 'Ein Käfig mit nur einer Zelle und nur einer Zahl enthält genau diese Ziffer. Das ist dein geschenkter Anfang.',
-							task: 'Trage die Ziffer der Zelle oben rechts ein: Zelle auswählen, dann die Ziffer im Zahlenfeld antippen oder auf der Tastatur tippen.',
-							done: 'Geschafft: eine Zelle, eine Ziffer.'
+							text: 'Ein Käfig mit nur einem Feld und nur einer Zahl enthält genau diese Ziffer. Damit hast du einen leichten Einstieg.',
+							task: 'Trage die Ziffer des Felds oben rechts ein: Feld auswählen, dann die Ziffer im Ziffernblock antippen oder auf der Tastatur tippen.',
+							done: 'Geschafft: ein Feld, eine Ziffer.'
 						},
 						{
-							text: 'Der „3−“-Käfig darunter braucht zwei Ziffern mit dem Abstand 3. Von 1 bis 4 passen nur 4 und 1. Welche kommt wohin? Die rechte Spalte hat ihre 4 schon.',
+							text: 'Der „3−“-Käfig darunter braucht zwei Ziffern mit der Differenz 3. Von 1 bis 4 passen nur 4 und 1. Welche kommt wohin? Die rechte Spalte hat ihre 4 schon.',
 							task: 'Fülle den „3−“-Käfig aus.',
 							done: 'Richtig: Die 1 kommt nach rechts, weil diese Spalte schon eine 4 hat.'
 						},
 						{
-							text: 'Der „7+“-Käfig links in der dritten Zeile braucht 3 und 4, aber die Reihenfolge verrät noch nichts. Dafür gibt es Notizen: kleine Ziffern, die beide Möglichkeiten offenhalten.',
-							task: 'Wähle das Werkzeug Notiz (✎) und notiere 3 und 4 in beiden Zellen des „7+“-Käfigs.',
+							text: 'Der „7+“-Käfig links in der dritten Zeile braucht 3 und 4, aber noch weißt du nicht, welche Ziffer wohin gehört. Dafür gibt es Notizen: kleine Ziffern, die beide Möglichkeiten offenhalten.',
+							task: 'Wähle das Werkzeug Notiz (✎) und notiere 3 und 4 in beiden Feldern des „7+“-Käfigs.',
 							done: 'Gut: Die Reihenfolge ergibt sich später.'
 						},
 						{
 							text: 'Ziffern dürfen sich in einem Käfig wiederholen, solange sie in verschiedenen Zeilen und Spalten stehen: „18×“ ist 2 × 3 × 3. Doppelte Ziffern in einer Zeile oder Spalte werden rot, ebenso die Beschriftung eines vollen Käfigs, der sein Ergebnis verfehlt.',
-							task: 'Fülle alle übrigen Zellen allein aus.'
+							task: 'Fülle alle übrigen Felder selbst aus.'
 						}
 					]
 				}
 			},
-			pad: 'Zahlenfeld',
+			pad: 'Ziffernblock',
 			erase: 'Löschen',
 			left: 'noch {count}',
 			tutorial: [
@@ -569,23 +575,23 @@ const de: Dictionary = {
 					text: 'Dieses kleine Sudoku nutzt die Ziffern 1 bis 4. Jede Zeile, jede Spalte und jeder dick umrandete 2×2-Block (wie der markierte) enthält jede Ziffer genau einmal. Schau dir das Gitter erst einmal nur an: Ab Schritt 2 trägst du ein.'
 				},
 				{
-					text: 'Fang dort an, wo wenig fehlt. Die oberste Zeile hat schon 1, 2 und 4, ihre leere Zelle kann also nur die übrige Ziffer sein.',
-					task: 'Fülle die leere Zelle der obersten Zeile: Zelle auswählen, dann die Ziffer im Zahlenfeld antippen oder auf der Tastatur tippen.',
-					done: 'Richtig: eine 3. Wenn du eine Zelle auswählst, leuchten ihre Zeile, Spalte und ihr Block auf und helfen dir beim Schauen.'
+					text: 'Fang dort an, wo wenig fehlt. Die oberste Zeile hat schon 1, 2 und 4, ihr leeres Feld kann also nur die fehlende Ziffer sein.',
+					task: 'Fülle das leere Feld der obersten Zeile: Feld auswählen, dann die Ziffer im Ziffernblock antippen oder auf der Tastatur tippen.',
+					done: 'Richtig: eine 3. Wenn du ein Feld auswählst, leuchten seine Zeile, Spalte und sein Block auf. So siehst du schneller, was schon dasteht.'
 				},
 				{
-					text: 'Blöcke funktionieren genauso. Der Block oben links hat 1, 2 und 4, seine leere Zelle bekommt die fehlende Ziffer.',
-					task: 'Fülle die leere Zelle im Block oben links.',
+					text: 'Blöcke funktionieren genauso. Der Block oben links hat 1, 2 und 4, sein leeres Feld bekommt die fehlende Ziffer.',
+					task: 'Fülle das leere Feld im Block oben links.',
 					done: 'Genau: Dem Block fehlte seine 3.'
 				},
 				{
-					text: 'Und Spalten auch. Jetzt, wo die 3 drin ist, fehlt der linken Spalte nur noch eine Ziffer.',
-					task: 'Fülle die nächste leere Zelle der linken Spalte.',
+					text: 'Bei Spalten genauso. Jetzt, wo die 3 drin ist, fehlt der linken Spalte nur noch eine Ziffer.',
+					task: 'Fülle das nächste leere Feld der linken Spalte.',
 					done: 'Gut gemacht: Ob Zeile, Block oder Spalte, der Trick ist immer, die eine fehlende Ziffer zu finden.'
 				},
 				{
-					text: 'Drei Zellen sind noch übrig. Prüfe bei jeder ihre Zeile, Spalte und ihren Block. Noch unsicher? Mit dem Werkzeug Notiz (✎) notierst du kleine Ziffern als Gedächtnisstütze. Doppelte Ziffern werden rot.',
-					task: 'Fülle die letzten drei Zellen allein aus.'
+					text: 'Drei Felder sind noch übrig. Prüfe bei jedem seine Zeile, Spalte und seinen Block. Noch unsicher? Mit dem Werkzeug Notiz (✎) notierst du kleine Ziffern als Gedächtnisstütze. Doppelte Ziffern werden rot.',
+					task: 'Fülle die letzten drei Felder selbst aus.'
 				}
 			]
 		}

@@ -66,16 +66,12 @@ const en = {
 		intro: 'Every puzzle has exactly one solution. Pick a game to start.',
 		continue: 'Continue',
 		continueGame: '{game} · {variant}',
-		today: 'Today',
 		dailyOpen: 'Daily puzzle waiting',
 		dailyDone: 'Daily puzzle solved',
 		streak: 'Streak {count}',
 		newHere: 'New here? Each tutorial takes a minute.',
 		learn: 'Learn {game}',
-		play: 'Play',
-		daily: 'Daily',
-		weekly: 'Weekly',
-		monthly: 'Monthly'
+		play: 'Play'
 	},
 	game: {
 		menu: '{game} menu',
@@ -105,8 +101,9 @@ const en = {
 		undo: 'Undo',
 		redo: 'Redo',
 		hint: 'Hint',
-		hintTitle: 'Hint (H): point at the next step. The game then counts as solved with help.',
+		hintTitle: 'Hint (H): point at the next step. The puzzle then gets no best time and no rank.',
 		hintMistake: 'The highlighted marks do not match the solution.',
+		countsAsHint: 'Counts as a hint: no best time and no rank for a puzzle played with it on.',
 		tools: 'Tools',
 		colour: 'Colour {name}',
 		touch: 'Touch input',
@@ -133,6 +130,10 @@ const en = {
 		closeShare: 'Close share panel',
 		shareSolve: 'Share success',
 		brag: 'I solved {game} {variant} (puzzle {id}) in {time}! Can you beat my time?',
+		bragHint:
+			'I solved {game} {variant} (puzzle {id}) in {time}, with 1 hint. Can you do it without?',
+		bragHints:
+			'I solved {game} {variant} (puzzle {id}) in {time}, with {count} hints. Can you do it without?',
 		bragCopied: 'Copied your result and the link. Paste it anywhere to share.',
 		creating: 'Creating puzzle…',
 		notCreated: 'The puzzle could not be created.',
@@ -153,6 +154,8 @@ const en = {
 		save: 'Save checkpoint',
 		add: 'Add a checkpoint',
 		colourTool: 'Colour tool and back',
+		space: 'Space',
+		switchTools: 'Switch between {a} and {b}',
 		escape: 'Close a menu or the zoom',
 		help: 'This list',
 		tools: 'Tools',
@@ -190,11 +193,11 @@ const en = {
 		weekly: 'Weekly',
 		monthly: 'Monthly'
 	},
-	/** Short names for the narrow specials row of the puzzle type picker. */
 	/** Rule sets of a game other than its main one. */
 	mode: {
 		calc: 'Calcudoku'
 	},
+	/** Short names for the narrow specials row of the puzzle type picker. */
 	specialShort: {
 		daily: 'Daily',
 		weekly: 'Weekly',
@@ -217,6 +220,7 @@ const en = {
 		showCheckpoints: 'Show checkpoints',
 		showCoordinates: 'Show board coordinates',
 		hideTimer: 'Hide the timer',
+		hideHint: 'Hide the hint button',
 		personalTimer: 'Non-competitive (personal) timer',
 		highlightErrors: 'Highlight errors',
 		blueErrors: 'Use blue for errors',
@@ -231,8 +235,8 @@ const en = {
 		showGrid: 'Show grid',
 		continuousLine: 'Draw continuous line',
 		symmetryHelper: 'Enable symmetry helper',
-		blackHoles: 'Black hole in completed galaxies',
-		autoColor: 'Auto colour completed galaxies',
+		blackHoles: 'Black hole in completed regions',
+		autoColor: 'Auto colour completed regions',
 		markMistakes: 'Paint wrong digits red',
 		autoNotes: 'Fill in notes automatically',
 		autoRemoveNotes: 'Remove notes ruled out by a new digit',
@@ -302,6 +306,7 @@ const en = {
 		skip: 'Skip tutorial',
 		yourTurn: 'Your turn',
 		showMe: 'Show me',
+		hint: 'Stuck? Hint points at the next step, just like in a real puzzle.',
 		wellDone: 'Well done!',
 		solvedAll: 'You solved your first puzzle. Ready for a real one?'
 	},
@@ -387,7 +392,7 @@ const en = {
 				{
 					text: 'The region at the top right has exactly four cells, so its tetromino fills it completely.',
 					task: 'Shade all four cells of that region.',
-					done: 'Done: that tetromino is an L.'
+					done: 'Done: that tetromino is an L. This works in bigger regions too: a cell that every tetromino still possible there covers is always shaded.'
 				},
 				{
 					text: 'No 2×2 block may be fully shaded. The two marked cells each sit next to three shaded cells of a 2×2 block, so shading them would complete it.',
@@ -395,7 +400,7 @@ const en = {
 					done: 'Right: these cells stay empty, and you have ruled them out for good.'
 				},
 				{
-					text: 'Two more rules. All shaded cells together form one connected group. And two tetrominoes of the same shape may not touch across a region border; turned or mirrored ones count as the same shape.'
+					text: 'Two more rules. All shaded cells together form one connected group. And two tetrominoes of the same shape may not touch across a region border; turned or mirrored ones count as the same shape. So an L on the marked cell is ruled out: it would touch the L above it.'
 				},
 				{
 					text: 'Two regions are left: the one at the bottom and the big one on the right. Use the rules from the steps before. Cells that break a rule turn red.',
@@ -428,10 +433,10 @@ const en = {
 			/** What the hint button says: why a circle's region is ruled out, then what follows. */
 			hints: {
 				centre:
-					"A circle's own cells belong to its region, and a cell whose mirror image through a circle would lie outside the grid cannot belong to that circle's region.",
+					"A circle's own cells belong to its region, and a cell whose partner across a circle would lie outside the grid cannot belong to that circle's region.",
 				marks: 'Your lines keep cells in different regions, and your crosses join cells into one.',
 				symmetry:
-					"A cell can belong to a circle's region only if its mirror image through that circle can too.",
+					"A cell can belong to a circle's region only if its partner across that circle can too.",
 				reach:
 					'A region is connected: a cell its circle cannot reach through cells that may belong to it is not part of it.',
 				line: 'So the cells on either side of the highlighted edges lie in different regions: draw lines there.',

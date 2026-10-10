@@ -67,7 +67,9 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 		const values = { autoNotes: true, markMistakes: true, highlightErrors: false };
 		localStorage.setItem('vp:settings:sudoku', JSON.stringify({ values, updatedAt: 1 }));
 	});
-	await page.goto('/sudoku?v=9n');
+	// A fixed puzzle from the collection: a random one may give a digit only once, and then
+	// selecting it highlights nothing else.
+	await page.goto('/sudoku?v=9n&id=980291457');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 	const board = page.getByRole('grid', { name: 'Puzzle board' });
 
@@ -82,10 +84,15 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	const one = pad.getByRole('button', { name: '1', exact: true });
 	await expect(one).toHaveAttribute('title', /^\d left$/);
 
-	// Wrong digits: of the nine digits in an empty cell exactly one is not painted red.
-	const givenCells = await board
+	// The givens as [cell, digit], before any digit is entered.
+	const givens = await board
 		.locator('text[data-cell]')
-		.evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-cell'))));
+		.evaluateAll((els) =>
+			els.map((e) => [Number(e.getAttribute('data-cell')), e.textContent!.trim()] as const)
+		);
+	const givenCells = givens.map(([i]) => i);
+
+	// Wrong digits: of the nine digits in an empty cell exactly one is not painted red.
 	const cell = [...Array(81).keys()].find((i) => !givenCells.includes(i))!;
 	await clickCell(page, 9, Math.floor(cell / 9), cell % 9);
 	const colours: string[] = [];
@@ -95,8 +102,9 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	}
 	expect(colours.filter((c) => c === palette.error)).toHaveLength(8);
 
-	// Same digit: selecting a given highlights every cell with its digit.
-	await clickCell(page, 9, Math.floor(givenCells[0] / 9), givenCells[0] % 9);
+	// Same digit: selecting a given highlights the other cells with its digit.
+	const [pick] = givens.find(([, d]) => givens.filter(([, x]) => x === d).length > 1)!;
+	await clickCell(page, 9, Math.floor(pick / 9), pick % 9);
 	await expect(board.locator(`rect[fill="${palette.sameDigit}"]`).first()).toBeVisible();
 });
 
@@ -148,6 +156,63 @@ test('Calcudoku shows cages with their results and checks rows and columns', asy
 	await expect(board.locator('text[data-cell="6"]')).toHaveAttribute('fill', palette.entered);
 });
 
+test('a whole Calcudoku can be solved', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+	});
+	// Calcudoku 5×5 Easy #513322150 from the bundled collection, and its only solution.
+	await page.goto('/sudoku?v=c5e&id=513322150');
+	const solution = '1254321354452315341234125';
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+	const newPuzzle = page.getByRole('button', { name: 'New puzzle' });
+
+	for (const [i, d] of [...solution].entries()) {
+		if (i === solution.length - 1) {
+			// Every cell but the last: not solved yet, and nothing is marked wrong.
+			await expect(board.locator(`text[fill="${palette.error}"]`)).toHaveCount(0);
+			await expect(newPuzzle).not.toHaveClass(/btn-primary/);
+		}
+		await clickCell(page, 5, Math.floor(i / 5), i % 5);
+		await page.keyboard.press(d);
+	}
+	await expect(newPuzzle).toHaveClass(/btn-primary/);
+	await expect(page.getByRole('status')).toContainText('Solved in');
+});
+
+test('Calcudoku digits sit in the middle of their cells, below the cage labels', async ({
+	page
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+	});
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	/** Where the digit in the top left cell sits, as a share of the cell from its top. */
+	const digitAt = async (size: number) => {
+		await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
+		await clickCell(page, size, 0, 0);
+		await page.keyboard.press('1');
+		return board.locator('text[data-cell="0"]').evaluate((text) => {
+			const cell = text.previousElementSibling!;
+			const top = Number(cell.getAttribute('y'));
+			return (Number(text.getAttribute('y')) - top) / Number(cell.getAttribute('height'));
+		});
+	};
+
+	await page.goto('/sudoku?v=c5e&id=513322150');
+	expect(await digitAt(5)).toBeCloseTo(0.5, 3);
+
+	// Small cells: the digit moves down just enough to clear the label.
+	await page.setViewportSize({ width: 360, height: 800 });
+	await page.goto('/sudoku?v=c9n');
+	const small = await digitAt(9);
+	expect(small).toBeGreaterThan(0.5);
+	expect(small).toBeLessThan(0.56);
+});
+
 test('picking the digit first: the pad arms a digit, left click enters it, right click notes it', async ({
 	page
 }) => {
@@ -194,4 +259,37 @@ test('picking the digit first: the pad arms a digit, left click enters it, right
 	p = await at(a);
 	await page.mouse.click(p.x, p.y);
 	await expect(board.locator(`text[data-cell="${a}"]`)).toHaveCount(0);
+});
+
+test('Space switches between digits and notes in Sudoku and Calcudoku, and the help lists it', async ({
+	page
+}) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
+	const digit = page.getByRole('button', { name: 'Digit', exact: true });
+	const note = page.getByRole('button', { name: 'Note', exact: true });
+	for (const variant of ['9e', 'c5e']) {
+		await page.goto(`/sudoku?v=${variant}`);
+		// The board takes keys once it shows the puzzle.
+		const board = page.getByRole('grid', { name: 'Puzzle board' });
+		await expect(board.locator('text').first()).toBeVisible({ timeout: 30_000 });
+		await expect(digit).toHaveAttribute('aria-pressed', 'true');
+		// No cell needs to be selected.
+		await page.keyboard.press('Space');
+		await expect(note, variant).toHaveAttribute('aria-pressed', 'true');
+		await page.keyboard.press('Space');
+		await expect(digit, variant).toHaveAttribute('aria-pressed', 'true');
+	}
+
+	// A focused button keeps Space: it presses the button instead.
+	await note.focus();
+	await page.keyboard.press('Space');
+	await expect(note).toHaveAttribute('aria-pressed', 'true');
+	await page.keyboard.press('Space');
+	await expect(note).toHaveAttribute('aria-pressed', 'true');
+
+	await page.locator('body').focus();
+	await page.keyboard.press('?');
+	const help = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+	await expect(help.locator('dt', { hasText: 'Space' })).toBeVisible();
+	await expect(help.getByText('Switch between Digit and Note')).toBeVisible();
 });
