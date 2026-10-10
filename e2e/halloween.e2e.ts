@@ -70,6 +70,10 @@ for (const night of [false, true]) {
 					page.getByText(night ? 'Trick or puzzle?' : 'Puzzles by moonlight')
 				).toBeHidden();
 				await expect(page.locator('li.panel svg.halloween-swing')).toBeVisible();
+				// A spider has eight legs.
+				await expect(page.locator('li.panel svg.halloween-swing g[fill="none"] path')).toHaveCount(
+					8
+				);
 				expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
 					true
 				);

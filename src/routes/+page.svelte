@@ -138,18 +138,21 @@
 				</p>
 			</a>
 			{#if s?.tutorials.length}
-				<!-- Second to Play: a hint with quiet buttons, above the daily puzzle and Play -->
-				<div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
-					<span class="text-stone-600 dark:text-stone-400">{t('home.newHere')}</span>
-					{#each s.tutorials as r (r.mode ?? '')}
-						<a
-							class="btn-sm"
-							href={r.mode
-								? resolve('/[game]/tutorial/[mode]', { game: game.id, mode: r.mode })
-								: resolve('/[game]/tutorial', { game: game.id })}
-							>{t('home.learn', { game: r.mode ? t(`mode.${r.mode}`) : game.name })}</a
-						>
-					{/each}
+				<!-- Second to Play: a hint with quiet buttons, above the daily puzzle and Play. The
+				     buttons get a line of their own below the hint, side by side where they fit. -->
+				<div class="mt-3 text-sm">
+					<p class="text-stone-600 dark:text-stone-400">{t('home.newHere')}</p>
+					<div class="mt-2 flex flex-wrap gap-2">
+						{#each s.tutorials as r (r.mode ?? '')}
+							<a
+								class="btn-sm"
+								href={r.mode
+									? resolve('/[game]/tutorial/[mode]', { game: game.id, mode: r.mode })
+									: resolve('/[game]/tutorial', { game: game.id })}
+								>{t('home.learn', { game: r.mode ? t(`mode.${r.mode}`) : game.name })}</a
+							>
+						{/each}
+					</div>
 				</div>
 			{/if}
 			{#if daily && !s}
