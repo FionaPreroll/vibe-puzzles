@@ -145,6 +145,10 @@ const en = {
 		bragHints:
 			'I solved {game} {variant} (puzzle {id}) in {time}, with {count} hints. Can you do it without?',
 		bragCopied: 'Copied your result and the link. Paste it anywhere to share.',
+		bragManual:
+			'Copying did not work here. Copy your result and the link below and paste them where you want to share them.',
+		bragText: 'Your result and the link',
+		copy: 'Copy',
 		creating: 'Creating puzzle…',
 		notCreated: 'The puzzle could not be created.',
 		retry: 'Try again',

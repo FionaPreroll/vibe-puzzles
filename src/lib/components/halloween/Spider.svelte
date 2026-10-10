@@ -1,9 +1,12 @@
 <script lang="ts">
-	/** A spider on its thread, swinging gently; dark by day, pale with ember eyes by night. */
-	let { class: className = '' }: { class?: string } = $props();
+	/**
+	 * A spider on its thread, swinging gently; dark by day, pale with ember eyes by night. Without
+	 * `swing` it hangs still, for a longer thread that swings as a whole.
+	 */
+	let { swing = true, class: className = '' }: { swing?: boolean; class?: string } = $props();
 </script>
 
-<svg viewBox="0 0 28 62" class="halloween-swing {className}" aria-hidden="true">
+<svg viewBox="0 0 28 62" class="{swing ? 'halloween-swing' : ''} {className}" aria-hidden="true">
 	<path d="M14 0 V40" class="stroke-[#b9a6c9] dark:stroke-[#5a4c73]" stroke-width="1" />
 	<g
 		fill="none"

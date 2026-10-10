@@ -47,6 +47,7 @@
 	import HoldButton from './HoldButton.svelte';
 	import SettingsDialog from './SettingsDialog.svelte';
 	import ShortcutsDialog from './ShortcutsDialog.svelte';
+	import Dialog from './Dialog.svelte';
 	import VariantPicker from './VariantPicker.svelte';
 
 	let { game }: { game: AnyGame } = $props();
@@ -104,6 +105,9 @@
 	let boardTop = $state(200);
 	/** Width of the board with its surface: the rows above and below it are no wider. */
 	let stageWidth = $state(0);
+	/** The board area around the stage, and how far below the page's header it starts. */
+	let areaWrap: HTMLDivElement | undefined = $state();
+	let headerGap = $state(0);
 	/** The play bar below the board on wide screens; the board's stage is at least as wide. */
 	let barWidth = $state(0);
 	/** Padding of the board's surface (p-2, lg:p-3), which the board's size leaves room for. */
@@ -119,6 +123,10 @@
 		if (!boardArea || !pageRoot || !gameColumn) return;
 		// The scroll container's py-1 sits above the board's surface.
 		boardTop = boardArea.getBoundingClientRect().top + window.scrollY + 4;
+		const header = document.querySelector('header');
+		if (areaWrap && header) {
+			headerGap = areaWrap.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
+		}
 		// Up to the page's end, but not where a longer side panel reaches beyond the game column.
 		const root = pageRoot.getBoundingClientRect().bottom;
 		const rootContent = root - parseFloat(getComputedStyle(pageRoot).paddingBottom);
@@ -262,9 +270,14 @@
 		share.image = await screenshot();
 	}
 
+	/** The puzzle whose solve was shared: then the next puzzle is the way on, not sharing again. */
+	let sharedId: number | null = $state(null);
+	const shared = $derived(session.solved && sharedId !== null && sharedId === session.puzzleId);
+
 	/** Share the solve, e.g. to a messenger; without the Web Share API the text is copied. */
 	async function shareSolve() {
 		if (!session.puzzleId) return;
+		sharedId = session.puzzleId;
 		const url = `${location.origin}${resolve('/[game]', { game: game.id })}?id=${session.puzzleId}`;
 		const hints = session.hints;
 		const text = t(hints === 0 ? 'game.brag' : hints === 1 ? 'game.bragHint' : 'game.bragHints', {
@@ -286,7 +299,22 @@
 			await navigator.clipboard.writeText(`${text} ${url}`);
 			session.message = { kind: 'info', text: t('game.bragCopied') };
 		} catch {
-			session.message = { kind: 'info', text: `${text} ${url}` };
+			// Too long for a message: shown in a dialog to copy by hand.
+			bragText = `${text} ${url}`;
+		}
+	}
+
+	/** The solve to share when it could not be copied; shown in a dialog while set. */
+	let bragText: string | null = $state(null);
+	let bragField: HTMLTextAreaElement | undefined = $state();
+
+	/** Copies the selected text the old way, which needs no permission. */
+	function copyBrag() {
+		if (!bragField) return;
+		bragField.select();
+		if (document.execCommand('copy')) {
+			bragText = null;
+			session.message = { kind: 'info', text: t('game.bragCopied') };
 		}
 	}
 
@@ -695,7 +723,6 @@
 		<HalloweenCobweb class="absolute top-0 right-0 w-14 lg:w-16" />
 		<HalloweenCobweb class="absolute bottom-0 left-0 w-10 rotate-180 lg:w-12" />
 		{#if decorBeside}
-			<HalloweenSpider class="absolute top-0 right-full mr-8 w-8" />
 			<HalloweenBat
 				eyes
 				class="halloween-bob absolute top-10 left-full ml-8 w-16 text-[#7c3aed] dark:text-[#8b5cf6]"
@@ -889,20 +916,29 @@
 					</button>
 				{/if}
 			{/if}
-			<!-- In the top bar on wide screens, so a message never pushes the board down -->
+			<!-- In the top bar on wide screens, so a message never pushes the board down: centred in
+			     the space between the clock and the icons, and out of the flow, so that a message on two
+			     or three lines reaches into the room above and below rather than making the bar taller -->
 			{#if session.message && wide}
-				<p class="ml-2 min-w-0 rounded-full px-3 py-1 text-sm {messageClass(session.message.kind)}">
-					{session.message.text}
-					{#if teaser}
-						<button class="ml-1 font-semibold underline" onclick={() => session.showHint()}
-							>{t('game.hintShow')}</button
-						>
-					{/if}
-				</p>
+				<div class="relative ml-2 min-w-0 flex-1 self-stretch">
+					<p
+						class="absolute inset-x-0 top-1/2 z-20 mx-auto w-fit max-w-full -translate-y-1/2 rounded-xl px-3 py-1.5 text-center text-xs leading-4 {messageClass(
+							session.message.kind
+						)}"
+					>
+						{session.message.text}
+						{#if teaser}
+							<button class="ml-1 font-semibold underline" onclick={() => session.showHint()}
+								>{t('game.hintShow')}</button
+							>
+						{/if}
+					</p>
+				</div>
+			{:else}
+				<span class="hidden flex-1 lg:block"></span>
 			{/if}
 			<!-- Always in the page: screen readers miss live regions added together with their text -->
 			<p class="sr-only" role="status">{session.message?.text ?? ''}</p>
-			<span class="hidden flex-1 lg:block"></span>
 			<div class="relative -mr-1.5" bind:this={zoomBox}>
 				<button
 					class="btn-icon size-11 lg:size-10"
@@ -975,7 +1011,21 @@
 		</div>
 
 		<!-- Room around the board on phones, so a quick swipe does not hit a button -->
-		<div class="relative mt-5 lg:mt-4" bind:clientWidth={areaWidth}>
+		<div class="relative mt-5 lg:mt-4" bind:clientWidth={areaWidth} bind:this={areaWrap}>
+			{#if decorBeside && session.puzzle}
+				<!-- Let down from the page's header, beside the board's stage. Outside the board's
+				     scroll container, which would cut off the thread. -->
+				<div
+					class="halloween-only halloween-sway pointer-events-none absolute flex w-8 flex-col items-center"
+					style:top="{-headerGap}px"
+					style:right="calc(50% + {stageWidth / 2}px + 2rem)"
+					aria-hidden="true"
+					data-spider
+				>
+					<div class="w-px bg-[#b9a6c9] dark:bg-[#5a4c73]" style:height="{headerGap + 4}px"></div>
+					<HalloweenSpider swing={false} class="w-8" />
+				</div>
+			{/if}
 			<div
 				bind:this={boardArea}
 				class="overflow-x-auto py-1"
@@ -1152,13 +1202,14 @@
 				</div>
 			{/if}
 
-			<!-- The puzzle's ID, then at most three buttons: one stands out only when it is the way
-			     on ("Done" without automatic submitting, "Share success" once solved) -->
+			<!-- The puzzle's ID on a line of its own, then at most three buttons: one stands out only when
+			     it is the way on ("Done" without automatic submitting, "Share success" once solved). On
+			     one line, the buttons that come with solving would wrap them and shrink the board. -->
 			<div
-				class="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-3 lg:mt-4 lg:justify-between"
+				class="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-3 lg:mt-4 lg:justify-start"
 			>
 				<p
-					class="w-full text-center text-xs text-stone-500 lg:w-auto lg:text-left lg:text-sm dark:text-stone-400"
+					class="w-full text-center text-xs text-stone-500 lg:text-left lg:text-sm dark:text-stone-400"
 				>
 					{t('game.puzzleId')}:
 					{#if session.puzzleId}
@@ -1181,12 +1232,14 @@
 						>
 					{/if}
 					{#if session.solved && session.puzzleId}
-						<button class="btn btn-primary next-up max-lg:min-h-11" onclick={shareSolve}
-							>{t('game.shareSolve')}</button
+						<button
+							class="btn max-lg:min-h-11 {shared ? '' : 'btn-primary next-up'}"
+							onclick={shareSolve}>{t('game.shareSolve')}</button
 						>
 					{/if}
+					<!-- Once the solve is shared, the next puzzle is the way on -->
 					<button
-						class="btn max-lg:min-h-11"
+						class="btn max-lg:min-h-11 {shared ? 'btn-primary next-up' : ''}"
 						onclick={newPuzzle}
 						disabled={newBusy || session.loading}>{t('game.newPuzzle')}</button
 					>
@@ -1292,6 +1345,27 @@
 {/if}
 
 <ShortcutsDialog bind:open={showShortcuts} {game} tools={showTools} hint={session.canHint} />
+<Dialog
+	bind:open={() => bragText !== null, (open) => !open && (bragText = null)}
+	title={t('game.shareSolve')}
+>
+	<p class="text-sm text-stone-600 dark:text-stone-300">{t('game.bragManual')}</p>
+	<textarea
+		bind:this={bragField}
+		readonly
+		rows="4"
+		class="mt-3 w-full resize-none rounded-lg border border-stone-300 bg-stone-50 p-2 text-sm dark:border-stone-700 dark:bg-stone-950"
+		aria-label={t('game.bragText')}
+		value={bragText ?? ''}
+		onfocus={(e) => e.currentTarget.select()}
+		{@attach (node) => {
+			// Selected once the dialog shows, ready to copy.
+			if (bragText) requestAnimationFrame(() => (node.focus(), node.select()));
+		}}></textarea>
+	<div class="mt-3 flex justify-end">
+		<button class="btn btn-primary" onclick={copyBrag}>{t('game.copy')}</button>
+	</div>
+</Dialog>
 
 <SettingsDialog
 	bind:open={showSettings}
