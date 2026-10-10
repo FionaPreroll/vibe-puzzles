@@ -9,6 +9,7 @@ import {
 	SPECIAL_RETENTION_DAYS
 } from '../core/variants';
 import { GAME_LOGIC } from '../games/logic';
+import { sudoku } from '../games/sudoku';
 import { tetroid } from '../games/tetroid';
 import { generateTetroid } from '../games/tetroid/generator';
 import { EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from '../games/tetroid/rules';
@@ -557,6 +558,19 @@ describe('hints', () => {
 		s.showHint();
 		expect(s.hint).toBeNull();
 		expect(s.hinted).toBe(false);
+	});
+
+	it('offer none for puzzle types the game has no hints for', async () => {
+		const s = new GameSession(sudoku, new GameSettings('sudoku', withCommon([])));
+		await s.open('c5e');
+		expect(s.canHint).toBe(false);
+		s.showHint();
+		expect(s.hinted).toBe(false);
+		await s.open('9e');
+		expect(s.canHint).toBe(true);
+		s.showHint();
+		expect(s.hint?.kind).toBe('step');
+		expect(s.message?.text).toMatch(/^In its box, \d fits only in the highlighted cell/);
 	});
 
 	it('start a new puzzle unhinted', async () => {

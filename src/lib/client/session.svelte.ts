@@ -477,16 +477,21 @@ export class GameSession<P = unknown, S = unknown> {
 		this.persist();
 	}
 
+	/** Whether the game has hints for the puzzle type being played. */
+	get canHint(): boolean {
+		return !!this.game.hint && (this.game.hintsFor?.(this.variant) ?? true);
+	}
+
 	/** Point at the next step, or at wrong marks. The game then counts as hinted. */
 	showHint() {
-		if (this.readonly || !this.puzzle || !this.state || !this.game.hint) return;
+		if (this.readonly || !this.puzzle || !this.state || !this.game.hint || !this.canHint) return;
 		const hint = this.game.hint(this.puzzle, this.state);
 		if (!hint) return;
 		this.hint = hint;
 		this.hinted = true;
 		this.message = {
 			kind: hint.kind === 'mistake' ? 'error' : 'info',
-			text: hint.text.map((key) => t(key)).join(' ')
+			text: hint.text.map((key) => t(key, hint.params)).join(' ')
 		};
 		this.persist();
 	}

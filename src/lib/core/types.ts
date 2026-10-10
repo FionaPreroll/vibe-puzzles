@@ -80,6 +80,8 @@ export interface Hint {
 	spotlight: string[];
 	/** Translation keys of the sentences that explain it, shown one after the other. */
 	text: string[];
+	/** Values for the placeholders in those sentences, e.g. `{digit}`. */
+	params?: Record<string, string | number>;
 }
 
 /** Pure game logic, shared by the client and the optional server. */
@@ -136,4 +138,6 @@ export interface GameModule<P = unknown, S = unknown> extends GameLogic<P, S> {
 	modeTutorials?: Record<string, GameTutorial<P, S>>;
 	/** The next step from the player's position, or null when there is none (solved). */
 	hint?(puzzle: P, state: S): Hint | null;
+	/** Whether `hint` covers puzzles of this type; all types when left out. */
+	hintsFor?(variant: Variant): boolean;
 }

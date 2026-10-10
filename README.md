@@ -15,7 +15,7 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4. The optional se
 
 - **Puzzles**: deterministic generators, so a puzzle ID (shown under the board) gives the same puzzle on every device. Normal and hard puzzles in several sizes (Sudoku and Calcudoku also easy), plus daily, weekly and monthly specials.
 - **Playing**: undo and redo, checkpoints, notes (Sudoku), timers, error highlighting, zoom, keyboard and touch controls, print and share. An interactive tutorial puzzle on the first visit of each game.
-- **Hints** (Tetroid so far): the Hint button (key H) points at the next cells that follow from the player's marks, with the rule behind them, or at marks that do not match the solution. A game with a hint counts as solved, but its time is no best time and it is not ranked.
+- **Hints** (Tetroid and Sudoku so far, not Calcudoku and Pinwheel yet): the Hint button (key H) points at the next cells that follow from the player's marks, with the rule behind them (in Sudoku the digit and why it goes there), or at marks that do not match the solution. A game with a hint counts as solved, but its time is no best time and it is not ranked.
 - **Puzzle collection**: a growing set of pre-generated puzzles (see [Puzzle collection](#puzzle-collection)). Players choose between the collection, puzzles generated on their device, or both at random (the default).
 - **Appearance**: English and German, picked from the browser language and switchable in the header. Night mode for the whole site including the boards; it follows the system's colour scheme until switched in the header. Screenshots and prints stay light.
 - **Offline**: installable as an app (PWA) and playable offline after the first visit. Files of the puzzle collection are cached when a puzzle type first needs them and kept across app updates; offline, a type without a cached file gets puzzles generated on the device.
@@ -70,7 +70,7 @@ docs/                    technical documentation (generators.md: how puzzles and
 
 ### Adding a game
 
-1. Create `src/lib/games/<id>/` with a `logic.ts` exporting a `GameLogic` (variants, generator, solution counter, difficulty rating, state encoding, answer check) and an `index.ts` exporting a `GameModule` (name, tools, settings, an optional tutorial puzzle, an optional `hint` for the Hint button and a `Board.svelte` component).
+1. Create `src/lib/games/<id>/` with a `logic.ts` exporting a `GameLogic` (variants, generator, solution counter, difficulty rating, state encoding, answer check) and an `index.ts` exporting a `GameModule` (name, tools, settings, an optional tutorial puzzle, an optional `hint` for the Hint button, with `hintsFor` when it covers only some puzzle types, and a `Board.svelte` component).
 2. Take every board colour from `src/lib/core/palette.ts` (`colours.<name>`), never a colour literal: that is how boards follow night mode and keep screenshots and prints light. A unit test rejects colour literals in boards and checks the contrast of the palette's colour pairs in both themes.
 3. Add the texts (tagline, rules, notes, control hints, tutorial steps) under `games.<id>` in every file in `src/lib/i18n/`.
 4. Register the logic in `src/lib/games/logic.ts` and the module in `src/lib/games/index.ts`.

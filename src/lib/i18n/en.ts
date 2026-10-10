@@ -461,6 +461,31 @@ const en = {
 				'Click a cell, then type a digit or use the number pad. Shift+digit adds or removes a note, Space switches between digits and notes. Backspace or 0 erases. Arrow keys move. Prefer to pick the digit first? Turn on "Pick the digit first" in the settings.',
 			controlsTouch:
 				'Tap a cell, then a digit on the number pad. Pick the Note tool to add or remove small notes instead. ⌫ erases.',
+			/** What the hint button says. With an elimination first, then the digit it leads to. */
+			hints: {
+				hidden: {
+					box: 'In its box, {digit} fits only in the highlighted cell: the other free cells there see a {digit} in their row or column, or your notes rule it out.',
+					row: 'In its row, {digit} fits only in the highlighted cell: the other free cells there see a {digit} in their column or box, or your notes rule it out.',
+					column:
+						'In its column, {digit} fits only in the highlighted cell: the other free cells there see a {digit} in their row or box, or your notes rule it out.'
+				},
+				naked:
+					'Only {digit} fits in the highlighted cell: its row, column and box hold every other digit, or your notes rule them out.',
+				lockedCandidates:
+					'Note the candidates first. When a digit fits in a box only in cells of one row (or column), it leaves the rest of that row; and the other way round.',
+				nakedSubset:
+					'Note the candidates first. Two cells of a row, column or box with the same two candidates (or three cells with three) take those digits: they leave the other cells there.',
+				hiddenSubset:
+					'Note the candidates first. Two digits that fit in a row, column or box only in the same two cells (or three in three) fill those cells: their other candidates go.',
+				then: {
+					box: 'Then {digit} fits only in the highlighted cell of its box.',
+					row: 'Then {digit} fits only in the highlighted cell of its row.',
+					column: 'Then {digit} fits only in the highlighted cell of its column.'
+				},
+				thenNaked: 'Then only {digit} is left for the highlighted cell.',
+				stuck:
+					'None of the usual techniques finds a digit here. Start with the highlighted cell: it has the fewest candidates.'
+			},
 			modes: {
 				calc: {
 					rules: [

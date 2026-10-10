@@ -452,7 +452,7 @@
 		} else if ((e.key === '=' || e.key === '+') && !mod && !e.altKey) {
 			e.preventDefault();
 			newPuzzle();
-		} else if (key === 'h' && !mod && !e.altKey && game.hint) {
+		} else if (key === 'h' && !mod && !e.altKey && session.canHint) {
 			e.preventDefault();
 			session.showHint();
 		} else if (e.key === ']') {
@@ -776,7 +776,7 @@
 			>
 			<!-- Gone once solved, which also leaves room for the longer final time on phones. Below
 			     360px the row has no room for it: it sits in the "more" menu there -->
-			{#if game.hint && !session.solved}
+			{#if session.canHint && !session.solved}
 				<button
 					class="btn max-[359px]:hidden max-sm:px-2"
 					onclick={() => session.showHint()}
@@ -993,7 +993,7 @@
 			<!-- Most used first; on narrow screens the rare actions sit in a "more" menu -->
 			{#snippet rareActions(menu: boolean)}
 				{@const cls = menu ? 'menu-item' : 'btn hidden lg:inline-flex'}
-				{#if menu && game.hint && !session.solved}
+				{#if menu && session.canHint && !session.solved}
 					<button
 						class="menu-item min-[360px]:hidden"
 						onclick={() => ((moreOpen = false), session.showHint())}
@@ -1108,7 +1108,7 @@
 	</div>
 {/if}
 
-<ShortcutsDialog bind:open={showShortcuts} {game} tools={showTools} />
+<ShortcutsDialog bind:open={showShortcuts} {game} tools={showTools} hint={session.canHint} />
 
 <SettingsDialog
 	bind:open={showSettings}

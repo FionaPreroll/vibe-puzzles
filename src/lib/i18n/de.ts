@@ -465,6 +465,30 @@ const de: Dictionary = {
 				'Klicke ein Feld an und tippe eine Ziffer oder nutze das Zahlenfeld. Umschalt+Ziffer setzt oder entfernt eine Notiz, die Leertaste wechselt zwischen Ziffern und Notizen. Rücktaste oder 0 löscht. Pfeiltasten bewegen. Lieber erst die Ziffer wählen? Schalte „Erst die Ziffer wählen“ in den Einstellungen ein.',
 			controlsTouch:
 				'Tippe ein Feld an, dann eine Ziffer im Zahlenfeld. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
+			hints: {
+				hidden: {
+					box: 'In ihrem Block passt die {digit} nur ins markierte Feld: Die anderen freien Felder dort sehen eine {digit} in ihrer Zeile oder Spalte, oder deine Notizen schließen sie aus.',
+					row: 'In ihrer Zeile passt die {digit} nur ins markierte Feld: Die anderen freien Felder dort sehen eine {digit} in ihrer Spalte oder ihrem Block, oder deine Notizen schließen sie aus.',
+					column:
+						'In ihrer Spalte passt die {digit} nur ins markierte Feld: Die anderen freien Felder dort sehen eine {digit} in ihrer Zeile oder ihrem Block, oder deine Notizen schließen sie aus.'
+				},
+				naked:
+					'Ins markierte Feld passt nur die {digit}: Zeile, Spalte und Block enthalten alle anderen Ziffern, oder deine Notizen schließen sie aus.',
+				lockedCandidates:
+					'Notiere zuerst die Kandidaten. Passt eine Ziffer in einem Block nur in Felder einer Zeile (oder Spalte), fällt sie im Rest dieser Zeile weg; und umgekehrt.',
+				nakedSubset:
+					'Notiere zuerst die Kandidaten. Zwei Felder einer Zeile, Spalte oder eines Blocks mit denselben zwei Kandidaten (oder drei Felder mit drei) belegen diese Ziffern: In den anderen Feldern dort fallen sie weg.',
+				hiddenSubset:
+					'Notiere zuerst die Kandidaten. Zwei Ziffern, die in einer Zeile, Spalte oder einem Block nur in dieselben zwei Felder passen (oder drei in drei), füllen diese Felder: Deren andere Kandidaten fallen weg.',
+				then: {
+					box: 'Dann passt die {digit} in ihrem Block nur ins markierte Feld.',
+					row: 'Dann passt die {digit} in ihrer Zeile nur ins markierte Feld.',
+					column: 'Dann passt die {digit} in ihrer Spalte nur ins markierte Feld.'
+				},
+				thenNaked: 'Dann bleibt fürs markierte Feld nur die {digit}.',
+				stuck:
+					'Keine der üblichen Techniken findet hier eine Ziffer. Fang mit dem markierten Feld an: Es hat die wenigsten Kandidaten.'
+			},
 			modes: {
 				calc: {
 					rules: [
