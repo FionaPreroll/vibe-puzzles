@@ -107,6 +107,11 @@ describe('checkpoints', () => {
 		expect(h.checkpoints).toEqual([pos(3)]);
 		expect(h.currentCheckpoint).toBe(0);
 		expect(h.deleteCheckpoint(3)).toBe(false);
+		// Deleting one after the current checkpoint keeps it current.
+		h.addCheckpoint();
+		h.loadCheckpoint(0);
+		expect(h.deleteCheckpoint(1)).toBe(true);
+		expect(h.currentCheckpoint).toBe(0);
 		h.deleteCheckpoint(0);
 		expect(h.currentCheckpoint).toBe(-1);
 	});

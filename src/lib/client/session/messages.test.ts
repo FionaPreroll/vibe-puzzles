@@ -20,6 +20,7 @@ describe('messages', () => {
 		[{ ok: false, code: 'expired' }, 'info', 'no longer keeps this old puzzle'],
 		[{ ok: true, code: 'ranked', rank: 2, total: 9 }, 'success', 'Rank 2 of 9'],
 		[{ ok: true, code: 'ranked' }, 'success', 'Rank – of –'],
+		[{ ok: true, code: 'ranked', bestMs: 4000 }, 'success', 'Your best'],
 		[{ ok: false, message: 'From the server' }, 'error', 'From the server']
 	] as const)('say what the server answered %o', (res, kind, text) => {
 		const m = scoreMessage({ message: '', ...res }, 5000, variant);

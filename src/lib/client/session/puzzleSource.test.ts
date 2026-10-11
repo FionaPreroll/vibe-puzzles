@@ -95,6 +95,26 @@ describe('puzzle source', () => {
 		vi.mocked(bank.loadPuzzleSource).mockReturnValue('local');
 	});
 
+	it('takes every other new puzzle from the collection on "mixed"', async () => {
+		vi.mocked(bank.loadPuzzleSource).mockReturnValue('mixed');
+		vi.mocked(bank.pickFromBank).mockResolvedValue({ id: ID, puzzle });
+		const random = vi.spyOn(Math, 'random');
+		random.mockReturnValueOnce(0.7);
+		expect(await new PuzzleSource(game).find(0, null)).toMatchObject({ source: 'bank' });
+		random.mockReturnValueOnce(0.2);
+		expect(await new PuzzleSource(game).find(0, null)).toMatchObject({ source: 'local' });
+		random.mockRestore();
+		vi.mocked(bank.pickFromBank).mockResolvedValue(null);
+		vi.mocked(bank.loadPuzzleSource).mockReturnValue('local');
+	});
+
+	it('generates a puzzle of a type the list does not have without asking the collection', async () => {
+		const id = encodePuzzleId(15, 4242);
+		expect(await new PuzzleSource(game).find(0, id)).toMatchObject({ puzzleId: id });
+		expect(bank.findInBank).not.toHaveBeenCalled();
+		expect(generate).toHaveBeenCalledWith('tetroid', 15, 4242);
+	});
+
 	it('plays a puzzle the server issues on its clock', async () => {
 		vi.mocked(api.serverPuzzles).mockResolvedValueOnce(true);
 		vi.mocked(api.issuePuzzle).mockResolvedValueOnce({
@@ -126,6 +146,10 @@ describe('puzzle source', () => {
 			});
 		}
 		expect(failed).toHaveBeenCalledTimes(2);
+		// Without a listener as well.
+		vi.mocked(api.serverPuzzles).mockResolvedValueOnce(true);
+		vi.mocked(api.issuePuzzle).mockRejectedValueOnce(new Error('down'));
+		expect(await new PuzzleSource(game).find(0, null)).toMatchObject({ source: 'local' });
 	});
 
 	it('fails when the puzzle cannot be made', async () => {

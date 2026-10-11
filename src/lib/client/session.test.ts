@@ -213,6 +213,7 @@ describe('opening a puzzle', () => {
 		// Not paused: the pause would cover the button that tries again.
 		expect(s.paused).toBe(false);
 		expect(s.personal(Date.now())).toBe(0);
+		expect(s).toMatchObject({ manualPause: false, playMs: 0, finalPlayMs: 0 });
 		expect(s).toMatchObject({
 			past: [],
 			checkpoints: [],
