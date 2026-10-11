@@ -22,6 +22,7 @@
 		touchMode,
 		onmove,
 		spotlight,
+		mistake,
 		area,
 		trial
 	}: BoardProps<TetroidPuzzle, TetroidState, TetroidSettingKey> = $props();
@@ -86,6 +87,8 @@
 	});
 
 	const errorColour = $derived(settings.blueErrors ? colours.blueErrorShade : colours.errorShade);
+	/** Wrong marks a hint points at. */
+	const mistakeColour = $derived(settings.blueErrors ? colours.blueError : colours.error);
 
 	function fillOf(i: number): string {
 		const m = marks[i];
@@ -391,7 +394,14 @@
 	{/if}
 
 	{#if spotlight?.size && !blank}
-		<g class="spotlight" fill="none" stroke={colours.cursor} stroke-width="3" aria-hidden="true">
+		<g
+			class="spotlight"
+			data-mistake={mistake || undefined}
+			fill="none"
+			stroke={mistake ? mistakeColour : colours.cursor}
+			stroke-width="3"
+			aria-hidden="true"
+		>
 			{#each [...spotlight] as key (key)}
 				{@const i = Number(key)}
 				<rect

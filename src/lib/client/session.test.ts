@@ -23,6 +23,7 @@ import * as bank from './bank';
 import { generate } from './generate';
 import { GameSession } from './session.svelte';
 import { MAX_CHECKPOINTS } from './session/history.svelte';
+import { message } from './session/messages';
 import { cleanupSpecialSaves, freeSaveSpace } from './session/saves';
 import { GameSettings } from './settings.svelte';
 import { getStats } from './stats';
@@ -773,6 +774,82 @@ describe('hints', () => {
 		expect(s.hint).toMatchObject({ kind: 'mistake', spotlight: [String(wrong)] });
 		expect(s.hintFull).toBe(true);
 		expect(s.message?.kind).toBe('error');
+	});
+
+	it('keep wrong marks pointed out until each is changed, also through undo', async () => {
+		const s = await hinting();
+		const [a, b] = solution.flatMap((x, i) => (x ? [] : [i]));
+		const right = solution.indexOf(1);
+		s.move(shaded(a, b), []);
+		s.showHint();
+		const message = s.message;
+		expect(s.hint).toMatchObject({ kind: 'mistake', spotlight: [String(a), String(b)] });
+		expect(s.hints).toBe(1);
+		// Another move leaves them, with their message.
+		s.move(shaded(a, b, right), []);
+		expect(s.hint?.spotlight).toEqual([String(a), String(b)]);
+		expect(s.message).toBe(message);
+		// A changed mark leaves the highlight; undo brings it back, redo takes it away again.
+		s.move(shaded(b, right), []);
+		expect(s.hint?.spotlight).toEqual([String(b)]);
+		s.undo();
+		expect(s.hint?.spotlight).toEqual([String(a), String(b)]);
+		s.redo();
+		expect(s.hint?.spotlight).toEqual([String(b)]);
+		// Once all are changed, the hint and its message go.
+		s.move(shaded(right), []);
+		expect(s.hint).toBeNull();
+		expect(s.message).toBeNull();
+		expect(s.hints).toBe(1);
+	});
+
+	it('look wrong marks up again after moves, as a new hint', async () => {
+		const s = await hinting();
+		const [a, b] = solution.flatMap((x, i) => (x ? [] : [i]));
+		s.move(shaded(a), []);
+		s.showHint();
+		// Asked again in the same position: the same hint, not counted.
+		s.showHint();
+		expect(s.hints).toBe(1);
+		s.move(shaded(a, b), []);
+		expect(s.hint?.spotlight).toEqual([String(a)]);
+		// After a move it is looked up again, with the new wrong mark, and counts.
+		s.showHint();
+		expect(s.hint?.spotlight).toEqual([String(a), String(b)]);
+		expect(s.hints).toBe(2);
+	});
+
+	it('take wrong marks away when the player closes them, leaving other messages', async () => {
+		const s = await hinting();
+		s.move(shaded(solution.indexOf(0)), []);
+		s.showHint();
+		s.dismissHint();
+		expect(s.hint).toBeNull();
+		expect(s.message).toBeNull();
+		// A message shown since stays when the hint goes.
+		s.showHint();
+		s.message = message('info', () => 'other');
+		s.dismissHint();
+		expect(s.hint).toBeNull();
+		expect(s.message?.text).toBe('other');
+	});
+
+	it('leave nothing pointed out on a solved board', async () => {
+		const settings = new GameSettings('tetroid', tetroid.settings);
+		settings.values.autoSubmit = false;
+		const s = new GameSession(tetroid, settings);
+		await s.open('6n', { puzzleId: ID });
+		const wrong = solution.indexOf(0);
+		s.move(shaded(...solution.flatMap((x, i) => (x || i === wrong ? [i] : []))), []);
+		s.showHint();
+		expect(s.hint?.kind).toBe('mistake');
+		// Solving changes the wrong mark.
+		s.move(solvedState(), []);
+		expect(s.hint).toBeNull();
+		await s.submit();
+		expect(s.solved).toBe(true);
+		expect(s.hint).toBeNull();
+		expect(s.message?.kind).toBe('success');
 	});
 
 	it('keep a hinted solve out of the best time and the ranking', async () => {

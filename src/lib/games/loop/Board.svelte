@@ -34,6 +34,7 @@
 		touchMode,
 		onmove,
 		spotlight,
+		mistake,
 		area,
 		trial
 	}: BoardProps<LoopPuzzle, LoopState, LoopSettingKey> = $props();
@@ -55,6 +56,8 @@
 	const width = $derived(w * cellSize + 2 * pad);
 	const height = $derived(h * cellSize + 2 * pad);
 	const errorColour = $derived(settings.blueErrors ? colours.blueErrorCell : colours.errorCell);
+	/** Wrong marks a hint points at. */
+	const mistakeColour = $derived(settings.blueErrors ? colours.blueError : colours.error);
 
 	let pending = $state<Pending | null>(null);
 	let cursor = $state<Dot | null>(null);
@@ -465,7 +468,14 @@
 	{/if}
 
 	{#if spotlight?.size && !blank}
-		<g class="spotlight" fill="none" stroke={colours.cursor} stroke-width="3" aria-hidden="true">
+		<g
+			class="spotlight"
+			data-mistake={mistake || undefined}
+			fill="none"
+			stroke={mistake ? mistakeColour : colours.cursor}
+			stroke-width="3"
+			aria-hidden="true"
+		>
 			{#each [...spotlight] as key (key)}
 				{#if key.startsWith('c:')}
 					{@const i = Number(key.slice(2))}

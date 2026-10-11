@@ -33,7 +33,10 @@ const MARKS: [ColourName, ColourName[]][] = [
 	['recent', ['surface', 'paper']],
 	['trial', ['paper', ...NOTES]],
 	['trialShade', ['surface']],
-	['cursor', ['surface', 'paper']]
+	['cursor', ['surface', 'paper']],
+	// Wrong marks a hint points at.
+	['error', ['surface', 'paper']],
+	['blueError', ['surface', 'paper']]
 ];
 /**
  * Region borders over shaded Tetroid cells: the fill already marks those cells, and at night the

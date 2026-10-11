@@ -37,6 +37,7 @@
 		ontool,
 		onmove,
 		spotlight,
+		mistake,
 		area,
 		trial
 	}: BoardProps<SudokuPuzzle, SudokuState, SudokuSettingKey> = $props();
@@ -427,7 +428,14 @@
 		{/if}
 
 		{#if spotlight?.size && !blank}
-			<g class="spotlight" fill="none" stroke={colours.cursor} stroke-width="3" aria-hidden="true">
+			<g
+				class="spotlight"
+				data-mistake={mistake || undefined}
+				fill="none"
+				stroke={mistake ? errorColour : colours.cursor}
+				stroke-width="3"
+				aria-hidden="true"
+			>
 				{#each [...spotlight] as key (key)}
 					{@const i = Number(key)}
 					<rect

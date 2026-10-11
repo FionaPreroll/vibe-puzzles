@@ -64,6 +64,8 @@ export interface BoardProps<P, S, K extends string = never> {
 	ontool?(tool: string): void;
 	/** Elements a tutorial step points at, in the same keys as `lastChange`. */
 	spotlight?: ReadonlySet<string>;
+	/** The spotlight points at wrong marks: drawn in the error colour. */
+	mistake?: boolean;
 	/** Elements a hint's reasoning rests on (a region, a cage, a row), tinted more softly. */
 	area?: ReadonlySet<string>;
 	/** Elements changed since a trial began, in `lastChange` keys: drawn in the trial colour. */

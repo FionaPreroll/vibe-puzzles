@@ -118,6 +118,15 @@
 						>{t('game.hintShow')}</button
 					>
 				{/if}
+				{#if session.hint}
+					<!-- Wrong marks stay until they are changed: this takes them away sooner -->
+					<button
+						class="ml-1 opacity-60 hover:opacity-100"
+						title={t('game.dismiss')}
+						aria-label={t('game.dismiss')}
+						onclick={() => session.dismissHint()}>✕</button
+					>
+				{/if}
 			</p>
 		</div>
 	{:else}

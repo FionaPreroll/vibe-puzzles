@@ -119,7 +119,8 @@ const en = {
 		trialRunning: 'Trial: new marks are teal',
 		hint: 'Hint',
 		hintTitle: 'Hint (H): point at the next step. The puzzle then gets no best time and no rank.',
-		hintMistake: 'The highlighted marks do not match the solution.',
+		hintMistake:
+			'The highlighted marks do not match the solution. They stay highlighted until you change them.',
 		/** Shown with a hint's first look: the step itself, as a second press of Hint does. */
 		hintShow: 'Show the step',
 		countsAsHint: 'Counts as a hint: no best time and no rank for a puzzle played with it on.',

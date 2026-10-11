@@ -37,10 +37,71 @@ test('the hint first tints where to look, then points at the step, and at a wron
 	);
 	await expect(spotlight).toHaveCount(0);
 	await expect(area).toHaveCount(0);
-	// A wrong mark is shown at once.
+	// A wrong mark is shown at once, in the error colour.
 	await page.keyboard.press('h');
-	await expect(status).toHaveText('The highlighted marks do not match the solution.');
+	await expect(status).toHaveText(/^The highlighted marks do not match the solution\./);
 	await expect(spotlight).toHaveCount(1);
+	await expect(board.locator('g.spotlight[data-mistake]')).toHaveCount(1);
+});
+
+test('wrong marks stay pointed out through other moves until changed or closed', async ({
+	page
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+	});
+	await page.goto(PUZZLE);
+	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	const spotlight = board.locator('g.spotlight[data-mistake] > *');
+	const status = page.getByRole('status');
+	const grid = (await board.locator('rect').first().boundingBox())!;
+	const cell = grid.width / 6;
+	const click = (i: number) =>
+		page.mouse.click(grid.x + ((i % 6) + 0.5) * cell, grid.y + (Math.floor(i / 6) + 0.5) * cell);
+	const wrong = [...SOLUTION].flatMap((c, i) => (c === '0' ? [i] : []));
+
+	await click(wrong[0]);
+	await click(wrong[1]);
+	await page.keyboard.press('h');
+	await expect(spotlight).toHaveCount(2);
+	// A right move elsewhere leaves both; changing one takes only that one away.
+	await click(SOLUTION.indexOf('1'));
+	await expect(spotlight).toHaveCount(2);
+	await expect(status).toContainText('do not match the solution');
+	await click(wrong[0]);
+	await expect(spotlight).toHaveCount(1);
+	// Closing the message takes the rest away.
+	await page.getByRole('button', { name: 'Dismiss' }).click();
+	await expect(spotlight).toHaveCount(0);
+	await expect(status).toHaveText('');
+});
+
+test.describe('phone', () => {
+	test.use({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true });
+
+	test('closing the toast of wrong marks takes them off the board', async ({ page }) => {
+		await page.addInitScript(() => {
+			localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+			localStorage.setItem('vp:puzzleSource', '"bank"');
+		});
+		await page.goto(PUZZLE);
+		const board = page.locator('.overflow-x-auto svg[role="grid"]');
+		await expect(board).toBeVisible({ timeout: 30_000 });
+		const spotlight = board.locator('g.spotlight[data-mistake] > *');
+		const grid = (await board.locator('rect').first().boundingBox())!;
+		const cell = grid.width / 6;
+		const wrong = SOLUTION.indexOf('0');
+		await page.mouse.click(
+			grid.x + ((wrong % 6) + 0.5) * cell,
+			grid.y + (Math.floor(wrong / 6) + 0.5) * cell
+		);
+		await page.getByRole('button', { name: 'Hint', exact: true }).click();
+		await expect(spotlight).toHaveCount(1);
+		await page.getByRole('button', { name: 'Dismiss' }).last().click();
+		await expect(spotlight).toHaveCount(0);
+	});
 });
 
 test.describe('320 px wide', () => {
