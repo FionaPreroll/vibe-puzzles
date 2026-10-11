@@ -166,7 +166,7 @@ class Deduction {
 			const after = this.copy();
 			after.remove(c, k, TECHNIQUES.indexOf('assumption'));
 			let step = after.decided();
-			while (step?.mark !== 'line' && after.sweep()) step = after.decided() ?? step;
+			while (step?.mark !== 'line' && after.sweep()) step = after.decided();
 			if (!step) continue;
 			const named: Step = {
 				...step,

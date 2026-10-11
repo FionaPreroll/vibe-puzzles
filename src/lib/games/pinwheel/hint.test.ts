@@ -110,6 +110,8 @@ describe('pinwheel hints', () => {
 
 	it.each([
 		[7, 'hard', 1],
+		// An assumption here first leads only to a cross; a later one leads to a line.
+		[7, 'hard', 53],
 		[10, 'normal', 1],
 		[10, 'hard', 1],
 		[10, 'hard', 2],
@@ -135,6 +137,25 @@ describe('pinwheel hints', () => {
 			expect(isSolvedState(puzzle, state)).toBe(true);
 		}
 	);
+
+	it('name a cross only where no line follows, not even from an assumption', () => {
+		// 7×7 Hard #16: with the lines the hints name, the next step is two cells that belong to one
+		// galaxy. Every mark the hints name is right.
+		const { puzzle } = generatePinwheel(7, 7, 'hard', 16);
+		const solution = solvePinwheel(puzzle).solutions[0];
+		const state = emptyPinwheelState(puzzle);
+		const crosses: PinwheelHint[] = [];
+		const last = follow(puzzle, state, (h) => {
+			if (h.kind !== 'step') return;
+			if (h.mark === 'cross') crosses.push(h);
+			for (const e of h.edges) {
+				const [a, b] = sides(puzzle, e);
+				expect(solution[a] === solution[b]).toBe(h.mark === 'cross');
+			}
+		});
+		expect(last?.kind).not.toBe('mistake');
+		expect(crosses.length).toBeGreaterThan(0);
+	});
 
 	it('start with lines the centres alone decide', () => {
 		expect(pinwheelHint(example, emptyPinwheelState(example))).toMatchObject({
