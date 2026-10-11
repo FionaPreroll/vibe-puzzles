@@ -2,19 +2,16 @@ name: Deploy to GitHub Pages
 
 # Static build without server features. Enable Pages in the repository settings
 # with "GitHub Actions" as the source.
+# Started only by CI (ci.yml) on main, after every test has passed; CI also holds the
+# concurrency group, so a newer run cancels a deploy still in progress.
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
 
-# Only the newest commit may go live: a newer push cancels a run still in progress, and the
-# deploy job checks again right before publishing (e.g. when an old run is re-run).
-concurrency:
-  group: pages
-  cancel-in-progress: true
+# The deploy job checks right before publishing that this is still the newest commit
+# (e.g. when an old run is re-run).
 
 jobs:
   build:
