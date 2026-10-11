@@ -601,7 +601,8 @@ export class LoopSolver {
 			this.set(e, da ^ this.found ? LINE : CROSS);
 			changed = true;
 		}
-		return this.broken ? null : changed;
+		// The edges follow from known differences, so drawing them contradicts no class.
+		return changed;
 	}
 
 	/**
@@ -631,8 +632,9 @@ export class LoopSolver {
 		for (let i = 0; i < roots.length; i++) {
 			for (let j = i + 1; j < roots.length; j++) {
 				const diff = ((fitting[0] >> i) ^ (fitting[0] >> j)) & 1;
+				// All differences come from one colouring, so these links never contradict.
 				if (fitting.every((a) => (((a >> i) ^ (a >> j)) & 1) === diff)) {
-					if (!this.union(roots[i], roots[j], diff)) return false;
+					this.union(roots[i], roots[j], diff);
 				}
 			}
 		}

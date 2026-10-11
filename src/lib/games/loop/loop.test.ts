@@ -173,6 +173,18 @@ describe('rating solver', () => {
 		});
 		expect(rateLoop({ width: 2, height: 2, clues: '3333' }).solved).toBe(false);
 		expect(rateLoop({ width: 1, height: 1, clues: '0' }).solved).toBe(false);
+		// Impossible puzzles that the basic rules let pass, and inside and outside does not.
+		for (const [width, height, clues] of [
+			[3, 2, '0...2.'],
+			[4, 2, '..3.211.'],
+			[3, 4, '...1..3...12'],
+			[3, 4, '.3...211.222'],
+			[4, 3, '2.2...12.0..']
+		] as const) {
+			const p = { width, height, clues };
+			expect(solveLoop(p).solutions, clues).toHaveLength(0);
+			expect(rateLoop(p).solved, clues).toBe(false);
+		}
 		// One line leaves the dots around the middle cell, which the basic rules let pass: the
 		// cells around them would have to be inside and outside at once.
 		const open: LoopPuzzle = { width: 3, height: 3, clues: '.........' };
@@ -183,6 +195,35 @@ describe('rating solver', () => {
 			rateLoop(open, LoopLevel.Basic, from).edges.filter((x) => x === OPEN_EDGE).length
 		).toBeGreaterThan(0);
 		expect(rateLoop(open, LoopLevel.Advanced, from).solved).toBe(false);
+	});
+
+	it('never draws a wrong loop, whatever edges it starts from', () => {
+		// Starting from part of the solution, with some edges flipped: a solved result is the
+		// one solution and keeps the edges it started from; without flips it always solves.
+		const rng = new Rng(7);
+		for (const [size, difficulty] of [
+			[5, 'hard'],
+			[7, 'hard'],
+			[5, 'normal']
+		] as const) {
+			for (let seed = 1; seed <= 6; seed++) {
+				const { puzzle, solution } = generateLoop(size, size, difficulty, seed);
+				const right = edgeValues(solution).map((x) => (x === LINE ? LINE : CROSS));
+				for (let round = 0; round < 25; round++) {
+					const from = right.map((x) => (rng.next() < 0.3 ? x : 0));
+					const flips = round % 5;
+					for (let k = 0; k < flips; k++) {
+						const e = rng.int(from.length);
+						from[e] = right[e] === LINE ? CROSS : LINE;
+					}
+					const r = rateLoop(puzzle, LoopLevel.Advanced, from);
+					if (flips === 0) expect(r.solved).toBe(true);
+					if (!r.solved) continue;
+					expect([...r.edges]).toEqual(right);
+					from.forEach((x, e) => x && expect(r.edges[e]).toBe(x));
+				}
+			}
+		}
 	});
 });
 
