@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { GameSettings } from '../client/settings.svelte';
-	import { settingLabel, t } from '../i18n/index.svelte';
+	import { settingHelp, settingLabel, t } from '../i18n/index.svelte';
 	import {
 		loadPuzzleSource,
 		PUZZLE_SOURCES,
@@ -13,17 +13,25 @@
 	let {
 		open = $bindable(false),
 		settings,
+		mode,
 		touchMode,
 		ontouchmode
 	}: {
 		open: boolean;
 		settings: GameSettings<string>;
+		/** Mode of the current puzzle type, e.g. 'calc', for texts worded for that mode. */
+		mode?: string;
 		/** Set on touch devices, which get a choice of how dragging on the board behaves. */
 		touchMode?: TouchMode;
 		ontouchmode?: (mode: TouchMode) => void;
 	} = $props();
 
+	/** A line under a setting, lined up with its label. */
+	const HELP = '-mt-1 pr-2 pb-1 pl-9 text-xs text-stone-500 dark:text-stone-400';
+
 	const TOUCH_MODES: TouchMode[] = ['draw', 'auto', 'pan'];
+	/** 'draw' → 'Draw', for the translation keys of a touch mode. */
+	const name = (m: TouchMode) => `${m[0].toUpperCase()}${m.slice(1)}`;
 
 	let source = $state<PuzzleSource>(loadPuzzleSource());
 
@@ -35,6 +43,8 @@
 <Dialog bind:open title={t('game.settings')}>
 	<ul class="space-y-1">
 		{#each visible as s (s.key)}
+			{@const help = settingHelp(s.key, settings.game, mode)}
+			{@const ids = [help && `setting-${s.key}-help`, s.countsAsHint && `setting-${s.key}-note`]}
 			<li>
 				<label
 					class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-stone-100 dark:hover:bg-stone-800"
@@ -43,17 +53,19 @@
 						type="checkbox"
 						class="size-4 accent-indigo-600"
 						checked={settings.values[s.key]}
-						aria-describedby={s.countsAsHint ? `setting-${s.key}-note` : undefined}
+						aria-describedby={ids.filter(Boolean).join(' ') || undefined}
 						onchange={(e) => settings.set(s.key, e.currentTarget.checked)}
 					/>
-					<span>{settingLabel(s)}</span>
+					<span>{settingLabel(s, settings.game, mode)}</span>
 				</label>
-				{#if s.countsAsHint}
-					<p
-						id="setting-{s.key}-note"
-						class="-mt-1 pr-2 pb-1 pl-9 text-xs text-stone-500 dark:text-stone-400"
-					>
-						{t('game.countsAsHint')}
+				{#if help || s.countsAsHint}
+					<p class={HELP}>
+						{#if help}<span id="setting-{s.key}-help">{help}</span>{/if}
+						{#if s.countsAsHint}
+							<span id="setting-{s.key}-note" class="mt-0.5 block font-medium"
+								>{t('game.countsAsHint')}</span
+							>
+						{/if}
 					</p>
 				{/if}
 			</li>
@@ -71,10 +83,12 @@
 						name="touch-mode"
 						class="size-4 accent-indigo-600"
 						checked={touchMode === m}
+						aria-describedby="touch-{m}-help"
 						onchange={() => ontouchmode?.(m)}
 					/>
-					<span>{t(`game.touch${m[0].toUpperCase()}${m.slice(1)}`)}</span>
+					<span>{t(`game.touch${name(m)}`)}</span>
 				</label>
+				<p id="touch-{m}-help" class={HELP}>{t(`game.touch${name(m)}Text`)}</p>
 			{/each}
 		</fieldset>
 	{/if}

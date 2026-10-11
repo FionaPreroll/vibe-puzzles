@@ -220,11 +220,12 @@ test('painting wrong digits red counts as a hint, and the settings say so', asyn
 
 	await page.getByRole('button', { name: 'Settings' }).click();
 	const setting = page.getByRole('checkbox', { name: 'Paint wrong digits red' });
-	await expect(setting).toHaveAccessibleDescription(/^Counts as a hint/);
-	// Other settings carry no such note.
-	await expect(
-		page.getByRole('checkbox', { name: 'Highlight errors' })
-	).toHaveAccessibleDescription('');
+	await expect(setting).toHaveAccessibleDescription(/^Compares your digits .* Counts as a hint/);
+	// Other settings carry no such note, and Calcudoku words theirs without boxes.
+	const errors = page.getByRole('checkbox', { name: 'Highlight errors' });
+	await expect(errors).toHaveAccessibleDescription(/in a row or column turns red/);
+	await expect(errors).not.toHaveAccessibleDescription(/Counts as a hint/);
+	await expect(page.getByRole('checkbox', { name: 'Highlight row and column' })).toBeVisible();
 	await setting.check();
 	await page.keyboard.press('Escape');
 

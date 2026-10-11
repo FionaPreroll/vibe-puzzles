@@ -113,6 +113,28 @@ export function toolHint(gameId: string, toolId: string): string {
 	return typeof lookup(en, key) === 'string' ? t(key) : '';
 }
 
-export function settingLabel(setting: { key: string; label: string }): string {
-	return has(`setting.${setting.key}`) ? t(`setting.${setting.key}`) : setting.label;
+/** Keys of a setting text (`setting` or `settingHelp`): the mode's own, the game's, the shared. */
+function settingKeys(kind: string, key: string, gameId?: string, mode?: string): string[] {
+	const keys = [`${kind}.${key}`];
+	if (gameId) keys.unshift(`games.${gameId}.${kind}.${key}`);
+	if (gameId && mode) keys.unshift(`games.${gameId}.modes.${mode}.${kind}.${key}`);
+	return keys;
+}
+
+/** Name of a setting, worded for the game and its mode where they need it. */
+export function settingLabel(
+	setting: { key: string; label: string },
+	gameId?: string,
+	mode?: string
+): string {
+	const key = settingKeys('setting', setting.key, gameId, mode).find(has);
+	return key ? t(key) : setting.label;
+}
+
+/** What a setting does, worded for the game and its mode; empty when there is no text for it. */
+export function settingHelp(key: string, gameId?: string, mode?: string): string {
+	const found = settingKeys('settingHelp', key, gameId, mode).find(
+		(k) => typeof lookup(en, k) === 'string'
+	);
+	return found ? t(found) : '';
 }

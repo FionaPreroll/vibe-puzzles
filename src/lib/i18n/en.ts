@@ -129,6 +129,9 @@ const en = {
 		touchAuto: 'Auto',
 		touchDraw: 'Always draw',
 		touchPan: 'Always pan',
+		touchAutoText: 'Swiping scrolls the page. Rest your finger a moment, then drag to draw.',
+		touchDrawText: 'Dragging on the board always draws. Scroll and zoom beside the board.',
+		touchPanText: 'Dragging always scrolls and zooms the page. A tap still marks.',
 		checkpoints: 'Checkpoints',
 		save: 'Save',
 		add: 'Add',
@@ -271,6 +274,63 @@ const en = {
 		highlightSame: 'Highlight the same digit',
 		showRemaining: 'Show how many of each digit are left',
 		digitFirst: 'Pick the digit first, then the cells (left click: digit, right click: note)'
+	},
+	/** What each setting does, shown below it. Games and modes can word it their own way. */
+	settingHelp: {
+		hideControls:
+			'Hides the tool buttons for a tidier screen. The tool you used last stays active. Applies to this device only.',
+		stickyToolbar:
+			'The bar with the clock, zoom and settings stays at the top while you scroll, handy on big boards.',
+		autoSubmit:
+			'The puzzle counts as solved the moment your last mark is right. Turn it off to look over your solution and press Done yourself.',
+		showCheckpoints:
+			'Adds buttons below the board to save up to 10 positions and go back to any of them, e.g. before a bold guess.',
+		showCoordinates:
+			'Shows letters above and below the board and numbers at its sides, so you can name a cell, like C4.',
+		hideTimer:
+			'Play without a running clock. Your time is still measured and shown when you solve the puzzle.',
+		hideHint: 'Removes the Hint button and its H key, so it does not tempt you.',
+		personalTimer:
+			'The clock stops while the game is in the background and gets a Pause button. Times measured this way are not ranked.',
+		highlightErrors: 'Marks in red what already breaks a rule.',
+		blueErrors:
+			'Shows errors in blue instead of red, which is easier to see with red-green colour blindness.',
+		highlightLastChange:
+			'Outlines what your last move changed, so you quickly find your place again.',
+		solvedAnimation: 'Plays a short celebration on the board when you solve a puzzle.',
+		highlightBlock: 'Tints the region of the cell you last clicked or reached with the arrow keys.',
+		highlightGroup:
+			'Highlights all shaded cells connected to the one you changed last. Holding Shift shows the group under the mouse, even with this off.',
+		thickBorders: 'Draws the region borders thicker, so the regions stand out more.',
+		colorTetrominoes:
+			'Colours every finished tetromino by its shape (L, I, T, S), so identical shapes that touch catch your eye.',
+		autoCrossCorners:
+			'When three cells of a 2×2 block are shaded, the fourth gets a cross by itself.',
+		autoCrossRegions:
+			'Once a region holds its tetromino, its other cells get crosses by themselves.',
+		showGrid:
+			'Draws faint dotted lines between all cells, which helps with counting and finding partner cells.',
+		continuousLine:
+			'Dragging draws one connected line from dot to dot, round corners too; moving back shortens it. Off: each edge you drag over is set on its own.',
+		symmetryHelper:
+			'Press a circle and drag onto a cell (on a touch screen, hold the circle first): the cell and its partner across the circle light up. Red means the partner would lie outside the board.',
+		blackHoles:
+			'A circle turns black once its region is finished, so you see at a glance what is done.',
+		autoColor: 'Gives every finished region a colour of its own, different from its neighbours.',
+		dimSatisfiedClues:
+			'Greys out a number once it has as many lines as it shows, so the open ones stand out.',
+		markMistakes:
+			'Compares your digits with the solution and paints wrong ones red, even before they clash with anything.',
+		autoNotes:
+			'Every empty cell without notes gets the digits that its row, column and box still allow.',
+		autoRemoveNotes: 'A new digit disappears from the notes in its row, column and box.',
+		highlightLines: 'Tints the row, column and box of the selected cell.',
+		highlightSame:
+			'Highlights every cell with the same digit as the selected cell, or as the digit you picked first.',
+		showRemaining:
+			'The number pad shows how often each digit is still missing and greys out the complete ones.',
+		digitFirst:
+			'Pick a digit on the pad first, then click every cell that gets it. Handy for placing one digit all over the board.'
 	},
 	source: {
 		title: 'Where new puzzles come from',
@@ -429,6 +489,10 @@ const en = {
 				'Click a cell to shade it, right click to place a cross. Drag to paint several cells. Keys 1–4 pick a tool.',
 			controlsTouch:
 				'Tap a cell to cycle through shaded, cross and empty. Hold a moment, then drag to paint several cells.',
+			settingHelp: {
+				highlightErrors:
+					'Shaded cells turn red when they break a rule: a full 2×2 block, identical tetrominoes side by side, more than four cells in a region, or a group that can no longer join the rest.'
+			},
 			/** What the hint button says: why tetrominoes are ruled out, then what follows. */
 			hints: {
 				region:
@@ -499,6 +563,12 @@ const en = {
 				'Click between dots to draw a line, right click to set a cross, Shift+click to colour a cell. Right click a circle to lock a finished region.',
 			controlsTouch:
 				'Tap between dots to draw a line. Pick the Colour tool to colour cells. Hold a circle to lock a finished region.',
+			settingHelp: {
+				autoSubmit:
+					'The puzzle counts as solved as soon as every region is right, drawn with lines or filled in with colours. Off: you press Done yourself, and only the lines count.',
+				highlightErrors:
+					'An area closed off without a circle turns red, and so does the circle of a closed region that is not symmetric.'
+			},
 			/** What the hint button says: why a circle's region is ruled out, then what follows. */
 			hints: {
 				look: 'Look at the tinted cells.',
@@ -563,6 +633,12 @@ const en = {
 				'Click a cell, then type a digit or use the number pad. Shift+digit adds or removes a note, Space switches between digits and notes. Backspace or 0 erases. Arrow keys move. Prefer to pick the digit first? Turn on "Pick the digit first" in the settings.',
 			controlsTouch:
 				'Tap a cell, then a digit on the number pad. Pick the Note tool to add or remove small notes instead. ⌫ erases.',
+			settingHelp: {
+				hideControls:
+					'Hides the Digit and Note buttons; the number pad stays. The tool you used last stays active. Applies to this device only.',
+				highlightErrors:
+					'A digit that appears twice in a row, column or box turns red. This does not compare with the solution; “Paint wrong digits red” does.'
+			},
 			/** What the hint button says. With an elimination first, then the digit it leads to. */
 			hints: {
 				where: {
@@ -598,6 +674,17 @@ const en = {
 			},
 			modes: {
 				calc: {
+					setting: {
+						highlightLines: 'Highlight row and column'
+					},
+					settingHelp: {
+						highlightErrors:
+							'A digit that appears twice in a row or column turns red, and so does the label of a full cage whose digits miss its result. This does not compare with the solution.',
+						autoNotes:
+							'Every empty cell without notes gets the digits that its row and column still allow. The cages are up to you.',
+						autoRemoveNotes: 'A new digit disappears from the notes in its row and column.',
+						highlightLines: 'Tints the row and column of the selected cell.'
+					},
 					rules: [
 						'Calcudoku ("Math Sudoku"): fill every cell with a digit from 1 to the grid size. Each row and each column holds every digit exactly once; there are no boxes.',
 						'Each cage with a thick border shows a result, then an operation. Its digits must give that result: "12+" adds up to 12, "60×" multiplies to 60.',
@@ -702,6 +789,10 @@ const en = {
 				'Click between two dots to draw a line, or drag along the dots to draw several. Right click sets a cross.',
 			controlsTouch:
 				'Tap between two dots to draw a line, or hold and drag along the dots to draw several. Pick the Cross tool to mark edges the loop avoids.',
+			settingHelp: {
+				highlightErrors:
+					'A dot turns red where the line branches or gets stuck, a number when it has too many lines or crosses. Once the loop is closed, numbers still missing lines turn red too.'
+			},
 			/** What the hint button says: where to look and which rule applies, then what follows. */
 			hints: {
 				clueLook: 'Count the lines and crosses around the tinted {clue}.',
