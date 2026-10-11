@@ -15,6 +15,7 @@ import { sudoku } from '../games/sudoku';
 import { tetroid } from '../games/tetroid';
 import { generateTetroid } from '../games/tetroid/generator';
 import { EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from '../games/tetroid/rules';
+import { i18n } from '../i18n/index.svelte';
 import { MemoryStorage } from '../../test/memory-storage';
 import * as api from './api';
 import * as bank from './bank';
@@ -295,7 +296,7 @@ describe('server puzzles', () => {
 		const s = session();
 		await s.open('6n');
 		expect(s.source).toBe('local');
-		expect(s.message?.kind).toBe('info');
+		expect(s.message).toEqual({ kind: 'info', text: expect.stringContaining('played offline') });
 	});
 
 	it('plays requested puzzles locally', async () => {
@@ -533,6 +534,13 @@ describe('solving', () => {
 		expect(s.message?.kind).toBe('error');
 	});
 
+	it('says nothing when an automatic check finds the puzzle not solved', async () => {
+		const s = await opened();
+		await s.submit(true);
+		expect(s.solved).toBe(false);
+		expect(s.message).toBeNull();
+	});
+
 	it('records an automatic solve and uploads it', async () => {
 		vi.mocked(api.submitScore).mockResolvedValueOnce({
 			ok: true,
@@ -564,6 +572,20 @@ describe('solving', () => {
 		expect(getStats('tetroid', '6n').solved).toBe(1);
 		expect(s.elapsed(Date.now() + 1000)).toBe(30_000);
 		expect(s.personal(Date.now() + 1000)).toBe(30_000);
+	});
+
+	it('shows the solved message in the language chosen after solving', async () => {
+		vi.mocked(api.submitScore).mockResolvedValueOnce({ ok: true, code: 'repeat', message: '' });
+		const s = await opened({ autoSubmit: false });
+		s.move(solvedState(), []);
+		await s.submit();
+		expect(s.message?.text).toMatch(/^Solved in .*\(You solved this puzzle before\.\)$/);
+		i18n.locale = 'de';
+		try {
+			expect(s.message?.text).toMatch(/^In .* gelöst! \(Du hast dieses Rätsel schon/);
+		} finally {
+			i18n.locale = 'en';
+		}
 	});
 
 	it.each([
@@ -602,6 +624,7 @@ describe('solving', () => {
 			s.move(shaded(first), []);
 			await s.submit();
 			expect(s.solved).toBe(false);
+			expect(s.message?.text).toBe('Not solved yet. Keep going!');
 			s.move(almost, []);
 			if (!autoSubmit) {
 				expect(s.solved).toBe(false);
@@ -609,6 +632,7 @@ describe('solving', () => {
 			}
 			await vi.waitFor(() => expect(s.submitting).toBe(false));
 			expect(s.solved).toBe(true);
+			expect(s.message?.text).toMatch(/^Solved in \d/);
 			// The board shows the solution the game made of it, and that is what is submitted.
 			expect(s.state).toEqual(solvedState());
 			expect(api.submitScore).toHaveBeenCalledWith(

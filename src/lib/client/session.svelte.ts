@@ -48,7 +48,20 @@ export interface SavedGame<S = unknown> {
 
 export interface Message {
 	kind: 'success' | 'error' | 'info';
-	text: string;
+	readonly text: string;
+}
+
+/**
+ * A message whose text is made on each read, so a message already shown (such as "Solved in
+ * 1:23!") follows a change of language.
+ */
+export function message(kind: Message['kind'], text: () => string): Message {
+	return {
+		kind,
+		get text() {
+			return text();
+		}
+	};
 }
 
 export const MAX_CHECKPOINTS = 10;
@@ -91,7 +104,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	/** A setting that counts as a hint was on during this game (counted once in `hints`). */
 	assisted = $state(false);
 	loading = $state(true);
-	message = $state<Message | null>(null);
+	/** Raw state: a proxy would keep the text of the first read and not follow the language. */
+	message = $state.raw<Message | null>(null);
 
 	/** Competitive clock start (epoch ms). */
 	startedAt = $state(0);
@@ -254,7 +268,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			}
 		} catch (e) {
 			if (token !== this.openToken) return;
-			this.message = { kind: 'error', text: t('session.createFailed', { error: String(e) }) };
+			this.message = message('error', () => t('session.createFailed', { error: String(e) }));
 			// The previous puzzle stays playable, unless it belongs to another slot (another type).
 			if (this.puzzleKey !== this.saveKey) this.clearPuzzle();
 			this.finishLoading(token);
@@ -326,7 +340,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		} catch {
 			/* fall back to a local puzzle */
 		}
-		this.message = { kind: 'info', text: t('session.serverFailed') };
+		this.message = message('info', () => t('session.serverFailed'));
 		return null;
 	}
 
@@ -425,7 +439,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		if (this.restore(remote.data)) {
 			// Storage full: the older save stays, and must not count as another tab's.
 			if (!save(this.saveKey, remote.data)) this.storedAt = this.storedUpdatedAt();
-			this.message = { kind: 'info', text: t('session.continued') };
+			this.message = message('info', () => t('session.continued'));
 		}
 		this.resumeClock();
 	}
@@ -448,7 +462,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			this.finalMs = Math.max(0, stored.updatedAt - this.startedAt);
 			this.finalPlayMs = this.playMs;
 		}
-		this.message = { kind: 'info', text: t('session.otherTab') };
+		this.message = message('info', () => t('session.otherTab'));
 		this.resumeClock();
 		return true;
 	}
@@ -583,10 +597,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.hint = hint;
 		this.hintFull = !!shown || !hint.teaser;
 		const keys = this.hintFull ? hint.text : hint.teaser!;
-		this.message = {
-			kind: hint.kind === 'mistake' ? 'error' : 'info',
-			text: keys.map((key) => t(key, hint.params)).join(' ')
-		};
+		this.message = message(hint.kind === 'mistake' ? 'error' : 'info', () =>
+			keys.map((key) => t(key, hint.params)).join(' ')
+		);
 		this.persist();
 	}
 
@@ -748,7 +761,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		if (!this.game.isSolved(this.puzzle, state)) {
 			const alt = this.game.acceptAlternative?.(this.puzzle, state, this.settings.values);
 			if (!alt) {
-				if (!auto) this.message = { kind: 'error', text: t('session.notSolved') };
+				if (!auto) this.message = message('error', () => t('session.notSolved'));
 				return;
 			}
 			this.replace(alt);
@@ -773,10 +786,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			this.hinted
 		);
 		this.persist();
-		this.message = {
-			kind: 'success',
-			text: t('session.solved', { time: formatDuration(shown, true) })
-		};
+		this.message = message('success', () =>
+			t('session.solved', { time: formatDuration(shown, true) })
+		);
 
 		this.submitting = true;
 		try {
@@ -793,10 +805,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 				ticket: this.ticket ?? undefined
 			});
 			if (res === 'queued') {
-				this.message = {
-					kind: 'info',
-					text: t('session.queued', { time: formatDuration(shown, true) })
-				};
+				this.message = message('info', () =>
+					t('session.queued', { time: formatDuration(shown, true) })
+				);
 				return;
 			}
 			if (res?.puzzleId && !this.puzzleId) {
@@ -805,16 +816,13 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			}
 			if (res) {
 				const kind = res.ok ? 'success' : res.code === 'expired' ? 'info' : 'error';
-				this.message = { kind, text: this.scoreText(res, shown) };
+				this.message = message(kind, () => this.scoreText(res, shown));
 			}
 		} catch (e) {
-			this.message = {
-				kind: 'info',
-				text: t('session.uploadFailed', {
-					time: formatDuration(shown, true),
-					error: (e as Error).message
-				})
-			};
+			const error = (e as Error).message;
+			this.message = message('info', () =>
+				t('session.uploadFailed', { time: formatDuration(shown, true), error })
+			);
 		} finally {
 			this.submitting = false;
 		}
