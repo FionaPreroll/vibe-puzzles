@@ -99,6 +99,17 @@ describe('rules', () => {
 		s.v[vIndex(square, 0, 1)] = CROSS;
 		expect(analyze(square, s).dotError[1]).toBe(true);
 	});
+
+	it('marks a clue with too few lines once the loop is closed, not before', () => {
+		const pair: LoopPuzzle = { width: 2, height: 1, clues: '.3' };
+		const loop = box(0, 0, 0, 0);
+		expect(analyze(pair, lines(pair, ...loop.slice(1))).clueError).toEqual([false, false]);
+		expect(analyze(pair, lines(pair, ...loop)).clueError).toEqual([false, true]);
+		// A second piece can still add lines: no verdict yet.
+		const square3: LoopPuzzle = { width: 2, height: 2, clues: '...3' };
+		const s = lines(square3, ...box(0, 0, 0, 0), 'h:2:1');
+		expect(analyze(square3, s).clueError[3]).toBe(false);
+	});
 });
 
 /** The edge number of an `h:i:j` / `v:i:j` key. */
