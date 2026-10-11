@@ -214,6 +214,17 @@ describe('housekeeping', () => {
 		expect(freeSaveSpace('save:tetroid:6n', agree)).toBe(false);
 	});
 
+	it('takes a save without a time for the oldest', () => {
+		save('save:tetroid:6h', saved({ updatedAt: 5 }));
+		save('save:tetroid:8n', { ...saved(), updatedAt: undefined });
+		save('save:tetroid:8h', saved({ updatedAt: 9 }));
+		expect(freeSaveSpace('save:tetroid:6n', () => true)).toBe(true);
+		expect(load('save:tetroid:8n', null)).toBeNull();
+		expect(freeSaveSpace('save:tetroid:6n', () => true)).toBe(true);
+		expect(load('save:tetroid:6h', null)).toBeNull();
+		expect(load('save:tetroid:8h', null)).not.toBeNull();
+	});
+
 	it('takes a save of a newer version for neither broken nor solved', () => {
 		save('save:tetroid:6n', { ...saved({ updatedAt: Date.now() }), version: 2 });
 		save('save:tetroid:daily:2026-10-10', { ...saved({ updatedAt: Date.now() }), version: 2 });
