@@ -378,6 +378,17 @@
 				{#if key.startsWith('c:')}
 					{@const i = Number(key.slice(2))}
 					<rect x={px(i % w)} y={py(Math.floor(i / w))} width={cellSize} height={cellSize} />
+				{:else if key.startsWith('d:')}
+					{@const k = Number(key.slice(2))}
+					<circle cx={px(k % (w + 1))} cy={py(Math.floor(k / (w + 1)))} r={cellSize * 0.22} />
+				{:else}
+					<path
+						d={edgePath(parseEdge(key))}
+						stroke={colours.cursor}
+						stroke-opacity="0.35"
+						stroke-width={cellSize * 0.3}
+						stroke-linecap="round"
+					/>
 				{/if}
 			{/each}
 		</g>

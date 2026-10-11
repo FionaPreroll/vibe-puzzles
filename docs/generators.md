@@ -154,6 +154,18 @@ Two other ways to make hard puzzles did not help and are not used: larger galaxi
 
 **Complete solver** (`LoopSolver.solve`): the basic rules plus branching on an open edge, preferably one that continues a line. `countSolutions` and the collection use it.
 
+**Hints** (`loopHint` in `hint.ts`) start from the player's lines and crosses. Marks that disagree with the solution come first. Otherwise the simplest deduction that decides an open edge is named, in this order:
+
+1. _Number_: a number with all its lines (cross the rest; a 0 crosses all four), or with just enough free sides (draw them).
+2. _Dot_: two lines meet (cross the rest), a line has one way to go on, or a dot without a line has one free edge left (cross it).
+3. _No early loop_: an edge between the two ends of one line, which would close a loop while other lines or numbers still need it.
+4. _Corners_: a number with the dots at its corners. Every way to draw its open sides is tried; a way fits when the number keeps its count and no dot gets three lines, or a single line with no free edge left. Edges that all ways agree on follow (a 3 in the corner of the grid, a line running into the corner of a 3).
+5. _Pair_: the same with two numbers that share a dot (two 3s on a diagonal), then _2×2 block_ with the four cells of a block.
+6. _Inside and outside_: two cells by an open edge that a walk over the player's marks connects (beyond the grid counts as one more cell). An odd number of lines on the way puts them on different sides (a line), an even number on the same side (a cross). The shortest walk is tinted.
+7. _Assumption_: a line or a cross on an open edge (next to a line or a number first) that the basic rules, then inside and outside, run into a contradiction with. The hint names what breaks (a number's count, a dot, a loop that closes too early, inside and outside) and tints it.
+
+Each step first tints where to look (the number, the dot, the line, the walk) with the rule that applies, then highlights the edges and says whether they get lines or crosses. Following the hints solves all 444 bank puzzles (5×5 and 7×7, normal and hard), never with a wrong mark. Assumptions are 0.2 % to 0.3 % of the steps on normal puzzles and 0.6 % to 0.9 % on hard ones; 7 to 34 puzzles of each 111 need one at all.
+
 ## Fallbacks
 
 Each generator has an attempt limit, so it always ends in bounded work. When no attempt hits the requested difficulty, the puzzle may not match it:

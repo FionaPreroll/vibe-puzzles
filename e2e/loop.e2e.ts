@@ -49,3 +49,19 @@ test('a collection puzzle is solved by drawing its loop', async ({ page }) => {
 	await expect(board.locator('[data-line]')).toHaveCount(solution.length);
 	await expect(page.getByText(/Solved in/).first()).toBeVisible();
 });
+
+test('the hint tints where to look first, then highlights the edges that follow', async ({
+	page
+}) => {
+	await page.goto(`/loop?v=5n&id=${id}`);
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	const spotlight = board.locator('g.spotlight > *');
+	const area = board.locator('g.area > *');
+	await page.getByRole('button', { name: 'Hint', exact: true }).click();
+	await expect(page.getByRole('status')).not.toBeEmpty();
+	await expect(spotlight).toHaveCount(0);
+	expect(await area.count()).toBeGreaterThan(0);
+	await page.getByRole('button', { name: 'Show the step' }).click();
+	expect(await spotlight.count()).toBeGreaterThan(0);
+});

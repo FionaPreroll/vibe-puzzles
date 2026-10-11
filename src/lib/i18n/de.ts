@@ -674,7 +674,7 @@ const de: Dictionary = {
 				'Eine Zahl sagt, an wie vielen der vier Seiten ihres Felds die Schleife entlangläuft. Felder ohne Zahl können beliebig viele haben.'
 			],
 			notes: [
-				'Early Access: Loop ist noch im Bau. Bisher sind 5×5 und 7×7 spielbar; weitere Größen, Specials, Tipps und ein Tutorial folgen.'
+				'Early Access: Loop ist noch im Bau. Bisher sind 5×5 und 7×7 spielbar; weitere Größen, Specials und ein Tutorial folgen.'
 			],
 			tool: { black: 'Linie' },
 			toolHint: {
@@ -689,7 +689,64 @@ const de: Dictionary = {
 			controlsMouse:
 				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen, oder zieh über die Punkte, um mehrere zu zeichnen. Rechtsklick setzt ein Kreuz.',
 			controlsTouch:
-				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen, oder halte und zieh über die Punkte, um mehrere zu zeichnen. Mit dem Kreuz-Werkzeug markierst du Kanten, die die Schleife meidet.'
+				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen, oder halte und zieh über die Punkte, um mehrere zu zeichnen. Mit dem Kreuz-Werkzeug markierst du Kanten, die die Schleife meidet.',
+			/** Was der Tipp sagt: wo man hinschaut und welche Regel gilt, dann was folgt. */
+			hints: {
+				clueLook: 'Zähl die Linien und Kreuze um die hinterlegte {clue}.',
+				clueZero: 'Eine 0 hat an keiner Seite eine Linie: Setz Kreuze auf die markierten Kanten.',
+				clueFull: 'Sie hat schon so viele Linien wie ihre Zahl: Ihre übrigen Seiten bleiben leer.',
+				clueFill:
+					'Ihre freien Seiten reichen gerade für ihre Zahl: Die Schleife läuft an allen entlang. Zieh die Linien.',
+				dotLook:
+					'Schau dir den hinterlegten Punkt an: Die Schleife geht mit zwei Linien oder gar nicht durch einen Punkt.',
+				dotFull:
+					'Dort treffen sich schon zwei Linien, also berührt ihn keine weitere: Setz Kreuze auf den Rest.',
+				dotOn:
+					'Eine Linie kommt dort an, und es bleibt ihr nur ein Weg weiter: Zieh dort die Linie.',
+				dotEnd:
+					'Keine Linie kommt dort an, und nur eine Kante ist noch frei: Eine Linie dort würde am Punkt enden. Setz ein Kreuz.',
+				loopLook:
+					'Folge der hinterlegten Linie: Ihre beiden Enden liegen nur eine Kante auseinander.',
+				loop: 'Sie zu verbinden würde eine Schleife schließen. Es gibt aber nur eine Schleife, und sie muss noch an den anderen Linien und Zahlen vorbei. Setz ein Kreuz auf die markierte Kante.',
+				cornerLook:
+					'Schau dir die hinterlegte {clue} und die Punkte an ihren Ecken an: Jeder Punkt bekommt zwei Linien oder keine, nie eine oder drei.',
+				cornerLine:
+					'Probier die Möglichkeiten für die Seiten der {clue} durch: In jeder, die zu ihrer Zahl und ihren Ecken passt, haben die markierten Kanten eine Linie. Zieh sie.',
+				cornerCross:
+					'Probier die Möglichkeiten für die Seiten der {clue} durch: In jeder, die zu ihrer Zahl und ihren Ecken passt, bleiben die markierten Kanten leer. Setz Kreuze.',
+				pairLook:
+					'Schau dir die beiden hinterlegten Zahlen zusammen an und den Punkt, den sie teilen: Jeder Punkt bekommt zwei Linien oder keine.',
+				pairLine:
+					'Probier die Möglichkeiten für die Seiten beider Zahlen durch: In jeder, die zu beiden Zahlen passt und jedem Punkt zwei Linien oder keine lässt, haben die markierten Kanten eine Linie. Zieh sie.',
+				pairCross:
+					'Probier die Möglichkeiten für die Seiten beider Zahlen durch: In jeder, die zu beiden Zahlen passt und jedem Punkt zwei Linien oder keine lässt, bleiben die markierten Kanten leer. Setz Kreuze.',
+				sidesLook:
+					'Denk an innen und außen: Jedes Feld liegt innerhalb oder außerhalb der Schleife, und jenseits des Spielfelds ist außen. Über eine Linie wechselst du die Seite, über ein Kreuz nicht.',
+				sidesSame:
+					'Geh über deine Linien und Kreuze an den hinterlegten Feldern entlang: Du wechselst die Seite eine gerade Zahl von Malen, also liegen die beiden Felder an der markierten Kante auf derselben Seite. Zwischen ihnen verläuft keine Linie.',
+				sidesOther:
+					'Geh über deine Linien und Kreuze an den hinterlegten Feldern entlang: Du wechselst die Seite eine ungerade Zahl von Malen, also liegen die beiden Felder an der markierten Kante auf verschiedenen Seiten. Zwischen ihnen verläuft eine Linie.',
+				blockLook:
+					'Schau dir den hinterlegten 2×2-Block an: Seine Zahlen behalten ihre Anzahl, und jeder Punkt bekommt zwei Linien oder keine.',
+				blockLine:
+					'Probier die Möglichkeiten für die Kanten des Blocks durch: In jeder, die passt, haben die markierten Kanten eine Linie. Zieh sie.',
+				blockCross:
+					'Probier die Möglichkeiten für die Kanten des Blocks durch: In jeder, die passt, bleiben die markierten Kanten leer. Setz Kreuze.',
+				assumeLook:
+					'Hier hilft keine einfache Regel weiter: Probier im Kopf eine Kante an den hinterlegten Feldern aus.',
+				assumeLine:
+					'Hier hilft keine einfache Regel weiter, also probier es aus: Angenommen, die markierte Kante hätte eine Linie. Wende von dort aus die Regeln an.',
+				assumeCross:
+					'Hier hilft keine einfache Regel weiter, also probier es aus: Angenommen, die markierte Kante bliebe leer. Wende von dort aus die Regeln an.',
+				breaksClue: 'Die hinterlegte Zahl bekommt die falsche Anzahl Linien.',
+				breaksDot: 'Ein Punkt an der hinterlegten Stelle bekommt eine Linie oder drei.',
+				breaksLoop: 'Die Linien schließen zu früh eine Schleife oder können keine mehr bilden.',
+				breaksSides: 'Manche Felder müssten zugleich innerhalb und außerhalb der Schleife liegen.',
+				thenLine: 'Also verläuft dort keine Linie: Setz ein Kreuz.',
+				thenCross: 'Also muss die Schleife dort entlang: Zieh die Linie.',
+				stuck:
+					'Hier legt keine Regel eine weitere Kante fest. Probier im Kopf eine Linie auf der markierten Kante aus und spiel sie durch, bis eine Regel verletzt wird.'
+			}
 		}
 	}
 };
