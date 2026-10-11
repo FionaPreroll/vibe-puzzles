@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 import { withCommon } from '../core/settings';
+import { formatDuration } from '../core/time';
 import type { BasePuzzle, GameModule } from '../core/types';
 import {
 	decodePuzzleId,
@@ -1332,6 +1333,129 @@ describe('saves from anywhere', () => {
 			}),
 			{ numRuns: 300, seed: 77 }
 		);
+	});
+});
+
+describe('the current special puzzle', () => {
+	// The fake clock's day (see beforeEach).
+	const PERIOD = '2026-10-07';
+	const DAILY_ID = encodePuzzleId(DAILY, specialSeed('tetroid', 'daily', PERIOD));
+	const daily = generateTetroid(10, 10, 'normal', specialSeed('tetroid', 'daily', PERIOD));
+	const dailySolved = (): TetroidState => ({
+		marks: daily.solution.map((s) => (s ? SHADED : EMPTY)),
+		auto: daily.solution.map(() => 0)
+	});
+
+	it("is the fake clock's day", () => {
+		expect(periodKey('daily')).toBe(PERIOD);
+	});
+
+	it('stays solved: it opens solved and cannot start over', async () => {
+		const s = session();
+		await s.open('daily');
+		expect(s.puzzleId).toBe(DAILY_ID);
+		expect(s.canStartOver).toBe(true);
+		vi.advanceTimersByTime(5000);
+		s.move(dailySolved(), []);
+		expect(s.solved).toBe(true);
+		expect(s.finalMs).toBe(5000);
+		expect(s.canStartOver).toBe(false);
+		s.startOver();
+		expect(s.solved).toBe(true);
+		// Saved again later (a checkpoint, leaving the page): the time stays what it was.
+		vi.advanceTimersByTime(60_000);
+		s.saveCheckpoint();
+		s.flush();
+
+		vi.advanceTimersByTime(60_000);
+		const again = session();
+		await again.open('daily');
+		expect(again.solved).toBe(true);
+		expect(again.state).toEqual(dailySolved());
+		expect(again.finalMs).toBe(5000);
+		expect(again.message?.text).toBe('Solved in 00:05.000!');
+		expect(again.canStartOver).toBe(false);
+		again.startOver();
+		expect(again.state).toEqual(dailySolved());
+		expect(
+			load<{ solved: boolean }>(`save:tetroid:daily:${PERIOD}`, { solved: false }).solved
+		).toBe(true);
+		expect(getStats('tetroid', 'daily')).toMatchObject({ solved: 1, lastPeriod: PERIOD });
+	});
+
+	it('shows the personal time with the personal timer', async () => {
+		const s = session({ personalTimer: true });
+		await s.open('daily');
+		vi.advanceTimersByTime(3000);
+		s.move(dailySolved(), []);
+		const again = session({ personalTimer: true });
+		await again.open('daily');
+		expect(again.finalPlayMs).toBe(s.finalPlayMs);
+		expect(again.message?.text).toBe(`Solved in ${formatDuration(s.finalPlayMs, true)}!`);
+	});
+
+	it('an older special puzzle, solved, can be played again', async () => {
+		const s = session();
+		await s.open('daily');
+		s.move(dailySolved(), []);
+		// The next day, today's puzzle is yesterday's: opened by its ID, it is an older one.
+		vi.advanceTimersByTime(86_400_000);
+		const later = session();
+		await later.open('daily', { puzzleId: DAILY_ID });
+		expect(later.solved).toBe(false);
+		expect(later.canStartOver).toBe(true);
+	});
+
+	it('solved on another device, it shows solved here and counts for the streak', async () => {
+		vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
+		const updatedAt = Date.now() - 1000;
+		vi.mocked(api.pullSave).mockResolvedValueOnce({
+			key: `save:tetroid:daily:${PERIOD}`,
+			updatedAt,
+			data: {
+				version: 1,
+				puzzleId: DAILY_ID,
+				variant: 'daily',
+				puzzle: daily.puzzle,
+				state: dailySolved(),
+				checkpoints: [],
+				currentCheckpoint: -1,
+				solved: true,
+				startedAt: updatedAt - 90_000,
+				playMs: 90_000,
+				updatedAt
+			}
+		});
+		const s = session();
+		await s.open('daily');
+		await vi.waitFor(() => expect(s.solved).toBe(true));
+		expect(s.state).toEqual(dailySolved());
+		expect(s.finalMs).toBe(90_000);
+		expect(s.canStartOver).toBe(false);
+		// The streak counts the day; the solve and its time belong to the other device.
+		expect(getStats('tetroid', 'daily')).toMatchObject({
+			solved: 0,
+			lastPeriod: PERIOD,
+			periodStreak: 1,
+			solvedIds: [DAILY_ID]
+		});
+		// And it opens solved from now on.
+		const again = session();
+		await again.open('daily');
+		expect(again.solved).toBe(true);
+	});
+
+	it('when storage is full, its solved save is not the first to go', () => {
+		const solved = { updatedAt: 1, solved: true };
+		save(`save:tetroid:daily:${PERIOD}`, solved);
+		save('save:tetroid:daily:2026-10-06', solved);
+		save('save:tetroid:8n', solved);
+		save('save:current', { updatedAt: 2 });
+		expect(freeSaveSpace('save:current', () => false)).toBe(true);
+		expect(keys('save:').sort()).toEqual(['save:current', `save:tetroid:daily:${PERIOD}`]);
+		// Asked, it may still go, as the game played longest ago.
+		expect(freeSaveSpace('save:current', () => true)).toBe(true);
+		expect(keys('save:')).toEqual(['save:current']);
 	});
 });
 

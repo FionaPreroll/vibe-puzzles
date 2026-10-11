@@ -116,12 +116,15 @@
 						disabled={session.loading || !session.puzzleId}>{t('game.share')}</button
 					>
 					<button class="menu-item" onclick={pick(() => window.print())}>{t('game.print')}</button>
-					<hr class="mx-2 my-1 border-stone-200 dark:border-stone-700" />
-					<button
-						class="menu-item text-rose-700 dark:text-rose-400"
-						onclick={pick(onstartover)}
-						disabled={session.loading}>{t('game.startOver')}</button
-					>
+					<!-- Not for the current special puzzle once solved: it is played once -->
+					{#if session.canStartOver}
+						<hr class="mx-2 my-1 border-stone-200 dark:border-stone-700" />
+						<button
+							class="menu-item text-rose-700 dark:text-rose-400"
+							onclick={pick(onstartover)}
+							disabled={session.loading}>{t('game.startOver')}</button
+						>
+					{/if}
 				</div>
 			{/if}
 		</div>

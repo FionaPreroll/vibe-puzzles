@@ -53,6 +53,8 @@ test('switches to German', async ({ page }) => {
 test('a Pinwheel line dragged from a clicked edge keeps that edge', async ({ page }) => {
 	await page.goto('/pinwheel/tutorial');
 	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	// The tutorial's board is prerendered: a drag before the page has hydrated goes unnoticed.
+	await page.waitForLoadState('networkidle');
 	const box = (await board.boundingBox())!;
 	const cell = box.width / 5;
 	// Press on the edge between dots (3,0) and (3,1), left of its middle, and drag right to (3,2).

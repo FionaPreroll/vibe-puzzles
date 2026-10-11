@@ -4,7 +4,12 @@
  */
 import { sameData } from '../../core/equal';
 import type { BasePuzzle, GameLogic } from '../../core/types';
-import { SPECIAL_RETENTION_DAYS, type SpecialKind, type Variant } from '../../core/variants';
+import {
+	periodKey,
+	SPECIAL_RETENTION_DAYS,
+	type SpecialKind,
+	type Variant
+} from '../../core/variants';
 import { keys, load, remove } from '../storage';
 import { parseSaveKey, SAVE_PREFIX } from '../storageKeys';
 
@@ -36,6 +41,8 @@ export interface SavedGame<S = unknown> {
 	assisted?: boolean;
 	/** The position a running trial began from (see `GameSession.trial`). */
 	trial?: S;
+	/** When it was solved (epoch ms); a later save (a checkpoint, leaving the page) keeps it. */
+	solvedAt?: number;
 }
 
 /** A save of a game this app can show: its puzzle and position are valid for the type. */
@@ -65,7 +72,8 @@ export function migrateSave<S = unknown>(raw: unknown): SavedGame<S> | null {
 		playMs: Number.isFinite(s.playMs) ? Math.max(0, s.playMs!) : 0,
 		...(typeof s.ticket === 'string' ? { ticket: s.ticket } : { ticket: undefined }),
 		...(hints ? { hinted: true, hints } : { hinted: undefined, hints: undefined }),
-		assisted: s.assisted ? true : undefined
+		assisted: s.assisted ? true : undefined,
+		solvedAt: s.solved && Number.isFinite(s.solvedAt) ? s.solvedAt : undefined
 	};
 }
 
@@ -138,16 +146,27 @@ export function cleanupSpecialSaves(now = Date.now()) {
 	}
 }
 
+/** Whether a save key is the slot of a special type's current period (its puzzle of today, …). */
+function currentPeriodSlot(key: string, now: Date): boolean {
+	const slot = parseSaveKey(key);
+	if (!slot?.period) return false;
+	const kind = slot.variant as SpecialKind;
+	return !!SPECIAL_RETENTION_DAYS[kind] && slot.period === periodKey(kind, now);
+}
+
 /**
  * Make room when storage is full, never touching `keep` (the game being played): first remove the
- * saves of solved games, which are never resumed; then, once `agree` says so, the unfinished game
- * that changed longest ago. Returns whether anything was removed.
+ * saves of solved games, which are never resumed, except the current special puzzles, which show
+ * solved; then, once `agree` says so, the game that changed longest ago. Returns whether anything
+ * was removed.
  */
-export function freeSaveSpace(keep: string, agree: () => boolean): boolean {
+export function freeSaveSpace(keep: string, agree: () => boolean, now = new Date()): boolean {
 	const others = keys(SAVE_PREFIX)
 		.filter((key) => key !== keep)
 		.map((key) => ({ key, save: load<SavedGame | null>(key, null) }));
-	const solved = others.filter((o) => !o.save || o.save.solved);
+	const solved = others.filter(
+		(o) => (!o.save || o.save.solved) && !(o.save && currentPeriodSlot(o.key, now))
+	);
 	if (solved.length) {
 		for (const o of solved) remove(o.key);
 		return true;
