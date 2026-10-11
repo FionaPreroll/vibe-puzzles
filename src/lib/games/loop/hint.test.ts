@@ -3,10 +3,11 @@ import de from '../../i18n/de';
 import en from '../../i18n/en';
 import { generateLoop } from './generator';
 import { loopHint, TECHNIQUES, type LoopHint, type Technique } from './hint';
-import { loop } from './index';
+import { EMPTY, loop } from './index';
 import {
 	CROSS,
 	edgeKey,
+	OPEN,
 	edgeValues,
 	emptyLoopState,
 	hIndex,
@@ -17,6 +18,7 @@ import {
 	type LoopPuzzle,
 	type LoopState
 } from './rules';
+import { Rng } from '../../core/rng';
 import { loopLayout } from './solver';
 
 /** A state with lines and crosses on the given edges, as `h:i:j` / `v:i:j` keys. */
@@ -39,6 +41,24 @@ const keys = (p: LoopPuzzle, edges: number[]) => edges.map((e) => edgeKey(p, e))
 
 type Step = Extract<LoopHint, { kind: 'step' }>;
 
+/**
+ * Checks a step against the solution: its edges get its mark, and the crosses it rests on are
+ * open on the board and empty in the solution.
+ */
+function check(p: LoopPuzzle, step: Step, v: number[], right: number[]) {
+	const value = step.mark === 'line' ? LINE : CROSS;
+	for (const e of step.edges) {
+		expect(right[e] === LINE ? LINE : CROSS, `${step.reason} at ${edgeKey(p, e)}`).toBe(value);
+	}
+	for (const s of step.support ?? []) {
+		expect(s.edges.length).toBeGreaterThan(0);
+		for (const e of s.edges) {
+			expect(v[e], `${s.reason} at ${edgeKey(p, e)} is open`).toBe(OPEN);
+			expect(right[e], `${s.reason} at ${edgeKey(p, e)}`).not.toBe(LINE);
+		}
+	}
+}
+
 /** Follows hints from an empty board, marking their edges, and checks each against the solution. */
 function follow(p: LoopPuzzle, solution: LoopState): Step[] {
 	const right = edgeValues(solution);
@@ -49,12 +69,9 @@ function follow(p: LoopPuzzle, solution: LoopState): Step[] {
 		if (!hint) break;
 		expect(hint.kind).toBe('step');
 		const step = hint as Step;
-		const value = step.mark === 'line' ? LINE : CROSS;
 		const v = edgeValues(state);
-		for (const e of step.edges) {
-			expect(right[e] === LINE ? LINE : CROSS, `${step.reason} at ${edgeKey(p, e)}`).toBe(value);
-			v[e] = value;
-		}
+		check(p, step, v, right);
+		for (const e of step.edges) v[e] = step.mark === 'line' ? LINE : CROSS;
 		steps.push(step);
 		state = stateFromEdges(p, v);
 	}
@@ -63,7 +80,7 @@ function follow(p: LoopPuzzle, solution: LoopState): Step[] {
 }
 
 describe('loop hints', () => {
-	it('crosses the sides of a 0 first', () => {
+	it('crosses the sides of a 0 when no line follows', () => {
 		const p: LoopPuzzle = { width: 3, height: 3, clues: '....0....' };
 		const hint = loopHint(p, emptyLoopState(p)) as Step;
 		expect(hint).toMatchObject({
@@ -100,12 +117,82 @@ describe('loop hints', () => {
 		expect(keys(p, end.edges)).toEqual(['v:0:0']);
 	});
 
-	it('crosses the edge that would close a small loop', () => {
+	it('draws the line that crosses lead to, with the crosses it rests on', () => {
+		// The 0 leaves the 3 three sides; the hint draws them and names the cross they need.
+		const p: LoopPuzzle = { width: 3, height: 3, clues: '.0..3....' };
+		const hint = loopHint(p, emptyLoopState(p)) as Step;
+		expect(hint).toMatchObject({ technique: 'clue', reason: 'clueFill', mark: 'line', cells: [4] });
+		expect(keys(p, hint.edges)).toEqual(['h:2:1', 'v:1:1', 'v:1:2']);
+		// Only the side the two numbers share: the 0's other sides do not matter here.
+		expect(hint.support).toHaveLength(1);
+		expect(hint.support![0]).toMatchObject({ reason: 'clueZero', cells: [1] });
+		expect(keys(p, hint.support![0].edges)).toEqual(['h:1:1']);
+		// With that side crossed by the player, the line needs nothing more.
+		expect((loopHint(p, marks(p, [], ['h:1:1'])) as Step).support).toEqual([]);
+	});
+
+	it('lets a line go on where it would close a small loop', () => {
 		const p: LoopPuzzle = { width: 3, height: 1, clues: '..1' };
 		const hint = loopHint(p, marks(p, ['h:0:0', 'v:0:0', 'h:1:0'])) as Step;
+		expect(hint).toMatchObject({ technique: 'dot', reason: 'dotOn', mark: 'line' });
+		expect(keys(p, hint.edges)).toEqual(['h:0:1']);
+		expect(hint.support).toHaveLength(1);
+		expect(hint.support![0].reason).toBe('loop');
+		expect(keys(p, hint.support![0].edges)).toEqual(['v:0:1']);
+	});
+
+	it('rests on crosses that follow from other crosses', () => {
+		// The corner dot of the grid has two edges. With one crossed, the other is a dead end, and
+		// so is the next dot along the top: the line from the right has only one way on, down.
+		const p: LoopPuzzle = { width: 4, height: 2, clues: '........' };
+		const hint = loopHint(p, marks(p, ['h:0:2'], ['v:0:0', 'v:0:1'])) as Step;
+		expect(hint).toMatchObject({ reason: 'dotOn', mark: 'line' });
+		expect(keys(p, hint.edges)).toEqual(['v:0:2']);
+		expect(hint.support!.map((s) => s.reason)).toEqual(['dotEnd', 'dotEnd']);
+		expect(hint.support!.flatMap((s) => keys(p, s.edges))).toEqual(['h:0:0', 'h:0:1']);
+	});
+
+	it('crosses an edge alone when no line follows, e.g. one that would close a small loop', () => {
+		// The line runs around three sides of a cell, and the player crossed the other edges at its
+		// corners. Nothing decides a line on this board with many solutions; the loop must not
+		// close yet, as the 1 still needs its line.
+		const p: LoopPuzzle = { width: 4, height: 4, clues: '..1.............' };
+		const state = marks(p, ['h:1:1', 'v:1:1', 'h:2:1'], ['h:1:0', 'v:0:1', 'h:2:0', 'v:2:1']);
+		const hint = loopHint(p, state) as Step;
 		expect(hint).toMatchObject({ technique: 'loop', reason: 'loop', mark: 'cross' });
-		expect(keys(p, hint.edges)).toEqual(['v:0:1']);
-		expect(keys(p, hint.path)).toEqual(['h:0:0', 'h:1:0', 'v:0:0']);
+		expect(keys(p, hint.edges)).toEqual(['v:1:2']);
+		expect(loop.hint!(p, state)?.area).toEqual(expect.arrayContaining(['h:1:1', 'v:1:1', 'h:2:1']));
+	});
+
+	it('crosses an edge where trying a line breaks a rule, when no cross does', () => {
+		const p: LoopPuzzle = { width: 4, height: 4, clues: '.............1..' };
+		const hint = loopHint(p, marks(p, ['h:1:1', 'v:1:1', 'h:2:1'])) as Step;
+		expect(hint).toMatchObject({ technique: 'assumption', reason: 'assumeLine', mark: 'cross' });
+		expect(keys(p, hint.edges)).toEqual(['v:3:1']);
+		expect(hint.breaks).toBeDefined();
+	});
+
+	it('names a line first from positions with lines and no crosses', () => {
+		// The player has drawn part of the solution's loop, as players do, and crossed nothing.
+		for (const [size, difficulty] of [
+			[5, 'normal'],
+			[5, 'hard'],
+			[7, 'normal'],
+			[7, 'hard']
+		] as const) {
+			for (let seed = 1; seed <= 4; seed++) {
+				const { puzzle, solution } = generateLoop(size, size, difficulty, seed);
+				const right = edgeValues(solution);
+				const rng = new Rng(seed);
+				for (const share of [0, 0.3, 0.6]) {
+					const v = right.map((x) => (x === LINE && rng.next() < share ? LINE : OPEN));
+					const hint = loopHint(puzzle, stateFromEdges(puzzle, v));
+					if (!hint) continue;
+					expect(hint).toMatchObject({ kind: 'step', mark: 'line' });
+					check(puzzle, hint as Step, v, right);
+				}
+			}
+		}
 	});
 
 	it('draws the outer edges of a 3 in the corner of the grid', () => {
@@ -183,26 +270,36 @@ describe('loop hints', () => {
 	// Following the hints solves every puzzle. Assumptions stay rare: only where no rule on a
 	// number, a pair or a 2×2 block decides an edge.
 	it.each([
-		[5, 'normal'],
-		[5, 'hard'],
-		[7, 'normal'],
-		[7, 'hard']
-	] as const)('solves %i×%i… %s puzzles by following the hints', (size, difficulty) => {
-		const used = new Set<Technique>();
-		let steps = 0;
-		let assumptions = 0;
-		for (let seed = 1; seed <= 6; seed++) {
-			const { puzzle, solution } = generateLoop(size, size, difficulty, seed);
-			for (const step of follow(puzzle, solution)) {
-				used.add(step.technique);
-				steps++;
-				if (step.technique === 'assumption') assumptions++;
+		[5, 5, 'normal'],
+		[5, 5, 'hard'],
+		[7, 7, 'normal'],
+		[7, 7, 'hard']
+	] as const)(
+		'solves %i×%i %s puzzles by following the hints, line by line',
+		(w, h, difficulty) => {
+			const used = new Set<Technique>();
+			const reasons = new Set<string>();
+			let steps = 0;
+			let assumptions = 0;
+			for (let seed = 1; seed <= 6; seed++) {
+				const { puzzle, solution } = generateLoop(w, h, difficulty, seed);
+				for (const step of follow(puzzle, solution)) {
+					used.add(step.technique);
+					for (const s of step.support ?? []) reasons.add(s.reason);
+					steps++;
+					if (step.technique === 'assumption') assumptions++;
+					// Every hint draws lines: the crosses come with them.
+					expect(step.mark).toBe('line');
+				}
 			}
+			expect(assumptions / steps).toBeLessThan(0.03);
+			for (const t of ['clue', 'dot', 'corner'] as const) expect(used).toContain(t);
+			for (const r of ['clueZero', 'clueFull', 'dotFull', 'dotEnd'] as const) {
+				expect(reasons).toContain(r);
+			}
+			expect([...used].every((t) => TECHNIQUES.includes(t))).toBe(true);
 		}
-		expect(assumptions / steps).toBeLessThan(0.03);
-		for (const t of ['clue', 'dot', 'loop', 'corner'] as const) expect(used).toContain(t);
-		expect([...used].every((t) => TECHNIQUES.includes(t))).toBe(true);
-	});
+	);
 });
 
 describe('loop hint texts', () => {
@@ -241,6 +338,24 @@ describe('loop hint texts', () => {
 		}
 		// The number appears in the texts that name it.
 		expect(lookup(en, 'games.loop.hints.clueLook')).toContain('{clue}');
+		// Every kind of cross a line rests on says why.
+		for (const key of Object.values(EMPTY)) {
+			expect(lookup(en, `games.loop.hints.${key}`), key).toBeTypeOf('string');
+			expect(lookup(de, `games.loop.hints.${key}`), key).toBeTypeOf('string');
+		}
+	});
+
+	it('names the crosses a line rests on before the line, and tints them', () => {
+		const p: LoopPuzzle = { width: 3, height: 3, clues: '.0..3....' };
+		const hint = loop.hint!(p, emptyLoopState(p))!;
+		expect(hint.teaser).toEqual(['games.loop.hints.clueLook']);
+		expect(hint.text).toEqual([
+			'games.loop.hints.clueLook',
+			'games.loop.hints.emptyZero',
+			'games.loop.hints.clueFill'
+		]);
+		expect(hint.spotlight.sort()).toEqual(['h:2:1', 'v:1:1', 'v:1:2']);
+		expect(hint.area).toEqual(expect.arrayContaining(['c:4', 'h:1:1', 'c:1']));
 	});
 
 	it('shows a wrong mark and the stuck case', () => {

@@ -27,7 +27,7 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4. The optional se
 
   - **Pinwheel**: edges that need a line, with the cells known to belong to their region tinted. The hint deduces on past edges that would only get a cross (two cells of one region) until a line follows, and names crosses only where none does. On hard puzzles, where no rule decides an edge, the hint tries a region for a cell and shows that it fails.
 
-  - **Loop**: edges that get a line or a cross, and why. Rarely, the hint tries an edge and names what breaks.
+  - **Loop**: edges that get a line, and why. A line that rests on crosses the player has not set yet (the sides of a 0, a dot where two lines meet, …) comes with those edges tinted and a sentence on why they stay empty; crosses alone are named only where no line follows. Rarely, the hint tries an edge and names what breaks.
 
 - **Puzzle collection**: a growing set of pre-generated puzzles (see [Puzzle collection](#puzzle-collection)). Players choose between the collection, puzzles generated on their device, or both at random (the default).
 - **Appearance**: English and German, picked from the browser language and switchable in the header. Night mode for the whole site including the boards; it follows the system's colour scheme until switched in the header. Screenshots and prints stay light.
