@@ -197,6 +197,10 @@ describe('a special puzzle solved on another device', () => {
 		// A server puzzle's ID (0) is no ID to remember.
 		expect(s.solvedIds).toEqual([42]);
 		expect(currentPeriodStreak(s, 'daily')).toBe(2);
+		// Statistics with a last period but no streak (older versions) go on from one.
+		save('stats:tetroid:weekly', { lastPeriod: '2026-W40' });
+		notePeriodSolved('tetroid', 'weekly', 7, '2026-W41', 'weekly');
+		expect(getStats('tetroid', 'weekly').periodStreak).toBe(2);
 		// Solved here too, it is one solve; its period is counted already.
 		recordSolve('tetroid', 'daily', 0, 1000, '2026-10-07', 'daily');
 		expect(getStats('tetroid', 'daily')).toMatchObject({ solved: 1, periodStreak: 2 });
