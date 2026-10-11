@@ -296,7 +296,7 @@ describe('server puzzles', () => {
 		const s = session();
 		await s.open('6n');
 		expect(s.source).toBe('local');
-		expect(s.message?.kind).toBe('info');
+		expect(s.message).toEqual({ kind: 'info', text: expect.stringContaining('played offline') });
 	});
 
 	it('plays requested puzzles locally', async () => {
@@ -617,6 +617,7 @@ describe('solving', () => {
 			s.move(shaded(first), []);
 			await s.submit();
 			expect(s.solved).toBe(false);
+			expect(s.message?.text).toBe('Not solved yet. Keep going!');
 			s.move(almost, []);
 			if (!autoSubmit) {
 				expect(s.solved).toBe(false);
@@ -624,6 +625,7 @@ describe('solving', () => {
 			}
 			await vi.waitFor(() => expect(s.submitting).toBe(false));
 			expect(s.solved).toBe(true);
+			expect(s.message?.text).toMatch(/^Solved in \d/);
 			// The board shows the solution the game made of it, and that is what is submitted.
 			expect(s.state).toEqual(solvedState());
 			expect(api.submitScore).toHaveBeenCalledWith(
