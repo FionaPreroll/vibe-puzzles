@@ -465,6 +465,13 @@ const de: Dictionary = {
 		commit: 'Commit',
 		built: 'Erstellt',
 		source: 'Quellcode',
+		changes: 'Änderungen',
+		changesNote:
+			'Was sich mit jeder Version geändert hat, die neueste zuerst. Die Liste gibt es nur auf Englisch.',
+		release: 'Version {version} vom {date}',
+		unreleased: 'Noch in keiner Version',
+		earlier: 'Frühere Versionen',
+		changeKind: { added: 'Neu', changed: 'Geändert', fixed: 'Behoben', removed: 'Entfernt' },
 		licenses: 'Lizenzen',
 		licenseText: 'Lizenztext von {name}',
 		licensesNote: 'Die App baut auf diesen Open-Source-Bibliotheken auf:',

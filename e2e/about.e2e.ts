@@ -168,3 +168,29 @@ test('cancelling the import of a backup keeps everything', async ({ page }) => {
 	await expect(page.getByRole('status')).toHaveCount(0);
 	expect(await stored(page)).toEqual(before);
 });
+
+test('the About page shows the changelog, and the version in the footer leads to it', async ({
+	page
+}) => {
+	const version: string = JSON.parse(readFileSync('package.json', 'utf8')).version;
+	await page.goto('/');
+	await page.getByRole('link', { name: `v${version}`, exact: true }).click();
+	await expect(page).toHaveURL(/\/about#changes$/);
+	const section = page.locator('section#changes');
+	await expect(section.getByRole('heading', { name: 'Changes', level: 2 })).toBeVisible();
+	await expect(section.getByRole('heading', { level: 3 }).first()).toHaveText(
+		new RegExp(`^Version ${version.replaceAll('.', '\\.')}, \\w+ \\d+, \\d{4}$`)
+	);
+	await expect(section.getByRole('heading', { name: 'New', level: 4 })).toBeVisible();
+	// Bold and plain pieces join without stray spaces.
+	await expect(section.getByRole('listitem').first()).toHaveText('Changelog on the About page.');
+	await expect(section.locator('li strong').first()).toHaveText('Changelog');
+
+	// In German, the headings follow; the changes themselves stay in English.
+	await page.getByRole('combobox', { name: /Language|Sprache/ }).selectOption('de');
+	await expect(section.getByRole('heading', { name: 'Änderungen', level: 2 })).toBeVisible();
+	await expect(section.getByRole('heading', { level: 3 }).first()).toHaveText(
+		new RegExp(`^Version ${version.replaceAll('.', '\\.')} vom \\d+\\. \\w+ \\d{4}$`)
+	);
+	await expect(section.getByRole('heading', { name: 'Neu', level: 4 })).toBeVisible();
+});

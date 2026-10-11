@@ -33,6 +33,7 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4. The optional se
 - **Appearance**: English and German, picked from the browser language and switchable in the header. Night mode for the whole site including the boards; it follows the system's colour scheme until switched in the header. Screenshots and prints stay light.
 - **Offline**: installable as an app (PWA) and playable offline after the first visit. Files of the puzzle collection are cached when a puzzle type first needs them and kept across app updates; offline, a type without a cached file gets puzzles generated on the device.
 - **Your data**: progress, settings and statistics (solves, streaks, best and average times) stay in the browser. The About page exports them to a backup file and imports it again; the file format is published as a JSON Schema (`static/backup.schema.json`).
+- **Changelog**: the About page lists what changed in each version (`CHANGELOG.md`), and the version in the footer leads there. See [Changelog and versions](#changelog-and-versions).
 - **Optional server**: anonymous players with a name, games and settings synced across devices with a sync code, server-issued puzzles and online leaderboards. Statistics stay per device, but the days, weeks and months a player solved are shared (`periods:<game>:<variant>`), so a daily, weekly or monthly streak goes on from whichever device they solve on. Without it, everything else works the same.
 
 ## Development
@@ -74,13 +75,14 @@ src/service-worker/      offline cache
 src/routes/              pages: home, games, statistics (scores), player, about
 static/puzzles/          the puzzle collection, one folder per game and puzzle type
 static/backup.schema.json   JSON Schema of the backup file
-scripts/                 grow-puzzle-bank.ts, collection.ts (collection files), licenses.ts (licence notices)
+scripts/                 grow-puzzle-bank.ts, collection.ts (collection files), licenses.ts (licence notices), changelog.ts (CHANGELOG.md for the About page)
 worker/                  Cloudflare Worker: REST API and storage
 migrations/              D1 schema
 e2e/                     browser tests
 e2e-server/              browser tests against the server
 e2e-load/, perf/         soak and performance tests
 docs/                    technical documentation (generators.md: how puzzles and their difficulty are made)
+CHANGELOG.md             what changes for players, newest first
 ```
 
 ### Adding a game
@@ -127,7 +129,15 @@ The unit tests check every stored puzzle again (valid, one solution, the difficu
 - `main` is the stable branch and is deployed. Nobody pushes to it directly.
 - `dev` is optional, for testing.
 - Every feature or fix gets its own branch off `origin/main` (`feature/<name_in_snake_case>`, or `fix/<name>`) and one pull request against `main`. Keep each pull request to one feature or fix.
+- A pull request that changes what players see adds that change to `CHANGELOG.md` (see below).
 - A change that builds on an open pull request (or touches the same lines) branches off that pull request's branch and uses it as its base; the description names the pull request it builds on. Once the base is merged, the pull request is retargeted to `main`.
+
+## Changelog and versions
+
+- `CHANGELOG.md` lists what changes for players, newest first, in the format of [Keep a Changelog](https://keepachangelog.com/): a release per `## [x.y.z] - YYYY-MM-DD` heading, its changes in the sections `### Added`, `### Changed`, `### Fixed` and `### Removed`, one per `- ` item (continued on indented lines), with `**bold**` and `` `code` `` inside. Text before a release's first section is a note on it.
+- The About page shows the changelog in English, with its headings in the player's language. `scripts/changelog.ts` reads it when the app is built, and the build fails on a line it does not understand.
+- Changes that have no version yet go under `## [Unreleased]` at the top; the About page lists them as "Not in a version yet".
+- A new version: rename `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD` and set the same version in `package.json`, which the footer and the About page show. A unit test fails while the newest version in the changelog differs from the one in `package.json`. Versions follow [Semantic Versioning](https://semver.org/).
 
 ## Continuous integration
 

@@ -154,7 +154,11 @@
 >
 	<span>
 		<a class="hover:underline" href={resolve('/about')}>{t('about.link')}</a>
-		· v{__BUILD__.version} ({__BUILD__.commit.slice(0, 7)})
+		·
+		<a class="hover:underline" href="{resolve('/about')}#changes" title={t('about.changes')}
+			>v{__BUILD__.version}</a
+		>
+		({__BUILD__.commit.slice(0, 7)})
 	</span>
 	<!-- One line, as tall as the text: the board's fitted size leaves room for the footer -->
 	<label class="flex items-center gap-1">

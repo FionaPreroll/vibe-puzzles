@@ -1,7 +1,7 @@
 {
 	"name": "vibe-puzzles",
 	"private": true,
-	"version": "0.0.1",
+	"version": "0.8.0",
 	"type": "module",
 	"packageManager": "pnpm@12.10.1",
 	"scripts": {

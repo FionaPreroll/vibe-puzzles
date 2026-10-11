@@ -11,6 +11,8 @@ declare global {
 	const __NET__: import('../scripts/buildFlags').NetworkDefaults;
 	/** Open source packages that ship with the app, with their licence texts (vite.config.ts). */
 	const __LICENSES__: import('../scripts/licenses').ShippedLicense[];
+	/** CHANGELOG.md, newest release first (vite.config.ts, scripts/changelog.ts). */
+	const __CHANGELOG__: import('../scripts/changelog').ChangelogRelease[];
 
 	namespace App {
 		// interface Error {}

@@ -465,6 +465,13 @@ const en = {
 		commit: 'Commit',
 		built: 'Built',
 		source: 'Source code',
+		changes: 'Changes',
+		changesNote: 'What changed in each version, newest first. The list is kept in English.',
+		release: 'Version {version}, {date}',
+		unreleased: 'Not in a version yet',
+		earlier: 'Earlier versions',
+		/** The kinds of change in CHANGELOG.md (`### Added`, …). */
+		changeKind: { added: 'New', changed: 'Changed', fixed: 'Fixed', removed: 'Removed' },
 		licenses: 'Licences',
 		licenseText: 'Licence text of {name}',
 		licensesNote: 'The app is built with these open source libraries:',
