@@ -117,7 +117,8 @@ interface TouchGesture {
  * Pointer and touch handling shared by the boards. A mouse or pen draws while a button is held.
  * Touch depends on the touch mode: "draw" draws at once, "pan" leaves dragging to the page, and
  * "auto" pans when the finger moves early and draws once it has rested for `DRAW_DELAY`. A quick
- * tap acts on the spot in every mode, and a second finger drops the move.
+ * tap acts on the spot in every mode, and a second finger drops the move: in "draw" mode, two
+ * fingers pan and zoom the board instead (`twoFingers` in the game page's components).
  */
 export class BoardGesture {
 	/** Where the last drag step ended. */
@@ -222,6 +223,12 @@ export class BoardGesture {
 	touchmove(e: TouchLike) {
 		const touch = this.#touch;
 		if (!touch) return;
+		if (e.touches.length > 1) {
+			// The second finger came down beside the board.
+			this.#dropTouch();
+			this.handlers.cancel();
+			return;
+		}
 		const t = e.touches[0];
 		const moved = Math.hypot(t.clientX - touch.x, t.clientY - touch.y) > SLOP;
 		if (moved) clearTimeout(touch.holdTimer);

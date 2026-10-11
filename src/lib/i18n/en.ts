@@ -131,7 +131,8 @@ const en = {
 		touchDraw: 'Always draw',
 		touchPan: 'Always pan',
 		touchAutoText: 'Swiping scrolls the page. Rest your finger a moment, then drag to draw.',
-		touchDrawText: 'Dragging on the board always draws. Scroll and zoom beside the board.',
+		touchDrawText:
+			'Dragging on the board always draws. Two fingers scroll the board and pinch to zoom it.',
 		touchPanText: 'Dragging always scrolls and zooms the page. A tap still marks.',
 		checkpoints: 'Checkpoints',
 		save: 'Save',

@@ -285,6 +285,8 @@
 			{fit}
 			{tools}
 			{cellSize}
+			{zoom}
+			onzoom={setZoom}
 			{touchMode}
 			celebrate={celebrate.on}
 			{showTools}
