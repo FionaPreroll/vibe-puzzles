@@ -21,7 +21,7 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4. The optional se
 
   - **Wrong marks** come first: marks that do not match the solution are framed at once, in the error colour. They stay framed through other moves until the player changes them (undo brings them back) or closes the message (✕); Hint after a move looks again, as a new hint.
 
-  - **Tetroid**: cells to shade or cross. On hard puzzles, where no rule decides a cell, the hint tries a placement and shows that it fails.
+  - **Tetroid**: cells to shade, and cells that stay empty only where none to shade follow. On hard puzzles, where no rule decides a cell, the hint tries a placement, shows that it fails and deduces on from there until cells to shade follow.
 
   - **Sudoku and Calcudoku**: a digit and why it goes there.
 

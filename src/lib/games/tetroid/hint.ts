@@ -220,11 +220,12 @@ class Deduction {
 
 	/**
 	 * No rule decides a cell: try the placements of the regions with the fewest options. A
-	 * placement that leads to a contradiction is ruled out; named is the first one that then
-	 * decides cells to shade in its region, else the first that decides any cell.
+	 * placement that leads to a contradiction is ruled out, and the deduction goes on from there
+	 * until cells of its region are decided. Named is the first that leads to cells to shade,
+	 * else the first that leads to cells that stay empty.
 	 */
 	private assume(): Step | null {
-		const { byRegion, placements, p } = this.m;
+		const { byRegion, placements } = this.m;
 		const trials = byRegion
 			.map((_, r) => r)
 			.filter((r) => this.size[r] > 1)
@@ -234,29 +235,53 @@ class Deduction {
 		const solver = new TetroidSolver(this.m);
 		let cross: Step | null = null;
 		for (const [r, k] of trials) {
-			const open = p.regions.flatMap((reg, i) => (reg === r && this.marks[i] === EMPTY ? [i] : []));
-			const rest = byRegion[r].filter((q) => q !== k && this.alive[q]);
-			const covered = (i: number) => rest.filter((q) => placements[q].cells.includes(i)).length;
-			const shade = open.filter((i) => covered(i) === rest.length);
-			const empty = open.filter((i) => covered(i) === 0);
-			if (!shade.length && (!empty.length || cross)) continue;
 			const dom = { alive: this.alive.slice(), size: this.size.slice() };
-			for (const q of rest) dom.alive[q] = 0;
+			for (const q of byRegion[r]) if (q !== k) dom.alive[q] = 0;
 			dom.size[r] = 1;
 			if (solver.consistent(dom)) continue;
-			const step: Step = {
-				kind: 'step',
+			const after = this.copy();
+			after.kill(k, TECHNIQUES.indexOf('assumption'));
+			let step = after.decidedIn(r);
+			while (step?.mark !== 'shade' && after.sweep()) step = after.decidedIn(r);
+			if (!step) continue;
+			const named: Step = {
+				...step,
 				technique: 'assumption',
-				mark: shade.length ? 'shade' : 'cross',
-				region: r,
-				cells: shade.length ? shade : empty,
 				context: [],
 				assumed: placements[k].cells
 			};
-			if (shade.length) return step;
-			cross = step;
+			if (step.mark === 'shade') return named;
+			cross ??= named;
 		}
 		return cross;
+	}
+
+	private copy(): Deduction {
+		return Object.assign(Object.create(Deduction.prototype), this, {
+			alive: this.alive.slice(),
+			size: this.size.slice(),
+			level: this.level.slice(),
+			cover: this.cover.slice(),
+			cause: this.cause.map((c) => new Set(c))
+		});
+	}
+
+	/** The undecided cells of region `r` that are now decided: to shade, else to stay empty. */
+	private decidedIn(r: number): Step | null {
+		this.count();
+		const { regions } = this.m.p;
+		const open = regions.flatMap((reg, i) => (reg === r && this.marks[i] === EMPTY ? [i] : []));
+		const shade = open.filter((i) => this.must(i));
+		const cross = open.filter((i) => this.cover[i] === 0);
+		if (!shade.length && !cross.length) return null;
+		return {
+			kind: 'step',
+			technique: TECHNIQUES[this.level[r]],
+			mark: shade.length ? 'shade' : 'cross',
+			region: r,
+			cells: shade.length ? shade : cross,
+			context: []
+		};
 	}
 
 	/** Not even an assumption helps: the region with the fewest options, to start case analysis. */
