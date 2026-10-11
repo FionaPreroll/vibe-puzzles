@@ -152,6 +152,26 @@ describe('loop hints', () => {
 		expect(hint.support!.flatMap((s) => keys(p, s.edges))).toEqual(['h:0:0', 'h:0:1']);
 	});
 
+	it('crosses an edge alone when no line follows, e.g. one that would close a small loop', () => {
+		// The line runs around three sides of a cell, and the player crossed the other edges at its
+		// corners. Nothing decides a line on this board with many solutions; the loop must not
+		// close yet, as the 1 still needs its line.
+		const p: LoopPuzzle = { width: 4, height: 4, clues: '..1.............' };
+		const state = marks(p, ['h:1:1', 'v:1:1', 'h:2:1'], ['h:1:0', 'v:0:1', 'h:2:0', 'v:2:1']);
+		const hint = loopHint(p, state) as Step;
+		expect(hint).toMatchObject({ technique: 'loop', reason: 'loop', mark: 'cross' });
+		expect(keys(p, hint.edges)).toEqual(['v:1:2']);
+		expect(loop.hint!(p, state)?.area).toEqual(expect.arrayContaining(['h:1:1', 'v:1:1', 'h:2:1']));
+	});
+
+	it('crosses an edge where trying a line breaks a rule, when no cross does', () => {
+		const p: LoopPuzzle = { width: 4, height: 4, clues: '.............1..' };
+		const hint = loopHint(p, marks(p, ['h:1:1', 'v:1:1', 'h:2:1'])) as Step;
+		expect(hint).toMatchObject({ technique: 'assumption', reason: 'assumeLine', mark: 'cross' });
+		expect(keys(p, hint.edges)).toEqual(['v:3:1']);
+		expect(hint.breaks).toBeDefined();
+	});
+
 	it('names a line first from positions with lines and no crosses', () => {
 		// The player has drawn part of the solution's loop, as players do, and crossed nothing.
 		for (const [size, difficulty] of [
