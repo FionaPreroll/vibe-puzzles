@@ -154,6 +154,12 @@ const de: Dictionary = {
 			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit 1 Tipp. Schaffst du es ohne?',
 		bragHints:
 			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit {count} Tipps. Schaffst du es ohne?',
+		bragAssist:
+			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit Fehleranzeige. Schaffst du es ohne?',
+		bragAssistHint:
+			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit Fehleranzeige und 1 Tipp. Schaffst du es ohne?',
+		bragAssistHints:
+			'Ich habe {game} {variant} (Rätsel {id}) in {time} gelöst, mit Fehleranzeige und {count} Tipps. Schaffst du es ohne?',
 		bragCopied: 'Ergebnis und Link kopiert. Füge sie ein, wo du sie teilen möchtest.',
 		bragManual:
 			'Kopieren hat hier nicht geklappt. Kopiere Ergebnis und Link unten und füge sie ein, wo du sie teilen möchtest.',

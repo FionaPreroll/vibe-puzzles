@@ -201,7 +201,9 @@ test('turning hints off mid-game hides the hint, and sharing tells how many were
 	expect(shared.text).toContain(', with 1 hint. Can you do it without?');
 });
 
-test('painting wrong digits red counts as a hint, and the settings say so', async ({ page }) => {
+test('painting wrong digits red counts as a hint, the settings say so, and sharing names it', async ({
+	page
+}) => {
 	await page.addInitScript(() => {
 		localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
 		localStorage.setItem('vp:puzzleSource', '"bank"');
@@ -240,5 +242,5 @@ test('painting wrong digits red counts as a hint, and the settings say so', asyn
 	}
 	await page.getByRole('button', { name: 'Share success' }).click();
 	const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
-	expect(shared.text).toContain(', with 1 hint. Can you do it without?');
+	expect(shared.text).toContain(', with mistakes shown in red. Can you do it without?');
 });

@@ -279,8 +279,10 @@
 		if (!session.puzzleId) return;
 		sharedId = session.puzzleId;
 		const url = `${location.origin}${resolve('/[game]', { game: game.id })}?id=${session.puzzleId}`;
-		const hints = session.hints;
-		const text = t(hints === 0 ? 'game.brag' : hints === 1 ? 'game.bragHint' : 'game.bragHints', {
+		// Painting mistakes red is named as such, not passed off as one more hint.
+		const hints = session.askedHints;
+		const key = `game.brag${session.assisted ? 'Assist' : ''}${hints === 0 ? '' : hints === 1 ? 'Hint' : 'Hints'}`;
+		const text = t(key, {
 			game: game.name,
 			variant: label,
 			id: session.puzzleId.toLocaleString('en-US'),
