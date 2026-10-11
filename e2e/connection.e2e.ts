@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test';
 test('the connection menu switches offline mode and the update check', async ({ page }) => {
 	await page.goto('/');
 	const button = page.getByRole('button', { name: /^Connection: / });
-	await expect(button).toHaveAccessibleName('Connection: Online');
+	await expect(button).toHaveAccessibleName('Connection: No server');
 	await button.click();
 	const menu = page.getByRole('dialog', { name: 'Connection' });
 	await expect(menu.getByText('This version has no server')).toBeVisible();
@@ -57,4 +57,36 @@ test('the connection button fits on a phone', async ({ page }) => {
 	await expect(button).toBeInViewport({ ratio: 1 });
 	await button.click();
 	await expect(page.getByRole('dialog', { name: 'Connection' })).toBeInViewport({ ratio: 1 });
+});
+
+test('the connection menu opens above a message in the top bar', async ({ page }) => {
+	await page.setViewportSize({ width: 1100, height: 800 });
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+	});
+	await page.goto('/tetroid?v=6n&id=496678832');
+	await expect(page.locator('.overflow-x-auto svg[role="grid"]')).toBeVisible({ timeout: 30_000 });
+	await page.getByRole('button', { name: 'Hint' }).click();
+	const message = page
+		.locator('p', { hasText: 'tinted region' })
+		.and(page.locator(':not(.sr-only)'));
+	await expect(message).toBeVisible();
+	await page.getByRole('button', { name: /^Connection: / }).click();
+	const menu = page.getByRole('dialog', { name: 'Connection' });
+	const a = (await menu.boundingBox())!;
+	const b = (await message.boundingBox())!;
+	const left = Math.max(a.x, b.x);
+	const right = Math.min(a.x + a.width, b.x + b.width);
+	const top = Math.max(a.y, b.y);
+	const bottom = Math.min(a.y + a.height, b.y + b.height);
+	// The two do overlap here, as on a laptop screen…
+	expect(right - left).toBeGreaterThan(10);
+	expect(bottom - top).toBeGreaterThan(10);
+	// …and the menu is on top.
+	const onTop = await menu.evaluate(
+		(node, [x, y]) => node.contains(document.elementFromPoint(x, y)),
+		[(left + right) / 2, (top + bottom) / 2]
+	);
+	expect(onTop).toBe(true);
 });

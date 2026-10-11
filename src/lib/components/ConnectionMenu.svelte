@@ -25,7 +25,7 @@
 	const status = $derived(
 		net.offline
 			? t('net.offline')
-			: net.status === 'online' || net.status === 'none'
+			: net.status === 'online'
 				? t('net.online')
 				: t(`net.${net.status}`)
 	);
