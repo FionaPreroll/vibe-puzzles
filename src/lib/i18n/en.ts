@@ -677,7 +677,7 @@ const en = {
 				'A number tells how many of the four sides of its cell the loop runs along. Cells without a number can have any count.'
 			],
 			notes: [
-				'Early access: Loop is still being built. So far 5×5 and 7×7 are playable; more sizes, specials, hints and a tutorial follow.'
+				'Early access: Loop is still being built. So far 5×5 and 7×7 are playable; more sizes, specials and a tutorial follow.'
 			],
 			tool: { black: 'Line' },
 			toolHint: {
@@ -691,7 +691,60 @@ const en = {
 			controlsMouse:
 				'Click between two dots to draw a line, or drag along the dots to draw several. Right click sets a cross.',
 			controlsTouch:
-				'Tap between two dots to draw a line, or hold and drag along the dots to draw several. Pick the Cross tool to mark edges the loop avoids.'
+				'Tap between two dots to draw a line, or hold and drag along the dots to draw several. Pick the Cross tool to mark edges the loop avoids.',
+			/** What the hint button says: where to look and which rule applies, then what follows. */
+			hints: {
+				clueLook: 'Count the lines and crosses around the tinted {clue}.',
+				clueZero: 'A 0 has no line on any side: cross the highlighted edges.',
+				clueFull: 'It already has as many lines as its number: its other sides stay empty.',
+				clueFill:
+					'Its free sides are just enough for its number: the loop runs along all of them. Draw the lines.',
+				dotLook: 'Look at the tinted dot: the loop passes a dot with two lines or none.',
+				dotFull: 'Two lines already meet there, so no other line touches it: cross the rest.',
+				dotOn:
+					'One line reaches it, and only one way is left for it to go on: draw the line there.',
+				dotEnd:
+					'No line reaches it, and only one edge is left: a line there would end at the dot. Cross it.',
+				loopLook: 'Follow the tinted line: its two ends are only one edge apart.',
+				loop: 'Joining them would close a loop, but there is only one loop, and it still has to pass the other lines and numbers. Cross the highlighted edge.',
+				cornerLook:
+					'Look at the tinted {clue} and the dots at its corners: every dot ends up with two lines or none, never one or three.',
+				cornerLine:
+					'Try the ways to draw the sides of the {clue}: in every way that fits its number and its corners, the highlighted edges have a line. Draw them.',
+				cornerCross:
+					'Try the ways to draw the sides of the {clue}: in every way that fits its number and its corners, the highlighted edges stay empty. Cross them.',
+				pairLook:
+					'Look at the two tinted numbers together, and at the dot they share: every dot ends up with two lines or none.',
+				pairLine:
+					'Try the ways to draw the sides of both numbers: in every way that fits both counts and lets each dot have two lines or none, the highlighted edges have a line. Draw them.',
+				pairCross:
+					'Try the ways to draw the sides of both numbers: in every way that fits both counts and lets each dot have two lines or none, the highlighted edges stay empty. Cross them.',
+				sidesLook:
+					'Think inside and outside: every cell lies inside the loop or outside it, and beyond the grid is outside. Crossing a line switches sides, crossing a cross does not.',
+				sidesSame:
+					'Walk along the tinted cells over your lines and crosses: you switch sides an even number of times, so the two cells by the highlighted edge lie on the same side. No line goes between them.',
+				sidesOther:
+					'Walk along the tinted cells over your lines and crosses: you switch sides an odd number of times, so the two cells by the highlighted edge lie on different sides. A line goes between them.',
+				blockLook:
+					'Look at the tinted 2×2 block: its numbers keep their counts, and every dot ends up with two lines or none.',
+				blockLine:
+					'Try the ways to draw the edges of the block: in every way that fits, the highlighted edges have a line. Draw them.',
+				blockCross:
+					'Try the ways to draw the edges of the block: in every way that fits, the highlighted edges stay empty. Cross them.',
+				assumeLook: 'No simple rule helps here: try out an edge by the tinted cells in your head.',
+				assumeLine:
+					'No simple rule helps here, so try it out: suppose the highlighted edge had a line, and follow the rules from there.',
+				assumeCross:
+					'No simple rule helps here, so try it out: suppose the highlighted edge stayed empty, and follow the rules from there.',
+				breaksClue: 'The tinted number ends up with the wrong number of lines.',
+				breaksDot: 'A dot by the tint ends up with one line or three.',
+				breaksLoop: 'The lines close a loop too early, or can no longer form one.',
+				breaksSides: 'Some cells would have to lie inside and outside the loop at once.',
+				thenLine: 'So no line goes there: cross it.',
+				thenCross: 'So the loop must run there: draw the line.',
+				stuck:
+					'No rule decides an edge here. Try a line on the highlighted edge in your head and follow it until a rule breaks.'
+			}
 		}
 	}
 };

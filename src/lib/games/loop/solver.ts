@@ -21,7 +21,13 @@ export interface LoopRating {
 	advancedSteps: number;
 	/** The edges as far as the techniques got (OPEN, LINE or CROSS), in the graph's numbering. */
 	edges: Uint8Array;
+	/** Whether the techniques found that the puzzle (with the edges it started from) has no solution. */
+	contradiction: boolean;
+	/** Where they found it: a cell or dot whose rule breaks, a loop, or inside and outside. */
+	brokenAt?: LoopFailure;
 }
+
+export type LoopFailure = { kind: 'cell' | 'dot'; at: number } | { kind: 'loop' | 'sides' };
 
 export interface LoopSolveOptions {
 	limit?: number;
@@ -59,7 +65,7 @@ const CELL_CORNER = [1 | 4, 1 | 8, 2 | 4, 2 | 8];
 const DOT_CORNER = [1 | 8, 1 | 2, 4 | 8, 4 | 2];
 
 /** The grid as the deductions use it, shared by every puzzle of a size. */
-interface Layout {
+export interface LoopLayout {
 	g: LoopGraph;
 	n: number;
 	/** The cell on either side of each edge, `n` for outside the grid. */
@@ -78,9 +84,9 @@ interface Layout {
 	dotMasks: number[][];
 }
 
-const layouts = new Map<string, Layout>();
+const layouts = new Map<string, LoopLayout>();
 
-function layoutOf(w: number, h: number): Layout {
+export function loopLayout(w: number, h: number): LoopLayout {
 	const key = `${w}x${h}`;
 	const known = layouts.get(key);
 	if (known) return known;
@@ -157,7 +163,7 @@ function layoutOf(w: number, h: number): Layout {
  * Search branches on an open edge, preferably one that continues a line.
  */
 export class LoopSolver {
-	private readonly l: Layout;
+	private readonly l: LoopLayout;
 	private readonly g: LoopGraph;
 	private readonly n: number;
 	private readonly clue: Int8Array;
@@ -178,6 +184,7 @@ export class LoopSolver {
 	/** Inside and outside: a parent and the colour difference to it per cell, outside last. */
 	private colouring = false;
 	private broken = false;
+	private failure: LoopFailure | undefined;
 	private readonly parent: Int32Array;
 	private readonly parity: Uint8Array;
 	/** The colour difference to its root of the last cell `find` looked up. */
@@ -185,7 +192,7 @@ export class LoopSolver {
 	private linked = false;
 
 	constructor(p: LoopPuzzle) {
-		this.l = layoutOf(p.width, p.height);
+		this.l = loopLayout(p.width, p.height);
 		this.g = this.l.g;
 		this.n = this.l.n;
 		this.clue = Int8Array.from({ length: this.n }, (_, c) => clueAt(p, c));
@@ -207,19 +214,31 @@ export class LoopSolver {
 		this.colouring = false;
 		let level: LoopLevel = LoopLevel.Basic;
 		let advancedSteps = 0;
-		const result = (solved: boolean) => ({ solved, level, advancedSteps, edges: this.v });
-		if (!this.propagate()) return result(false);
+		this.failure = undefined;
+		const result = (solved: boolean, contradiction = false): LoopRating => ({
+			solved,
+			level,
+			advancedSteps,
+			edges: this.v,
+			contradiction,
+			...(contradiction && { brokenAt: this.failure ?? { kind: 'sides' } })
+		});
+		const broken = () => result(false, true);
+		if (!this.propagate()) return broken();
 		while (maxLevel >= LoopLevel.Advanced && this.v.includes(OPEN)) {
 			level = LoopLevel.Advanced;
-			if (!this.colouring && !this.startColouring()) return result(false);
+			if (!this.colouring && !this.startColouring()) return broken();
 			const before = this.v.reduce((k, x) => k + (x === OPEN ? 1 : 0), 0);
 			const changed = this.colourRules();
-			if (changed === null) return result(false);
+			if (changed === null) return broken();
 			if (!changed) break;
 			advancedSteps += before - this.v.reduce((k, x) => k + (x === OPEN ? 1 : 0), 0);
-			if (!this.propagate()) return result(false);
+			if (!this.propagate()) return broken();
 		}
-		return result(!this.v.includes(OPEN) && this.isLoop(this.v));
+		if (this.v.includes(OPEN)) return result(false);
+		if (this.isLoop(this.v)) return result(true);
+		this.failure = { kind: 'loop' };
+		return broken();
 	}
 
 	solve(opts: LoopSolveOptions = {}): LoopSolveResult {
@@ -322,11 +341,18 @@ export class LoopSolver {
 				this.size--;
 				this.queued[item] = 0;
 				const ok = item < this.n ? this.cellRule(item) : this.dotRule(item - this.n);
+				if (!ok) {
+					this.failure =
+						item < this.n ? { kind: 'cell', at: item } : { kind: 'dot', at: item - this.n };
+				}
 				if (!ok || this.broken) return (this.broken = false);
 			}
 			const changed = this.loopRule();
 			if (this.broken) return (this.broken = false);
-			if (changed === null) return false;
+			if (changed === null) {
+				this.failure = { kind: 'loop' };
+				return false;
+			}
 			if (!changed) return true;
 		}
 	}
