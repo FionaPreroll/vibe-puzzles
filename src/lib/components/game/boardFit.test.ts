@@ -1,0 +1,168 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+	afterBoard,
+	clampZoom,
+	DEFAULT_CELL,
+	fitCellSize,
+	printCellSize,
+	storedZoom,
+	zoomedCellSize,
+	type FitInput
+} from './boardFit';
+import { BoardFit } from './boardFit.svelte';
+
+afterEach(() => vi.unstubAllGlobals());
+
+/** A wide screen with room for a big board. */
+const desk: FitInput = {
+	areaWidth: 1000,
+	viewportHeight: 900,
+	boardTop: 100,
+	afterBoard: 150,
+	stagePad: 12,
+	width: 10,
+	height: 10
+};
+
+describe('fitting the board', () => {
+	it('takes the default size until the page is measured', () => {
+		expect(fitCellSize({ ...desk, areaWidth: 0 })).toBe(DEFAULT_CELL);
+	});
+
+	it('fits the height when the screen is wide', () => {
+		// (900 - 100 - 4 - 150 - 24) / (10 + 0.4) = 59.8
+		expect(fitCellSize(desk)).toBe(59);
+	});
+
+	it('fits the width when the screen is narrow', () => {
+		// (390 - 16) / 10.4 = 35.96
+		expect(fitCellSize({ ...desk, areaWidth: 390, stagePad: 8 })).toBe(35);
+	});
+
+	it('leaves room for coordinates and rows below the grid', () => {
+		expect(fitCellSize({ ...desk, showCoordinates: true })).toBe(Math.floor(622 / 11.3));
+		expect(fitCellSize({ ...desk, padRows: 2 })).toBe(Math.floor(622 / 12.4));
+	});
+
+	it('keeps cells between 16 and 96 px, and some height even on a short screen', () => {
+		expect(fitCellSize({ ...desk, width: 2, height: 2 })).toBe(96);
+		expect(fitCellSize({ ...desk, width: 100, height: 100 })).toBe(16);
+		// No room left at all: 240 px of height still count.
+		expect(fitCellSize({ ...desk, viewportHeight: 200, height: 4, width: 4 })).toBe(54);
+	});
+
+	it('zooms from the fitted size', () => {
+		expect(zoomedCellSize(40, 1)).toBe(40);
+		expect(zoomedCellSize(40, 1.5)).toBe(60);
+		expect(zoomedCellSize(20, 0.3)).toBe(8);
+		expect(clampZoom(5)).toBe(3);
+		expect(clampZoom(0.1)).toBe(0.3);
+	});
+
+	it('reads only a stored zoom that is a number', () => {
+		expect(storedZoom(1.5)).toBe(1.5);
+		expect(storedZoom(9)).toBe(3);
+		for (const v of ['2', null, NaN, {}]) expect(storedZoom(v)).toBe(1);
+	});
+
+	it('prints about 640 px wide, at most 40 px a cell', () => {
+		expect(printCellSize(5)).toBe(40);
+		expect(printCellSize(19)).toBe(32);
+	});
+
+	it('measures what is below the board, without a longer side panel', () => {
+		expect(afterBoard({ body: 1000, boardArea: 700, rootContent: 900, gameColumn: 900 })).toBe(300);
+		// The side panel reaches 200 px below the game column: that part does not count.
+		expect(afterBoard({ body: 1200, boardArea: 700, rootContent: 1100, gameColumn: 900 })).toBe(
+			300
+		);
+	});
+});
+
+/** An element whose box has the given top and bottom. */
+const box = (top: number, bottom: number) =>
+	({ getBoundingClientRect: () => ({ top, bottom }) }) as HTMLElement;
+
+describe('measuring the page', () => {
+	it('fits the board with what it measured', () => {
+		const fit = new BoardFit();
+		expect(fit.fitCell(null)).toBe(DEFAULT_CELL);
+		Object.assign(fit, { areaWidth: 600, viewportHeight: 900, boardTop: 150, afterBoard: 100 });
+		expect(fit.fitCell({ width: 8, height: 8 }, 1, true)).toBe(
+			fitCellSize({
+				areaWidth: 600,
+				viewportHeight: 900,
+				boardTop: 150,
+				afterBoard: 100,
+				stagePad: 12,
+				width: 8,
+				height: 8,
+				padRows: 1,
+				showCoordinates: true
+			})
+		);
+		fit.wide = false;
+		expect(fit.stagePad).toBe(8);
+		expect(fit.layout).toEqual([900, 0, 0, 600, 0, 0]);
+	});
+
+	it('reads where the board starts and what is below it', () => {
+		vi.stubGlobal('window', { scrollY: 50 });
+		vi.stubGlobal('getComputedStyle', () => ({ paddingBottom: '16px' }));
+		vi.stubGlobal('document', {
+			querySelector: () => box(0, 60),
+			body: box(0, 1200)
+		});
+		const fit = new BoardFit();
+		fit.measure();
+		// Nothing bound yet: the defaults stay.
+		expect(fit.boardTop).toBe(200);
+
+		fit.pageRoot = box(60, 1116);
+		fit.gameColumn = box(80, 900);
+		fit.areaWrap = box(90, 700);
+		fit.boardArea = box(100, 700);
+		fit.measure();
+		expect(fit.boardTop).toBe(154);
+		expect(fit.headerGap).toBe(30);
+		// The side panel reaches 200 px below the game column.
+		expect(fit.afterBoard).toBe(300);
+	});
+
+	it('follows the layout and the page size until stopped', () => {
+		const media = Object.assign(new EventTarget(), { matches: true });
+		vi.stubGlobal('matchMedia', () => media);
+		const observed = { body: null as unknown, callback: null as (() => void) | null, off: false };
+		vi.stubGlobal(
+			'ResizeObserver',
+			class {
+				constructor(callback: () => void) {
+					observed.callback = callback;
+				}
+				observe(el: unknown) {
+					observed.body = el;
+				}
+				disconnect() {
+					observed.off = true;
+				}
+			}
+		);
+		vi.stubGlobal('document', { body: 'body' });
+		const onLayout = vi.fn();
+		const fit = new BoardFit();
+		const measure = vi.spyOn(fit, 'measure');
+		const stop = fit.observe(onLayout);
+		expect(onLayout).toHaveBeenLastCalledWith(true);
+		media.matches = false;
+		media.dispatchEvent(new Event('change'));
+		expect(fit.wide).toBe(false);
+		expect(onLayout).toHaveBeenLastCalledWith(false);
+		expect(observed.body).toBe('body');
+		observed.callback!();
+		expect(measure).toHaveBeenCalledOnce();
+		stop();
+		expect(observed.off).toBe(true);
+		media.dispatchEvent(new Event('change'));
+		expect(onLayout).toHaveBeenCalledTimes(2);
+	});
+});

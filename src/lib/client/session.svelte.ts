@@ -28,6 +28,9 @@ export interface OpenOptions {
 	shared?: string;
 }
 
+/** The session of any game: the game page passes its puzzle and state only back to the same game. */
+export type AnySession = GameSession<BasePuzzle, unknown, string>;
+
 /** A game to put on the board: a new puzzle or a saved game, with everything that belongs to it. */
 interface ShownGame<P, S> extends Omit<FoundPuzzle<P>, 'startedAt'> {
 	history: HistoryStart<S>;
