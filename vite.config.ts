@@ -5,6 +5,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { networkDefaults } from './scripts/buildFlags.ts';
+import { readChangelog } from './scripts/changelog.ts';
 import { checkShippedLicenses, readLicense } from './scripts/licenses.ts';
 
 /**
@@ -46,7 +47,9 @@ export default defineConfig({
 		// Defaults of the connection menu (see README, "Deployment").
 		__NET__: JSON.stringify(networkDefaults(process.env)),
 		// Separate from __BUILD__, which every page uses: only the About page carries the texts.
-		__LICENSES__: JSON.stringify(SHIPPED_PACKAGES.map((name) => readLicense('.', name)))
+		__LICENSES__: JSON.stringify(SHIPPED_PACKAGES.map((name) => readLicense('.', name))),
+		// CHANGELOG.md for the About page; the build fails on a line it does not understand.
+		__CHANGELOG__: JSON.stringify(readChangelog('.'))
 	},
 	plugins: [
 		checkShippedLicenses(SHIPPED_PACKAGES),
@@ -73,6 +76,7 @@ export default defineConfig({
 				'worker/**/*.ts',
 				'scripts/licenses.ts',
 				'scripts/buildFlags.ts',
+				'scripts/changelog.ts',
 				'scripts/collection.ts'
 			],
 			exclude: ['src/test/**', 'src/service-worker/**', '**/*.test.ts'],

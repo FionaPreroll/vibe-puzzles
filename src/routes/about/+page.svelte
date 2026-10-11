@@ -3,8 +3,10 @@
 	import { createBackup, parseBackup, restoreBackup } from '#lib/client/backup.ts';
 	import { ask } from '#lib/client/confirm.svelte.ts';
 	import { i18n, t } from '#lib/i18n/index.svelte.ts';
+	import type { ChangelogRelease, Inline } from '../../../scripts/changelog';
 
 	const build = __BUILD__;
+	const [latest, ...earlier] = __CHANGELOG__;
 	const REPO = 'https://github.com/FionaPreroll/vibe-puzzles';
 	const schemaUrl = asset('backup.schema.json');
 
@@ -23,6 +25,16 @@
 		a.download = `vibe-puzzles-backup-${backup.exportedAt.slice(0, 10)}.json`;
 		a.click();
 		URL.revokeObjectURL(a.href);
+	}
+
+	/** A release's heading: its version and day, in the page's language. */
+	function releaseTitle(r: ChangelogRelease): string {
+		if (!r.date) return t('about.unreleased');
+		const date = new Date(`${r.date}T00:00:00Z`).toLocaleDateString(i18n.locale, {
+			dateStyle: 'long',
+			timeZone: 'UTC'
+		});
+		return t('about.release', { version: r.version, date });
 	}
 
 	async function importBackup(e: Event & { currentTarget: HTMLInputElement }) {
@@ -45,6 +57,27 @@
 		setTimeout(() => location.reload(), 800);
 	}
 </script>
+
+{#snippet inline(parts: Inline[])}{#each parts as part, k (k)}{#if part.code}<code
+				class="rounded bg-stone-100 px-1 text-xs dark:bg-stone-800">{part.text}</code
+			>{:else if part.strong}<strong>{part.text}</strong>{:else}{part.text}{/if}{/each}{/snippet}
+
+{#snippet release(r: ChangelogRelease)}
+	<h3 class="mt-4 font-semibold">{releaseTitle(r)}</h3>
+	{#each r.notes as note, k (k)}
+		<p class="mt-1">{@render inline(note)}</p>
+	{/each}
+	{#each r.sections as section (section.title)}
+		<h4 class="mt-3 text-xs font-semibold tracking-wide text-stone-500 uppercase">
+			{t(`about.changeKind.${section.title.toLowerCase()}`)}
+		</h4>
+		<ul class="mt-1 list-disc space-y-1 pl-5">
+			{#each section.items as item, k (k)}
+				<li>{@render inline(item)}</li>
+			{/each}
+		</ul>
+	{/each}
+{/snippet}
 
 <svelte:head>
 	<title>{t('about.title')} · {t('app.name')}</title>
@@ -73,6 +106,24 @@
 			<dd><a class="link" href={REPO}>GitHub</a></dd>
 		</dl>
 	</section>
+
+	{#if latest}
+		<section class="panel text-sm" id="changes">
+			<h2 class="section-title">{t('about.changes')}</h2>
+			<p class="mt-2 text-stone-600 dark:text-stone-400">{t('about.changesNote')}</p>
+			{@render release(latest)}
+			{#if earlier.length}
+				<details class="mt-4">
+					<summary class="cursor-pointer text-stone-600 dark:text-stone-400">
+						{t('about.earlier')}
+					</summary>
+					{#each earlier as r (r.version)}
+						{@render release(r)}
+					{/each}
+				</details>
+			{/if}
+		</section>
+	{/if}
 
 	<section class="panel">
 		<h2 class="section-title">{t('about.backup')}</h2>
