@@ -58,7 +58,10 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	source = $state<PuzzleOrigin>('local');
 	puzzle = $state.raw<P | null>(null);
 	lastChange = $state.raw<ReadonlySet<string>>(new Set());
-	/** The hint on the board, until the next change. */
+	/**
+	 * The hint on the board: a step until the next change, wrong marks until the player has changed
+	 * them all or closes it.
+	 */
 	hint = $state.raw<Hint | null>(null);
 	/** Whether the hint shows its result, or only its first look (`Hint.teaser`). */
 	hintFull = $state(false);
@@ -72,6 +75,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	solved = $state(false);
 	submitting = $state(false);
 
+	/** The hint as it was found, and the position it was found in. */
+	private hintFound: { hint: Hint; at: S; message: Message } | null = null;
 	private readonly history = new History<S>();
 	private readonly clock = new Clock(() => this.clockMayRun);
 	private readonly saves: SaveSlot<P, S>;
@@ -321,6 +326,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.saves.attachBoard(!!g);
 		this.lastChange = new Set();
 		this.hint = null;
+		this.hintFound = null;
 		this.hintFull = false;
 		this.hints = g?.hints ?? 0;
 		this.assisted = g?.assisted ?? false;
@@ -453,11 +459,27 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.persist();
 	}
 
-	/** The position changed: mark what changed (`changed`), take the hint away. */
+	/** The position changed: mark what changed (`changed`), and follow it with the hint. */
 	private changed(changed: string[] = []) {
 		this.lastChange = new Set(changed);
-		this.dismissHint();
+		this.followHint();
 		this.touched = true;
+	}
+
+	/**
+	 * A step goes with the next change. Wrong marks stay pointed out until the player changes
+	 * them: each mark that differs from the position they were found in leaves the highlight (and
+	 * comes back with undo), and once none is left, the hint goes.
+	 */
+	private followHint() {
+		const found = this.hintFound;
+		if (!found || found.hint.kind !== 'mistake' || !this.puzzle || !this.state) {
+			return this.dismissHint();
+		}
+		const changed = new Set(this.game.changes(this.puzzle, found.at, this.state));
+		const spotlight = found.hint.spotlight.filter((key) => !changed.has(key));
+		if (!spotlight.length) return this.dismissHint();
+		this.hint = { ...found.hint, spotlight };
 	}
 
 	/** Whether the game can start over: not the current special puzzle once solved. */
@@ -493,14 +515,15 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	/**
 	 * Point at where to look and which rule applies, and on the next press at the step itself (at
 	 * once for wrong marks). Each new hint counts; asking again before the next move goes on to the
-	 * same hint's result and does not.
+	 * same hint's result and does not. Wrong marks still pointed out after moves are looked up
+	 * again: a new hint.
 	 */
 	showHint() {
 		if (this.readonly || !this.puzzle || !this.state || !this.game.hint || !this.canHint) return;
-		// A hint still on the board is for the same position: it only goes on to its result.
-		const shown = this.hint;
+		// A hint found in this position only goes on to its result.
+		const shown = this.hintFound?.at === this.state ? this.hintFound.hint : null;
 		const hint = shown ?? this.game.hint(this.puzzle, this.state);
-		if (!hint) return;
+		if (!hint) return this.dismissHint();
 		if (!shown) this.hints++;
 		this.hint = hint;
 		this.hintFull = !!shown || !hint.teaser;
@@ -508,6 +531,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.message = message(hint.kind === 'mistake' ? 'error' : 'info', () =>
 			keys.map((key) => t(key, hint.params)).join(' ')
 		);
+		this.hintFound = { hint, at: this.state, message: this.message };
 		this.persist();
 	}
 
@@ -532,11 +556,15 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.persist();
 	}
 
-	/** Take the hint off the board, with its message: after a move, or when hints are turned off. */
+	/**
+	 * Take the hint off the board, with its message (not another one shown since): after a move,
+	 * when the player closes it, or when hints are turned off.
+	 */
 	dismissHint() {
 		if (!this.hint) return;
+		if (this.message === this.hintFound?.message) this.message = null;
 		this.hint = null;
-		this.message = null;
+		this.hintFound = null;
 	}
 
 	// ---- Trials -----------------------------------------------------------------------------
@@ -645,6 +673,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.solvedAt = Date.now();
 		this.clock.finish(this.solvedAt);
 		this.solved = true;
+		// Nothing is left to point at.
+		this.dismissHint();
 		// A trial that solves the puzzle was right.
 		this.history.keepTrial();
 		const { finalMs, finalPlayMs } = this.clock;

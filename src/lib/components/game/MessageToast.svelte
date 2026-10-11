@@ -5,15 +5,17 @@
 
 	/**
 	 * Phones show messages as a toast over the board, so they never push the layout around. Errors
-	 * stay until tapped away, hints until the next move; a hint sits below the board, so it does not
-	 * hide the cells it points at.
+	 * stay until tapped away, hints as long as they are on the board (a step until the next move,
+	 * wrong marks until they are changed); closing a hint's toast takes the hint away too. A hint
+	 * sits below the board, so it does not hide the cells it points at.
 	 */
 	let {
 		phone,
 		message,
 		hint,
 		teaser,
-		onshowhint
+		onshowhint,
+		ondismisshint
 	}: {
 		/** The phone layout, where messages show here rather than in the top bar. */
 		phone: boolean;
@@ -23,9 +25,16 @@
 		/** The hint shows only where to look: the toast offers the step itself. */
 		teaser: boolean;
 		onshowhint: () => void;
+		/** Takes the hint off the board, with its highlight. */
+		ondismisshint: () => void;
 	} = $props();
 
 	let open = $state(false);
+
+	function close() {
+		open = false;
+		if (hint) ondismisshint();
+	}
 
 	$effect(() => {
 		const shown = message;
@@ -45,9 +54,7 @@
 			)}"
 		>
 			<div class="grid justify-items-start gap-1">
-				<button class="text-left" title={t('game.dismiss')} onclick={() => (open = false)}
-					>{message.text}</button
-				>
+				<button class="text-left" title={t('game.dismiss')} onclick={close}>{message.text}</button>
 				{#if teaser}
 					<button class="font-semibold underline" onclick={onshowhint}>{t('game.hintShow')}</button>
 				{/if}
@@ -56,7 +63,7 @@
 				class="opacity-60"
 				title={t('game.dismiss')}
 				aria-label={t('game.dismiss')}
-				onclick={() => (open = false)}>✕</button
+				onclick={close}>✕</button
 			>
 		</div>
 	</div>

@@ -104,11 +104,12 @@
 	{/if}
 	<!-- In the top bar on wide screens, so a message never pushes the board down: centred in the
 	     space between the clock and the icons, and out of the flow, so that a message on two or
-	     three lines reaches into the room above and below rather than making the bar taller -->
+	     three lines reaches into the room above and below rather than making the bar taller. Where
+	     it reaches over the board, clicks go through to the cells; only its buttons take them -->
 	{#if session.message && wide}
 		<div class="relative ml-2 min-w-0 flex-1 self-stretch">
 			<p
-				class="absolute inset-x-0 top-1/2 z-20 mx-auto w-fit max-w-full -translate-y-1/2 rounded-xl px-3 py-1.5 text-center text-xs leading-4 {messageClass(
+				class="pointer-events-none absolute inset-x-0 top-1/2 z-20 mx-auto w-fit max-w-full -translate-y-1/2 rounded-xl px-3 py-1.5 text-center text-xs leading-4 *:pointer-events-auto {messageClass(
 					session.message.kind
 				)}"
 			>
@@ -116,6 +117,15 @@
 				{#if teaser}
 					<button class="ml-1 font-semibold underline" onclick={() => session.showHint()}
 						>{t('game.hintShow')}</button
+					>
+				{/if}
+				{#if session.hint}
+					<!-- Wrong marks stay until they are changed: this takes them away sooner -->
+					<button
+						class="ml-1 opacity-60 hover:opacity-100"
+						title={t('game.dismiss')}
+						aria-label={t('game.dismiss')}
+						onclick={() => session.dismissHint()}>✕</button
 					>
 				{/if}
 			</p>

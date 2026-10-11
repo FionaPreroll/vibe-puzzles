@@ -107,6 +107,7 @@
 						readonly={session.readonly}
 						lastChange={session.lastChange}
 						{spotlight}
+						mistake={session.hint?.kind === 'mistake'}
 						{area}
 						trial={trialMarks}
 						{keys}
@@ -134,6 +135,7 @@
 		hint={!!session.hint}
 		teaser={!!session.hint && !session.hintFull}
 		onshowhint={() => session.showHint()}
+		ondismisshint={() => session.dismissHint()}
 	/>
 	{#if session.loading}
 		<div class="absolute inset-0 grid min-h-48 place-items-center text-stone-500">
