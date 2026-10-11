@@ -540,7 +540,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	 * button rather than in the top bar, also after another message has come since.
 	 */
 	get hintMessage(): Message | null {
-		return this.hint ? (this.hintFound?.message ?? null) : null;
+		// Found and taken away together with the hint.
+		return this.hintFound?.message ?? null;
 	}
 
 	/** Hints asked for with the Hint button: `hints` without the setting that counts as one. */
