@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryStorage } from '../../test/memory-storage';
+import { LOOP_SETTINGS } from '../games/loop/settings';
+import { PINWHEEL_SETTINGS } from '../games/pinwheel/settings';
+import { SUDOKU_SETTINGS } from '../games/sudoku/settings';
+import { TETROID_SETTINGS } from '../games/tetroid/settings';
 import de from './de';
 import en from './en';
 import {
@@ -7,6 +11,7 @@ import {
 	initLocale,
 	nextDailyText,
 	setLocale,
+	settingHelp,
 	settingLabel,
 	t,
 	tList,
@@ -133,6 +138,50 @@ describe('labels', () => {
 		expect(toolLabel('pinwheel', { id, label: 'x' })).toBe(shared[1]);
 		// A game can rename a shared tool.
 		expect(toolLabel('pinwheel', { id: 'black', label: 'x' })).toBe(en.games.pinwheel.tool.black);
+	});
+
+	it('explains every setting of every game and mode', () => {
+		const lists = {
+			tetroid: TETROID_SETTINGS,
+			pinwheel: PINWHEEL_SETTINGS,
+			sudoku: SUDOKU_SETTINGS,
+			loop: LOOP_SETTINGS
+		};
+		for (const [game, list] of Object.entries(lists)) {
+			for (const mode of game === 'sudoku' ? [undefined, 'calc'] : [undefined]) {
+				for (const s of list)
+					expect(settingHelp(s.key, game, mode), `${game} ${s.key}`).not.toBe('');
+			}
+		}
+		expect(settingHelp('no-such-setting', 'tetroid')).toBe('');
+	});
+
+	it('words setting texts for the game and its mode', () => {
+		// Shared text, a game's own, a mode's own.
+		expect(settingHelp('hideTimer', 'loop')).toBe(en.settingHelp.hideTimer);
+		expect(settingHelp('highlightErrors')).toBe(en.settingHelp.highlightErrors);
+		expect(settingHelp('highlightErrors', 'loop')).toBe(en.games.loop.settingHelp.highlightErrors);
+		expect(settingHelp('highlightErrors', 'sudoku')).toBe(
+			en.games.sudoku.settingHelp.highlightErrors
+		);
+		expect(settingHelp('highlightErrors', 'sudoku', 'calc')).toBe(
+			en.games.sudoku.modes.calc.settingHelp.highlightErrors
+		);
+		// A mode without its own text takes the game's.
+		expect(settingHelp('hideControls', 'sudoku', 'calc')).toBe(
+			en.games.sudoku.settingHelp.hideControls
+		);
+		const lines = { key: 'highlightLines', label: 'x' };
+		expect(settingLabel(lines, 'sudoku')).toBe(en.setting.highlightLines);
+		expect(settingLabel(lines, 'sudoku', 'calc')).toBe(
+			en.games.sudoku.modes.calc.setting.highlightLines
+		);
+		stubBrowser([]);
+		setLocale('de');
+		expect(settingLabel(lines, 'sudoku', 'calc')).toBe('Zeile und Spalte hervorheben');
+		expect(settingHelp('autoNotes', 'sudoku', 'calc')).toBe(
+			de.games.sudoku.modes.calc.settingHelp.autoNotes
+		);
 	});
 
 	it('explains tools in their tooltip hints', () => {

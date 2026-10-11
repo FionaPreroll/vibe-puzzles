@@ -1447,6 +1447,7 @@
 <SettingsDialog
 	bind:open={showSettings}
 	{settings}
+	mode={variant.mode}
 	touchMode={isTouch && showTools ? touchMode : undefined}
 	ontouchmode={setTouchMode}
 />

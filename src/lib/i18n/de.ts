@@ -126,6 +126,11 @@ const de: Dictionary = {
 		touchAuto: 'Automatisch',
 		touchDraw: 'Immer zeichnen',
 		touchPan: 'Immer verschieben',
+		touchAutoText:
+			'Wischen scrollt die Seite. Lass den Finger kurz liegen und zieh dann, um zu zeichnen.',
+		touchDrawText:
+			'Ziehen auf dem Spielfeld zeichnet immer. Scrollen und Zoomen geht neben dem Spielfeld.',
+		touchPanText: 'Ziehen scrollt und zoomt immer die Seite. Antippen markiert trotzdem.',
 		checkpoints: 'Zwischenstände',
 		save: 'Speichern',
 		add: 'Neu',
@@ -266,6 +271,68 @@ const de: Dictionary = {
 		highlightSame: 'Gleiche Ziffer hervorheben',
 		showRemaining: 'Anzeigen, wie oft jede Ziffer noch fehlt',
 		digitFirst: 'Erst die Ziffer wählen, dann die Felder (Linksklick: Ziffer, Rechtsklick: Notiz)'
+	},
+	/** Was jede Einstellung bewirkt, unter ihr angezeigt. Spiele und Modi können es eigens formulieren. */
+	settingHelp: {
+		hideControls:
+			'Blendet die Werkzeug-Buttons aus, damit es aufgeräumter aussieht. Das zuletzt gewählte Werkzeug bleibt aktiv. Gilt nur auf diesem Gerät.',
+		stickyToolbar:
+			'Die Leiste mit Uhr, Zoom und Einstellungen bleibt beim Scrollen oben stehen. Praktisch bei großen Spielfeldern.',
+		autoSubmit:
+			'Das Rätsel gilt als gelöst, sobald dein letzter Zug stimmt. Schalte es aus, wenn du deine Lösung erst prüfen und dann selbst auf „Fertig“ drücken willst.',
+		showCheckpoints:
+			'Zeigt unter dem Spielfeld Buttons, mit denen du bis zu 10 Zwischenstände speicherst und später wieder lädst, etwa vor einem gewagten Versuch.',
+		showCoordinates:
+			'Zeigt Buchstaben über und unter dem Spielfeld und Zahlen an den Seiten, damit du Felder benennen kannst, etwa C4.',
+		hideTimer:
+			'Du spielst ohne laufende Uhr. Deine Zeit wird trotzdem gemessen und nach dem Lösen angezeigt.',
+		hideHint:
+			'Entfernt den Tipp-Button samt Taste H, damit er dich gar nicht erst in Versuchung führt.',
+		personalTimer:
+			'Die Uhr hält an, solange das Spiel im Hintergrund ist, und bekommt einen Pause-Button. So gemessene Zeiten kommen nicht in die Rangliste.',
+		highlightErrors: 'Färbt rot, was schon gegen eine Regel verstößt.',
+		blueErrors:
+			'Zeigt Fehler blau statt rot. Das ist bei Rot-Grün-Sehschwäche leichter zu erkennen.',
+		highlightLastChange:
+			'Umrandet, was dein letzter Zug verändert hat, damit du schnell wieder hineinfindest.',
+		solvedAnimation: 'Eine kleine Animation auf dem Spielfeld feiert jedes gelöste Rätsel.',
+		highlightBlock:
+			'Hinterlegt den Bereich des Felds, das du zuletzt angeklickt oder mit den Pfeiltasten erreicht hast.',
+		highlightGroup:
+			'Hebt alle schattierten Felder hervor, die mit dem zuletzt geänderten Feld verbunden sind. Mit gedrückter Umschalttaste siehst du die Gruppe unter der Maus, auch wenn das hier aus ist.',
+		thickBorders:
+			'Zeichnet die Bereichsgrenzen dicker, damit sich die Bereiche deutlicher abheben.',
+		colorTetrominoes:
+			'Färbt jedes fertige Tetromino nach seiner Form (L, I, T, S) ein. So fallen gleiche Formen, die sich berühren, sofort auf.',
+		autoCrossCorners:
+			'Sind drei Felder eines 2×2-Blocks schattiert, bekommt das vierte von selbst ein Kreuz.',
+		autoCrossRegions:
+			'Sobald ein Bereich sein Tetromino hat, bekommen seine übrigen Felder von selbst ein Kreuz.',
+		showGrid:
+			'Zeichnet feine gepunktete Linien zwischen alle Felder. Das hilft beim Abzählen und beim Finden von Partnerfeldern.',
+		continuousLine:
+			'Beim Ziehen entsteht eine zusammenhängende Linie von Punkt zu Punkt, auch um Ecken; zurückziehen verkürzt sie. Aus: Jede überstrichene Kante wird einzeln gesetzt.',
+		symmetryHelper:
+			'Drück auf einen Kreis und zieh auf ein Feld (auf dem Touchscreen den Kreis erst kurz halten): Das Feld und sein Partnerfeld leuchten auf. Rot heißt, das Partnerfeld läge außerhalb des Spielfelds.',
+		blackHoles:
+			'Ein Kreis wird schwarz, sobald sein Bereich fertig ist. So siehst du auf einen Blick, was schon erledigt ist.',
+		autoColor:
+			'Gibt jedem fertigen Bereich eine eigene Farbe, die sich von seinen Nachbarn abhebt.',
+		dimSatisfiedClues:
+			'Graut eine Zahl aus, sobald sie so viele Linien hat, wie sie zeigt. So fallen die offenen Zahlen mehr auf.',
+		markMistakes:
+			'Vergleicht deine Ziffern mit der Lösung und färbt falsche rot, auch wenn sie noch mit nichts kollidieren.',
+		autoNotes:
+			'Jedes leere Feld ohne Notizen bekommt die Ziffern, die Zeile, Spalte und Block dort noch zulassen.',
+		autoRemoveNotes:
+			'Eine neue Ziffer verschwindet aus den Notizen in ihrer Zeile, Spalte und ihrem Block.',
+		highlightLines: 'Hinterlegt Zeile, Spalte und Block des gewählten Felds.',
+		highlightSame:
+			'Hebt alle Felder hervor, in denen dieselbe Ziffer steht wie im gewählten Feld. Wählst du erst die Ziffer, gilt diese.',
+		showRemaining:
+			'Der Ziffernblock zeigt, wie oft jede Ziffer noch fehlt, und graut vollständige Ziffern aus.',
+		digitFirst:
+			'Wähl zuerst eine Ziffer im Ziffernblock und klick dann alle Felder an, die sie bekommen. Praktisch, um eine Ziffer überall auf dem Spielfeld einzutragen.'
 	},
 	source: {
 		title: 'Woher neue Rätsel kommen',
@@ -424,6 +491,10 @@ const de: Dictionary = {
 				'Klicke auf ein Feld, um es zu schattieren, Rechtsklick setzt ein Kreuz. Ziehen markiert mehrere Felder. Die Tasten 1–4 wählen ein Werkzeug.',
 			controlsTouch:
 				'Tippe ein Feld an, um zwischen schattiert, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Felder.',
+			settingHelp: {
+				highlightErrors:
+					'Schattierte Felder werden rot, wenn sie gegen eine Regel verstoßen: ein voller 2×2-Block, gleiche Tetrominos nebeneinander, mehr als vier Felder in einem Bereich oder eine Gruppe, die nicht mehr zum Rest finden kann.'
+			},
 			hints: {
 				region:
 					'Schau, welche Tetrominos bei seiner Form und deinen Markierungen noch in den hinterlegten Bereich passen.',
@@ -496,6 +567,12 @@ const de: Dictionary = {
 				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen. Rechtsklick setzt ein Kreuz, Shift+Klick färbt ein Feld. Rechtsklick auf einen Kreis sperrt einen fertigen Bereich.',
 			controlsTouch:
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen. Mit dem Farbwerkzeug färbst du Felder. Einen Kreis halten sperrt einen fertigen Bereich.',
+			settingHelp: {
+				autoSubmit:
+					'Das Rätsel gilt als gelöst, sobald alle Bereiche stimmen, ob mit Linien gezogen oder mit Farben ausgemalt. Aus: Du drückst selbst auf „Fertig“, und nur die Linien zählen.',
+				highlightErrors:
+					'Ein abgetrennter Bereich ohne Kreis wird rot, ebenso der Kreis eines abgeschlossenen Bereichs, der nicht symmetrisch ist.'
+			},
 			hints: {
 				look: 'Schau dir die hinterlegten Felder an.',
 				centre:
@@ -561,6 +638,12 @@ const de: Dictionary = {
 				'Klicke ein Feld an und tippe eine Ziffer oder nutze den Ziffernblock. Umschalt+Ziffer setzt oder entfernt eine Notiz, die Leertaste wechselt zwischen Ziffern und Notizen. Rücktaste oder 0 löscht. Mit den Pfeiltasten wechselst du das Feld. Lieber erst die Ziffer wählen? Schalte „Erst die Ziffer wählen“ in den Einstellungen ein.',
 			controlsTouch:
 				'Tippe ein Feld an, dann eine Ziffer im Ziffernblock. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
+			settingHelp: {
+				hideControls:
+					'Blendet die Buttons „Ziffer“ und „Notiz“ aus, der Ziffernblock bleibt. Das zuletzt gewählte Werkzeug bleibt aktiv. Gilt nur auf diesem Gerät.',
+				highlightErrors:
+					'Eine Ziffer, die doppelt in einer Zeile, Spalte oder einem Block steht, wird rot. Mit der Lösung wird dabei nicht verglichen, das macht „Falsche Ziffern rot färben“.'
+			},
 			hints: {
 				where: {
 					box: 'Im hinterlegten Block passt eine der fehlenden Ziffern nur in ein Feld. Welche, und wohin?',
@@ -595,6 +678,18 @@ const de: Dictionary = {
 			},
 			modes: {
 				calc: {
+					setting: {
+						highlightLines: 'Zeile und Spalte hervorheben'
+					},
+					settingHelp: {
+						highlightErrors:
+							'Eine Ziffer, die doppelt in einer Zeile oder Spalte steht, wird rot, ebenso die Angabe eines vollen Käfigs, dessen Rechnung nicht aufgeht. Mit der Lösung wird dabei nicht verglichen.',
+						autoNotes:
+							'Jedes leere Feld ohne Notizen bekommt die Ziffern, die Zeile und Spalte dort noch zulassen. Die Käfige bleiben dir überlassen.',
+						autoRemoveNotes:
+							'Eine neue Ziffer verschwindet aus den Notizen in ihrer Zeile und Spalte.',
+						highlightLines: 'Hinterlegt Zeile und Spalte des gewählten Felds.'
+					},
 					rules: [
 						'Calcudoku („Rechen-Sudoku“): Trage in jedes Feld eine Ziffer von 1 bis zur Gittergröße ein. Jede Zeile und jede Spalte enthält jede Ziffer genau einmal; Blöcke gibt es nicht.',
 						'Jeder dick umrandete Käfig zeigt ein Ergebnis und danach eine Rechenart. Seine Ziffern müssen dieses Ergebnis ergeben: „12+“ heißt Summe 12, „60×“ heißt Produkt 60.',
@@ -700,6 +795,10 @@ const de: Dictionary = {
 				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen, oder zieh über die Punkte, um mehrere zu zeichnen. Rechtsklick setzt ein Kreuz.',
 			controlsTouch:
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen, oder halte und zieh über die Punkte, um mehrere zu zeichnen. Mit dem Kreuz-Werkzeug markierst du Kanten, die die Schleife meidet.',
+			settingHelp: {
+				highlightErrors:
+					'Ein Punkt wird rot, wo sich die Linie verzweigt oder nicht weiterkommt, eine Zahl, wenn sie zu viele Linien oder Kreuze hat. Ist die Schleife geschlossen, werden auch Zahlen rot, denen noch Linien fehlen.'
+			},
 			/** Was der Tipp sagt: wo man hinschaut und welche Regel gilt, dann was folgt. */
 			hints: {
 				clueLook: 'Zähl die Linien und Kreuze um die hinterlegte {clue}.',
