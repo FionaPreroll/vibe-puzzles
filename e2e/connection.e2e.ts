@@ -65,11 +65,11 @@ test('the connection menu opens above a message in the top bar', async ({ page }
 		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
-	await page.goto('/tetroid?v=6n&id=496678832');
+	// A link with an unknown puzzle ID opens a puzzle and says so in the top bar.
+	await page.goto('/tetroid?v=6n&id=-5');
 	await expect(page.locator('.overflow-x-auto svg[role="grid"]')).toBeVisible({ timeout: 30_000 });
-	await page.getByRole('button', { name: 'Hint' }).click();
 	const message = page
-		.locator('p', { hasText: 'tinted region' })
+		.locator('p', { hasText: 'No puzzle has this ID.' })
 		.and(page.locator(':not(.sr-only)'));
 	await expect(message).toBeVisible();
 	await page.getByRole('button', { name: /^Connection: / }).click();
@@ -83,7 +83,9 @@ test('the connection menu opens above a message in the top bar', async ({ page }
 	// The two do overlap here, as on a laptop screen…
 	expect(right - left).toBeGreaterThan(10);
 	expect(bottom - top).toBeGreaterThan(10);
-	// …and the menu is on top.
+	// …and the menu is on top. The message lets clicks through to what lies below it, which would
+	// hide it from the hit test: here it takes them again.
+	await message.evaluate((node) => ((node as HTMLElement).style.pointerEvents = 'auto'));
 	const onTop = await menu.evaluate(
 		(node, [x, y]) => node.contains(document.elementFromPoint(x, y)),
 		[(left + right) / 2, (top + bottom) / 2]

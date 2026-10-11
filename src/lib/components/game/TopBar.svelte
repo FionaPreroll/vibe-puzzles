@@ -55,8 +55,8 @@
 	 * following the growing board would move the slider away under the pointer.
 	 */
 	let zoomStage = $state(0);
-	/** The hint shows only where to look: the message offers the step itself. */
-	const teaser = $derived(!!session.hint && !session.hintFull);
+	/** A hint's text shows below the play bar (`HintNote`): the bar has the other messages. */
+	const shown = $derived(session.message !== session.hintMessage ? session.message : null);
 </script>
 
 <div
@@ -105,29 +105,15 @@
 	<!-- In the top bar on wide screens, so a message never pushes the board down: centred in the
 	     space between the clock and the icons, and out of the flow, so that a message on two or
 	     three lines reaches into the room above and below rather than making the bar taller. Where
-	     it reaches over the board, clicks go through to the cells; only its buttons take them -->
-	{#if session.message && wide}
+	     it reaches over the board, clicks go through to the cells. Hints show below the play bar -->
+	{#if shown && wide}
 		<div class="relative ml-2 min-w-0 flex-1 self-stretch">
 			<p
-				class="pointer-events-none absolute inset-x-0 top-1/2 z-20 mx-auto w-fit max-w-full -translate-y-1/2 rounded-xl px-3 py-1.5 text-center text-xs leading-4 *:pointer-events-auto {messageClass(
-					session.message.kind
+				class="pointer-events-none absolute inset-x-0 top-1/2 z-20 mx-auto w-fit max-w-full -translate-y-1/2 rounded-xl px-3 py-1.5 text-center text-xs leading-4 {messageClass(
+					shown.kind
 				)}"
 			>
-				{session.message.text}
-				{#if teaser}
-					<button class="ml-1 font-semibold underline" onclick={() => session.showHint()}
-						>{t('game.hintShow')}</button
-					>
-				{/if}
-				{#if session.hint}
-					<!-- Wrong marks stay until they are changed: this takes them away sooner -->
-					<button
-						class="ml-1 opacity-60 hover:opacity-100"
-						title={t('game.dismiss')}
-						aria-label={t('game.dismiss')}
-						onclick={() => session.dismissHint()}>✕</button
-					>
-				{/if}
+				{shown.text}
 			</p>
 		</div>
 	{:else}

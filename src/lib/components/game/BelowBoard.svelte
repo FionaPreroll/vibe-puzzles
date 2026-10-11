@@ -6,6 +6,7 @@
 	import ActionRow from './ActionRow.svelte';
 	import type { BoardFit } from './boardFit.svelte';
 	import CheckpointBar from './CheckpointBar.svelte';
+	import HintNote from './HintNote.svelte';
 	import PlayBar from './PlayBar.svelte';
 	import SharePanel from './SharePanel.svelte';
 	import SwatchRow from './SwatchRow.svelte';
@@ -14,7 +15,8 @@
 
 	/**
 	 * Everything below the board, no wider than its stage: the play bar (on phones fixed at the
-	 * bottom instead), the checkpoints, the puzzle's ID with the actions, and the share panel.
+	 * bottom instead) with a hint's text below it on wide screens, the checkpoints, the puzzle's ID
+	 * with the actions, and the share panel.
 	 */
 	let {
 		game,
@@ -63,12 +65,20 @@
 
 <div bind:offsetHeight={fit.belowHeight} class="stage-column" style:--stage="{fit.stageWidth}px">
 	<!-- Wide screens: the play bar right below the board, no wider than it needs -->
-	<div class="mt-4 hidden flex-col items-center gap-2 lg:flex">
+	<div class="relative mt-4 hidden flex-col items-center gap-2 lg:flex">
 		<div class="play-bar flex w-max" bind:offsetWidth={fit.barWidth}>
 			<PlayBar {game} {session} {tools} {showTools} wide={fit.wide} />
 		</div>
 		<SwatchRow {game} {tools} />
 		<TrialRow {session} />
+		{#if fit.wide && session.hintMessage}
+			<HintNote
+				message={session.hintMessage}
+				teaser={!session.hintFull}
+				onshowhint={() => session.showHint()}
+				ondismisshint={() => session.dismissHint()}
+			/>
+		{/if}
 	</div>
 	<!-- Phones: the play bar fixed at the bottom, in reach of the thumb -->
 	<div

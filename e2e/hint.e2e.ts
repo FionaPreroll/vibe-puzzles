@@ -306,7 +306,9 @@ test('painting wrong digits red counts as a hint, the settings say so, and shari
 	expect(shared.text).toContain(', with mistakes shown in red. Can you do it without?');
 });
 
-test('a hint message over the board lets clicks through to the cells beneath', async ({ page }) => {
+test('on wide screens a hint reads below the play bar, clear of the header and the board', async ({
+	page
+}) => {
 	await page.addInitScript(() => {
 		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
 		localStorage.setItem('vp:puzzleSource', '"bank"');
@@ -314,16 +316,26 @@ test('a hint message over the board lets clicks through to the cells beneath', a
 	await page.goto(PUZZLE);
 	const board = page.locator('.overflow-x-auto svg[role="grid"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
+	const before = (await board.boundingBox())!;
 	await page.keyboard.press('h');
 	await page.keyboard.press('h');
-	const message = page.locator('p.rounded-xl', { hasText: 'shade them' });
-	await expect(message).toBeVisible();
-	const box = (await message.boundingBox())!;
-	const grid = (await board.locator('rect').first().boundingBox())!;
-	// Long enough to reach over the top row of cells.
-	expect(box.y + box.height).toBeGreaterThan(grid.y + 10);
-	await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
-	await page.mouse.click(box.x + 12, Math.max(grid.y, box.y + box.height - 8));
-	await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
-	await expect(board.locator('g.spotlight > *')).toHaveCount(0);
+	// Its text runs to several lines: in the top bar, next to the clock, the header hid the first.
+	const note = page.locator('p.hint-note');
+	await expect(note).toContainText('shade them');
+	await expect(page.locator('p.rounded-xl:not(.hint-note)')).toHaveCount(0);
+	const box = (await note.boundingBox())!;
+	const bar = (await page.locator('.play-bar').boundingBox())!;
+	expect(box.y).toBeGreaterThanOrEqual(bar.y + bar.height);
+	expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+	// The board keeps its size and place.
+	expect(await board.boundingBox()).toEqual(before);
+	// It lies over the puzzle's ID and the buttons below, which still take clicks.
+	await page.getByRole('button', { name: 'More actions' }).click();
+	await expect(page.getByRole('group', { name: 'More actions' })).toBeVisible();
+	await page.keyboard.press('Escape');
+	// A message that is no hint still shows in the top bar.
+	await page.getByRole('textbox', { name: 'Open puzzle by ID' }).fill('15');
+	await page.getByRole('button', { name: 'Open', exact: true }).click();
+	await expect(page.locator('p.rounded-xl:not(.hint-note)')).toHaveText('No puzzle has this ID.');
+	await expect(note).toBeVisible();
 });
