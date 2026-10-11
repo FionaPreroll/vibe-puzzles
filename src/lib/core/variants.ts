@@ -77,6 +77,21 @@ export function periodKey(kind: SpecialKind, date = new Date()): string {
 	return `${y}-${m}`;
 }
 
+/** When the period with key `key` (see `periodKey`) starts, or null for no such key. */
+export function periodStart(kind: SpecialKind, key: string): Date | null {
+	let date: Date | null = null;
+	if (kind === 'daily' && /^\d{4}-\d\d-\d\d$/.test(key)) date = new Date(`${key}T00:00:00Z`);
+	else if (kind === 'monthly' && /^\d{4}-\d\d$/.test(key)) date = new Date(`${key}-01T00:00:00Z`);
+	else if (kind === 'weekly' && /^\d{4}-W\d\d$/.test(key)) {
+		// Week 1 is the one with 4 January in it; weeks start on Monday.
+		const jan4 = new Date(Date.UTC(Number(key.slice(0, 4)), 0, 4));
+		const monday = 4 - ((jan4.getUTCDay() || 7) - 1);
+		date = new Date(Date.UTC(jan4.getUTCFullYear(), 0, monday + (Number(key.slice(6)) - 1) * 7));
+	}
+	// A key that only looks like one (2026-02-31) names another period.
+	return date && !Number.isNaN(date.getTime()) && periodKey(kind, date) === key ? date : null;
+}
+
 /** When the next period of a special type starts (midnight UTC; weeks start on Monday). */
 export function nextPeriodStart(kind: SpecialKind, date = new Date()): Date {
 	const y = date.getUTCFullYear();

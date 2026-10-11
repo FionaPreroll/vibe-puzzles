@@ -3,7 +3,9 @@ import {
 	breakStreak,
 	currentPeriodStreak,
 	getStats,
+	mergePeriods,
 	notePeriodSolved,
+	solvedPeriods,
 	previousPeriod,
 	recordSolve
 } from './stats';
@@ -161,13 +163,16 @@ describe('stats', () => {
 		const solveOn = (day: number) => {
 			vi.setSystemTime(Date.UTC(2026, 9, day, 12));
 			const period = `2026-10-${String(day).padStart(2, '0')}`;
-			return recordSolve('tetroid', 'daily', day, 1000, period, 'daily');
+			return currentPeriodStreak(
+				recordSolve('tetroid', 'daily', day, 1000, period, 'daily'),
+				'daily'
+			);
 		};
 		solveOn(5);
 		solveOn(6);
-		expect(solveOn(7).periodStreak).toBe(3);
+		expect(solveOn(7)).toBe(3);
 		// Solving the same period again does not count twice.
-		expect(solveOn(7).periodStreak).toBe(3);
+		expect(solveOn(7)).toBe(3);
 		expect(currentPeriodStreak(getStats('tetroid', 'daily'), 'daily')).toBe(3);
 
 		// Still alive the next day, gone the day after.
@@ -176,7 +181,13 @@ describe('stats', () => {
 		vi.setSystemTime(Date.UTC(2026, 9, 9, 12));
 		expect(currentPeriodStreak(getStats('tetroid', 'daily'), 'daily')).toBe(0);
 
-		expect(solveOn(9).periodStreak).toBe(1);
+		expect(solveOn(9)).toBe(1);
+		expect(getStats('tetroid', 'daily').periods).toEqual([
+			'2026-10-05',
+			'2026-10-06',
+			'2026-10-07',
+			'2026-10-09'
+		]);
 	});
 
 	it('has no period streak without a solved period', () => {
@@ -193,16 +204,79 @@ describe('a special puzzle solved on another device', () => {
 		// Once is enough.
 		notePeriodSolved('tetroid', 'daily', 43, '2026-10-07', 'daily');
 		const s = getStats('tetroid', 'daily');
-		expect(s).toMatchObject({ solved: 0, lastPeriod: '2026-10-07', periodStreak: 2 });
+		expect(s).toMatchObject({ solved: 0, lastPeriod: '2026-10-07' });
+		expect(s.periods).toEqual(['2026-10-06', '2026-10-07']);
 		// A server puzzle's ID (0) is no ID to remember.
 		expect(s.solvedIds).toEqual([42]);
 		expect(currentPeriodStreak(s, 'daily')).toBe(2);
 		// Statistics with a last period but no streak (older versions) go on from one.
 		save('stats:tetroid:weekly', { lastPeriod: '2026-W40' });
 		notePeriodSolved('tetroid', 'weekly', 7, '2026-W41', 'weekly');
-		expect(getStats('tetroid', 'weekly').periodStreak).toBe(2);
+		expect(getStats('tetroid', 'weekly').periods).toEqual(['2026-W40', '2026-W41']);
+		expect(currentPeriodStreak(getStats('tetroid', 'weekly'), 'weekly')).toBe(2);
 		// Solved here too, it is one solve; its period is counted already.
 		recordSolve('tetroid', 'daily', 0, 1000, '2026-10-07', 'daily');
-		expect(getStats('tetroid', 'daily')).toMatchObject({ solved: 1, periodStreak: 2 });
+		expect(getStats('tetroid', 'daily')).toMatchObject({ solved: 1 });
+		expect(currentPeriodStreak(getStats('tetroid', 'daily'), 'daily')).toBe(2);
+	});
+});
+
+describe('the periods solved', () => {
+	beforeEach(() => vi.useFakeTimers({ now: Date.UTC(2026, 9, 7, 12), toFake: ['Date'] }));
+
+	it('are read from older statistics: the streak up to the last period', () => {
+		save('stats:tetroid:daily', { lastPeriod: '2026-10-06', periodStreak: 3 });
+		const s = getStats('tetroid', 'daily');
+		expect(solvedPeriods(s, 'daily')).toEqual(['2026-10-04', '2026-10-05', '2026-10-06']);
+		expect(currentPeriodStreak(s, 'daily')).toBe(3);
+		// Across a year for weeks, and with no streak given, the last one alone.
+		save('stats:tetroid:weekly', { lastPeriod: '2027-W01', periodStreak: 2 });
+		expect(solvedPeriods(getStats('tetroid', 'weekly'), 'weekly')).toEqual([
+			'2026-W53',
+			'2027-W01'
+		]);
+		save('stats:tetroid:monthly', { lastPeriod: '2026-09' });
+		expect(solvedPeriods(getStats('tetroid', 'monthly'), 'monthly')).toEqual(['2026-09']);
+		expect(solvedPeriods(getStats('tetroid', 'other'), 'daily')).toEqual([]);
+		// The next solve writes them as a list.
+		recordSolve('tetroid', 'daily', 1, 1000, '2026-10-07', 'daily');
+		const after = load<Record<string, unknown>>('stats:tetroid:daily', {});
+		expect(after.periods).toEqual(['2026-10-04', '2026-10-05', '2026-10-06', '2026-10-07']);
+		expect(after.periodStreak).toBeUndefined();
+		expect(currentPeriodStreak(getStats('tetroid', 'daily'), 'daily')).toBe(4);
+	});
+
+	it('count the streak back from today, or from yesterday while today is open', () => {
+		save('stats:tetroid:daily', {
+			periods: ['2026-10-01', '2026-10-03', '2026-10-05', '2026-10-06']
+		});
+		expect(currentPeriodStreak(getStats('tetroid', 'daily'), 'daily')).toBe(2);
+		save('stats:tetroid:monthly', { periods: ['2026-08', '2026-09', '2026-10'] });
+		expect(currentPeriodStreak(getStats('tetroid', 'monthly'), 'monthly')).toBe(3);
+		save('stats:tetroid:weekly', { periods: ['2026-W39'] });
+		// This week is 2026-W41: two weeks ago is gone.
+		expect(currentPeriodStreak(getStats('tetroid', 'weekly'), 'weekly')).toBe(0);
+	});
+
+	it('merge with those from other devices, without keys of no period', () => {
+		recordSolve('tetroid', 'daily', 1, 1000, '2026-10-07', 'daily');
+		const all = mergePeriods('tetroid', 'daily', 'daily', [
+			'2026-10-05',
+			'2026-10-06',
+			'2026-10-07',
+			'2026-13-01',
+			'yesterday'
+		]);
+		expect(all).toEqual(['2026-10-05', '2026-10-06', '2026-10-07']);
+		const s = getStats('tetroid', 'daily');
+		expect(s).toMatchObject({ lastPeriod: '2026-10-07', periods: all, solved: 1 });
+		expect(currentPeriodStreak(s, 'daily')).toBe(3);
+		// At most a year and a bit, the latest.
+		const many = Array.from({ length: 500 }, (_, i) =>
+			new Date(Date.UTC(2025, 0, 1) + i * 86400000).toISOString().slice(0, 10)
+		);
+		const kept = mergePeriods('tetroid', 'daily', 'daily', many);
+		expect(kept).toHaveLength(400);
+		expect(kept.at(-1)).toBe('2026-10-07');
 	});
 });

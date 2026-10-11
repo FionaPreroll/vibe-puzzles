@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '../../client/api';
 import { MemoryStorage } from '../../../test/memory-storage';
+import type { Variant } from '../../core/variants';
 import { pushSettingsSoon, SETTINGS_PUSH_DELAY_MS, watchPage } from './lifecycle';
 
 const server = vi.hoisted(() => ({
@@ -34,8 +35,9 @@ class FakeDocument extends EventTarget {
 let doc: FakeDocument;
 let win: EventTarget;
 
-function fakes() {
+function fakes(variants: Variant[] = []) {
 	const session = {
+		game: { id: 'tetroid', variants },
 		slot: 'save:tetroid:10n',
 		setActive: vi.fn(),
 		followStorage: vi.fn(),
@@ -141,6 +143,19 @@ describe('watching the page', () => {
 		stop();
 		expect(server.listener).toBeNull();
 		expect(server.sync).toBeNull();
+	});
+
+	it('fetches the periods solved of the special types with the settings', async () => {
+		const daily = { key: 'daily', label: 'Daily', width: 10, height: 10, special: 'daily' };
+		const { session, settings } = fakes([daily as Variant]);
+		const stop = watchPage(session, settings);
+		server.listener!(true);
+		await vi.waitFor(() => expect(api.pullSave).toHaveBeenCalledWith('periods:tetroid:daily'));
+		expect(api.pullSave).toHaveBeenCalledWith('settings:tetroid');
+		// And again on "Sync now".
+		await server.sync!();
+		expect(api.pullSave).toHaveBeenCalledTimes(4);
+		stop();
 	});
 
 	it('takes the first answer of the server as the start: the game was fetched on opening', async () => {

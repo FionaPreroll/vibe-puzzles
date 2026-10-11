@@ -19,6 +19,7 @@ import { PuzzleSource, type FoundPuzzle, type PuzzleOrigin } from './session/puz
 import { SaveSlot } from './session/saveSlot';
 import { hasProgress, playableSave, remoteWins, type PlayableSave } from './session/saves';
 import type { GameSettings } from './settings.svelte';
+import { syncPeriods } from './periodSync';
 import { breakStreak, notePeriodSolved, recordSolve } from './stats';
 import { load } from './storage';
 import { saveKey } from './storageKeys';
@@ -361,7 +362,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			this.showSolved(data);
 			this.saves.store(data);
 			const v = this.variant;
-			notePeriodSolved(this.game.id, v.key, data.puzzleId, this.period, v.special);
+			// A period has a special type.
+			notePeriodSolved(this.game.id, v.key, data.puzzleId, this.period, v.special!);
+			void syncPeriods(this.game.id, v);
 			return;
 		}
 		const local = this.saves.playable(this.variant);
@@ -657,6 +660,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			variant.special,
 			this.hinted
 		);
+		// The period counts for the streak on the player's other devices too.
+		if (this.period) void syncPeriods(this.game.id, variant);
 		this.persist();
 		this.message = message('success', () =>
 			t('session.solved', { time: formatDuration(shown, true) })

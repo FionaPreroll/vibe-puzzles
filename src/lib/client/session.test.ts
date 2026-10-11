@@ -1383,6 +1383,21 @@ describe('the current special puzzle', () => {
 		expect(getStats('tetroid', 'daily')).toMatchObject({ solved: 1, lastPeriod: PERIOD });
 	});
 
+	it("solved while signed in, its period goes to the player's other devices", async () => {
+		vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
+		const s = session();
+		await s.open('daily');
+		s.move(dailySolved(), []);
+		await vi.waitFor(() =>
+			expect(api.pushSave).toHaveBeenCalledWith(
+				'periods:tetroid:daily',
+				{ periods: [PERIOD] },
+				expect.any(Number)
+			)
+		);
+		vi.mocked(api.currentPlayer).mockReturnValue(null);
+	});
+
 	it('shows the personal time with the personal timer', async () => {
 		const s = session({ personalTimer: true });
 		await s.open('daily');
@@ -1436,9 +1451,17 @@ describe('the current special puzzle', () => {
 		expect(getStats('tetroid', 'daily')).toMatchObject({
 			solved: 0,
 			lastPeriod: PERIOD,
-			periodStreak: 1,
+			periods: [PERIOD],
 			solvedIds: [DAILY_ID]
 		});
+		// The player's other devices learn the day too.
+		await vi.waitFor(() =>
+			expect(api.pushSave).toHaveBeenCalledWith(
+				'periods:tetroid:daily',
+				{ periods: [PERIOD] },
+				expect.any(Number)
+			)
+		);
 		// And it opens solved from now on.
 		const again = session();
 		await again.open('daily');
