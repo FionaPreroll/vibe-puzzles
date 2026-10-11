@@ -64,4 +64,6 @@ test('the hint tints where to look first, then highlights the edges that follow'
 	expect(await area.count()).toBeGreaterThan(0);
 	await page.getByRole('button', { name: 'Show the step' }).click();
 	expect(await spotlight.count()).toBeGreaterThan(0);
+	// Lines first: the step draws a line, even on an empty board.
+	await expect(page.getByRole('status')).toContainText(/draw (the lines?|them)/i);
 });

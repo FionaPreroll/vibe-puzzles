@@ -859,6 +859,17 @@ const en = {
 				breaksDot: 'A dot by the tint ends up with one line or three.',
 				breaksLoop: 'The lines close a loop too early, or can no longer form one.',
 				breaksSides: 'Some cells would have to lie inside and outside the loop at once.',
+				/** Crosses a line rests on that the player has not set yet: why they stay empty, per kind. */
+				emptyZero: 'The tinted sides of the 0 stay empty.',
+				emptyFull: 'The tinted number has all its lines: its tinted sides stay empty.',
+				emptyDotFull: 'Two lines meet at the tinted dot: its tinted edges stay empty.',
+				emptyDotEnd:
+					'A line on the tinted edge would end at a dot with no other way out: it stays empty.',
+				emptyLoop: 'A line on the tinted edge would close a loop too early: it stays empty.',
+				emptyWindow:
+					'No way to draw the sides of the tinted numbers that fits their counts and dots puts a line on the tinted edges by them.',
+				emptySides:
+					'The cells by the tinted edge lie on the same side of the loop: it stays empty.',
 				thenLine: 'So no line goes there: cross it.',
 				thenCross: 'So the loop must run there: draw the line.',
 				stuck:

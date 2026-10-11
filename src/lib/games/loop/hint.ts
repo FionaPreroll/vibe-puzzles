@@ -58,6 +58,14 @@ export type Reason =
 	| 'assumeLine'
 	| 'assumeCross';
 
+/** Crosses a line rests on that are not on the board yet: one deduction, and its edges the line needs. */
+export interface Support {
+	reason: Reason;
+	edges: number[];
+	cells: number[];
+	dots: number[];
+}
+
 export type LoopHint =
 	/** Lines where the loop does not run, and crosses where it does. Edges in the graph's numbering. */
 	| { kind: 'mistake'; edges: number[] }
@@ -78,6 +86,8 @@ export type LoopHint =
 			clue?: number;
 			/** For an assumption: what breaks when the edge is tried (a number, a dot, ...). */
 			breaks?: Breaks;
+			/** Crosses the step needs that the player has not set, in the order they follow. */
+			support?: Support[];
 	  }
 	/** No deduction applies (not seen on a puzzle with one solution): an open edge to try. */
 	| { kind: 'stuck'; edges: number[] };
@@ -112,11 +122,21 @@ export function loopHint(p: LoopPuzzle, state: LoopState): LoopHint | null {
 	return new Deduction(p, v).next();
 }
 
+/** The steps of one technique with a given mark (LINE or CROSS), found one after the other. */
+type Finder = (want: number) => Iterable<Step>;
+
 class Deduction {
 	private readonly l: LoopLayout;
 	private readonly n: number;
 	private readonly clue: number[];
+	/** The deductions, simplest first. */
+	private readonly finders: Finder[];
+	/** The edges each step looked at, to find the crosses it rests on. */
+	private readonly inputs = new Map<Step, number[]>();
+	/** Crosses that followed on the way to a line, per edge, in the order they followed. */
+	private readonly made = new Map<number, Step>();
 
+	/** `v`: the player's marks, a copy that takes the crosses that follow. */
 	constructor(
 		private readonly p: LoopPuzzle,
 		private readonly v: Uint8Array
@@ -124,19 +144,81 @@ class Deduction {
 		this.l = loopLayout(p.width, p.height);
 		this.n = p.width * p.height;
 		this.clue = Array.from({ length: this.n }, (_, c) => clueAt(p, c));
+		this.finders = [
+			(want) => this.clueSteps(want),
+			(want) => this.dotSteps(want),
+			(want) => (want === CROSS ? this.loopSteps() : []),
+			(want) => this.cornerSteps(want),
+			(want) => this.pairSteps(want),
+			(want) => this.sidesSteps(want),
+			(want) => this.blockSteps(want)
+		];
 	}
 
+	/**
+	 * Lines first: they are what solves the puzzle, while crosses only help. So the deductions up
+	 * to a technique look for a line; when there is none, the simplest cross they find goes on the
+	 * board copy and they look again, and only when no cross follows either does the next
+	 * technique join in. The line found comes with the crosses it rests on. When no line follows
+	 * at all, an edge is tried; a cross the player can set right away is the last resort.
+	 */
 	next(): LoopHint {
-		return (
-			this.clueStep() ??
-			this.dotStep() ??
-			this.loopStep() ??
-			this.cornerStep() ??
-			this.pairStep() ??
-			this.sidesStep() ??
-			this.blockStep() ??
-			this.assume() ?? { kind: 'stuck', edges: this.open().slice(0, 1) }
-		);
+		let first: Step | null = null;
+		for (let level = 0; level < this.finders.length;) {
+			const line = this.find(level, LINE);
+			if (line) return { ...line, support: this.support(line) };
+			const cross = this.find(level, CROSS);
+			if (!cross) {
+				level++;
+				continue;
+			}
+			first ??= cross;
+			for (const e of cross.edges) {
+				this.v[e] = CROSS;
+				this.made.set(e, cross);
+			}
+		}
+		return this.assume() ?? first ?? { kind: 'stuck', edges: this.open().slice(0, 1) };
+	}
+
+	/** The first step with mark `want` of the techniques up to `level`, the simplest first. */
+	private find(level: number, want: number): Step | null {
+		for (let t = 0; t <= level; t++) {
+			for (const step of this.finders[t](want)) return step;
+		}
+		return null;
+	}
+
+	/**
+	 * The crosses `step` rests on that are not the player's, and in turn the ones they rest on,
+	 * in the order they followed. Each with the edges that were needed of it.
+	 */
+	private support(step: Step): Support[] {
+		const needed = new Map<Step, Set<number>>();
+		const visit = (edges: number[]) => {
+			for (const e of edges) {
+				const by = this.made.get(e);
+				if (!by) continue;
+				const known = needed.get(by);
+				if (known) {
+					known.add(e);
+					continue;
+				}
+				needed.set(by, new Set([e]));
+				// What it rests on, not the other edges it decided.
+				visit(this.inputs.get(by)!.filter((x) => !by.edges.includes(x)));
+			}
+		};
+		visit(this.inputs.get(step)!);
+		const order = [...new Set(this.made.values())];
+		return [...needed]
+			.sort(([a], [b]) => order.indexOf(a) - order.indexOf(b))
+			.map(([s, edges]) => ({
+				reason: s.reason,
+				edges: s.edges.filter((e) => edges.has(e)),
+				cells: s.cells,
+				dots: s.dots
+			}));
 	}
 
 	private open(): number[] {
@@ -159,14 +241,16 @@ class Deduction {
 		return edges.filter((e) => this.v[e] === value).length;
 	}
 
+	/** A step that decides `edges`, having looked at the edges `inputs`. */
 	private step(
 		technique: Technique,
 		reason: Reason,
 		edges: number[],
 		value: number,
+		inputs: number[],
 		where: Partial<Pick<Step, 'cells' | 'dots' | 'path' | 'clue' | 'breaks'>>
 	): Step {
-		return {
+		const step: Step = {
 			kind: 'step',
 			technique,
 			reason,
@@ -177,11 +261,12 @@ class Deduction {
 			path: [],
 			...where
 		};
+		this.inputs.set(step, inputs);
+		return step;
 	}
 
 	/** A number with all its lines (cross the rest), or with just enough free sides (draw them). */
-	private clueStep(): Step | null {
-		let full: Step | null = null;
+	private *clueSteps(want: number): Generator<Step> {
 		for (let c = 0; c < this.n; c++) {
 			const clue = this.clue[c];
 			if (clue < 0) continue;
@@ -189,39 +274,36 @@ class Deduction {
 			const open = edges.filter((e) => this.v[e] === OPEN);
 			if (!open.length) continue;
 			const lines = this.count(edges, LINE);
-			if (lines + open.length === clue) {
-				return this.step('clue', 'clueFill', open, LINE, { cells: [c], clue });
+			if (want === LINE && lines + open.length === clue) {
+				yield this.step('clue', 'clueFill', open, LINE, edges, { cells: [c], clue });
 			}
-			if (lines === clue && !full) {
+			if (want === CROSS && lines === clue) {
 				const reason = clue === 0 ? 'clueZero' : 'clueFull';
-				full = this.step('clue', reason, open, CROSS, { cells: [c], clue });
+				yield this.step('clue', reason, open, CROSS, edges, { cells: [c], clue });
 			}
 		}
-		return full;
 	}
 
 	/** Two lines meet (cross the rest), a line has one way on, or a dot has one free edge left. */
-	private dotStep(): Step | null {
-		let cross: Step | null = null;
+	private *dotSteps(want: number): Generator<Step> {
 		for (let d = 0; d < this.l.g.dots; d++) {
 			const edges = this.dotEdges(d);
 			const open = edges.filter((e) => this.v[e] === OPEN);
 			if (!open.length) continue;
 			const lines = this.count(edges, LINE);
-			if (lines === 1 && open.length === 1) {
-				return this.step('dot', 'dotOn', open, LINE, { dots: [d] });
+			if (want === LINE && lines === 1 && open.length === 1) {
+				yield this.step('dot', 'dotOn', open, LINE, edges, { dots: [d] });
 			}
-			if (cross) continue;
-			if (lines === 2) cross = this.step('dot', 'dotFull', open, CROSS, { dots: [d] });
+			if (want !== CROSS) continue;
+			if (lines === 2) yield this.step('dot', 'dotFull', open, CROSS, edges, { dots: [d] });
 			else if (lines === 0 && open.length === 1) {
-				cross = this.step('dot', 'dotEnd', open, CROSS, { dots: [d] });
+				yield this.step('dot', 'dotEnd', open, CROSS, edges, { dots: [d] });
 			}
 		}
-		return cross;
 	}
 
 	/** An open edge between the two ends of one line, which may not close the loop yet. */
-	private loopStep(): Step | null {
+	private *loopSteps(): Generator<Step> {
 		const { ends, edges } = this.l.g;
 		const parent = Array.from({ length: this.l.g.dots }, (_, d) => d);
 		const find = (x: number): number => (parent[x] === x ? x : (parent[x] = find(parent[x])));
@@ -240,9 +322,8 @@ class Deduction {
 			);
 			// Closing it is the last step of the puzzle when every line and number agrees.
 			if (path.length === lines && this.closesSolution(e)) continue;
-			return this.step('loop', 'loop', [e], CROSS, { path });
+			yield this.step('loop', 'loop', [e], CROSS, path, { path });
 		}
-		return null;
 	}
 
 	private closesSolution(e: number): boolean {
@@ -258,12 +339,11 @@ class Deduction {
 	 * Tries every way to draw the open edges of these cells. A way fits when each number keeps
 	 * its count and each dot can still end with two lines or none: no dot gets three lines, and
 	 * one with a single line has a free edge left outside these cells. Returns the edges that
-	 * every way that fits agrees on, lines first.
+	 * every way that fits agrees on with mark `want`, and the edges it looked at.
 	 */
-	private window(cells: number[]): { edges: number[]; value: number } | null {
-		const w = [...new Set(cells.flatMap((c) => this.cellEdges(c)))].filter(
-			(e) => this.v[e] === OPEN
-		);
+	private window(cells: number[], want: number): { edges: number[]; inputs: number[] } | null {
+		const around = [...new Set(cells.flatMap((c) => this.cellEdges(c)))];
+		const w = around.filter((e) => this.v[e] === OPEN);
 		if (!w.length) return null;
 		const { ends } = this.l.g;
 		const dots = [...new Set(w.flatMap((e) => [ends[2 * e], ends[2 * e + 1]]))];
@@ -297,31 +377,29 @@ class Deduction {
 			any |= a;
 		}
 		if (!found) return null;
-		const lines = w.filter((_, k) => all & (1 << k));
-		if (lines.length) return { edges: lines, value: LINE };
-		const crosses = w.filter((_, k) => !(any & (1 << k)));
-		return crosses.length ? { edges: crosses, value: CROSS } : null;
+		const edges =
+			want === LINE ? w.filter((_, k) => all & (1 << k)) : w.filter((_, k) => !(any & (1 << k)));
+		if (!edges.length) return null;
+		return { edges, inputs: [...new Set([...around, ...dots.flatMap((d) => this.dotEdges(d))])] };
 	}
 
-	/** Windows over these groups of cells; the first with lines, else the first with crosses. */
-	private windows(
+	/** Windows over these groups of cells that decide edges with mark `want`. */
+	private *windows(
 		groups: number[][],
-		make: (cells: number[], edges: number[], value: number) => Step
-	): Step | null {
-		let cross: Step | null = null;
+		want: number,
+		make: (cells: number[], edges: number[], inputs: number[]) => Step
+	): Generator<Step> {
 		for (const cells of groups) {
-			const found = this.window(cells);
-			if (!found) continue;
-			if (found.value === LINE) return make(cells, found.edges, LINE);
-			cross ??= make(cells, found.edges, CROSS);
+			const found = this.window(cells, want);
+			if (found) yield make(cells, found.edges, found.inputs);
 		}
-		return cross;
 	}
 
-	private cornerStep(): Step | null {
+	private *cornerSteps(want: number): Generator<Step> {
 		const groups = this.clue.flatMap((clue, c) => (clue >= 0 ? [[c]] : []));
-		return this.windows(groups, ([c], edges, value) =>
-			this.step('corner', value === LINE ? 'cornerLine' : 'cornerCross', edges, value, {
+		const reason = want === LINE ? 'cornerLine' : 'cornerCross';
+		yield* this.windows(groups, want, ([c], edges, inputs) =>
+			this.step('corner', reason, edges, want, inputs, {
 				cells: [c],
 				dots: this.cornerDots(c),
 				clue: this.clue[c]
@@ -329,7 +407,7 @@ class Deduction {
 		);
 	}
 
-	private pairStep(): Step | null {
+	private *pairSteps(want: number): Generator<Step> {
 		const w = this.p.width;
 		const groups: number[][] = [];
 		for (let c = 0; c < this.n; c++) {
@@ -349,16 +427,14 @@ class Deduction {
 				groups.push([c, r2 * w + c2]);
 			}
 		}
-		return this.windows(groups, (cells, edges, value) => {
+		const reason = want === LINE ? 'pairLine' : 'pairCross';
+		yield* this.windows(groups, want, (cells, edges, inputs) => {
 			const shared = this.cornerDots(cells[0]).filter((d) => this.cornerDots(cells[1]).includes(d));
-			return this.step('pair', value === LINE ? 'pairLine' : 'pairCross', edges, value, {
-				cells,
-				dots: shared
-			});
+			return this.step('pair', reason, edges, want, inputs, { cells, dots: shared });
 		});
 	}
 
-	private blockStep(): Step | null {
+	private *blockSteps(want: number): Generator<Step> {
 		const w = this.p.width;
 		const groups: number[][] = [];
 		for (let r = 0; r + 1 < this.p.height; r++) {
@@ -367,20 +443,22 @@ class Deduction {
 				groups.push([top, top + 1, top + w, top + w + 1]);
 			}
 		}
-		return this.windows(groups, (cells, edges, value) =>
-			this.step('block', value === LINE ? 'blockLine' : 'blockCross', edges, value, { cells })
+		const reason = want === LINE ? 'blockLine' : 'blockCross';
+		yield* this.windows(groups, want, (cells, edges, inputs) =>
+			this.step('block', reason, edges, want, inputs, { cells })
 		);
 	}
 
 	/**
-	 * Inside and outside along the player's lines and crosses: an open edge whose two cells are
-	 * joined by a path of decided edges (outside the grid counts as one more cell). An odd number
-	 * of lines on the way puts them on different sides. The shortest such path is named.
+	 * Inside and outside along the decided edges: an open edge whose two cells are joined by a
+	 * path of decided edges (outside the grid counts as one more cell). An odd number of lines on
+	 * the way puts them on different sides (a line), an even one on the same side (a cross). The
+	 * shortest such path to an edge with mark `want` is named.
 	 */
-	private sidesStep(): Step | null {
+	private *sidesSteps(want: number): Generator<Step> {
 		const { edgeSide, cellSide } = this.l;
 		const out = this.n;
-		let best: { e: number; cells: number[]; lines: number } | null = null;
+		let best: { e: number; cells: number[]; path: number[] } | null = null;
 		for (const e of this.open()) {
 			const [a, b] = [edgeSide[2 * e], edgeSide[2 * e + 1]];
 			// Breadth-first from a to b over decided edges.
@@ -400,21 +478,21 @@ class Deduction {
 			}
 			if (!prev.has(b)) continue;
 			const cells: number[] = [];
-			let lines = 0;
+			const path: number[] = [];
 			for (let x = b; x !== a;) {
 				const [from, edge] = prev.get(x)!;
-				if (this.v[edge] === LINE) lines++;
+				path.push(edge);
 				if (x !== out) cells.push(x);
 				x = from;
 			}
+			const lines = this.count(path, LINE);
+			if ((lines % 2 ? LINE : CROSS) !== want) continue;
 			if (a !== out) cells.push(a);
-			if (!best || cells.length < best.cells.length) best = { e, cells, lines };
+			if (!best || cells.length < best.cells.length) best = { e, cells, path };
 		}
-		if (!best) return null;
-		const value = best.lines % 2 ? LINE : CROSS;
-		return this.step('sides', value === LINE ? 'sidesOther' : 'sidesSame', [best.e], value, {
-			cells: best.cells.reverse()
-		});
+		if (!best) return;
+		const reason = want === LINE ? 'sidesOther' : 'sidesSame';
+		yield this.step('sides', reason, [best.e], want, best.path, { cells: best.cells.reverse() });
 	}
 
 	/** The cells along the border, with the edge between each and the outside. */
@@ -430,9 +508,10 @@ class Deduction {
 	}
 
 	/**
-	 * No local rule decides an edge: tries a line or a cross on the open edges, those next to a
+	 * No local rule decides a line: tries a cross or a line on the open edges, those next to a
 	 * line or a number first. One that leads to a contradiction is ruled out, with the place where
-	 * it breaks; the basic rules are tried on every edge before inside and outside.
+	 * it breaks. Lines first again (a cross that breaks), and the basic rules are tried on every
+	 * edge before inside and outside.
 	 */
 	private assume(): Step | null {
 		const { ends } = this.l.g;
@@ -444,8 +523,8 @@ class Deduction {
 		const rank = (e: number) => (touchesLine(e) ? 0 : nearClue(e) ? 1 : 2);
 		const order = this.open().sort((a, b) => rank(a) - rank(b));
 		for (const level of [LoopLevel.Basic, LoopLevel.Advanced]) {
-			for (const e of order) {
-				for (const trial of [LINE, CROSS]) {
+			for (const trial of [CROSS, LINE]) {
+				for (const e of order) {
 					const from = this.v.slice();
 					from[e] = trial;
 					const { brokenAt } = rateLoop(this.p, level, from);
@@ -459,7 +538,7 @@ class Deduction {
 						if (!cells.includes(brokenAt.at)) cells.push(brokenAt.at);
 					} else if (brokenAt.kind === 'dot') dots.push(brokenAt.at);
 					const reason = trial === LINE ? 'assumeLine' : 'assumeCross';
-					return this.step('assumption', reason, [e], trial === LINE ? CROSS : LINE, {
+					return this.step('assumption', reason, [e], trial === LINE ? CROSS : LINE, [], {
 						cells,
 						dots,
 						breaks

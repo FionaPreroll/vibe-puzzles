@@ -868,6 +868,19 @@ const de: Dictionary = {
 				breaksDot: 'Ein Punkt an der hinterlegten Stelle bekommt eine Linie oder drei.',
 				breaksLoop: 'Die Linien schließen zu früh eine Schleife oder können keine mehr bilden.',
 				breaksSides: 'Manche Felder müssten zugleich innerhalb und außerhalb der Schleife liegen.',
+				emptyZero: 'Die hinterlegten Seiten der 0 bleiben leer.',
+				emptyFull:
+					'Die hinterlegte Zahl hat alle ihre Linien: Ihre hinterlegten Seiten bleiben leer.',
+				emptyDotFull:
+					'Am hinterlegten Punkt treffen sich zwei Linien: Seine hinterlegten Kanten bleiben leer.',
+				emptyDotEnd:
+					'Eine Linie auf der hinterlegten Kante würde an einem Punkt ohne anderen Ausweg enden: Sie bleibt leer.',
+				emptyLoop:
+					'Eine Linie auf der hinterlegten Kante würde zu früh eine Schleife schließen: Sie bleibt leer.',
+				emptyWindow:
+					'Keine Möglichkeit für die Seiten der hinterlegten Zahlen, die zu ihren Zahlen und Punkten passt, legt eine Linie auf die hinterlegten Kanten daneben.',
+				emptySides:
+					'Die Felder an der hinterlegten Kante liegen auf derselben Seite der Schleife: Sie bleibt leer.',
 				thenLine: 'Also verläuft dort keine Linie: Setz ein Kreuz.',
 				thenCross: 'Also muss die Schleife dort entlang: Zieh die Linie.',
 				stuck:
