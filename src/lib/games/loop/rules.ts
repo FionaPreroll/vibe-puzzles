@@ -109,7 +109,10 @@ export function edgeKey(p: LoopPuzzle, e: number): string {
 export interface LoopAnalysis {
 	/** Lines around each cell. */
 	count: number[];
-	/** Cells whose clue the lines contradict: too many lines, or too many crosses. */
+	/**
+	 * Cells whose clue the lines contradict: too many lines, or too many crosses. Once the lines
+	 * form one closed loop, also too few lines: the loop is finished, so they cannot come any more.
+	 */
 	clueError: boolean[];
 	/** Dots with more than two lines, or a dead end that crosses close off. */
 	dotError: boolean[];
@@ -158,6 +161,9 @@ export function analyze(p: LoopPuzzle, s: LoopState): LoopAnalysis {
 	});
 	const roots = new Set<number>();
 	degree.forEach((d, k) => d > 0 && roots.add(find(k)));
+	if (closed && roots.size === 1) {
+		for (let c = 0; c < n; c++) if (count[c] < clueAt(p, c)) clueError[c] = true;
+	}
 	return { count, clueError, dotError, pieces: roots.size, closed };
 }
 
