@@ -18,7 +18,7 @@ import { PuzzleSource, type FoundPuzzle, type PuzzleOrigin } from './session/puz
 import { SaveSlot } from './session/saveSlot';
 import { hasProgress, playableSave, remoteWins, type PlayableSave } from './session/saves';
 import type { GameSettings } from './settings.svelte';
-import { breakStreak, recordSolve } from './stats';
+import { breakStreak, notePeriodSolved, recordSolve } from './stats';
 import { load } from './storage';
 import { saveKey } from './storageKeys';
 
@@ -80,6 +80,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	private openToken = 0;
 	/** The player changed the game since it was shown: a save from another device no longer replaces it. */
 	private touched = false;
+	/** When the game on the board was solved (epoch ms), 0 while it is not. */
+	private solvedAt = 0;
 
 	constructor(
 		readonly game: GameModule<P, S, K>,
@@ -171,6 +173,12 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.saves.select(target.saveKey);
 
 		const local = this.saves.playable(this.variant);
+		// The current special puzzle is played once: solved, it stays solved.
+		if (local?.solved && this.period && !opts.shared) {
+			this.showSolved(local);
+			this.finishLoading(token);
+			return;
+		}
 		if (local && this.resumable(local, target.puzzleId, opts)) {
 			this.restore(local);
 			this.finishLoading(token);
@@ -288,6 +296,16 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		});
 	}
 
+	/** Show a solved game as it ended, with its time. */
+	private showSolved(s: PlayableSave<P, S>) {
+		this.restore(s);
+		this.markSolved(s);
+		const shown = this.settings.values.personalTimer ? this.finalPlayMs : this.finalMs;
+		this.message = message('success', () =>
+			t('session.solved', { time: formatDuration(shown, true) })
+		);
+	}
+
 	/**
 	 * Put a game on the board, or (null) none, after loading one failed (see `retry`). Every field
 	 * that belongs to a game is set here, so nothing of the previous game stays behind.
@@ -305,8 +323,16 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.hints = g?.hints ?? 0;
 		this.assisted = g?.assisted ?? false;
 		this.solved = false;
+		this.solvedAt = 0;
 		this.clock.reset(g?.startedAt ?? 0, g?.playMs ?? 0);
 		this.touched = false;
+	}
+
+	/** The restored game `s` was solved: when, and in what time (older saves: their last change). */
+	private markSolved(s: PlayableSave<P, S>) {
+		this.solved = true;
+		this.solvedAt = s.solvedAt ?? s.updatedAt;
+		this.clock.finished(this.solvedAt);
 	}
 
 	/** Open again what the last `open` asked for (after it failed). */
@@ -326,6 +352,17 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		if (!remote || token !== this.openToken || this.touched) return;
 		const data = playableSave(this.game, this.variant, remote.data);
 		if (!data) return;
+		// The current special puzzle, solved on another device: solved here too, and its period
+		// counts for this device's streak.
+		if (data.solved && this.period && !this.solved) {
+			this.clock.pause();
+			this.saves.cancelPush();
+			this.showSolved(data);
+			this.saves.store(data);
+			const v = this.variant;
+			notePeriodSolved(this.game.id, v.key, data.puzzleId, this.period, v.special);
+			return;
+		}
 		const local = this.saves.playable(this.variant);
 		if (!remoteWins(local, data, (s) => hasProgress(this.game, s))) return;
 		this.clock.pause();
@@ -348,10 +385,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.clock.pause();
 		this.saves.cancelPush();
 		this.restore(stored);
-		if (stored.solved) {
-			this.solved = true;
-			this.clock.finished(stored.updatedAt);
-		}
+		if (stored.solved) this.markSolved(stored);
 		this.message = message('info', () => t('session.otherTab'));
 		this.clock.resume();
 		return true;
@@ -410,12 +444,18 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.touched = true;
 	}
 
+	/** Whether the game can start over: not the current special puzzle once solved. */
+	get canStartOver(): boolean {
+		return !(this.solved && this.period);
+	}
+
 	startOver() {
-		if (!this.puzzle || this.loading) return;
+		if (!this.puzzle || this.loading || !this.canStartOver) return;
 		this.history.restart(this.game.emptyState(this.puzzle));
 		this.lastChange = new Set();
 		this.dismissHint();
 		this.solved = false;
+		this.solvedAt = 0;
 		// The server measures ranked time from when it issued the puzzle.
 		this.clock.reset(this.ticket ? this.clock.startedAt : Date.now());
 		this.message = null;
@@ -586,7 +626,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			this.changed();
 			state = alt;
 		}
-		this.clock.finish();
+		this.solvedAt = Date.now();
+		this.clock.finish(this.solvedAt);
 		this.solved = true;
 		// A trial that solves the puzzle was right.
 		this.history.keepTrial();
@@ -666,7 +707,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 				...(this.ticket ? { ticket: this.ticket } : {}),
 				...(this.hints ? { hinted: true, hints: this.hints } : {}),
 				...(this.assisted ? { assisted: true } : {}),
-				...(this.trial ? { trial: this.trial } : {})
+				...(this.trial ? { trial: this.trial } : {}),
+				...(this.solved && this.solvedAt ? { solvedAt: this.solvedAt } : {})
 			},
 			changed
 		);

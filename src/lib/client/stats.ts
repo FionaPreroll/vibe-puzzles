@@ -66,20 +66,46 @@ export function recordSolve(
 	// Starting over after a solve, or opening the same puzzle again, is no new solve. A server
 	// puzzle has no ID (0) until it is solved; the server never issues it twice.
 	if (puzzleId && s.solvedIds?.includes(puzzleId)) return s;
-	if (puzzleId) s.solvedIds = [...(s.solvedIds ?? []), puzzleId].slice(-SOLVED_IDS);
+	rememberId(s, puzzleId);
 	s.solved++;
 	s.streak++;
 	s.bestStreak = Math.max(s.bestStreak, s.streak);
 	if (!hinted) s.bestMs = s.bestMs == null ? timeMs : Math.min(s.bestMs, timeMs);
 	s.totalMs += timeMs;
 	s.recent = [{ puzzleId, timeMs, at: Date.now() }, ...s.recent].slice(0, 20);
-	if (period && s.lastPeriod !== period) {
-		const continues = kind && s.lastPeriod === previousPeriod(kind);
-		s.periodStreak = continues ? (s.periodStreak ?? 1) + 1 : 1;
-		s.lastPeriod = period;
-	}
+	if (period) countPeriod(s, period, kind);
 	save(statsKey(game, variant), s);
 	return s;
+}
+
+/**
+ * A special puzzle solved on another device: its period counts for the streak here, but its
+ * solve and time belong to that device's statistics.
+ */
+export function notePeriodSolved(
+	game: string,
+	variant: string,
+	puzzleId: number,
+	period: string,
+	kind?: SpecialKind
+) {
+	const s = getStats(game, variant);
+	if (s.lastPeriod === period) return;
+	rememberId(s, puzzleId);
+	countPeriod(s, period, kind);
+	save(statsKey(game, variant), s);
+}
+
+function rememberId(s: VariantStats, puzzleId: number) {
+	if (puzzleId) s.solvedIds = [...(s.solvedIds ?? []), puzzleId].slice(-SOLVED_IDS);
+}
+
+/** A period solved: the streak goes on if the previous one was the last, or starts anew. */
+function countPeriod(s: VariantStats, period: string, kind?: SpecialKind) {
+	if (s.lastPeriod === period) return;
+	const continues = kind && s.lastPeriod === previousPeriod(kind);
+	s.periodStreak = continues ? (s.periodStreak ?? 1) + 1 : 1;
+	s.lastPeriod = period;
 }
 
 /** Abandoning an unsolved puzzle with progress breaks the streak. */
