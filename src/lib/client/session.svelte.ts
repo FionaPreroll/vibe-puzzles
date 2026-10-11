@@ -89,7 +89,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	/** How many hints were shown for this puzzle. */
 	hints = $state(0);
 	/** A setting that counts as a hint was on during this game (counted once in `hints`). */
-	private assisted = false;
+	assisted = $state(false);
 	loading = $state(true);
 	message = $state<Message | null>(null);
 
@@ -588,6 +588,11 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			text: keys.map((key) => t(key, hint.params)).join(' ')
 		};
 		this.persist();
+	}
+
+	/** Hints asked for with the Hint button: `hints` without the setting that counts as one. */
+	get askedHints(): number {
+		return Math.max(0, this.hints - (this.assisted ? 1 : 0));
 	}
 
 	/** Whether a setting that counts as a hint is on, such as painting wrong digits red. */

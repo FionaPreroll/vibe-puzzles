@@ -155,6 +155,13 @@ const en = {
 			'I solved {game} {variant} (puzzle {id}) in {time}, with 1 hint. Can you do it without?',
 		bragHints:
 			'I solved {game} {variant} (puzzle {id}) in {time}, with {count} hints. Can you do it without?',
+		/** With a setting on that counts as a hint: only painting wrong digits red does. */
+		bragAssist:
+			'I solved {game} {variant} (puzzle {id}) in {time}, with mistakes shown in red. Can you do it without?',
+		bragAssistHint:
+			'I solved {game} {variant} (puzzle {id}) in {time}, with mistakes shown in red and 1 hint. Can you do it without?',
+		bragAssistHints:
+			'I solved {game} {variant} (puzzle {id}) in {time}, with mistakes shown in red and {count} hints. Can you do it without?',
 		bragCopied: 'Copied your result and the link. Paste it anywhere to share.',
 		bragManual:
 			'Copying did not work here. Copy your result and the link below and paste them where you want to share them.',

@@ -863,6 +863,20 @@ describe('a setting that counts as a hint', () => {
 		expect(s.hints).toBe(1);
 	});
 
+	it('is kept apart from the hints asked for, for the shared result', async () => {
+		const settings = new GameSettings('tetroid', [...tetroid.settings, ...info.slice(-1)]);
+		(settings.values as Record<string, unknown>).reveal = true;
+		const s = new GameSession(tetroid, settings);
+		await s.open('6n', { puzzleId: ID });
+		expect(s.askedHints).toBe(0);
+		s.noteAssist();
+		expect([s.hints, s.askedHints, s.assisted]).toEqual([1, 0, true]);
+		s.showHint();
+		expect([s.hints, s.askedHints]).toEqual([2, 1]);
+		await s.newPuzzle();
+		expect([s.hints, s.askedHints, s.assisted]).toEqual([0, 0, false]);
+	});
+
 	it('counts nothing while there is no puzzle', async () => {
 		vi.mocked(generate).mockRejectedValueOnce(new Error('boom'));
 		const [s] = await assisting(true);
