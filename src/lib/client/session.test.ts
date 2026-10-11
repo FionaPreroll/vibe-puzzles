@@ -826,10 +826,14 @@ describe('hints', () => {
 		s.dismissHint();
 		expect(s.hint).toBeNull();
 		expect(s.message).toBeNull();
-		// A message shown since stays when the hint goes.
+		// A message shown since stays when the hint goes; the hint keeps its own text till then.
 		s.showHint();
+		const text = s.hintMessage;
+		expect(text).toBe(s.message);
 		s.message = message('info', () => 'other');
+		expect(s.hintMessage).toBe(text);
 		s.dismissHint();
+		expect(s.hintMessage).toBeNull();
 		expect(s.hint).toBeNull();
 		expect(s.message?.text).toBe('other');
 	});

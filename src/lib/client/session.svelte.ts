@@ -76,7 +76,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	submitting = $state(false);
 
 	/** The hint as it was found, and the position it was found in. */
-	private hintFound: { hint: Hint; at: S; message: Message } | null = null;
+	private hintFound = $state.raw<{ hint: Hint; at: S; message: Message } | null>(null);
 	private readonly history = new History<S>();
 	private readonly clock = new Clock(() => this.clockMayRun);
 	private readonly saves: SaveSlot<P, S>;
@@ -533,6 +533,14 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		);
 		this.hintFound = { hint, at: this.state, message: this.message };
 		this.persist();
+	}
+
+	/**
+	 * The text of the hint on the board, while there is one: wide screens show it next to the Hint
+	 * button rather than in the top bar, also after another message has come since.
+	 */
+	get hintMessage(): Message | null {
+		return this.hint ? (this.hintFound?.message ?? null) : null;
 	}
 
 	/** Hints asked for with the Hint button: `hints` without the setting that counts as one. */
