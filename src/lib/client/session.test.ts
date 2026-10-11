@@ -534,6 +534,13 @@ describe('solving', () => {
 		expect(s.message?.kind).toBe('error');
 	});
 
+	it('says nothing when an automatic check finds the puzzle not solved', async () => {
+		const s = await opened();
+		await s.submit(true);
+		expect(s.solved).toBe(false);
+		expect(s.message).toBeNull();
+	});
+
 	it('records an automatic solve and uploads it', async () => {
 		vi.mocked(api.submitScore).mockResolvedValueOnce({
 			ok: true,
