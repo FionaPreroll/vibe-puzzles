@@ -5,66 +5,22 @@ import {
 	encodePuzzleId,
 	isPlayable,
 	periodKey,
-	randomSeed,
 	regularCounterpart,
-	SPECIAL_RETENTION_DAYS,
 	specialSeed,
-	type SpecialKind,
 	type Variant
 } from '../core/variants';
-import { currentPlayer, issuePuzzle, pullSave, pushSave, serverPuzzles, submitScore } from './api';
-import { findInBank, loadPuzzleSource, pickFromBank } from './bank';
-import { generate } from './generate';
+import { t } from '../i18n/index.svelte';
+import { currentPlayer, pullSave, submitScore } from './api';
+import { Clock } from './session/clock.svelte';
+import { History, type HistoryStart } from './session/history.svelte';
+import { message, scoreMessage, type Message } from './session/messages';
+import { PuzzleSource, type FoundPuzzle, type PuzzleOrigin } from './session/puzzleSource';
+import { SaveSlot } from './session/saveSlot';
+import { hasProgress, playableSave, remoteWins, type PlayableSave } from './session/saves';
 import type { GameSettings } from './settings.svelte';
 import { breakStreak, recordSolve } from './stats';
-import { t, variantLabel } from '../i18n/index.svelte';
-import type { ScoreResult } from './api';
-import { keys, load, remove, save } from './storage';
-import { parseSaveKey, SAVE_PREFIX, saveKey } from './storageKeys';
-
-export interface SavedGame<S = unknown> {
-	version: 1;
-	puzzleId: number;
-	variant: string;
-	puzzle: unknown;
-	state: S;
-	checkpoints: S[];
-	currentCheckpoint: number;
-	solved: boolean;
-	startedAt: number;
-	playMs: number;
-	updatedAt: number;
-	/** Puzzle issued by the server (ranked); its ID is 0 until solved. */
-	ticket?: string;
-	/** A hint was shown: no best time, not ranked. Kept for saves from before `hints`. */
-	hinted?: boolean;
-	/** How many hints were shown. */
-	hints?: number;
-	/** A setting that counts as a hint was on during the game; it is one of `hints`. */
-	assisted?: boolean;
-	/** The position a running trial began from (see `GameSession.trial`). */
-	trial?: S;
-}
-
-export interface Message {
-	kind: 'success' | 'error' | 'info';
-	readonly text: string;
-}
-
-/**
- * A message whose text is made on each read, so a message already shown (such as "Solved in
- * 1:23!") follows a change of language.
- */
-export function message(kind: Message['kind'], text: () => string): Message {
-	return {
-		kind,
-		get text() {
-			return text();
-		}
-	};
-}
-
-export const MAX_CHECKPOINTS = 10;
+import { load } from './storage';
+import { saveKey } from './storageKeys';
 
 /** What to open: a puzzle by ID, optionally with a shared position (encoded state). */
 export interface OpenOptions {
@@ -72,9 +28,21 @@ export interface OpenOptions {
 	shared?: string;
 }
 
+/** A game to put on the board: a new puzzle or a saved game, with everything that belongs to it. */
+interface ShownGame<P, S> extends Omit<FoundPuzzle<P>, 'startedAt'> {
+	history: HistoryStart<S>;
+	hints: number;
+	assisted: boolean;
+	startedAt: number;
+	playMs: number;
+}
+
 /**
- * One game in progress: puzzle, player state, history, checkpoints, timers, persistence and
- * submission. Game specifics come from the GameModule.
+ * One game in progress, the single object the game page talks to. It composes the parts in
+ * `session/`: where puzzles come from (`PuzzleSource`), the position and its history
+ * (`History`), the clocks (`Clock`) and the save slot (`SaveSlot`), and adds what joins them:
+ * opening and resuming games, hints, following other tabs and devices, and submitting a solve.
+ * Game specifics come from the GameModule.
  */
 export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K extends string = never> {
 	variantIndex = $state(0);
@@ -82,18 +50,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	puzzleId = $state(0);
 	ticket = $state<string | null>(null);
 	/** Where the current puzzle came from. */
-	source = $state<'local' | 'bank' | 'server'>('local');
+	source = $state<PuzzleOrigin>('local');
 	puzzle = $state.raw<P | null>(null);
-	state = $state.raw<S | null>(null);
-	past = $state.raw<S[]>([]);
-	future = $state.raw<S[]>([]);
-	checkpoints = $state.raw<S[]>([]);
-	currentCheckpoint = $state(-1);
-	/**
-	 * The position a trial began from, while one runs: the board draws what changed since in the
-	 * trial colour, until the player keeps the trial or goes back to this position.
-	 */
-	trial = $state.raw<S | null>(null);
 	lastChange = $state.raw<ReadonlySet<string>>(new Set());
 	/** The hint on the board, until the next change. */
 	hint = $state.raw<Hint | null>(null);
@@ -106,43 +64,31 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	loading = $state(true);
 	/** Raw state: a proxy would keep the text of the first read and not follow the language. */
 	message = $state.raw<Message | null>(null);
-
-	/** Competitive clock start (epoch ms). */
-	startedAt = $state(0);
-	/** Personal play time accumulated before `runningSince`. */
-	playMs = $state(0);
-	runningSince = $state<number | null>(null);
-	/** Paused with the Pause button (personal timer mode). */
-	manualPause = $state(false);
 	solved = $state(false);
-	/** Final times once solved. */
-	finalMs = $state(0);
-	finalPlayMs = $state(0);
 	submitting = $state(false);
 
-	private active = true;
+	private readonly history = new History<S>();
+	private readonly clock = new Clock(() => this.clockMayRun);
+	private readonly saves: SaveSlot<P, S>;
+	private readonly puzzles: PuzzleSource<P>;
 	private period: string | undefined;
-	private saveKey = '';
-	/** Save key of the puzzle on the board; differs from `saveKey` while another one loads. */
-	private puzzleKey = '';
 	private lastOpen: [string, OpenOptions] = ['', {}];
-	private pushTimer: ReturnType<typeof setTimeout> | null = null;
+	/** Counts `open` and `newPuzzle` calls: a load that finishes after a newer one started is dropped. */
 	private openToken = 0;
+	/** The player changed the game since it was shown: a save from another device no longer replaces it. */
 	private touched = false;
-	/**
-	 * `updatedAt` of the save this tab last wrote to or read from the slot. When the slot holds
-	 * another one, another tab has saved the game since.
-	 */
-	private storedAt: number | null = null;
 
 	constructor(
 		readonly game: GameModule<P, S, K>,
 		readonly settings: GameSettings<K>
-	) {}
+	) {
+		this.saves = new SaveSlot(game);
+		this.puzzles = new PuzzleSource(game);
+	}
 
 	/** Storage key of the game on the board. */
 	get slot(): string {
-		return this.saveKey;
+		return this.saves.key;
 	}
 
 	get variant(): Variant {
@@ -154,7 +100,57 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	}
 
 	get paused(): boolean {
-		return this.manualPause && !!this.settings.values.personalTimer && !this.solved;
+		return this.clock.manualPause && !!this.settings.values.personalTimer && !this.solved;
+	}
+
+	// The position and its history (`History`), as the page reads them.
+
+	get state(): S | null {
+		return this.history.state;
+	}
+	get past(): S[] {
+		return this.history.past;
+	}
+	get future(): S[] {
+		return this.history.future;
+	}
+	get checkpoints(): S[] {
+		return this.history.checkpoints;
+	}
+	get currentCheckpoint(): number {
+		return this.history.currentCheckpoint;
+	}
+	/**
+	 * The position a trial began from, while one runs: the board draws what changed since in the
+	 * trial colour, until the player keeps the trial or goes back to this position.
+	 */
+	get trial(): S | null {
+		return this.history.trial;
+	}
+
+	// The clocks (`Clock`), as the page reads them.
+
+	/** Competitive clock start (epoch ms). */
+	get startedAt(): number {
+		return this.clock.startedAt;
+	}
+	/** Personal play time accumulated before `runningSince`. */
+	get playMs(): number {
+		return this.clock.playMs;
+	}
+	get runningSince(): number | null {
+		return this.clock.runningSince;
+	}
+	/** Paused with the Pause button (personal timer mode). */
+	get manualPause(): boolean {
+		return this.clock.manualPause;
+	}
+	/** Final times once solved. */
+	get finalMs(): number {
+		return this.clock.finalMs;
+	}
+	get finalPlayMs(): number {
+		return this.clock.finalPlayMs;
 	}
 
 	// ---- Loading ----------------------------------------------------------------------------
@@ -164,15 +160,16 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		const token = ++this.openToken;
 		this.lastOpen = [variantKey, opts];
 		const target = this.target(variantKey, opts);
-		this.pauseClock();
+		this.clock.pause();
 		this.variantIndex = target.index;
 		this.loading = true;
 		this.message = null;
 		this.period = target.period;
-		this.saveKey = target.saveKey;
+		this.saves.select(target.saveKey);
 
-		const local = load<SavedGame<S> | null>(this.saveKey, null);
-		if (this.resumable(local, target.puzzleId, opts) && this.restore(local!)) {
+		const local = this.saves.playable(this.variant);
+		if (local && this.resumable(local, target.puzzleId, opts)) {
+			this.restore(local);
 			this.finishLoading(token);
 			this.syncFromServer(token);
 			return;
@@ -213,8 +210,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	}
 
 	/** Whether `open` continues this saved game rather than starting the requested one. */
-	private resumable(s: SavedGame<S> | null, puzzleId: number | undefined, opts: OpenOptions) {
-		return !!s && !s.solved && (puzzleId == null || s.puzzleId === puzzleId) && !opts.shared;
+	private resumable(s: PlayableSave<P, S>, puzzleId: number | undefined, opts: OpenOptions) {
+		return !s.solved && (puzzleId == null || s.puzzleId === puzzleId) && !opts.shared;
 	}
 
 	/**
@@ -223,177 +220,90 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	 */
 	replacesGame(variantKey: string, opts: OpenOptions): boolean {
 		const { index, puzzleId, saveKey: key } = this.target(variantKey, opts);
-		const saved = load<SavedGame<S> | null>(key, null);
+		const saved = playableSave(this.game, this.game.variants[index], load<unknown>(key, null));
 		if (!saved || saved.solved || this.resumable(saved, puzzleId, opts)) return false;
-		if (!this.game.isValidPuzzle(saved.puzzle, this.game.variants[index])) return false;
-		return this.hasProgress(saved);
+		return hasProgress(this.game, saved);
 	}
 
 	/** Whether "New puzzle" would throw away a started game (special types keep theirs). */
 	get newPuzzleDiscards(): boolean {
-		if (this.variant.special || this.solved || this.loading || !this.puzzle || !this.state) {
-			return false;
-		}
-		const empty = this.game.emptyState(this.puzzle);
-		return this.checkpoints.length > 0 || JSON.stringify(this.state) !== JSON.stringify(empty);
+		const { puzzle, state } = this;
+		if (this.variant.special || this.solved || this.loading || !puzzle || !state) return false;
+		return hasProgress(this.game, { puzzle, state, checkpoints: this.checkpoints, solved: false });
 	}
 
 	/** Start a fresh game of `puzzleId`, or of a new puzzle (from the server if it issues them). */
 	private async start(puzzleId: number | null, token: number, shared?: string) {
 		this.loading = true;
-		let puzzle: P;
-		let ticket: string | null = null;
-		let startedAt = Date.now();
-		let source: 'local' | 'bank' | 'server' = 'local';
+		let found: FoundPuzzle<P>;
 		try {
-			const issued = puzzleId == null ? await this.fromServer() : null;
-			const banked = puzzleId == null && !issued ? await this.fromBank() : null;
-			if (issued) {
-				({ puzzle, ticket, issuedAt: startedAt } = issued);
-				puzzleId = issued.puzzleId ?? 0;
-				source = 'server';
-			} else if (banked) {
-				({ id: puzzleId, puzzle } = banked);
-				source = 'bank';
-			} else {
-				puzzleId ??= this.localPuzzleId();
-				const { variantIndex, seed } = decodePuzzleId(puzzleId);
-				const v = this.game.variants[variantIndex];
-				// A puzzle from the collection needs no generating (big ones take a while).
-				const stored = v ? await findInBank<P>(this.game.id, v, puzzleId) : null;
-				puzzle =
-					stored && this.game.isValidPuzzle(stored, v)
-						? stored
-						: await generate<P>(this.game.id, variantIndex, seed);
-			}
+			found = await this.puzzles.find(this.variantIndex, puzzleId, () => {
+				this.message = message('info', () => t('session.serverFailed'));
+			});
 		} catch (e) {
 			if (token !== this.openToken) return;
 			this.message = message('error', () => t('session.createFailed', { error: String(e) }));
 			// The previous puzzle stays playable, unless it belongs to another slot (another type).
-			if (this.puzzleKey !== this.saveKey) this.clearPuzzle();
+			if (!this.saves.holdsBoard) this.show(null);
 			this.finishLoading(token);
 			return;
 		}
 		if (token !== this.openToken) return;
-		this.puzzleId = puzzleId;
-		this.ticket = ticket;
-		this.source = source;
-		this.puzzle = puzzle;
-		this.puzzleKey = this.saveKey;
-		const sharedState = shared ? this.game.decodeState(puzzle, shared) : null;
-		this.state = sharedState ?? this.game.emptyState(puzzle);
-		this.past = [];
-		this.future = [];
-		this.checkpoints = [];
-		this.currentCheckpoint = -1;
-		this.trial = null;
-		this.lastChange = new Set();
-		this.hint = null;
-		this.hints = 0;
-		this.assisted = false;
-		this.solved = false;
-		this.manualPause = false;
-		this.startedAt = startedAt;
-		this.playMs = 0;
-		this.touched = false;
+		const sharedState = shared ? this.game.decodeState(found.puzzle, shared) : null;
+		this.show({
+			...found,
+			history: { state: sharedState ?? this.game.emptyState(found.puzzle) },
+			hints: 0,
+			assisted: false,
+			playMs: 0
+		});
 		this.finishLoading(token);
 		// The new game takes the slot, whatever another tab saved in it meanwhile.
-		this.storedAt = this.storedUpdatedAt();
+		this.saves.claim();
 		this.persist();
-		if (!ticket) this.prefetch();
+		if (!found.ticket) this.puzzles.prefetch(this.variantIndex);
 	}
 
-	/** The next local puzzle: prefetched, the current special or a random one. */
-	private localPuzzleId(): number {
-		const v = this.variant;
-		if (v.special) {
-			return encodePuzzleId(
-				this.variantIndex,
-				specialSeed(this.game.id, v.special, periodKey(v.special))
-			);
-		}
-		const seed = this.nextSeed ?? randomSeed();
-		this.nextSeed = null;
-		return encodePuzzleId(this.variantIndex, seed);
+	/** Continue a saved game, from storage, another tab or another device. */
+	private restore(s: PlayableSave<P, S>) {
+		this.saves.adopt(s);
+		this.show({
+			puzzle: s.puzzle,
+			puzzleId: s.puzzleId,
+			ticket: s.ticket ?? null,
+			source: s.ticket ? 'server' : 'local',
+			history: {
+				state: s.state,
+				checkpoints: s.checkpoints,
+				currentCheckpoint: s.currentCheckpoint,
+				trial: s.trial ?? null
+			},
+			hints: s.hints ?? 0,
+			assisted: !!s.assisted,
+			startedAt: s.startedAt,
+			playMs: s.playMs
+		});
 	}
 
-	/** A new puzzle from the collection, if the player's choice of source says so. */
-	private async fromBank(): Promise<{ id: number; puzzle: P } | null> {
-		const source = loadPuzzleSource();
-		if (this.variant.special || source === 'local') return null;
-		if (source === 'mixed' && Math.random() < 0.5) return null;
-		const pick = await pickFromBank<P>(this.game.id, this.variant.key);
-		return pick && this.game.isValidPuzzle(pick.puzzle, this.variant) ? pick : null;
-	}
-
-	/** Ask the server for a puzzle; null (play locally, unranked) if it does not issue them. */
-	private async fromServer(): Promise<{
-		puzzle: P;
-		ticket: string;
-		issuedAt: number;
-		puzzleId: number | null;
-	} | null> {
-		if (!(await serverPuzzles())) return null;
-		try {
-			const issued = await issuePuzzle<P>(this.game.id, this.variant.key);
-			if (this.game.isValidPuzzle(issued.puzzle, this.variant)) return issued;
-		} catch {
-			/* fall back to a local puzzle */
-		}
-		this.message = message('info', () => t('session.serverFailed'));
-		return null;
-	}
-
-	private restore(s: SavedGame<S>): boolean {
-		if (!this.game.isValidPuzzle(s.puzzle, this.variant)) return false;
-		const puzzle = s.puzzle as P;
-		if (!this.game.isValidState(puzzle, s.state)) return false;
-		const ticket = typeof s.ticket === 'string' ? s.ticket : null;
-		this.puzzleId = Number.isSafeInteger(s.puzzleId) ? s.puzzleId : 0;
-		this.ticket = ticket;
-		this.source = ticket ? 'server' : 'local';
-		this.changedAt = Number.isFinite(s.updatedAt) ? s.updatedAt : 0;
-		this.storedAt = s.updatedAt;
-		this.puzzle = puzzle;
-		this.puzzleKey = this.saveKey;
-		this.state = s.state;
-		this.past = [];
-		this.future = [];
-		// The rest of a save is checked too: it may come from another version or device.
-		const checkpoints = Array.isArray(s.checkpoints) ? s.checkpoints : [];
-		this.checkpoints = checkpoints.filter((c) => this.game.isValidState(puzzle, c));
-		const current = Number.isInteger(s.currentCheckpoint) ? s.currentCheckpoint : -1;
-		this.currentCheckpoint = Math.max(-1, Math.min(current, this.checkpoints.length - 1));
-		this.trial = this.game.isValidState(puzzle, s.trial) ? s.trial : null;
+	/**
+	 * Put a game on the board, or (null) none, after loading one failed (see `retry`). Every field
+	 * that belongs to a game is set here, so nothing of the previous game stays behind.
+	 */
+	private show(g: ShownGame<P, S> | null) {
+		this.puzzle = g?.puzzle ?? null;
+		this.puzzleId = g?.puzzleId ?? 0;
+		this.ticket = g?.ticket ?? null;
+		this.source = g?.source ?? 'local';
+		this.history.reset(g?.history ?? null);
+		this.saves.attachBoard(!!g);
 		this.lastChange = new Set();
 		this.hint = null;
-		this.hints = Number.isInteger(s.hints) && s.hints! >= 0 ? s.hints! : s.hinted ? 1 : 0;
-		this.assisted = !!s.assisted;
+		this.hintFull = false;
+		this.hints = g?.hints ?? 0;
+		this.assisted = g?.assisted ?? false;
 		this.solved = false;
-		this.manualPause = false;
-		this.startedAt = Number.isFinite(s.startedAt) ? s.startedAt : Date.now();
-		this.playMs = Number.isFinite(s.playMs) ? Math.max(0, s.playMs) : 0;
+		this.clock.reset(g?.startedAt ?? 0, g?.playMs ?? 0);
 		this.touched = false;
-		return true;
-	}
-
-	/** No puzzle on the board: loading one failed, see `retry`. */
-	private clearPuzzle() {
-		this.puzzle = null;
-		this.state = null;
-		this.puzzleKey = '';
-		this.puzzleId = 0;
-		this.ticket = null;
-		this.past = [];
-		this.future = [];
-		this.checkpoints = [];
-		this.currentCheckpoint = -1;
-		this.trial = null;
-		this.lastChange = new Set();
-		this.hint = null;
-		this.hints = 0;
-		this.assisted = false;
-		this.solved = false;
 	}
 
 	/** Open again what the last `open` asked for (after it failed). */
@@ -404,44 +314,23 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	private finishLoading(token: number) {
 		if (token !== this.openToken) return;
 		this.loading = false;
-		this.resumeClock();
-	}
-
-	/** Whether a save from storage or another device holds a game of this type to continue. */
-	private playable(s: SavedGame<S> | null): s is SavedGame<S> {
-		return (
-			!!s &&
-			typeof s === 'object' &&
-			Number.isFinite(s.updatedAt) &&
-			this.game.isValidPuzzle(s.puzzle, this.variant) &&
-			this.game.isValidState(s.puzzle as P, s.state)
-		);
+		this.clock.resume();
 	}
 
 	/** Pick up a newer save of the same slot from another device. */
 	private async syncFromServer(token: number) {
-		const remote = await pullSave<SavedGame<S>>(this.saveKey);
+		const remote = await pullSave<unknown>(this.saves.key);
 		if (!remote || token !== this.openToken || this.touched) return;
-		if (!this.playable(remote.data)) return;
-		const stored = load<SavedGame<S> | null>(this.saveKey, null);
-		const local = this.playable(stored) ? stored : null;
-		// A newer local game wins, unless nobody has played it yet: then the other device's game
-		// continues here.
-		if (local && remote.data.updatedAt <= local.updatedAt && this.hasProgress(local)) return;
-		if (remote.data.solved || !this.hasProgress(remote.data)) return;
-		// Server-issued puzzles keep their ID secret (0) until solved, so the ticket tells them apart.
-		const same =
-			local?.puzzleId === remote.data.puzzleId &&
-			(local.ticket ?? null) === (remote.data.ticket ?? null);
-		if (same && remote.data.updatedAt <= local!.updatedAt) return;
-		this.pauseClock();
-		if (this.pushTimer) clearTimeout(this.pushTimer);
-		if (this.restore(remote.data)) {
-			// Storage full: the older save stays, and must not count as another tab's.
-			if (!save(this.saveKey, remote.data)) this.storedAt = this.storedUpdatedAt();
-			this.message = message('info', () => t('session.continued'));
-		}
-		this.resumeClock();
+		const data = playableSave(this.game, this.variant, remote.data);
+		if (!data) return;
+		const local = this.saves.playable(this.variant);
+		if (!remoteWins(local, data, (s) => hasProgress(this.game, s))) return;
+		this.clock.pause();
+		this.saves.cancelPush();
+		this.restore(data);
+		this.saves.store(data);
+		this.message = message('info', () => t('session.continued'));
+		this.clock.resume();
 	}
 
 	/**
@@ -450,26 +339,19 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	 */
 	followStorage(): boolean {
 		// Not while a puzzle loads, nor without one on the board (its slot is another).
-		if (this.loading || this.puzzleKey !== this.saveKey) return false;
-		const stored = load<SavedGame<S> | null>(this.saveKey, null);
-		if (!this.playable(stored) || stored.updatedAt === this.storedAt) return false;
-		this.pauseClock();
-		if (this.pushTimer) clearTimeout(this.pushTimer);
-		// A playable save always restores.
+		if (this.loading || !this.saves.holdsBoard) return false;
+		const stored = this.saves.changedElsewhere(this.variant);
+		if (!stored) return false;
+		this.clock.pause();
+		this.saves.cancelPush();
 		this.restore(stored);
 		if (stored.solved) {
 			this.solved = true;
-			this.finalMs = Math.max(0, stored.updatedAt - this.startedAt);
-			this.finalPlayMs = this.playMs;
+			this.clock.finished(stored.updatedAt);
 		}
 		this.message = message('info', () => t('session.otherTab'));
-		this.resumeClock();
+		this.clock.resume();
 		return true;
-	}
-
-	/** `updatedAt` of the save in the slot, if any. */
-	private storedUpdatedAt(): number | null {
-		return load<SavedGame<S> | null>(this.saveKey, null)?.updatedAt ?? null;
 	}
 
 	/** Re-check the server when the page becomes visible again (device switch) or on "Sync now". */
@@ -490,17 +372,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		}
 		if (!this.solved && this.past.length > 0) breakStreak(this.game.id, v.key);
 		const token = ++this.openToken;
-		this.pauseClock();
+		this.clock.pause();
 		this.message = null;
 		await this.start(null, token);
-	}
-
-	/** Generate the next puzzle of this variant in the background. */
-	private nextSeed: number | null = null;
-	private prefetch() {
-		if (this.variant.special) return;
-		this.nextSeed = randomSeed();
-		generate(this.game.id, this.variantIndex, this.nextSeed).catch(() => undefined);
 	}
 
 	// ---- Moves and history ------------------------------------------------------------------
@@ -508,67 +382,42 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	move(next: S, changed: string[]) {
 		if (this.readonly || !this.puzzle || !this.state) return;
 		const after = this.game.afterMove?.(this.puzzle, next, this.settings.values) ?? next;
-		if (JSON.stringify(after) === JSON.stringify(this.state)) return;
-		this.past = [...this.past, this.state].slice(-500);
-		this.future = [];
-		this.state = after;
-		this.lastChange = new Set(changed);
-		this.dismissHint();
-		this.touched = true;
+		if (!this.history.push(after)) return;
+		this.changed(changed);
 		this.persist();
 		this.checkSolved();
 	}
 
 	undo() {
-		if (this.readonly || this.past.length === 0 || !this.state) return;
-		this.future = [this.state, ...this.future];
-		this.state = this.past[this.past.length - 1];
-		this.past = this.past.slice(0, -1);
-		this.lastChange = new Set();
-		this.dismissHint();
-		this.touched = true;
+		if (this.readonly || !this.history.undo()) return;
+		this.changed();
 		this.persist();
 	}
 
 	redo() {
-		if (this.readonly || this.future.length === 0 || !this.state) return;
-		this.past = [...this.past, this.state];
-		this.state = this.future[0];
-		this.future = this.future.slice(1);
-		this.lastChange = new Set();
-		this.dismissHint();
-		this.touched = true;
+		if (this.readonly || !this.history.redo()) return;
+		this.changed();
 		this.persist();
 	}
 
-	/** Replace the state as an undoable step without running move hooks. */
-	private replace(next: S) {
-		if (!this.state) return;
-		this.past = [...this.past, this.state];
-		this.future = [];
-		this.state = next;
-		this.lastChange = new Set();
+	/** The position changed: mark what changed (`changed`), take the hint away. */
+	private changed(changed: string[] = []) {
+		this.lastChange = new Set(changed);
 		this.dismissHint();
 		this.touched = true;
 	}
 
 	startOver() {
 		if (!this.puzzle || this.loading) return;
-		this.state = this.game.emptyState(this.puzzle);
-		this.past = [];
-		this.future = [];
-		this.trial = null;
+		this.history.restart(this.game.emptyState(this.puzzle));
 		this.lastChange = new Set();
 		this.dismissHint();
 		this.solved = false;
-		this.manualPause = false;
 		// The server measures ranked time from when it issued the puzzle.
-		if (!this.ticket) this.startedAt = Date.now();
-		this.playMs = 0;
-		this.runningSince = null;
+		this.clock.reset(this.ticket ? this.clock.startedAt : Date.now());
 		this.message = null;
 		this.touched = true;
-		this.resumeClock();
+		this.clock.resume();
 		this.persist();
 	}
 
@@ -635,73 +484,47 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 
 	/** Try something out: what changes from here on shows in the trial colour. */
 	startTrial() {
-		if (this.readonly || !this.state || this.trial) return;
-		this.trial = this.state;
+		if (this.readonly || !this.history.startTrial()) return;
 		this.persist();
 	}
 
 	/** The trial worked out: its marks stay and look like any other. */
 	keepTrial() {
-		if (!this.trial || this.readonly) return;
-		this.trial = null;
+		if (this.readonly || !this.history.keepTrial()) return;
 		this.persist();
 	}
 
-	/**
-	 * The trial went wrong: back to where it began. Its moves leave the history, so that undo does
-	 * not bring them back without their colour; a position no longer in it is an undoable step.
-	 */
+	/** The trial went wrong: back to where it began (see `History.dropTrial`). */
 	dropTrial() {
-		const base = this.trial;
-		if (!base || this.readonly) return;
-		this.trial = null;
-		const text = JSON.stringify(base);
-		if (JSON.stringify(this.state) !== text) {
-			const at = this.past.findLastIndex((s) => JSON.stringify(s) === text);
-			if (at < 0) this.replace(base);
-			else {
-				this.past = this.past.slice(0, at);
-				this.future = [];
-				this.state = base;
-				this.lastChange = new Set();
-				this.dismissHint();
-				this.touched = true;
-			}
-		}
+		if (this.readonly) return;
+		const moved = this.history.dropTrial();
+		if (moved === null) return;
+		if (moved) this.changed();
 		this.persist();
 	}
 
 	// ---- Checkpoints ------------------------------------------------------------------------
 
 	saveCheckpoint() {
-		if (!this.state || this.loading) return;
-		if (this.currentCheckpoint < 0) return this.addCheckpoint();
-		const list = this.checkpoints.slice();
-		list[this.currentCheckpoint] = this.state;
-		this.checkpoints = list;
+		if (this.loading || !this.history.saveCheckpoint()) return;
 		this.persist();
 	}
 
 	addCheckpoint() {
-		if (!this.state || this.loading || this.checkpoints.length >= MAX_CHECKPOINTS) return;
-		this.checkpoints = [...this.checkpoints, this.state];
-		this.currentCheckpoint = this.checkpoints.length - 1;
+		if (this.loading || !this.history.addCheckpoint()) return;
 		this.persist();
 	}
 
 	loadCheckpoint(index: number) {
-		const cp = this.checkpoints[index];
-		if (!cp || this.readonly) return;
-		this.currentCheckpoint = index;
-		if (JSON.stringify(cp) !== JSON.stringify(this.state)) this.replace(cp);
+		if (this.readonly) return;
+		const moved = this.history.loadCheckpoint(index);
+		if (moved === null) return;
+		if (moved) this.changed();
 		this.persist();
 	}
 
 	deleteCheckpoint(index: number) {
-		if (!this.checkpoints[index]) return;
-		this.checkpoints = this.checkpoints.filter((_, i) => i !== index);
-		if (this.currentCheckpoint >= index) this.currentCheckpoint--;
-		if (this.currentCheckpoint < 0 && this.checkpoints.length) this.currentCheckpoint = 0;
+		if (!this.history.deleteCheckpoint(index)) return;
 		this.persist();
 	}
 
@@ -709,39 +532,31 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 
 	/** Called by the page when visibility or focus changes. */
 	setActive(active: boolean) {
-		this.active = active;
-		if (active) this.resumeClock();
-		else if (!this.settings.values.hideTimer) this.pauseClock();
+		this.clock.active = active;
+		if (active) this.clock.resume();
+		else if (!this.settings.values.hideTimer) this.clock.pause();
 	}
 
 	setManualPause(paused: boolean) {
-		this.manualPause = paused;
-		if (paused) this.pauseClock();
-		else this.resumeClock();
+		this.clock.manualPause = paused;
+		if (paused) this.clock.pause();
+		else this.clock.resume();
 	}
 
-	private resumeClock() {
-		if (this.runningSince != null || !this.puzzle || this.solved || this.loading || this.paused)
-			return;
-		if (!this.active && !this.settings.values.hideTimer) return;
-		this.runningSince = Date.now();
-	}
-
-	private pauseClock() {
-		if (this.runningSince == null) return;
-		this.playMs += Date.now() - this.runningSince;
-		this.runningSince = null;
+	/** Whether the clock may run: a game is on, and the page is active or the timer hidden. */
+	private get clockMayRun(): boolean {
+		if (!this.puzzle || this.solved || this.loading || this.paused) return false;
+		return this.clock.active || !!this.settings.values.hideTimer;
 	}
 
 	elapsed(now: number): number {
 		// Nothing has started while the first puzzle is still being created.
 		if (!this.puzzle) return 0;
-		return this.solved ? this.finalMs : Math.max(0, now - this.startedAt);
+		return this.solved ? this.clock.finalMs : Math.max(0, now - this.clock.startedAt);
 	}
 
 	personal(now: number): number {
-		if (this.solved) return this.finalPlayMs;
-		return this.playMs + (this.runningSince != null ? now - this.runningSince : 0);
+		return this.solved ? this.clock.finalPlayMs : this.clock.played(now);
 	}
 
 	// ---- Completion -------------------------------------------------------------------------
@@ -764,25 +579,25 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 				if (!auto) this.message = message('error', () => t('session.notSolved'));
 				return;
 			}
-			this.replace(alt);
+			this.history.step(alt);
+			this.changed();
 			state = alt;
 		}
-		const now = Date.now();
-		this.pauseClock();
-		this.finalMs = now - this.startedAt;
-		this.finalPlayMs = this.playMs;
+		this.clock.finish();
 		this.solved = true;
 		// A trial that solves the puzzle was right.
-		this.trial = null;
+		this.history.keepTrial();
+		const { finalMs, finalPlayMs } = this.clock;
 		const competitive = !this.settings.values.personalTimer;
-		const shown = competitive ? this.finalMs : this.finalPlayMs;
+		const shown = competitive ? finalMs : finalPlayMs;
+		const variant = this.variant;
 		recordSolve(
 			this.game.id,
-			this.variant.key,
+			variant.key,
 			this.puzzleId,
 			shown,
 			this.period,
-			this.variant.special,
+			variant.special,
 			this.hinted
 		);
 		this.persist();
@@ -794,12 +609,12 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		try {
 			const res = await submitScore({
 				game: this.game.id,
-				variant: this.variant.key,
+				variant: variant.key,
 				puzzleId: this.puzzleId,
 				puzzle: this.puzzle,
 				answer: this.game.answer(this.puzzle, state),
-				timeMs: this.finalMs,
-				playMs: this.finalPlayMs,
+				timeMs: finalMs,
+				playMs: finalPlayMs,
 				competitive,
 				hinted: this.hinted,
 				ticket: this.ticket ?? undefined
@@ -814,10 +629,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 				this.puzzleId = res.puzzleId;
 				this.persist();
 			}
-			if (res) {
-				const kind = res.ok ? 'success' : res.code === 'expired' ? 'info' : 'error';
-				this.message = message(kind, () => this.scoreText(res, shown));
-			}
+			if (res) this.message = scoreMessage(res, shown, variant);
 		} catch (e) {
 			const error = (e as Error).message;
 			this.message = message('info', () =>
@@ -828,120 +640,37 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		}
 	}
 
-	private scoreText(res: ScoreResult, shown: number): string {
-		const time = formatDuration(res.timeMs ?? shown, true);
-		switch (res.code) {
-			case 'wrong':
-				return t('session.wrong');
-			case 'repeat':
-				return t('session.repeat', { time });
-			case 'personal':
-				return t('session.unrankedPersonal', { time });
-			case 'local':
-				return t('session.unrankedLocal', { time });
-			case 'hinted':
-				return t('session.unrankedHinted', { time });
-			case 'expired':
-				return t('session.expired', { time });
-			case 'ranked': {
-				const text = t('session.ranked', {
-					time,
-					rank: res.rank ?? '–',
-					total: res.total ?? '–',
-					variant: variantLabel(this.variant)
-				});
-				const best = res.bestMs != null && res.bestMs < (res.timeMs ?? Infinity);
-				return best
-					? `${text} ${t('session.yourBest', { time: formatDuration(res.bestMs!, true) })}`
-					: text;
-			}
-			default:
-				return res.message;
-		}
-	}
-
 	// ---- Persistence ------------------------------------------------------------------------
-
-	/** Whether a saved game is worth keeping over another one: any move, checkpoint or solve. */
-	private hasProgress(save: SavedGame<S>): boolean {
-		if (save.solved || save.checkpoints?.length) return true;
-		const empty = this.game.emptyState(save.puzzle as P);
-		return JSON.stringify(save.state) !== JSON.stringify(empty);
-	}
-
-	/** When the game last changed; decides which save wins between devices. */
-	private changedAt = 0;
 
 	/** Save locally and, after a short pause, to the server. `changed` is false for a plain flush. */
 	persist(changed = true) {
+		const { puzzle, state } = this;
 		// Never save the previous puzzle into the slot of one that is still loading.
-		if (!this.puzzle || !this.state || !this.saveKey || this.puzzleKey !== this.saveKey) return;
+		if (!puzzle || !state || !this.saves.holdsBoard) return;
 		// Another tab saved the game since: this tab takes its save over instead of rolling it back.
 		if (this.followStorage()) return;
-		// Each change gets a time of its own, which tells the tabs' saves apart (`storedAt`).
-		if (changed || !this.changedAt) this.changedAt = Math.max(Date.now(), this.changedAt + 1);
-		const running = this.runningSince != null ? Date.now() - this.runningSince : 0;
-		const data: SavedGame<S> = {
-			version: 1,
-			puzzleId: this.puzzleId,
-			variant: this.variant.key,
-			puzzle: this.puzzle,
-			state: this.state,
-			checkpoints: this.checkpoints,
-			currentCheckpoint: this.currentCheckpoint,
-			solved: this.solved,
-			startedAt: this.startedAt,
-			playMs: this.playMs + running,
-			updatedAt: this.changedAt,
-			...(this.ticket ? { ticket: this.ticket } : {}),
-			...(this.hints ? { hinted: true, hints: this.hints } : {}),
-			...(this.assisted ? { assisted: true } : {}),
-			...(this.trial ? { trial: this.trial } : {})
-		};
-		if (save(this.saveKey, data)) this.storedAt = data.updatedAt;
-		if (this.pushTimer) clearTimeout(this.pushTimer);
-		// An untouched new puzzle is not uploaded, so it cannot replace a game on another device.
-		if (!this.hasProgress(data)) return;
-		const key = this.saveKey;
-		this.pushTimer = setTimeout(() => pushSave(key, data, data.updatedAt), 1500);
+		this.saves.write(
+			{
+				puzzleId: this.puzzleId,
+				variant: this.variant.key,
+				puzzle,
+				state,
+				checkpoints: this.checkpoints,
+				currentCheckpoint: this.currentCheckpoint,
+				solved: this.solved,
+				startedAt: this.clock.startedAt,
+				playMs: this.clock.played(),
+				...(this.ticket ? { ticket: this.ticket } : {}),
+				...(this.hints ? { hinted: true, hints: this.hints } : {}),
+				...(this.assisted ? { assisted: true } : {}),
+				...(this.trial ? { trial: this.trial } : {})
+			},
+			changed
+		);
 	}
 
 	/** Flush the play time into the save (page hide / unload). */
 	flush() {
 		this.persist(false);
 	}
-}
-
-/** Remove saves of special periods that are over. */
-export function cleanupSpecialSaves() {
-	const now = Date.now();
-	for (const key of keys(SAVE_PREFIX)) {
-		const slot = parseSaveKey(key);
-		if (!slot?.period) continue;
-		// Special types are keyed by their kind (`daily`, …).
-		const days = SPECIAL_RETENTION_DAYS[slot.variant as SpecialKind];
-		if (!days) continue;
-		const saved = load<SavedGame | null>(key, null);
-		if (!saved || now - saved.updatedAt > days * 86400000) remove(key);
-	}
-}
-
-/**
- * Make room when storage is full, never touching `keep` (the game being played): first remove the
- * saves of solved games, which are never resumed; then, once `agree` says so, the unfinished game
- * that changed longest ago. Returns whether anything was removed.
- */
-export function freeSaveSpace(keep: string, agree: () => boolean): boolean {
-	const others = keys(SAVE_PREFIX)
-		.filter((key) => key !== keep)
-		.map((key) => ({ key, save: load<SavedGame | null>(key, null) }));
-	const solved = others.filter((o) => !o.save || o.save.solved);
-	if (solved.length) {
-		for (const o of solved) remove(o.key);
-		return true;
-	}
-	if (!others.length || !agree()) return false;
-	const age = (o: (typeof others)[number]) => o.save?.updatedAt ?? 0;
-	remove(others.reduce((oldest, o) => (age(o) < age(oldest) ? o : oldest)).key);
-	return true;
 }

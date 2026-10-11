@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GAME_LOGIC } from '../games/logic';
 import { MemoryStorage } from '../../test/memory-storage';
 import { latestUnfinished } from './resume';
-import type { SavedGame } from './session.svelte';
+import type { SavedGame } from './session/saves';
 import { save } from './storage';
 
 const logic = GAME_LOGIC.pinwheel;

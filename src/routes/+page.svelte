@@ -10,7 +10,7 @@
 	import Spider from '#lib/components/halloween/Spider.svelte';
 	import Stars from '#lib/components/halloween/Stars.svelte';
 	import { latestUnfinished } from '#lib/client/resume.ts';
-	import type { SavedGame } from '#lib/client/session.svelte.ts';
+	import type { SavedGame } from '#lib/client/session/saves.ts';
 	import { currentPeriodStreak, getStats } from '#lib/client/stats.ts';
 	import { load } from '#lib/client/storage.ts';
 	import { isPlayable, periodKey } from '#lib/core/variants.ts';

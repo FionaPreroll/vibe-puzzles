@@ -3,14 +3,10 @@
 	import { resolve } from '$app/paths';
 	import { goto, replaceState } from '$app/navigation';
 	import { currentPlayer, onSync, pullSave, pushSave, watchServer } from '../client/api';
-	import {
-		cleanupSpecialSaves,
-		freeSaveSpace,
-		GameSession,
-		MAX_CHECKPOINTS,
-		message,
-		type OpenOptions
-	} from '../client/session.svelte';
+	import { GameSession, type OpenOptions } from '../client/session.svelte';
+	import { MAX_CHECKPOINTS } from '../client/session/history.svelte';
+	import { message } from '../client/session/messages';
+	import { cleanupSpecialSaves, freeSaveSpace } from '../client/session/saves';
 	import {
 		GameSettings,
 		loadTool,
