@@ -15,7 +15,7 @@
 	import type { AnyGame } from '../games';
 	import { t, variantLabel } from '../i18n/index.svelte';
 	import { BoardFit } from './game/boardFit.svelte';
-	import { celebration } from './game/celebration.svelte';
+	import { CelebrationTimer } from './game/celebration.svelte';
 	import { clampZoom, storedZoom, zoomedCellSize } from './game/boardFit';
 	import { pushSettingsSoon, watchPage } from './game/lifecycle';
 	import { question } from './game/questions';
@@ -56,7 +56,7 @@
 	let zoomOpen = $state(false);
 	let now = $state(Date.now());
 	let newBusy = $state(false);
-	const celebrate = celebration(session, () => settings.values.solvedAnimation);
+	const celebrate = new CelebrationTimer();
 
 	const variant = $derived(session.variant);
 	const label = $derived(variantLabel(variant));
@@ -204,6 +204,9 @@
 		JSON.stringify(settings.values);
 		return pushSettingsSoon(settings);
 	});
+
+	// The short celebration when the puzzle gets solved.
+	$effect(() => celebrate.follow(session.solved, session.loading, settings.values.solvedAnimation));
 
 	// Turning hints off in the settings also takes a hint on the board away.
 	$effect(() => {

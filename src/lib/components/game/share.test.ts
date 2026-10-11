@@ -4,7 +4,7 @@ import { tetroid } from '../../games/tetroid';
 import { i18n } from '../../i18n/index.svelte';
 import { messageClass } from './messageStyle';
 import { question } from './questions';
-import { bragKey, puzzleLink, shareSolve, solveShare, type Solve } from './share';
+import { bragKey, puzzleLink, screenshot, shareSolve, solveShare, type Solve } from './share';
 import { Sharing } from './sharing.svelte';
 
 vi.mock('$app/paths', () => ({ resolve: (path: string) => path.replace('[game]', 'tetroid') }));
@@ -18,6 +18,50 @@ const solve: Solve = {
 	assisted: false,
 	url: 'https://x.test/tetroid?id=12345'
 };
+
+/** A browser that draws: images load (or fail, with `broken`), canvases record what they get. */
+function browser(broken = false) {
+	const drawn: unknown[] = [];
+	const revoked: string[] = [];
+	vi.stubGlobal('URL', {
+		createObjectURL: () => 'blob:svg',
+		revokeObjectURL: (url: string) => revoked.push(url)
+	});
+	vi.stubGlobal(
+		'Image',
+		class {
+			onload = () => {};
+			onerror = () => {};
+			set src(_: string) {
+				setTimeout(() => (broken ? this.onerror() : this.onload()));
+			}
+		}
+	);
+	const canvas = {
+		width: 0,
+		height: 0,
+		getContext: () => ({
+			fillRect: (...args: unknown[]) => drawn.push(['fill', ...args]),
+			drawImage: () => drawn.push('board'),
+			fillStyle: ''
+		}),
+		toDataURL: (type: string) => `data:${type};base64,x`
+	};
+	vi.stubGlobal('document', { createElement: () => canvas });
+	return { drawn, revoked, canvas };
+}
+
+function svg() {
+	const clone = { setAttribute: vi.fn(), outerHTML: '<svg></svg>' };
+	return {
+		svg: {
+			width: { baseVal: { value: 200 } },
+			height: { baseVal: { value: 120 } },
+			cloneNode: () => clone
+		} as unknown as SVGSVGElement,
+		clone
+	};
+}
 
 describe('sharing texts', () => {
 	it('link to a puzzle, with the position if given', () => {
@@ -143,9 +187,47 @@ describe('the page sharing', () => {
 		expect(sharing.solveShared).toBe(false);
 	});
 
+	it('adds the picture of the board once it is drawn, unless the panel was closed', async () => {
+		browser();
+		const { sharing } = page();
+		await sharing.shareBoard(svg().svg);
+		expect(sharing.board?.image).toBe('data:image/png;base64,x');
+		const closing = sharing.shareBoard(svg().svg);
+		sharing.board = null;
+		await closing;
+		expect(sharing.board).toBeNull();
+	});
+
+	it("shares with the browser's own share sheet by default", async () => {
+		const share = vi.fn(async () => {});
+		vi.stubGlobal('navigator', { share });
+		const { session } = page();
+		await new Sharing(tetroid, session as never).shareSolve('Easy', 1000);
+		expect(share).toHaveBeenCalledOnce();
+	});
+
 	it('shows the text to copy by hand when copying fails', async () => {
 		const { sharing } = page();
 		await sharing.shareSolve('Easy', 1000);
 		expect(sharing.manualText).toContain('https://x.test/tetroid?id=42');
+	});
+});
+
+describe('a picture of the board', () => {
+	afterEach(() => vi.unstubAllGlobals());
+	it('draws the board on white, at its size', async () => {
+		const { drawn, revoked, canvas } = browser();
+		const { svg: board, clone } = svg();
+		expect(await screenshot(board)).toBe('data:image/png;base64,x');
+		expect(clone.setAttribute).toHaveBeenCalledWith('xmlns', 'http://www.w3.org/2000/svg');
+		expect(canvas).toMatchObject({ width: 200, height: 120 });
+		expect(drawn).toEqual([['fill', 0, 0, 200, 120], 'board']);
+		expect(revoked).toEqual(['blob:svg']);
+	});
+
+	it('gives none when the image does not load', async () => {
+		const { revoked } = browser(true);
+		expect(await screenshot(svg().svg)).toBeNull();
+		expect(revoked).toEqual(['blob:svg']);
 	});
 });

@@ -109,8 +109,9 @@ describe('measuring the page', () => {
 	it('reads where the board starts and what is below it', () => {
 		vi.stubGlobal('window', { scrollY: 50 });
 		vi.stubGlobal('getComputedStyle', () => ({ paddingBottom: '16px' }));
+		let header: HTMLElement | null = box(0, 60);
 		vi.stubGlobal('document', {
-			querySelector: () => box(0, 60),
+			querySelector: () => header,
 			body: box(0, 1200)
 		});
 		const fit = new BoardFit();
@@ -127,6 +128,13 @@ describe('measuring the page', () => {
 		expect(fit.headerGap).toBe(30);
 		// The side panel reaches 200 px below the game column.
 		expect(fit.afterBoard).toBe(300);
+
+		// Without the page's header (or before the board area is bound) the gap stays as it was.
+		header = null;
+		fit.boardArea = box(110, 710);
+		fit.measure();
+		expect(fit.boardTop).toBe(164);
+		expect(fit.headerGap).toBe(30);
 	});
 
 	it('follows the layout and the page size until stopped', () => {

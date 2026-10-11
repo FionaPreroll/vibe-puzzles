@@ -48,6 +48,7 @@ describe('tools', () => {
 		const plain = new ToolState(tetroid, false);
 		plain.set('cross');
 		plain.toggleColour();
+		plain.pick(1);
 		expect(plain.tool).toBe('cross');
 	});
 

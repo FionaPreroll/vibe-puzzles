@@ -41,7 +41,7 @@ export async function openFromAddress(
 	let opts: OpenOptions = { puzzleId: id, shared: params.get('s') ?? undefined };
 	// A link must not silently take the place of an unfinished game of its type.
 	if (id && session.replacesGame(variantKey, opts) && !(await askReplace())) {
-		variantKey = variants[decodePuzzleId(id).variantIndex]?.key ?? variantKey;
+		variantKey = variants[decodePuzzleId(id).variantIndex].key;
 		opts = {};
 	}
 	await session.open(variantKey, opts);

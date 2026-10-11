@@ -52,7 +52,7 @@ beforeEach(() => {
 	vi.stubGlobal('document', doc);
 	vi.stubGlobal('window', win);
 	vi.stubGlobal('localStorage', new MemoryStorage());
-	vi.mocked(api.pullSave).mockClear();
+	vi.mocked(api.pullSave).mockReset().mockResolvedValue(null);
 	vi.mocked(api.pushSave).mockClear();
 });
 afterEach(() => {
@@ -149,6 +149,8 @@ describe('watching the page', () => {
 		server.listener!(true);
 		await vi.waitFor(() => expect(api.pullSave).toHaveBeenCalledTimes(1));
 		expect(session.refreshFromServer).not.toHaveBeenCalled();
+		// The server has no settings of this game yet.
+		expect(settings.merge).not.toHaveBeenCalled();
 		stop();
 	});
 
