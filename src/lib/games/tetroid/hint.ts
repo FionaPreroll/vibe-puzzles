@@ -242,7 +242,7 @@ class Deduction {
 			const after = this.copy();
 			after.kill(k, TECHNIQUES.indexOf('assumption'));
 			let step = after.decidedIn(r);
-			while (step?.mark !== 'shade' && after.sweep()) step = after.decidedIn(r) ?? step;
+			while (step?.mark !== 'shade' && after.sweep()) step = after.decidedIn(r);
 			if (!step) continue;
 			const named: Step = {
 				...step,
