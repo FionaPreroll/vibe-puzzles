@@ -1,6 +1,6 @@
 import { isPlayable, periodKey } from '../core/variants';
 import { gameLogic } from '../games/logic';
-import type { SavedGame } from './session.svelte';
+import { hasProgress, type SavedGame } from './session/saves';
 import { keys, load } from './storage';
 import { parseSaveKey, SAVE_PREFIX } from './storageKeys';
 
@@ -24,10 +24,7 @@ export function latestUnfinished(now = new Date()): { gameId: string; save: Save
 		if (variant.special && period !== periodKey(variant.special, now)) continue;
 		if (!logic.isValidPuzzle(save.puzzle, variant)) continue;
 		try {
-			const started =
-				save.checkpoints?.length > 0 ||
-				JSON.stringify(save.state) !== JSON.stringify(logic.emptyState(save.puzzle));
-			if (!started) continue;
+			if (!hasProgress(logic, { ...save, solved: false })) continue;
 		} catch {
 			continue;
 		}

@@ -2,6 +2,7 @@
 	import type { AnyGame } from '../games';
 	import { t, tList, toolLabel } from '../i18n/index.svelte';
 	import Dialog from './Dialog.svelte';
+	import { modifierName, shortcutList } from './game/shortcuts';
 
 	/** The keyboard shortcuts of the game page, opened with "?". */
 	let {
@@ -17,22 +18,9 @@
 		hint: boolean;
 	} = $props();
 
-	const mod =
-		typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl';
-	const general = $derived([
-		[['Z', `${mod}+Z`], t('shortcuts.undo')],
-		[['X', 'Shift+Z', `${mod}+Y`], t('shortcuts.redo')],
-		[['Enter'], t('shortcuts.done')],
-		[['+'], t('shortcuts.newPuzzle')],
-		...(hint ? [[['H'], t('shortcuts.hint')]] : []),
-		[[`${mod}+S`], t('shortcuts.save')],
-		[[`${mod}+Shift+S`], t('shortcuts.add')],
-		[['T'], t('shortcuts.trial')],
-		[['Shift+T'], t('shortcuts.trialDrop')],
-		...(game.toolOptions && tools ? [[[']'], t('shortcuts.colourTool')]] : []),
-		[['Esc'], t('shortcuts.escape')],
-		[['?'], t('shortcuts.help')]
-	] as [string[], string][]);
+	const mod = typeof navigator !== 'undefined' ? modifierName(navigator.userAgent) : 'Ctrl';
+	/** The page's shortcuts, from the same table as the page's key handler. */
+	const general = $derived(shortcutList(mod, { hint, colourTool: !!game.toolOptions && tools }));
 	const swatchNames = $derived(tList('swatch'));
 	const switchLabel = $derived.by(() => {
 		if (!game.spaceSwitches) return '';
@@ -56,9 +44,9 @@
 <Dialog bind:open title={t('shortcuts.title')}>
 	<h3 class="section-title">{t('shortcuts.general')}</h3>
 	<dl class="mt-2 grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-1.5 text-sm">
-		{#each general as [k, what] (what)}
-			<dt>{@render keys(k)}</dt>
-			<dd>{what}</dd>
+		{#each general as s (s.action)}
+			<dt>{@render keys(s.keys)}</dt>
+			<dd>{t(s.label)}</dd>
 		{/each}
 	</dl>
 	{#if tools}

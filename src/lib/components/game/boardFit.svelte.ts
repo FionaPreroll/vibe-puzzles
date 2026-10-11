@@ -1,0 +1,102 @@
+import { afterBoard, DEFAULT_CELL, fitCellSize } from './boardFit';
+
+/** The wide layout, Tailwind's `lg`: the side panel beside the board, the play bar below it. */
+const WIDE = '(min-width: 1024px)';
+
+/**
+ * What the game page measures to fit the board on the screen. The page binds its elements and
+ * sizes to the fields; `measure` reads the rest from the layout, and `fitCell` turns it all into
+ * the automatic cell size (`boardFit.ts`).
+ */
+export class BoardFit {
+	/** Width of the board area. */
+	areaWidth = $state(0);
+	viewportHeight = $state(800);
+	/** The wide layout (side panel, play bar below the board) rather than the phone one. */
+	wide = $state(true);
+	toolbarHeight = $state(0);
+	/** Height of the play bar, ID line and buttons below the board. */
+	belowHeight = $state(0);
+	/** Height of the phones' fixed tool bar (0 where it is hidden). */
+	barHeight = $state(0);
+	/** Width of the board with its surface: the rows above and below it are no wider. */
+	stageWidth = $state(0);
+	/** The play bar below the board on wide screens; the board's stage is at least as wide. */
+	barWidth = $state(0);
+	/** Page offset of the board's top edge, without the board's own surface around it. */
+	boardTop = $state(200);
+	/** How far below the page's header the board area starts. */
+	headerGap = $state(0);
+	/** Everything on the page below the board area: tools, buttons, paddings and the footer. */
+	afterBoard = $state(120);
+
+	/** The page's root, its game column, the board area and the board's scroll container. */
+	pageRoot: HTMLElement | undefined = $state();
+	gameColumn: HTMLElement | undefined = $state();
+	areaWrap: HTMLElement | undefined = $state();
+	boardArea: HTMLElement | undefined = $state();
+
+	/** Padding of the board's surface (p-2, lg:p-3), which the board's size leaves room for. */
+	get stagePad(): number {
+		return this.wide ? 12 : 8;
+	}
+
+	/** Read the board's place on the page and what comes below it. */
+	measure() {
+		const { boardArea, pageRoot, gameColumn, areaWrap } = this;
+		if (!boardArea || !pageRoot || !gameColumn) return;
+		// The scroll container's py-1 sits above the board's surface.
+		this.boardTop = boardArea.getBoundingClientRect().top + window.scrollY + 4;
+		const header = document.querySelector('header');
+		if (areaWrap && header) {
+			this.headerGap = areaWrap.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
+		}
+		// Up to the page's end, but not where a longer side panel reaches beyond the game column.
+		const root = pageRoot.getBoundingClientRect().bottom;
+		this.afterBoard = afterBoard({
+			body: document.body.getBoundingClientRect().bottom,
+			boardArea: boardArea.getBoundingClientRect().bottom,
+			rootContent: root - parseFloat(getComputedStyle(pageRoot).paddingBottom),
+			gameColumn: gameColumn.getBoundingClientRect().bottom
+		});
+	}
+
+	/**
+	 * Follow the layout until the returned function is called: the switch between the wide and the
+	 * phone layout (`onLayout` hears it), and any change of the page's size (footer, banners).
+	 */
+	observe(onLayout: (wide: boolean) => void = () => {}): () => void {
+		const media = matchMedia(WIDE);
+		const layout = () => {
+			this.wide = media.matches;
+			onLayout(this.wide);
+		};
+		layout();
+		media.addEventListener('change', layout);
+		const observer = new ResizeObserver(() => this.measure());
+		observer.observe(document.body);
+		return () => {
+			observer.disconnect();
+			media.removeEventListener('change', layout);
+		};
+	}
+
+	/** Sizes that move the board when they change; reading them makes an effect re-measure. */
+	get layout(): number[] {
+		const { viewportHeight, wide, toolbarHeight, areaWidth, belowHeight, barHeight } = this;
+		return [viewportHeight, +wide, toolbarHeight, areaWidth, belowHeight, barHeight];
+	}
+
+	/** The automatic cell size for a grid of `width` × `height` cells. */
+	fitCell(
+		grid: { width: number; height: number } | null,
+		padRows = 0,
+		showCoordinates = false
+	): number {
+		if (!grid) return DEFAULT_CELL;
+		const { areaWidth, viewportHeight, boardTop, afterBoard, stagePad } = this;
+		const { width, height } = grid;
+		const input = { areaWidth, viewportHeight, boardTop, afterBoard, stagePad, width, height };
+		return fitCellSize({ ...input, padRows, showCoordinates });
+	}
+}

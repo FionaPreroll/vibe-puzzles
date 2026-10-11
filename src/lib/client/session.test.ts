@@ -20,7 +20,9 @@ import { MemoryStorage } from '../../test/memory-storage';
 import * as api from './api';
 import * as bank from './bank';
 import { generate } from './generate';
-import { cleanupSpecialSaves, freeSaveSpace, GameSession, MAX_CHECKPOINTS } from './session.svelte';
+import { GameSession } from './session.svelte';
+import { MAX_CHECKPOINTS } from './session/history.svelte';
+import { cleanupSpecialSaves, freeSaveSpace } from './session/saves';
 import { GameSettings } from './settings.svelte';
 import { getStats } from './stats';
 import { keys, load, save, setQuotaHandler } from './storage';
@@ -196,6 +198,29 @@ describe('opening a puzzle', () => {
 		s.flush();
 		expect(load('save:tetroid:6h', null)).toBeNull();
 		expect(load<{ puzzleId: number } | null>('save:tetroid:6n', null)?.puzzleId).toBe(ID);
+	});
+
+	it('leaves nothing of the previous game behind when another type cannot be created', async () => {
+		const s = await opened({ personalTimer: true, autoSubmit: false });
+		s.move(shaded(3), ['3']);
+		s.addCheckpoint();
+		s.showHint();
+		vi.advanceTimersByTime(1000);
+		s.setManualPause(true);
+		vi.mocked(generate).mockRejectedValueOnce(new Error('boom'));
+		await s.open('6h');
+		expect(s.puzzle).toBeNull();
+		// Not paused: the pause would cover the button that tries again.
+		expect(s.paused).toBe(false);
+		expect(s.personal(Date.now())).toBe(0);
+		expect(s).toMatchObject({ manualPause: false, playMs: 0, finalPlayMs: 0 });
+		expect(s).toMatchObject({
+			past: [],
+			checkpoints: [],
+			hint: null,
+			hints: 0,
+			lastChange: new Set()
+		});
 	});
 
 	it('opens the special puzzle of the current period', async () => {

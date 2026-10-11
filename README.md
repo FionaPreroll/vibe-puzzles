@@ -55,7 +55,9 @@ src/lib/games/<id>/      one folder per game: rules, solver, generator, logic, B
 src/lib/games/logic.ts   registry of game logic (used by the client and the server)
 src/lib/games/index.ts   registry of game modules (logic plus UI)
 src/lib/client/          browser-side storage and its keys, backup, API client, game session, generator web worker
+src/lib/client/session/  the game session's parts: saves (format, migration, housekeeping), save slot, undo history, clock, puzzle source, messages
 src/lib/components/      game shell, tutorial and dialogs
+src/lib/components/game/ the game page's parts: board fit, shortcuts, tools, sharing, page lifecycle, and the components around the board
 src/lib/i18n/            translations (en.ts is the reference, de.ts must have the same keys)
 src/service-worker/      offline cache
 src/routes/              pages: home, games, statistics (scores), player, about
