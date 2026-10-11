@@ -37,7 +37,8 @@
 		ontool,
 		onmove,
 		spotlight,
-		area
+		area,
+		trial
 	}: BoardProps<SudokuPuzzle, SudokuState, SudokuSettingKey> = $props();
 
 	const size = $derived(puzzle.width);
@@ -149,7 +150,7 @@
 	function textColour(i: number): string {
 		if (puzzle.givens[i]) return colours.ink;
 		if ((settings.highlightErrors && clashes[i]) || wrong?.[i]) return errorColour;
-		return colours.entered;
+		return trial?.has(String(i)) ? colours.trial : colours.entered;
 	}
 
 	// ---- Input --------------------------------------------------------------------------------
@@ -307,7 +308,7 @@
 				<g
 					class="notes"
 					font-size={noteFont}
-					fill={colours.label}
+					fill={trial?.has(String(i)) ? colours.trial : colours.label}
 					text-anchor="middle"
 					dominant-baseline="central"
 				>

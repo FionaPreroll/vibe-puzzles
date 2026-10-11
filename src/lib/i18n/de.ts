@@ -105,6 +105,14 @@ const de: Dictionary = {
 		redo: 'Wiederholen',
 		undoShort: 'Zurück',
 		redoShort: 'Vor',
+		trial: 'Probe',
+		trialTitle:
+			'Etwas ausprobieren (T): Was du ab jetzt setzt, erscheint türkis, bis du es behältst oder zurückgehst.',
+		trialKeep: 'Behalten',
+		trialKeepTitle: 'Probe übernehmen (T): Ihre Züge bleiben.',
+		trialDrop: 'Verwerfen',
+		trialDropTitle: 'Probe verwerfen (Umschalt+T): zurück zum Stand vor der Probe.',
+		trialRunning: 'Probe: neue Züge sind türkis',
 		hint: 'Tipp',
 		hintTitle:
 			'Tipp (H): zeigt den nächsten Schritt. Danach zählt das Rätsel nicht für Bestzeit und Rangliste.',
@@ -164,6 +172,8 @@ const de: Dictionary = {
 		done: 'Lösung prüfen',
 		save: 'Zwischenstand speichern',
 		add: 'Neuen Zwischenstand anlegen',
+		trial: 'Probe starten oder übernehmen',
+		trialDrop: 'Probe verwerfen',
 		colourTool: 'Farbwerkzeug und zurück',
 		space: 'Leertaste',
 		switchTools: 'Zwischen {a} und {b} wechseln',

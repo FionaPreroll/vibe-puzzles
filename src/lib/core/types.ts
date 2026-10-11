@@ -66,6 +66,8 @@ export interface BoardProps<P, S, K extends string = never> {
 	spotlight?: ReadonlySet<string>;
 	/** Elements a hint's reasoning rests on (a region, a cage, a row), tinted more softly. */
 	area?: ReadonlySet<string>;
+	/** Elements changed since a trial began, in `lastChange` keys: drawn in the trial colour. */
+	trial?: ReadonlySet<string>;
 }
 
 /** What the boards read of a browser `KeyboardEvent` (this file has no DOM types: the server uses it). */
@@ -212,4 +214,6 @@ export interface GameModule<
 	modeTutorials?: Record<string, GameTutorial<P, S>>;
 	/** The next step from the player's position, or null when there is none (solved). */
 	hint?(puzzle: P, state: S): Hint | null;
+	/** Elements that differ between two states, in the board's `lastChange` keys. */
+	changes(puzzle: P, from: S, to: S): string[];
 }

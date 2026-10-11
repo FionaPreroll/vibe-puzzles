@@ -1,3 +1,4 @@
+import { changedCells } from '../../core/changes';
 import type { GameModule } from '../../core/types';
 import { SUDOKU_SETTINGS, type SudokuSettingKey } from './settings';
 import Board from './Board.svelte';
@@ -25,6 +26,9 @@ export const sudoku: GameModule<SudokuPuzzle, SudokuState, SudokuSettingKey> = {
 		calc: { puzzle: CALC_TUTORIAL, start: emptySudokuState, steps: CALC_TUTORIAL_STEPS }
 	},
 	board: Board,
+	changes: (_, from, to) => [
+		...new Set([...changedCells(from.values, to.values), ...changedCells(from.notes, to.notes)])
+	],
 	padRows: 1.2,
 	hint(puzzle, state) {
 		const { width: size, height, cages } = puzzle;

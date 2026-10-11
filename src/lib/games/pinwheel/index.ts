@@ -1,4 +1,5 @@
 import { PINWHEEL_TUTORIAL, PINWHEEL_TUTORIAL_STEPS } from './tutorial';
+import { changedCells, changedEdges } from '../../core/changes';
 import type { GameModule } from '../../core/types';
 import { PINWHEEL_SETTINGS, type PinwheelSettingKey } from './settings';
 import Board, { NOTE_COLOURS } from './Board.svelte';
@@ -37,6 +38,11 @@ export const pinwheel: GameModule<PinwheelPuzzle, PinwheelState, PinwheelSetting
 		steps: PINWHEEL_TUTORIAL_STEPS
 	},
 	board: Board,
+	changes: (puzzle, from, to) => [
+		...changedEdges(puzzle.width, from, to),
+		...changedCells(from.colors, to.colors, 'c:'),
+		...changedCells(from.locks, to.locks, 'g:')
+	],
 	hint(puzzle, state) {
 		const hint = pinwheelHint(puzzle, state);
 		if (!hint) return null;

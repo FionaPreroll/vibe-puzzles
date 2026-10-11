@@ -61,7 +61,8 @@
 		touchMode,
 		onmove,
 		spotlight,
-		area
+		area,
+		trial
 	}: BoardProps<PinwheelPuzzle, PinwheelState, PinwheelSettingKey> = $props();
 
 	type Edge = { kind: 'h' | 'v'; i: number; j: number };
@@ -569,7 +570,15 @@
 		{#each shown.colors as _, i (i)}
 			{@const fill = cellFill(i)}
 			{#if fill !== 'transparent'}
-				<rect x={px(i % w)} y={py(Math.floor(i / w))} width={cellSize} height={cellSize} {fill} />
+				<!-- Painted during a trial: paler, until the trial is kept -->
+				<rect
+					x={px(i % w)}
+					y={py(Math.floor(i / w))}
+					width={cellSize}
+					height={cellSize}
+					{fill}
+					fill-opacity={trial?.has(`c:${i}`) ? 0.45 : undefined}
+				/>
 			{/if}
 		{/each}
 	{/if}
@@ -600,8 +609,9 @@
 			{#if value === LINE}
 				<path
 					data-line={key}
+					data-trial={trial?.has(key) || undefined}
 					d={edgePath(e)}
-					stroke={frozen.has(key) ? colours.faint : colours.line}
+					stroke={trial?.has(key) ? colours.trial : frozen.has(key) ? colours.faint : colours.line}
 					stroke-width={lineWidth}
 					stroke-linecap="round"
 				/>
@@ -610,7 +620,7 @@
 				{@const s = cellSize * 0.1}
 				<path
 					d="M{m.x - s} {m.y - s}l{2 * s} {2 * s}m0 {-2 * s}l{-2 * s} {2 * s}"
-					stroke={colours.cross}
+					stroke={trial?.has(key) ? colours.trial : colours.cross}
 					stroke-width="1.8"
 					stroke-linecap="round"
 				/>
@@ -722,7 +732,9 @@
 		{@const outline =
 			!blank && settings.highlightLastChange && lastChange.has(`g:${k}`)
 				? colours.recent
-				: colours.line}
+				: trial?.has(`g:${k}`)
+					? colours.trial
+					: colours.line}
 		{#if pumpkins}
 			{@const body = pumpkinBody(k)}
 			{@const lit = pumpkinLit(k)}

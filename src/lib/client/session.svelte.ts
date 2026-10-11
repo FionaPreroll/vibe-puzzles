@@ -42,6 +42,8 @@ export interface SavedGame<S = unknown> {
 	hints?: number;
 	/** A setting that counts as a hint was on during the game; it is one of `hints`. */
 	assisted?: boolean;
+	/** The position a running trial began from (see `GameSession.trial`). */
+	trial?: S;
 }
 
 export interface Message {
@@ -74,6 +76,11 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	future = $state.raw<S[]>([]);
 	checkpoints = $state.raw<S[]>([]);
 	currentCheckpoint = $state(-1);
+	/**
+	 * The position a trial began from, while one runs: the board draws what changed since in the
+	 * trial colour, until the player keeps the trial or goes back to this position.
+	 */
+	trial = $state.raw<S | null>(null);
 	lastChange = $state.raw<ReadonlySet<string>>(new Set());
 	/** The hint on the board, until the next change. */
 	hint = $state.raw<Hint | null>(null);
@@ -265,6 +272,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.future = [];
 		this.checkpoints = [];
 		this.currentCheckpoint = -1;
+		this.trial = null;
 		this.lastChange = new Set();
 		this.hint = null;
 		this.hints = 0;
@@ -342,6 +350,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.checkpoints = checkpoints.filter((c) => this.game.isValidState(puzzle, c));
 		const current = Number.isInteger(s.currentCheckpoint) ? s.currentCheckpoint : -1;
 		this.currentCheckpoint = Math.max(-1, Math.min(current, this.checkpoints.length - 1));
+		this.trial = this.game.isValidState(puzzle, s.trial) ? s.trial : null;
 		this.lastChange = new Set();
 		this.hint = null;
 		this.hints = Number.isInteger(s.hints) && s.hints! >= 0 ? s.hints! : s.hinted ? 1 : 0;
@@ -365,6 +374,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.future = [];
 		this.checkpoints = [];
 		this.currentCheckpoint = -1;
+		this.trial = null;
 		this.lastChange = new Set();
 		this.hint = null;
 		this.hints = 0;
@@ -533,6 +543,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.state = this.game.emptyState(this.puzzle);
 		this.past = [];
 		this.future = [];
+		this.trial = null;
 		this.lastChange = new Set();
 		this.dismissHint();
 		this.solved = false;
@@ -600,6 +611,46 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		if (!this.hint) return;
 		this.hint = null;
 		this.message = null;
+	}
+
+	// ---- Trials -----------------------------------------------------------------------------
+
+	/** Try something out: what changes from here on shows in the trial colour. */
+	startTrial() {
+		if (this.readonly || !this.state || this.trial) return;
+		this.trial = this.state;
+		this.persist();
+	}
+
+	/** The trial worked out: its marks stay and look like any other. */
+	keepTrial() {
+		if (!this.trial || this.readonly) return;
+		this.trial = null;
+		this.persist();
+	}
+
+	/**
+	 * The trial went wrong: back to where it began. Its moves leave the history, so that undo does
+	 * not bring them back without their colour; a position no longer in it is an undoable step.
+	 */
+	dropTrial() {
+		const base = this.trial;
+		if (!base || this.readonly) return;
+		this.trial = null;
+		const text = JSON.stringify(base);
+		if (JSON.stringify(this.state) !== text) {
+			const at = this.past.findLastIndex((s) => JSON.stringify(s) === text);
+			if (at < 0) this.replace(base);
+			else {
+				this.past = this.past.slice(0, at);
+				this.future = [];
+				this.state = base;
+				this.lastChange = new Set();
+				this.dismissHint();
+				this.touched = true;
+			}
+		}
+		this.persist();
 	}
 
 	// ---- Checkpoints ------------------------------------------------------------------------
@@ -703,6 +754,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.finalMs = now - this.startedAt;
 		this.finalPlayMs = this.playMs;
 		this.solved = true;
+		// A trial that solves the puzzle was right.
+		this.trial = null;
 		const competitive = !this.settings.values.personalTimer;
 		const shown = competitive ? this.finalMs : this.finalPlayMs;
 		recordSolve(
@@ -829,7 +882,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			updatedAt: this.changedAt,
 			...(this.ticket ? { ticket: this.ticket } : {}),
 			...(this.hints ? { hinted: true, hints: this.hints } : {}),
-			...(this.assisted ? { assisted: true } : {})
+			...(this.assisted ? { assisted: true } : {}),
+			...(this.trial ? { trial: this.trial } : {})
 		};
 		if (save(this.saveKey, data)) this.storedAt = data.updatedAt;
 		if (this.pushTimer) clearTimeout(this.pushTimer);

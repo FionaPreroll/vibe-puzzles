@@ -1,4 +1,5 @@
 import { TETROID_TUTORIAL, TETROID_TUTORIAL_STEPS, tetroidTutorialStart } from './tutorial';
+import { changedCells } from '../../core/changes';
 import type { GameModule } from '../../core/types';
 import { TETROID_SETTINGS, type TetroidSettingKey } from './settings';
 import Board from './Board.svelte';
@@ -24,6 +25,7 @@ export const tetroid: GameModule<TetroidPuzzle, TetroidState, TetroidSettingKey>
 		steps: TETROID_TUTORIAL_STEPS
 	},
 	board: Board,
+	changes: (_, from, to) => changedCells(from.marks, to.marks),
 	hint(puzzle, state) {
 		const hint = tetroidHint(puzzle, state);
 		if (!hint) return null;

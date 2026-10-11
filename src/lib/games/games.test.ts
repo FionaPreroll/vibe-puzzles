@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GameModule } from '../core/types';
+import type { BasePuzzle, GameModule } from '../core/types';
 import de from '../i18n/de';
 import en from '../i18n/en';
 import { GAMES, gameById } from './index';
@@ -102,6 +102,60 @@ describe.each(GAMES.map((g) => [g.id, g] as [string, GameModule]))('%s', (id, ga
 			}
 		}
 	);
+});
+
+describe('changes since a trial began', () => {
+	const game = <P, S>(id: string) => gameById(id) as unknown as GameModule<BasePuzzle & P, S>;
+	const first = (id: string) => {
+		const g = game(id);
+		const puzzle = g.generate(g.variants[0], 7);
+		return { g, puzzle, empty: g.emptyState(puzzle) };
+	};
+
+	it('are none between a state and itself', () => {
+		for (const { id } of GAMES) {
+			const { g, puzzle, empty } = first(id);
+			expect(g.changes(puzzle, empty, empty), id).toEqual([]);
+		}
+	});
+
+	it('name the edges, cells and centres in the keys of the board', () => {
+		const loop = first('loop') as ReturnType<typeof first> & {
+			empty: { h: number[]; v: number[] };
+		};
+		const lines = structuredClone(loop.empty);
+		lines.h[1] = 1;
+		expect(loop.g.changes(loop.puzzle, loop.empty, lines)).toEqual(['h:0:1']);
+
+		type Pin = { h: number[]; v: number[]; colors: number[]; locks: number[] };
+		const pin = first('pinwheel');
+		const from = pin.empty as Pin;
+		const to = structuredClone(from);
+		to.v[1] = 2;
+		to.colors[3] = 2;
+		to.locks[0] = 1;
+		expect(pin.g.changes(pin.puzzle, from, to)).toEqual(['v:0:1', 'c:3', 'g:0']);
+
+		type Sud = { values: number[]; notes: number[] };
+		const sud = first('sudoku');
+		const cells = (sud.puzzle as unknown as { givens: number[] }).givens.flatMap((d, i) =>
+			d ? [] : [i]
+		);
+		const digits = structuredClone(sud.empty as Sud);
+		digits.values[cells[0]] = 1;
+		digits.notes[cells[0]] = 6;
+		digits.notes[cells[1]] = 1;
+		expect(sud.g.changes(sud.puzzle, sud.empty, digits)).toEqual([
+			String(cells[0]),
+			String(cells[1])
+		]);
+
+		const tet = first('tetroid');
+		const marks = structuredClone(tet.empty as { marks: number[]; auto: number[] });
+		marks.marks[2] = 1;
+		marks.auto[4] = 1;
+		expect(tet.g.changes(tet.puzzle, tet.empty, marks)).toEqual(['2']);
+	});
 });
 
 describe('tutorials', () => {

@@ -535,6 +535,11 @@
 		} else if ((e.key === '=' || e.key === '+') && !mod && !e.altKey) {
 			e.preventDefault();
 			newPuzzle();
+		} else if (key === 't' && !mod && !e.altKey) {
+			e.preventDefault();
+			if (e.shiftKey) session.dropTrial();
+			else if (session.trial) session.keepTrial();
+			else session.startTrial();
 		} else if (key === 'h' && !mod && !e.altKey && session.canHint) {
 			e.preventDefault();
 			session.showHint();
@@ -589,6 +594,12 @@
 		session.hint && session.hintFull ? new Set(session.hint.spotlight) : undefined
 	);
 	const hintArea = $derived(session.hint?.area ? new Set(session.hint.area) : undefined);
+	/** What changed since a running trial began, drawn in the trial colour. */
+	const trialMarks = $derived(
+		session.trial && session.puzzle && session.state
+			? new Set(game.changes(session.puzzle, session.trial, session.state))
+			: undefined
+	);
 	/** The hint shows only where to look: the message offers the step itself. */
 	const teaser = $derived(!!session.hint && !session.hintFull);
 	// Turning hints off in the settings also takes a hint on the board away.
@@ -687,6 +698,25 @@
 			/>
 		</svg>{t('game.redoShort')}
 	</HoldButton>
+	<!-- A trial: pressed while one runs, and then it keeps it (see `trialRow`) -->
+	<button
+		class="play-btn {session.trial ? 'play-btn-trial' : ''}"
+		onclick={() => (session.trial ? session.keepTrial() : session.startTrial())}
+		disabled={session.readonly}
+		aria-pressed={!!session.trial}
+		title={t(session.trial ? 'game.trialKeepTitle' : 'game.trialTitle')}
+	>
+		<svg viewBox="0 0 24 24" class="size-5" aria-hidden="true">
+			<path
+				d="M9.5 3.5h5M10.5 3.5v6L5.2 18.2A1.5 1.5 0 0 0 6.5 20.5h11a1.5 1.5 0 0 0 1.3-2.3L13.5 9.5v-6M7.5 15h9"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.8"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			/>
+		</svg>{t('game.trial')}
+	</button>
 	{#if showTools}
 		<span class="play-sep" aria-hidden="true"></span>
 		<div class="flex flex-[999] lg:gap-0.5" role="toolbar" aria-label={t('game.tools')}>
@@ -713,6 +743,48 @@
 				/>
 			</svg>{t('game.hint')}
 		</button>
+	{/if}
+{/snippet}
+
+<!-- While a trial runs: what it means, and the way out either way -->
+{#snippet trialRow()}
+	{#if session.trial && !session.solved}
+		<div class="trial-row" role="group" aria-label={t('game.trialRunning')}>
+			<span class="px-1">{t('game.trialRunning')}</span>
+			<button
+				class="trial-btn"
+				onclick={() => session.keepTrial()}
+				disabled={session.readonly}
+				title={t('game.trialKeepTitle')}
+			>
+				<svg viewBox="0 0 24 24" class="size-4" aria-hidden="true">
+					<path
+						d="m5 12.5 4.5 4.5L19 7.5"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+				</svg>{t('game.trialKeep')}
+			</button>
+			<button
+				class="trial-btn"
+				onclick={() => session.dropTrial()}
+				disabled={session.readonly}
+				title={t('game.trialDropTitle')}
+			>
+				<svg viewBox="0 0 24 24" class="size-4" aria-hidden="true">
+					<path
+						d="M6.5 6.5l11 11m0-11-11 11"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.2"
+						stroke-linecap="round"
+					/>
+				</svg>{t('game.trialDrop')}
+			</button>
+		</div>
 	{/if}
 {/snippet}
 
@@ -1055,6 +1127,7 @@
 								lastChange={session.lastChange}
 								spotlight={hintSpotlight}
 								area={hintArea}
+								trial={trialMarks}
 								keys={keys.attach}
 								ontool={showTools ? setTool : undefined}
 								{celebrate}
@@ -1151,6 +1224,7 @@
 					{@render playButtons()}
 				</div>
 				{@render swatchRow()}
+				{@render trialRow()}
 			</div>
 			<!-- Phones: the play bar fixed at the bottom, in reach of the thumb -->
 			<div
@@ -1159,6 +1233,9 @@
 			>
 				{#if game.toolOptions && showSwatches}
 					<div class="mb-1.5 flex justify-center">{@render swatchRow()}</div>
+				{/if}
+				{#if session.trial && !session.solved}
+					<div class="mb-1.5 flex justify-center">{@render trialRow()}</div>
 				{/if}
 				<div class="mx-auto flex max-w-md items-center">{@render playButtons()}</div>
 			</div>

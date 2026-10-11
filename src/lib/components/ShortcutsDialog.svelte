@@ -27,6 +27,8 @@
 		...(hint ? [[['H'], t('shortcuts.hint')]] : []),
 		[[`${mod}+S`], t('shortcuts.save')],
 		[[`${mod}+Shift+S`], t('shortcuts.add')],
+		[['T'], t('shortcuts.trial')],
+		[['Shift+T'], t('shortcuts.trialDrop')],
 		...(game.toolOptions && tools ? [[[']'], t('shortcuts.colourTool')]] : []),
 		[['Esc'], t('shortcuts.escape')],
 		[['?'], t('shortcuts.help')]
