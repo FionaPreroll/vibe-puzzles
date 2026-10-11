@@ -125,8 +125,26 @@ describe('tetroid hints', () => {
 		expect(hint.region).not.toBe(2);
 	});
 
+	it('deduce on after a failed assumption until cells to shade follow', () => {
+		// 6×6 Hard #2: the first placement that fails, ruled out, leaves only cells that stay empty
+		// at once; the rules that follow from there decide cells to shade.
+		const { puzzle } = generateTetroid(6, 6, 'hard', 2);
+		const answer = solveTetroid(puzzle).solutions[0];
+		const state = empty(puzzle);
+		let hint = tetroidHint(puzzle, state);
+		while (hint?.kind === 'step' && hint.technique !== 'assumption') {
+			for (const i of hint.cells) state.marks[i] = hint.mark === 'shade' ? SHADED : CROSS;
+			hint = tetroidHint(puzzle, state);
+		}
+		expect(hint).toMatchObject({ kind: 'step', technique: 'assumption', mark: 'shade' });
+		if (hint?.kind !== 'step') return;
+		for (const i of hint.cells) expect(answer[i]).toBe(1);
+		expect(hint.assumed!.every((i) => answer[i])).toBe(false);
+		expect(hint.assumed!.every((i) => puzzle.regions[i] === hint.region)).toBe(true);
+	});
+
 	it.each([1, 2, 3])(
-		'lead through hard puzzles with assumptions that fail, and never cross for nothing (#%i)',
+		'lead through hard puzzles with assumptions that fail, shading all the way (#%i)',
 		(seed) => {
 			const { puzzle } = generateTetroid(6, 6, 'hard', seed);
 			const answer = solveTetroid(puzzle).solutions[0];
@@ -134,6 +152,7 @@ describe('tetroid hints', () => {
 			let assumptions = 0;
 			const last = follow(puzzle, state, (h) => {
 				if (h.kind !== 'step') return;
+				expect(h.mark).toBe('shade');
 				for (const i of h.cells) expect(answer[i]).toBe(h.mark === 'shade' ? 1 : 0);
 				if (h.technique === 'assumption') {
 					assumptions++;
