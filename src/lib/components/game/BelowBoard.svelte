@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { AnySession } from '../../client/session.svelte';
 	import type { Settings } from '../../core/types';
+	import type { SpecialKind } from '../../core/variants';
 	import type { AnyGame } from '../../games';
 	import ActionRow from './ActionRow.svelte';
 	import type { BoardFit } from './boardFit.svelte';
@@ -23,6 +24,7 @@
 		tools,
 		showTools,
 		shared,
+		newPeriod,
 		newBusy,
 		share,
 		onnew,
@@ -39,6 +41,8 @@
 		showTools: boolean;
 		/** The solve was shared: the next puzzle is the way on. */
 		shared: boolean;
+		/** The special puzzle's period is over: "New puzzle" opens the current one. */
+		newPeriod: SpecialKind | null;
 		newBusy: boolean;
 		/** The board shared as a link and a picture, while the panel is open. */
 		share: { link: string; image: string | null } | null;
@@ -90,6 +94,7 @@
 		{session}
 		autoSubmit={settings.autoSubmit}
 		{shared}
+		{newPeriod}
 		{newBusy}
 		{onnew}
 		{onsharesolve}

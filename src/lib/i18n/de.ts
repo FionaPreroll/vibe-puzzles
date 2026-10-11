@@ -145,6 +145,16 @@ const de: Dictionary = {
 		more: 'Weitere Aktionen',
 		share: 'Spielstand teilen',
 		newPuzzle: 'Neues Rätsel',
+		currentPeriod: {
+			daily: 'Heutiges Rätsel',
+			weekly: 'Rätsel dieser Woche',
+			monthly: 'Rätsel dieses Monats'
+		},
+		newPeriod: {
+			daily: 'Das neue Tagesrätsel ist da. Dieses ist von gestern.',
+			weekly: 'Das Rätsel der neuen Woche ist da. Dieses ist von letzter Woche.',
+			monthly: 'Das Rätsel des neuen Monats ist da. Dieses ist vom letzten Monat.'
+		},
 		shareLink: 'Link zu deinem Spielstand:',
 		screenshot: 'Bildschirmfoto (PNG)',
 		closeShare: 'Teilen schließen',

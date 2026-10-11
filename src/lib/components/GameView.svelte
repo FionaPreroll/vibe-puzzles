@@ -59,6 +59,19 @@
 	const celebrate = new CelebrationTimer();
 
 	const variant = $derived(session.variant);
+	/** The special puzzle on the board is from a period that is over: a new one is out. */
+	const newPeriod = $derived(session.periodOver(now));
+	// Said once per game on the board, when it happens (e.g. at midnight UTC for the daily).
+	let periodNoted = '';
+	$effect(() => {
+		const kind = newPeriod;
+		if (!kind) return;
+		untrack(() => {
+			if (periodNoted === session.slot) return;
+			periodNoted = session.slot;
+			session.message = message('info', () => t(`game.newPeriod.${kind}`));
+		});
+	});
 	const label = $derived(variantLabel(variant));
 	const showTools = $derived(!settings.values.hideControls);
 	const clock = $derived(
@@ -286,6 +299,7 @@
 			{tools}
 			{showTools}
 			shared={sharing.solveShared}
+			{newPeriod}
 			{newBusy}
 			share={sharing.board}
 			onnew={newPuzzle}
