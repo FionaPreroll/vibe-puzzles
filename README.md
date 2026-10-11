@@ -25,7 +25,7 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4. The optional se
 
   - **Sudoku and Calcudoku**: a digit and why it goes there.
 
-  - **Pinwheel**: edges that need a line. On hard puzzles, where no rule decides an edge, the hint tries a region for a cell and shows that it fails.
+  - **Pinwheel**: edges that need a line, with the cells known to belong to their region tinted. The hint deduces on past edges that would only get a cross (two cells of one region) until a line follows, and names crosses only where none does. On hard puzzles, where no rule decides an edge, the hint tries a region for a cell and shows that it fails.
 
   - **Loop**: edges that get a line or a cross, and why. Rarely, the hint tries an edge and names what breaks.
 

@@ -107,12 +107,22 @@ class Deduction {
 		});
 	}
 
+	/**
+	 * Lines first: they are what solves the puzzle, while crosses only join cells the player can
+	 * leave apart. So deduce on past edges that only get a cross, and name them only when no line
+	 * follows, not even from an assumption.
+	 */
 	next(): PinwheelHint {
+		let cross: Step | null = null;
 		for (;;) {
 			const step = this.decided();
-			if (step) return step;
-			if (!this.sweep()) return this.assume() ?? this.stuck();
+			if (step?.mark === 'line') return step;
+			cross ??= step;
+			if (!this.sweep()) break;
 		}
+		const tried = this.assume();
+		if (tried?.mark === 'line') return tried;
+		return cross ?? tried ?? this.stuck();
 	}
 
 	/** Rules out galaxies with the simplest deduction that rules out any; whether it did. */
@@ -135,9 +145,10 @@ class Deduction {
 	}
 
 	/**
-	 * No deduction decides an edge: try the galaxies left for the cells with the fewest options. A
+	 * No deduction decides a line: try the galaxies left for the cells with the fewest options. A
 	 * galaxy that leads to a contradiction is ruled out for the cell (and so for its mirror);
-	 * named is the first one after which edges follow, with the cell and its mirror.
+	 * named is the first one after which a line follows, with the cell and its mirror, else the
+	 * first after which crosses do.
 	 */
 	private assume(): Step | null {
 		const { n, g, p } = this;
@@ -147,6 +158,7 @@ class Deduction {
 			.sort((a, b) => this.options(a) - this.options(b))
 			.flatMap((c) => centres.filter((k) => this.has(c, k)).map((k) => [c, k]))
 			.slice(0, MAX_TRIALS);
+		let cross: Step | null = null;
 		for (const [c, k] of trials) {
 			const trial = this.copy();
 			for (let o = 0; o < g; o++) if (o !== k) trial.remove(c, o, 0);
@@ -154,12 +166,17 @@ class Deduction {
 			const after = this.copy();
 			after.remove(c, k, TECHNIQUES.indexOf('assumption'));
 			let step = after.decided();
-			while (!step && after.sweep()) step = after.decided();
+			while (step?.mark !== 'line' && after.sweep()) step = after.decided() ?? step;
 			if (!step) continue;
-			const area = [c, mirrorCell(p, c, p.centres[k])];
-			return { ...step, technique: 'assumption', area };
+			const named: Step = {
+				...step,
+				technique: 'assumption',
+				area: [c, mirrorCell(p, c, p.centres[k])]
+			};
+			if (step.mark === 'line') return named;
+			cross ??= named;
 		}
-		return null;
+		return cross;
 	}
 
 	private has(c: number, k: number) {

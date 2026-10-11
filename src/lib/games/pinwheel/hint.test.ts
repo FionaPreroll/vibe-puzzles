@@ -8,6 +8,7 @@ import {
 	CROSS,
 	emptyPinwheelState,
 	hIndex,
+	isSolvedState,
 	LINE,
 	linesFromAssignment,
 	vIndex,
@@ -95,6 +96,7 @@ describe('pinwheel hints', () => {
 			const last = follow(puzzle, emptyPinwheelState(puzzle), (h) => {
 				if (h.kind !== 'step') return;
 				techniques.add(h.technique);
+				expect(h.mark).toBe('line');
 				expect(h.area.length).toBeGreaterThan(0);
 				for (const e of h.edges) {
 					const [a, b] = sides(puzzle, e);
@@ -105,6 +107,34 @@ describe('pinwheel hints', () => {
 		}
 		expect([...techniques].sort()).toEqual(TECHNIQUES.filter((t) => t !== 'assumption').sort());
 	});
+
+	it.each([
+		[7, 'hard', 1],
+		[10, 'normal', 1],
+		[10, 'hard', 1],
+		[10, 'hard', 2],
+		[15, 'hard', 1]
+	] as const)(
+		'take a player who never sets a cross to the solution, one line hint after another (%i %s #%i)',
+		(size, difficulty, seed) => {
+			const { puzzle } = generatePinwheel(size, size, difficulty, seed);
+			const solution = solvePinwheel(puzzle).solutions[0];
+			const state = emptyPinwheelState(puzzle);
+			for (let k = 0; k < 1000; k++) {
+				const hint = pinwheelHint(puzzle, state);
+				if (!hint) break;
+				// A cross would ask the player for a mark they do without: the hint would repeat.
+				expect(hint).toMatchObject({ kind: 'step', mark: 'line' });
+				if (hint.kind !== 'step') return;
+				for (const e of hint.edges) {
+					const [a, b] = sides(puzzle, e);
+					expect(solution[a]).not.toBe(solution[b]);
+					mark(puzzle, state, e, LINE);
+				}
+			}
+			expect(isSolvedState(puzzle, state)).toBe(true);
+		}
+	);
 
 	it('start with lines the centres alone decide', () => {
 		expect(pinwheelHint(example, emptyPinwheelState(example))).toMatchObject({
@@ -136,6 +166,7 @@ describe('pinwheel hints', () => {
 		let assumptions = 0;
 		const last = follow(puzzle, state, (h) => {
 			if (h.kind !== 'step') return;
+			expect(h.mark).toBe('line');
 			for (const e of h.edges) {
 				const [a, b] = sides(puzzle, e);
 				expect(solution[a] === solution[b]).toBe(h.mark === 'cross');
