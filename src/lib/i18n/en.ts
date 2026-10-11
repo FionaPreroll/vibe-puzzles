@@ -146,6 +146,16 @@ const en = {
 		more: 'More actions',
 		share: 'Share board',
 		newPuzzle: 'New puzzle',
+		currentPeriod: {
+			daily: "Today's puzzle",
+			weekly: "This week's puzzle",
+			monthly: "This month's puzzle"
+		},
+		newPeriod: {
+			daily: 'The new daily puzzle is out. This one is from yesterday.',
+			weekly: "The new week's puzzle is out. This one is from last week.",
+			monthly: "The new month's puzzle is out. This one is from last month."
+		},
 		shareLink: 'Link to your progress:',
 		screenshot: 'Screenshot (PNG)',
 		closeShare: 'Close share panel',

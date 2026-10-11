@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { trapFocus } from '../../client/focus';
 	import type { AnySession } from '../../client/session.svelte';
+	import type { SpecialKind } from '../../core/variants';
 	import { t } from '../../i18n/index.svelte';
 	import HalloweenCandle from '../halloween/Candle.svelte';
 	import HalloweenPumpkin from '../halloween/Pumpkin.svelte';
@@ -8,13 +9,15 @@
 	/**
 	 * The puzzle's ID on a line of its own, then at most three buttons: one stands out only when it
 	 * is the way on ("Done" without automatic submitting, "Share success" once solved, then "New
-	 * puzzle" once the solve is shared). On one line, the buttons that come with solving would wrap
+	 * puzzle" once the solve is shared, or as "Today's puzzle" once the daily puzzle on the board is
+	 * yesterday's). On one line, the buttons that come with solving would wrap
 	 * them and shrink the board. "More" holds sharing the board, printing and starting over.
 	 */
 	let {
 		session,
 		autoSubmit,
 		shared,
+		newPeriod,
 		newBusy,
 		onnew,
 		onsharesolve,
@@ -25,6 +28,8 @@
 		autoSubmit: boolean;
 		/** The solve was shared: the next puzzle is the way on. */
 		shared: boolean;
+		/** The special puzzle's period is over: "New puzzle" opens the current one. */
+		newPeriod: SpecialKind | null;
 		/** "New puzzle" is busy (asking or loading). */
 		newBusy: boolean;
 		onnew: () => void;
@@ -34,6 +39,9 @@
 	} = $props();
 
 	let moreOpen = $state(false);
+
+	/** "New puzzle" is the way on: after sharing the solve, or once a newer special is out. */
+	const nextUp = $derived(shared || !!newPeriod);
 
 	/** Close the menu, then do what was picked. */
 	const pick = (action: () => void) => () => ((moreOpen = false), action());
@@ -65,14 +73,15 @@
 		{/if}
 		{#if session.solved && session.puzzleId}
 			<button
-				class="btn max-lg:min-h-11 {shared ? '' : 'btn-primary next-up'}"
+				class="btn max-lg:min-h-11 {nextUp ? '' : 'btn-primary next-up'}"
 				onclick={onsharesolve}>{t('game.shareSolve')}</button
 			>
 		{/if}
 		<button
-			class="btn max-lg:min-h-11 {shared ? 'btn-primary next-up' : ''}"
+			class="btn max-lg:min-h-11 {nextUp ? 'btn-primary next-up' : ''}"
 			onclick={onnew}
-			disabled={newBusy || session.loading}>{t('game.newPuzzle')}</button
+			disabled={newBusy || session.loading}
+			>{newPeriod ? t(`game.currentPeriod.${newPeriod}`) : t('game.newPuzzle')}</button
 		>
 		<div class="relative">
 			<button

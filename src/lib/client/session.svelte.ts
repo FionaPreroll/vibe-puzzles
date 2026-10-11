@@ -7,6 +7,7 @@ import {
 	periodKey,
 	regularCounterpart,
 	specialSeed,
+	type SpecialKind,
 	type Variant
 } from '../core/variants';
 import { t } from '../i18n/index.svelte';
@@ -397,14 +398,26 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	}
 
 	/**
+	 * The kind of special puzzle whose period has ended since it was opened (the daily puzzle
+	 * after midnight UTC, …), so that a new one is out; null for any other game.
+	 */
+	periodOver(now = Date.now()): SpecialKind | null {
+		const kind = this.variant.special;
+		if (!kind || !this.period || this.loading) return null;
+		return this.period === periodKey(kind, new Date(now)) ? null : kind;
+	}
+
+	/**
 	 * Start the next puzzle. A special type keeps its game: an older one leads back to the
-	 * current period, the current one on to the regular type of the same size and difficulty.
+	 * current period (also once the period on the board is over), the current one on to the
+	 * regular type of the same size and difficulty.
 	 */
 	async newPuzzle() {
 		if (this.loading) return;
 		const v = this.variant;
 		if (v.special) {
-			await this.open(this.period ? regularCounterpart(this.game.variants, v).key : v.key);
+			const current = this.period && !this.periodOver();
+			await this.open(current ? regularCounterpart(this.game.variants, v).key : v.key);
 			return;
 		}
 		if (!this.solved && this.past.length > 0) breakStreak(this.game.id, v.key);

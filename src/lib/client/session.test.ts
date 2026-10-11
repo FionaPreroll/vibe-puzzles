@@ -1458,3 +1458,24 @@ describe('the current special puzzle', () => {
 		expect(keys('save:')).toEqual(['save:current']);
 	});
 });
+
+describe('when the period of a special puzzle ends', () => {
+	it("says so, and the next puzzle is the new period's", async () => {
+		const s = session();
+		await s.open('daily');
+		const yesterday = s.puzzleId;
+		expect(s.periodOver()).toBeNull();
+		// Midnight UTC.
+		vi.setSystemTime(Date.UTC(2026, 9, 8, 0, 0, 1));
+		expect(s.periodOver()).toBe('daily');
+		await s.newPuzzle();
+		expect(s.variant.key).toBe('daily');
+		expect(s.puzzleId).toBe(encodePuzzleId(DAILY, specialSeed('tetroid', 'daily', '2026-10-08')));
+		expect(s.puzzleId).not.toBe(yesterday);
+		expect(s.periodOver()).toBeNull();
+		// Within the period, "New puzzle" still goes on to the regular type.
+		await s.newPuzzle();
+		expect(s.variant.special).toBeUndefined();
+		expect(s.periodOver()).toBeNull();
+	});
+});
