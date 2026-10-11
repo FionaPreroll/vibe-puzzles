@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { breakStreak, currentPeriodStreak, getStats, previousPeriod, recordSolve } from './stats';
+import {
+	breakStreak,
+	currentPeriodStreak,
+	getStats,
+	notePeriodSolved,
+	previousPeriod,
+	recordSolve
+} from './stats';
 import { keys, load, remove, save, setQuotaHandler } from './storage';
 import { MemoryStorage } from '../../test/memory-storage';
 
@@ -174,5 +181,24 @@ describe('stats', () => {
 
 	it('has no period streak without a solved period', () => {
 		expect(currentPeriodStreak(getStats('tetroid', 'weekly'), 'weekly')).toBe(0);
+	});
+});
+
+describe('a special puzzle solved on another device', () => {
+	beforeEach(() => vi.useFakeTimers({ now: Date.UTC(2026, 9, 7, 12), toFake: ['Date'] }));
+
+	it('counts its period for the streak, but not as a solve here', () => {
+		notePeriodSolved('tetroid', 'daily', 0, '2026-10-06', 'daily');
+		notePeriodSolved('tetroid', 'daily', 42, '2026-10-07', 'daily');
+		// Once is enough.
+		notePeriodSolved('tetroid', 'daily', 43, '2026-10-07', 'daily');
+		const s = getStats('tetroid', 'daily');
+		expect(s).toMatchObject({ solved: 0, lastPeriod: '2026-10-07', periodStreak: 2 });
+		// A server puzzle's ID (0) is no ID to remember.
+		expect(s.solvedIds).toEqual([42]);
+		expect(currentPeriodStreak(s, 'daily')).toBe(2);
+		// Solved here too, it is one solve; its period is counted already.
+		recordSolve('tetroid', 'daily', 0, 1000, '2026-10-07', 'daily');
+		expect(getStats('tetroid', 'daily')).toMatchObject({ solved: 1, periodStreak: 2 });
 	});
 });

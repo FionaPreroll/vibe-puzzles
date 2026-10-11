@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 import { withCommon } from '../core/settings';
+import { formatDuration } from '../core/time';
 import type { BasePuzzle, GameModule } from '../core/types';
 import {
 	decodePuzzleId,
@@ -1372,7 +1373,7 @@ describe('the current special puzzle', () => {
 		expect(again.solved).toBe(true);
 		expect(again.state).toEqual(dailySolved());
 		expect(again.finalMs).toBe(5000);
-		expect(again.message?.kind).toBe('success');
+		expect(again.message?.text).toBe('Solved in 00:05.000!');
 		expect(again.canStartOver).toBe(false);
 		again.startOver();
 		expect(again.state).toEqual(dailySolved());
@@ -1380,6 +1381,17 @@ describe('the current special puzzle', () => {
 			load<{ solved: boolean }>(`save:tetroid:daily:${PERIOD}`, { solved: false }).solved
 		).toBe(true);
 		expect(getStats('tetroid', 'daily')).toMatchObject({ solved: 1, lastPeriod: PERIOD });
+	});
+
+	it('shows the personal time with the personal timer', async () => {
+		const s = session({ personalTimer: true });
+		await s.open('daily');
+		vi.advanceTimersByTime(3000);
+		s.move(dailySolved(), []);
+		const again = session({ personalTimer: true });
+		await again.open('daily');
+		expect(again.finalPlayMs).toBe(s.finalPlayMs);
+		expect(again.message?.text).toBe(`Solved in ${formatDuration(s.finalPlayMs, true)}!`);
 	});
 
 	it('an older special puzzle, solved, can be played again', async () => {
