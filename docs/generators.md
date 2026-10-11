@@ -48,7 +48,7 @@ Each game's `GameLogic.fitsDifficulty(puzzle, variant)` applies the same rating 
 | Calcudoku | Cage arithmetic and line eliminations only | Also hidden singles and naked pairs in lines (may need them, need not)     | Needs hidden singles or naked pairs; never guessing; larger cages, fewer − ÷ |
 | Tetroid   | –                                          | Solvable by propagation with the connectivity look-ahead, without guessing | Not solvable without guessing                                                |
 | Pinwheel  | –                                          | Solvable by propagation alone                                              | Not solvable without case analysis                                           |
-| Loop      | –                                          | Solvable by propagation alone                                              | Not solvable without case analysis (prepared, not playable yet)              |
+| Loop      | –                                          | Basic rules only, as few clues as they allow                               | Needs inside and outside; never guessing; as few clues as that allows        |
 
 Specials use these levels too: Sudoku and Tetroid daily normal, weekly and monthly hard; Pinwheel all three hard.
 
@@ -135,14 +135,24 @@ Two other ways to make hard puzzles did not help and are not used: larger galaxi
 
 ## Loop
 
-`generateLoop(width, height, difficulty, seed)` in `src/lib/games/loop/generator.ts`. Loop is in early access: only 5×5 Normal is playable. The other types are in the variant list with `comingSoon: true`, so their IDs are reserved, but they have no collection and no pinned IDs, and their generator settings may still change before they open.
+`generateLoop(width, height, difficulty, seed)` in `src/lib/games/loop/generator.ts`. Loop is in early access: 5×5 and 7×7 are playable, Normal and Hard. The larger types and the specials are in the variant list with `comingSoon: true`, so their IDs are reserved, but they have no collection and no pinned IDs, and their generator settings may still change before they open.
 
 1. **Loop** (`randomLoop`): grow a region of "inside" cells from one random cell to 40–60 % of the board, preferring cells with a single inside neighbour so the loop takes more turns. A cell is only added while the region's border stays one simple loop: the outside cells stay connected to the edge of the board, and no dot has inside cells on one diagonal and outside cells on the other.
-2. **Clues**: every cell gets the number of loop edges around it. If propagation cannot solve the board with all clues, the attempt is dropped.
-3. **Digging**: visit the cells in random order and remove each clue if the puzzle stays as easy as asked. _Normal_ keeps every removal that propagation alone still solves, which also proves the solution unique. _Hard_ keeps every removal that stays unique (complete solver, `limit: 2`, 20,000 nodes) and is accepted only if propagation alone no longer solves it.
-4. Up to 40 attempts (`ATTEMPTS`); a hard generator then keeps the first unique puzzle, a normal one throws `generation failed` (not observed).
+2. **Clues**: every cell gets the number of loop edges around it. If the difficulty's techniques cannot solve the board with all clues, the attempt is dropped.
+3. **Digging**: visit the cells in random order and remove each clue while the rating solver still solves the puzzle with the difficulty's techniques (`LoopLevel.Basic` for normal, `LoopLevel.Advanced` for hard), which also proves the solution unique. A clue kept once stays needed, so the result has as few clues as the techniques allow.
+4. **Difficulty**: _normal_ is right by construction. _Hard_ counts when the basic techniques alone no longer solve it; up to 40 attempts (`ATTEMPTS`), then the first puzzle (see [Fallbacks](#fallbacks)). In practice the first attempt fits: digging down to what inside and outside allow leaves the basic rules stuck.
 
-**Solver** (`LoopSolver` in `solver.ts`): a value per edge (open, line, cross). Propagation applies a clue's count (enough lines: cross the rest; only enough edges left: draw them all), the dot rule (two lines or none at every dot) and the loop rule (an edge that would close a loop is crossed unless that loop is the whole solution). Branching prefers an open edge that continues a line.
+**Rating solver** (`rateLoop` and `LoopSolver.rate` in `solver.ts`) decides edges as line or cross, with a flag per cell corner that says whether at least one, or at most one, of the corner's two edges is a line. Techniques, weakest first:
+
+- `LoopLevel.Basic`, applied until nothing changes:
+  - _Cells_: a cell keeps the ways to draw its four edges that fit its clue and its corners' flags. Edges and flags that all of them agree on are decided.
+  - _Dots_: a dot does the same with its rule (two lines or none) and the flags of the corners at it. This is how a corner passes on what it knows to the cell diagonally across the dot: a 3 in the corner of the grid draws its outer edges, two 3s on a diagonal draw their far sides, a line running into the corner of a 1 crosses the 1's far edges.
+  - _No early loop_: an edge that would close a loop is crossed, unless that loop is the whole solution.
+- `LoopLevel.Advanced`, only when the basic rules are stuck, then back to them: _inside and outside_. Every cell is inside or outside the loop, and so is the border of the grid. A line between two cells means they differ, a cross that they match, which links cells into classes (union-find with the colour difference to the root). A clue and a dot rule out colourings of the classes around them (a 2 has two neighbours on the other side; no dot has inside cells on one diagonal and outside cells on the other), which links classes that may be far apart; two cells in one class decide the edge between them.
+
+`fitsDifficulty` (`fitsLoopDifficulty`) applies the same definition to any stored puzzle: normal must be solved by the basic rules, hard by inside and outside and not by the basic rules alone, and in both cases removing any clue must leave the techniques stuck.
+
+**Complete solver** (`LoopSolver.solve`): the basic rules plus branching on an open edge, preferably one that continues a line. `countSolutions` and the collection use it.
 
 ## Fallbacks
 
@@ -155,8 +165,8 @@ Each generator has an attempt limit, so it always ends in bounded work. When no 
 | Tetroid normal | 100      | None: `generation failed` (never a puzzle that needs guessing) |
 | Tetroid hard   | 100      | First unique puzzle, whatever its difficulty                   |
 | Pinwheel       | 10,000   | First unique puzzle, whatever its difficulty                   |
-| Loop normal    | 40       | None: `generation failed`                                      |
-| Loop hard      | 40       | First unique puzzle, whatever its difficulty                   |
+| Loop normal    | 40       | None: `generation failed` (not observed)                       |
+| Loop hard      | 40       | First puzzle, solvable by the basic rules (not observed)       |
 
 The limits are far above what the measurements below need, so in practice the difficulty is always right. A returned puzzle is always valid and unique.
 
@@ -197,6 +207,12 @@ Measured on 2026-10-09 (commit `e88783b`, after issue #84) with each game's `fit
 | Pinwheel 15×15 normal | 12  | 12           | 8 ms    | 29 ms  |
 | Pinwheel 15×15 hard   | 12  | 12           | 7 ms    | 90 ms  |
 | Pinwheel 20×20 hard   | 6   | 6            | 101 ms  | 401 ms |
+| Loop 5×5 normal       | 40  | 40           | 4 ms    | 20 ms  |
+| Loop 5×5 hard         | 40  | 40           | 9 ms    | 29 ms  |
+| Loop 7×7 normal       | 40  | 40           | 12 ms   | 36 ms  |
+| Loop 7×7 hard         | 40  | 40           | 19 ms   | 88 ms  |
+
+Loop was measured on 2026-10-10 (on top of commit `ccd2ccd`), with the clue-minimal definition of `fitsDifficulty`. Normal and hard puzzles have about as many clues (median 10 on 5×5, 19 on 7×7); the difference is how far the basic rules get. On a hard puzzle they stop with 13 % to 100 % of the edges still open (median 57 % on 5×5 and 50 % on 7×7, 100 seeds each), so every hard puzzle needs inside and outside for a good part of the board, not for one last edge.
 
 Before the fix (2026-10-08, commit `9a96875`), Tetroid missed on up to 12 of 40 per type and on 5 of 12 at 20×20 normal, Pinwheel hard below 15×15 was graded right for only 2 to 16 of 40, and Tetroid 20×20 normal took a median of 8.3 s.
 
@@ -225,9 +241,11 @@ Any change to a generator, to a solver it calls or to the order of its random dr
 
 The fix for issue #84 went this way. It changed all Tetroid normal puzzles and the Tetroid hard, Pinwheel and Sudoku hard seeds that used to end in a fallback; every other ID kept its puzzle. In the collection it replaced 1,569 misgraded puzzles, then generated every special again from the next day (dailies), the week in progress (weeklies) and the month in progress (monthlies) on, so that they are what the generator now makes for their IDs: 358 Tetroid dailies, 4 Pinwheel dailies and the Tetroid weekly of 2026-W41 changed.
 
+The Loop rating (2026-10-10) went this way too: the basic rules got stronger (corner flags) and both levels became clue-minimal, so every Loop ID changed its puzzle. `pnpm bank:regrade` replaced 100 of the 111 stored 5×5 Normal puzzles, which had clues to spare under the new rules; the 11 others already fit. Loop had no specials yet.
+
 ## Tests and budgets
 
-- Unit tests per game check uniqueness, validity, determinism and the difficulty of generated puzzles: Sudoku (9×9, and a seed whose first 30 attempts failed), Calcudoku (4×4 to 7×7), Tetroid (6×6 and 8×8 normal and hard, 10×10 normal) and Pinwheel (5×5 normal and hard, 7×7 and 10×10 hard).
+- Unit tests per game check uniqueness, validity, determinism and the difficulty of generated puzzles: Sudoku (9×9, and a seed whose first 30 attempts failed), Calcudoku (4×4 to 7×7), Tetroid (6×6 and 8×8 normal and hard, 10×10 normal), Pinwheel (5×5 normal and hard, 7×7 and 10×10 hard) and Loop (5×5 and 7×7 normal and hard, and the techniques on small patterns).
 - `src/lib/games/generator-ids.test.ts` pins the puzzle behind a few IDs of every distinct generator setting (rule set, size, difficulty) and checks that every setting is pinned.
 - `src/lib/games/bank.test.ts` checks every stored puzzle for validity, a unique solution and its type's difficulty (special puzzles from `DIFFICULTY_CHECKED_FROM` on; see the README on `BANK_TEST_SINCE`).
 - `perf/generate.perf.ts` (`pnpm test:perf`) holds median time budgets per board size over five fixed seeds: 200 ms (5×5) up to 20 s (20×20), four times as much for Calcudoku. `PERF_BUDGET_SCALE` relaxes them on slow machines.

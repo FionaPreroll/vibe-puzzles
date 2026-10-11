@@ -677,7 +677,7 @@ const en = {
 				'A number tells how many of the four sides of its cell the loop runs along. Cells without a number can have any count.'
 			],
 			notes: [
-				'Early access: Loop is still being built. So far only 5×5 Normal is playable; more sizes, hard puzzles, specials, hints and a tutorial follow.'
+				'Early access: Loop is still being built. So far 5×5 and 7×7 are playable; more sizes, specials, hints and a tutorial follow.'
 			],
 			tool: { black: 'Line' },
 			toolHint: {

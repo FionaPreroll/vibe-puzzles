@@ -2,7 +2,7 @@ import { packDigits, unpackDigits } from '../../core/grid';
 import type { GameLogic } from '../../core/types';
 import type { Variant } from '../../core/variants';
 import type { LoopSettingKey } from './settings';
-import { generateLoop, solvesWithoutGuessing } from './generator';
+import { fitsLoopDifficulty, generateLoop } from './generator';
 import {
 	CROSS,
 	edgeValues,
@@ -17,32 +17,23 @@ import {
 import { solveLoop } from './solver';
 
 /**
- * Every type Loop will have. Only the first one is playable in early access; the others are
- * listed as coming soon until their generator settings are tuned (`comingSoon`). Their place in
- * this list is final already, as puzzle IDs hold it.
+ * Every type Loop will have. In early access 5×5 and 7×7 are playable; the others are listed as
+ * coming soon until their generator settings are measured (`comingSoon`). Their place in this
+ * list is final already, as puzzle IDs hold it.
  */
-const regular = (width: number, height: number, key: string, comingSoon: boolean): Variant[] => [
-	{
-		key: `${key}n`,
-		label: `${width}x${height} Normal`,
+const regular = (width: number, height: number, key: string, comingSoon: boolean): Variant[] =>
+	(['normal', 'hard'] as const).map((difficulty) => ({
+		key: `${key}${difficulty[0]}`,
+		label: `${width}x${height} ${difficulty === 'normal' ? 'Normal' : 'Hard'}`,
 		width,
 		height,
-		difficulty: 'normal',
+		difficulty,
 		...(comingSoon && { comingSoon })
-	},
-	{
-		key: `${key}h`,
-		label: `${width}x${height} Hard`,
-		width,
-		height,
-		difficulty: 'hard',
-		comingSoon: true
-	}
-];
+	}));
 
 export const LOOP_VARIANTS: Variant[] = [
 	...regular(5, 5, '5', false),
-	...regular(7, 7, '7', true),
+	...regular(7, 7, '7', false),
 	...regular(10, 10, '10', true),
 	...regular(15, 15, '15', true),
 	...regular(20, 20, '20', true),
@@ -95,8 +86,9 @@ export const loopLogic: GameLogic<LoopPuzzle, LoopState, LoopSettingKey> = {
 		const res = solveLoop(p, { limit, maxNodes: 2_000_000 });
 		return { count: res.solutions.length, finished: res.finished };
 	},
-	// Normal: propagation alone solves it; hard: it needs case analysis.
-	fitsDifficulty: (p, v) => solvesWithoutGuessing(p) === (v.difficulty === 'normal'),
+	// Normal: the basic techniques solve it; hard: it needs inside and outside. Both with as few
+	// clues as their techniques allow.
+	fitsDifficulty: (p, v) => fitsLoopDifficulty(p, v.difficulty),
 	isValidPuzzle(p: unknown, v): p is LoopPuzzle {
 		if (!p || typeof p !== 'object') return false;
 		const q = p as LoopPuzzle;

@@ -119,12 +119,12 @@ describe('opening a puzzle', () => {
 
 	it('opens the first playable type instead of one that is only announced', async () => {
 		const loop = GAME_LOGIC.loop as unknown as GameModule<BasePuzzle, unknown>;
-		expect(loop.variants[2]).toMatchObject({ key: '7n', comingSoon: true });
+		expect(loop.variants[4]).toMatchObject({ key: '10n', comingSoon: true });
 		const s = new GameSession(loop, new GameSettings('loop', withCommon([])));
-		await s.open('7n');
+		await s.open('10n');
 		expect(s.variant.key).toBe('5n');
 		// A link to a puzzle of an announced type opens no puzzle of it either.
-		await s.open('7n', { puzzleId: encodePuzzleId(2, SEED) });
+		await s.open('10n', { puzzleId: encodePuzzleId(4, SEED) });
 		expect(s.variant.key).toBe('5n');
 		expect(decodePuzzleId(s.puzzleId).variantIndex).toBe(0);
 	});

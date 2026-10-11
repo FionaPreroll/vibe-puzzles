@@ -674,7 +674,7 @@ const de: Dictionary = {
 				'Eine Zahl sagt, an wie vielen der vier Seiten ihres Felds die Schleife entlangläuft. Felder ohne Zahl können beliebig viele haben.'
 			],
 			notes: [
-				'Early Access: Loop ist noch im Bau. Bisher ist nur 5×5 Normal spielbar; weitere Größen, schwere Rätsel, Specials, Tipps und ein Tutorial folgen.'
+				'Early Access: Loop ist noch im Bau. Bisher sind 5×5 und 7×7 spielbar; weitere Größen, Specials, Tipps und ein Tutorial folgen.'
 			],
 			tool: { black: 'Linie' },
 			toolHint: {
