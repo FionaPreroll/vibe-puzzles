@@ -84,9 +84,10 @@
 	{@html `<style>${paletteCss()}</style>`}
 </svelte:head>
 
-<!-- z-20: the connection menu opens over the page; drawers and dialogs stay above it -->
+<!-- z-25: the connection menu opens over the page, the board and the top bar's messages (z-20)
+     included; drawers (z-30) and dialogs stay above it -->
 <header
-	class="relative z-20 border-b border-stone-200 bg-white/80 backdrop-blur dark:border-stone-800 dark:bg-stone-900/80"
+	class="relative z-25 border-b border-stone-200 bg-white/80 backdrop-blur dark:border-stone-800 dark:bg-stone-900/80"
 >
 	<!-- Tight gaps on phones, so the connection button fits next to the menu -->
 	<div class="mx-auto flex max-w-7xl items-center gap-0.5 px-4 py-3 sm:gap-4">
