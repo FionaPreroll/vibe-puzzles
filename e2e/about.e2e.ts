@@ -178,19 +178,31 @@ test('the About page shows the changelog, and the version in the footer leads to
 	await expect(page).toHaveURL(/\/about#changes$/);
 	const section = page.locator('section#changes');
 	await expect(section.getByRole('heading', { name: 'Changes', level: 2 })).toBeVisible();
-	await expect(section.getByRole('heading', { level: 3 }).first()).toHaveText(
-		new RegExp(`^Version ${version.replaceAll('.', '\\.')}, \\w+ \\d+, \\d{4}$`)
-	);
-	await expect(section.getByRole('heading', { name: 'New', level: 4 })).toBeVisible();
+	// The current version is open, also below changes that are in no version yet.
+	const escaped = version.replaceAll('.', '\\.');
+	await expect(
+		section.getByRole('heading', { level: 3, name: new RegExp(`^Version ${escaped}, `) })
+	).toHaveText(new RegExp(`^Version ${escaped}, \\w+ \\d+, \\d{4}$`));
+	await expect(section.getByRole('heading', { name: 'New', level: 4 }).first()).toBeVisible();
 	// Bold and plain pieces join without stray spaces.
-	await expect(section.getByRole('listitem').first()).toHaveText('Changelog on the About page.');
-	await expect(section.locator('li strong').first()).toHaveText('Changelog');
+	const change = section.getByRole('listitem').filter({ hasText: /^Changelog on the About/ });
+	await expect(change).toHaveText('Changelog on the About page.');
+	await expect(change.locator('strong')).toHaveText('Changelog');
 
 	// In German, the headings follow; the changes themselves stay in English.
 	await page.getByRole('combobox', { name: /Language|Sprache/ }).selectOption('de');
 	await expect(section.getByRole('heading', { name: 'Änderungen', level: 2 })).toBeVisible();
-	await expect(section.getByRole('heading', { level: 3 }).first()).toHaveText(
-		new RegExp(`^Version ${version.replaceAll('.', '\\.')} vom \\d+\\. \\w+ \\d{4}$`)
+	await expect(
+		section.getByRole('heading', { level: 3, name: new RegExp(`^Version ${escaped} vom `) })
+	).toHaveText(new RegExp(`^Version ${escaped} vom \\d+\\. \\w+ \\d{4}$`));
+	await expect(section.getByRole('heading', { name: 'Neu', level: 4 }).first()).toBeVisible();
+});
+
+test('the About page names a contact address', async ({ page }) => {
+	await page.goto('/about');
+	const link = page.getByRole('link', { name: 'fipreroll+app@gmail.com' });
+	await expect(link).toHaveAttribute('href', 'mailto:fipreroll+app@gmail.com');
+	await expect(link.locator('xpath=..')).toHaveText(
+		'Questions, ideas or a bug to report? Write to fipreroll+app@gmail.com'
 	);
-	await expect(section.getByRole('heading', { name: 'Neu', level: 4 })).toBeVisible();
 });

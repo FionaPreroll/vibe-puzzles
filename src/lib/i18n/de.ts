@@ -460,6 +460,7 @@ const de: Dictionary = {
 		link: 'Über',
 		title: 'Über Vibe Puzzles',
 		intro: 'Logikrätsel im Browser. Jedes Rätsel hat genau eine Lösung.',
+		contact: 'Fragen, Ideen oder einen Fehler gefunden? Schreib an',
 		build: 'Build',
 		version: 'Version',
 		commit: 'Commit',
