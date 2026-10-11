@@ -34,7 +34,8 @@
 		touchMode,
 		onmove,
 		spotlight,
-		area
+		area,
+		trial
 	}: BoardProps<LoopPuzzle, LoopState, LoopSettingKey> = $props();
 
 	type Edge = EdgeRef;
@@ -414,8 +415,9 @@
 			{#if value === LINE}
 				<path
 					data-line={key}
+					data-trial={trial?.has(key) || undefined}
 					d={edgePath(e)}
-					stroke={colours.line}
+					stroke={trial?.has(key) ? colours.trial : colours.line}
 					stroke-width={lineWidth}
 					stroke-linecap="round"
 				/>
@@ -424,7 +426,7 @@
 				{@const s = cellSize * 0.09}
 				<path
 					d="M{m.x - s} {m.y - s}l{2 * s} {2 * s}m0 {-2 * s}l{-2 * s} {2 * s}"
-					stroke={colours.cross}
+					stroke={trial?.has(key) ? colours.trial : colours.cross}
 					stroke-width="1.8"
 					stroke-linecap="round"
 				/>

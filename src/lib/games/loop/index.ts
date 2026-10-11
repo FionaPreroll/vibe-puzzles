@@ -1,3 +1,4 @@
+import { changedEdges } from '../../core/changes';
 import type { GameModule } from '../../core/types';
 import { LOOP_SETTINGS, type LoopSettingKey } from './settings';
 import Board from './Board.svelte';
@@ -20,6 +21,7 @@ export const loop: GameModule<LoopPuzzle, LoopState, LoopSettingKey> = {
 	defaultTool: () => 'black',
 	settings: LOOP_SETTINGS,
 	board: Board,
+	changes: (puzzle, from, to) => changedEdges(puzzle.width, from, to),
 	hint(puzzle, state) {
 		const hint = loopHint(puzzle, state);
 		if (!hint) return null;

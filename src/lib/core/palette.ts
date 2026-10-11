@@ -36,6 +36,10 @@ const LIGHT = {
 	cursor: '#b45309',
 	/** Outline of the last change. */
 	recent: '#2563eb',
+	/** Marks set during a trial (lines, crosses, digits), until it is kept or discarded. */
+	trial: '#115e59',
+	/** Tetroid: a cell shaded during a trial. */
+	trialShade: '#4f988f',
 	/** Crosses, marking a cell or edge as empty. */
 	cross: '#b91c1c',
 	/** Wrong digits and cage labels. */
@@ -97,6 +101,8 @@ const DARK: Palette = {
 	block: '#1f3a28',
 	cursor: '#fbbf24',
 	recent: '#60a5fa',
+	trial: '#5eead4',
+	trialShade: '#2b716a',
 	cross: '#fca5a5',
 	error: '#fca5a5',
 	errorFill: '#4c0519',

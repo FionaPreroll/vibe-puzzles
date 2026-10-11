@@ -22,7 +22,8 @@
 		touchMode,
 		onmove,
 		spotlight,
-		area
+		area,
+		trial
 	}: BoardProps<TetroidPuzzle, TetroidState, TetroidSettingKey> = $props();
 
 	const TYPE_COLOURS: Record<string, string> = {
@@ -90,6 +91,7 @@
 		const m = marks[i];
 		if (m === SHADED) {
 			if (settings.highlightErrors && a.errors[i]) return errorColour;
+			if (trial?.has(String(i))) return colours.trialShade;
 			if (groupCells.has(i)) return colours.group;
 			const type = a.regionType[puzzle.regions[i]];
 			if (settings.colorTetrominoes && type) return TYPE_COLOURS[type];
@@ -294,7 +296,7 @@
 			<path
 				d="M{x + cellSize * 0.3} {y + cellSize * 0.3}l{cellSize * 0.4} {cellSize *
 					0.4}m0 {-cellSize * 0.4}l{-cellSize * 0.4} {cellSize * 0.4}"
-				stroke={colours.cross}
+				stroke={trial?.has(String(i)) ? colours.trial : colours.cross}
 				stroke-width={Math.max(1.5, cellSize * 0.06)}
 				stroke-linecap="round"
 			/>

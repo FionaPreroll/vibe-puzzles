@@ -109,6 +109,14 @@ const en = {
 		/** Under the icons of the play bar, where only a short word fits. */
 		undoShort: 'Undo',
 		redoShort: 'Redo',
+		trial: 'Try',
+		trialTitle:
+			'Try something out (T): what you set from now on shows in teal, until you keep it or go back.',
+		trialKeep: 'Keep',
+		trialKeepTitle: 'Keep the trial (T): its marks stay.',
+		trialDrop: 'Discard',
+		trialDropTitle: 'Discard the trial (Shift+T): back to where it began.',
+		trialRunning: 'Trial: new marks are teal',
 		hint: 'Hint',
 		hintTitle: 'Hint (H): point at the next step. The puzzle then gets no best time and no rank.',
 		hintMistake: 'The highlighted marks do not match the solution.',
@@ -167,6 +175,8 @@ const en = {
 		done: 'Check the solution',
 		save: 'Save checkpoint',
 		add: 'Add a checkpoint',
+		trial: 'Start a trial, or keep it',
+		trialDrop: 'Discard the trial',
 		colourTool: 'Colour tool and back',
 		space: 'Space',
 		switchTools: 'Switch between {a} and {b}',

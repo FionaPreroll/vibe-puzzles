@@ -6,6 +6,7 @@ import { colours, contrast, lightColours, paletteCss, PALETTES, type ColourName 
 const TEXT: [ColourName, ColourName[]][] = [
 	['ink', ['surface', 'selection', 'sameDigit', 'unit', 'errorFill', 'blueErrorFill']],
 	['entered', ['surface', 'selection', 'sameDigit', 'unit']],
+	['trial', ['surface', 'selection', 'sameDigit', 'unit']],
 	['label', ['surface', 'paper', 'selection', 'unit']],
 	['error', ['surface', 'errorFill', 'unit', 'selection']],
 	['blueError', ['surface', 'blueErrorFill', 'unit', 'selection']]
@@ -19,7 +20,8 @@ const SHADES: ColourName[] = [
 	'tetrominoL',
 	'tetrominoI',
 	'tetrominoT',
-	'tetrominoS'
+	'tetrominoS',
+	'trialShade'
 ];
 const MARKS: [ColourName, ColourName[]][] = [
 	['ink', ['paper']],
@@ -29,6 +31,8 @@ const MARKS: [ColourName, ColourName[]][] = [
 	['shaded', ['surface']],
 	['surface', ['errorShade', 'blueErrorShade']],
 	['recent', ['surface', 'paper']],
+	['trial', ['paper', ...NOTES]],
+	['trialShade', ['surface']],
 	['cursor', ['surface', 'paper']]
 ];
 /**

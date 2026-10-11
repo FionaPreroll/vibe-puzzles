@@ -383,6 +383,102 @@ describe('checkpoints', () => {
 	});
 });
 
+describe('trials', () => {
+	it('keep a trial: its moves stay, and the game no longer remembers where it began', async () => {
+		const s = await opened({ autoSubmit: false });
+		s.move(shaded(0), []);
+		s.startTrial();
+		expect(s.trial).toEqual(shaded(0));
+		// Starting again changes nothing while one runs.
+		s.move(shaded(0, 1), []);
+		s.startTrial();
+		expect(s.trial).toEqual(shaded(0));
+		expect(load<{ trial?: TetroidState } | null>('save:tetroid:6n', null)?.trial).toEqual(
+			shaded(0)
+		);
+		s.keepTrial();
+		expect(s.trial).toBeNull();
+		expect(s.state).toEqual(shaded(0, 1));
+		expect(load<{ trial?: TetroidState } | null>('save:tetroid:6n', null)?.trial).toBeUndefined();
+		s.keepTrial();
+		s.dropTrial();
+		expect(s.state).toEqual(shaded(0, 1));
+	});
+
+	it('discard a trial: back to where it began, its moves gone from the history', async () => {
+		const s = await opened({ autoSubmit: false });
+		s.move(shaded(0), []);
+		s.startTrial();
+		s.move(shaded(0, 1), []);
+		s.move(shaded(0, 1, 2), []);
+		s.dropTrial();
+		expect(s.trial).toBeNull();
+		expect(s.state).toEqual(shaded(0));
+		expect(s.past).toEqual([game.emptyState(puzzle)]);
+		expect(s.future).toEqual([]);
+		// Nothing changed in a trial: nothing to undo either.
+		s.startTrial();
+		s.dropTrial();
+		expect(s.state).toEqual(shaded(0));
+		expect(s.past).toHaveLength(1);
+	});
+
+	it('go back to where a trial began as an undoable step when the history no longer has it', async () => {
+		const s = await opened({ autoSubmit: false });
+		s.move(shaded(0), []);
+		s.startTrial();
+		s.move(shaded(0, 1), []);
+		// Reloaded: the trial is in the save, the history is not.
+		const again = await opened({ autoSubmit: false });
+		expect(again.trial).toEqual(shaded(0));
+		expect(again.past).toEqual([]);
+		again.dropTrial();
+		expect(again.state).toEqual(shaded(0));
+		again.undo();
+		expect(again.state).toEqual(shaded(0, 1));
+	});
+
+	it('end with a solve, a fresh start or a new puzzle, and not while loading', async () => {
+		const s = await opened();
+		s.startTrial();
+		s.move(solvedState(), []);
+		expect(s.solved).toBe(true);
+		expect(s.trial).toBeNull();
+		s.startTrial();
+		expect(s.trial).toBeNull();
+
+		const t = await opened({ autoSubmit: false });
+		t.startTrial();
+		t.startOver();
+		expect(t.trial).toBeNull();
+		t.startTrial();
+		await t.newPuzzle();
+		expect(t.trial).toBeNull();
+
+		// Paused: no keeping or discarding until the game goes on.
+		const paused = await opened({ autoSubmit: false, personalTimer: true });
+		paused.startTrial();
+		paused.move(shaded(0), []);
+		paused.setManualPause(true);
+		paused.keepTrial();
+		paused.dropTrial();
+		expect(paused.trial).toEqual(game.emptyState(puzzle));
+		expect(paused.state).toEqual(shaded(0));
+
+		const idle = session();
+		idle.startTrial();
+		idle.dropTrial();
+		expect(idle.trial).toBeNull();
+	});
+
+	it('ignore a broken trial in a save', async () => {
+		const s = await opened({ autoSubmit: false });
+		s.move(shaded(0), []);
+		save('save:tetroid:6n', { ...load<object>('save:tetroid:6n', {}), trial: { marks: 'x' } });
+		expect((await opened()).trial).toBeNull();
+	});
+});
+
 describe('timers', () => {
 	it('shows no time while the first puzzle is still being created', async () => {
 		let done!: (p: unknown) => void;
