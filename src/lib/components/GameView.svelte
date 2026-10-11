@@ -8,6 +8,7 @@
 		freeSaveSpace,
 		GameSession,
 		MAX_CHECKPOINTS,
+		message,
 		type OpenOptions
 	} from '../client/session.svelte';
 	import {
@@ -242,7 +243,7 @@
 		if (!digits) return;
 		const id = parsePlayableId(digits, game.variants);
 		if (!id) {
-			session.message = { kind: 'error', text: t('game.unknownId') };
+			session.message = message('error', () => t('game.unknownId'));
 			return;
 		}
 		if (session.replacesGame(variant.key, { puzzleId: id }) && !(await askReplace())) return;
@@ -299,7 +300,7 @@
 		}
 		try {
 			await navigator.clipboard.writeText(`${text} ${url}`);
-			session.message = { kind: 'info', text: t('game.bragCopied') };
+			session.message = message('info', () => t('game.bragCopied'));
 		} catch {
 			// Too long for a message: shown in a dialog to copy by hand.
 			bragText = `${text} ${url}`;
@@ -316,7 +317,7 @@
 		bragField.select();
 		if (document.execCommand('copy')) {
 			bragText = null;
-			session.message = { kind: 'info', text: t('game.bragCopied') };
+			session.message = message('info', () => t('game.bragCopied'));
 		}
 	}
 
@@ -395,7 +396,7 @@
 			}
 			await session.open(variantKey, opts);
 			if (params.has('id') && !id && !session.message) {
-				session.message = { kind: 'error', text: t('game.unknownId') };
+				session.message = message('error', () => t('game.unknownId'));
 			}
 			// A shared position, an ID or a type that cannot be played (yet) leaves the address.
 			if (params.has('s') || params.has('id') || session.variant.key !== variantKey) {
@@ -494,10 +495,10 @@
 	});
 
 	$effect(() => {
-		const message = session.message;
-		if (!message) return void (toast = false);
+		const shown = session.message;
+		if (!shown) return void (toast = false);
 		toast = true;
-		if (message.kind === 'error' || session.hint) return;
+		if (shown.kind === 'error' || session.hint) return;
 		const timer = setTimeout(() => (toast = false), 4000);
 		return () => clearTimeout(timer);
 	});

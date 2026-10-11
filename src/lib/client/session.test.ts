@@ -15,6 +15,7 @@ import { sudoku } from '../games/sudoku';
 import { tetroid } from '../games/tetroid';
 import { generateTetroid } from '../games/tetroid/generator';
 import { EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from '../games/tetroid/rules';
+import { i18n } from '../i18n/index.svelte';
 import { MemoryStorage } from '../../test/memory-storage';
 import * as api from './api';
 import * as bank from './bank';
@@ -564,6 +565,20 @@ describe('solving', () => {
 		expect(getStats('tetroid', '6n').solved).toBe(1);
 		expect(s.elapsed(Date.now() + 1000)).toBe(30_000);
 		expect(s.personal(Date.now() + 1000)).toBe(30_000);
+	});
+
+	it('shows the solved message in the language chosen after solving', async () => {
+		vi.mocked(api.submitScore).mockResolvedValueOnce({ ok: true, code: 'repeat', message: '' });
+		const s = await opened({ autoSubmit: false });
+		s.move(solvedState(), []);
+		await s.submit();
+		expect(s.message?.text).toMatch(/^Solved in .*\(You solved this puzzle before\.\)$/);
+		i18n.locale = 'de';
+		try {
+			expect(s.message?.text).toMatch(/^In .* gelöst! \(Du hast dieses Rätsel schon/);
+		} finally {
+			i18n.locale = 'en';
+		}
 	});
 
 	it.each([

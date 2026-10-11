@@ -379,3 +379,33 @@ for (const [label, viewport] of [
 		await expect(next).not.toHaveClass(/btn-primary/);
 	});
 }
+
+test.describe('the solved message', () => {
+	test.use({ viewport: { width: 1280, height: 800 }, locale: 'en-US' });
+
+	test('follows a change of language', async ({ page }) => {
+		await page.addInitScript(() => {
+			localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+			localStorage.setItem('vp:puzzleSource', '"bank"');
+		});
+		await page.goto(PUZZLE);
+		const board = page.locator('.overflow-x-auto svg[role="grid"]');
+		await expect(board).toBeVisible({ timeout: 30_000 });
+		await page.waitForLoadState('networkidle');
+		const grid = (await board.locator('rect').first().boundingBox())!;
+		const cell = grid.width / 6;
+		for (const [i, c] of [...SOLUTION].entries()) {
+			if (c === '1') {
+				await page.mouse.click(
+					grid.x + ((i % 6) + 0.5) * cell,
+					grid.y + (Math.floor(i / 6) + 0.5) * cell
+				);
+			}
+		}
+		const status = page.getByRole('status').filter({ hasText: /\S/ }).first();
+		await expect(status).toHaveText(/^Solved in /);
+
+		await page.getByRole('combobox', { name: 'Language' }).selectOption('de');
+		await expect(status).toHaveText(/^In .* gelöst!/);
+	});
+});
