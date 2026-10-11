@@ -53,6 +53,12 @@ export function parseSaveKey(key: string): SaveSlot | null {
 /** `stats:<game>:<variant>`: solves, streaks and times of a puzzle type. */
 export const statsKey = (game: string, variant: string) => `stats:${game}:${variant}`;
 
+/**
+ * `periods:<game>:<variant>`: on the server only, the periods of a special type the player solved
+ * on any device (see `syncPeriods`).
+ */
+export const periodsKey = (game: string, variant: string) => `periods:${game}:${variant}`;
+
 /** `bankPlayed:<game>:<variant>`: the collection puzzles of a type played on this device. */
 export const bankPlayedKey = (game: string, variant: string) => `bankPlayed:${game}:${variant}`;
 

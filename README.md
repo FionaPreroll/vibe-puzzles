@@ -22,7 +22,7 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4. The optional se
 - **Appearance**: English and German, picked from the browser language and switchable in the header. Night mode for the whole site including the boards; it follows the system's colour scheme until switched in the header. Screenshots and prints stay light.
 - **Offline**: installable as an app (PWA) and playable offline after the first visit. Files of the puzzle collection are cached when a puzzle type first needs them and kept across app updates; offline, a type without a cached file gets puzzles generated on the device.
 - **Your data**: progress, settings and statistics (solves, streaks, best and average times) stay in the browser. The About page exports them to a backup file and imports it again; the file format is published as a JSON Schema (`static/backup.schema.json`).
-- **Optional server**: anonymous players with a name, games and settings synced across devices with a sync code, server-issued puzzles and online leaderboards. Without it, everything else works the same.
+- **Optional server**: anonymous players with a name, games and settings synced across devices with a sync code, server-issued puzzles and online leaderboards. Statistics stay per device, but the days, weeks and months a player solved are shared (`periods:<game>:<variant>`), so a daily, weekly or monthly streak goes on from whichever device they solve on. Without it, everything else works the same.
 
 ## Development
 
@@ -36,7 +36,7 @@ pnpm lint           # prettier and eslint (pnpm format fixes the formatting)
 pnpm check          # svelte-check and type checks of the worker and service worker
 pnpm test           # unit tests (pnpm test:unit watches, pnpm test:coverage measures coverage); *.fuzz.test.ts feed the API, game logic and storage random input (FUZZ_RUNS, FUZZ_SEED)
 pnpm test:e2e       # browser tests
-pnpm test:server    # browser tests against the server: a ranked solve and the leaderboard, sync between devices, settings, offline start
+pnpm test:server    # browser tests against the server: a ranked solve and the leaderboard, sync between devices, settings, streaks, offline start
 pnpm test:soak      # long play sessions (desktop, phone): nothing leaks (SOAK_ACTIONS=600, SOAK_SEED)
 pnpm test:perf      # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
 pnpm bank:grow      # add puzzles to the collection (--per-variant N --max-minutes M)
@@ -158,7 +158,7 @@ The connection button in the header (a cloud) shows whether the server answers a
 
 So a Cloudflare build syncs by default, and a GitHub Pages build never calls an API.
 
-- **Offline mode** sends nothing by itself: no health check, no sync, no score uploads, no update checks, and the service worker serves pages from its cache (a puzzle file that is not cached is generated on the device instead). **Sync now** in the menu still sends what waits and fetches the open game and its settings, once per tap; **Check now** looks for a new version.
+- **Offline mode** sends nothing by itself: no health check, no sync, no score uploads, no update checks, and the service worker serves pages from its cache (a puzzle file that is not cached is generated on the device instead). **Sync now** in the menu still sends what waits and fetches the open game, its settings and the periods solved, once per tap; **Check now** looks for a new version.
 - **Outbox**: saves and settings that could not be uploaded (no connection, a server error, or offline mode) wait in local storage, newest version per key, and go out when the device is back online, the page is shown again, the server answers again, or on **Sync now**. Solves timed on the device wait the same way; a solve of a server-issued (ranked) puzzle does not, because the server measures its time up to the moment the answer arrives.
 - **Update check**: while online, the app asks for `_app/version.json` every 30 minutes and when the page is shown again (at most every 5 minutes) and offers to reload when there is a new version.
 

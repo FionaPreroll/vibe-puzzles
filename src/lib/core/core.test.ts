@@ -22,6 +22,7 @@ import {
 	nextPeriodStart,
 	parsePlayableId,
 	periodKey,
+	periodStart,
 	randomSeed,
 	regularCounterpart,
 	specialSeed,
@@ -248,6 +249,32 @@ describe('variants', () => {
 		expect(periodKey('daily', d)).toBe('2026-10-07');
 		expect(periodKey('weekly', d)).toBe('2026-W41');
 		expect(periodKey('monthly', d)).toBe('2026-10');
+	});
+
+	it('finds where each period starts from its key, and rejects keys of no period', () => {
+		const day = Date.UTC(2024, 0, 1);
+		for (let n = 0; n < 1200; n++) {
+			const date = new Date(day + n * 86400000);
+			for (const kind of ['daily', 'weekly', 'monthly'] as const) {
+				const start = periodStart(kind, periodKey(kind, date))!;
+				expect(periodKey(kind, start)).toBe(periodKey(kind, date));
+				expect(start.getTime()).toBeLessThanOrEqual(date.getTime());
+				// It is the first moment of the period.
+				expect(periodKey(kind, new Date(start.getTime() - 1))).not.toBe(periodKey(kind, date));
+			}
+		}
+		expect(periodStart('weekly', '2027-W01')).toEqual(new Date(Date.UTC(2027, 0, 4)));
+		for (const [kind, key] of [
+			['daily', '2026-02-31'],
+			['daily', '2026-10'],
+			['weekly', '2026-W54'],
+			['weekly', '2026-W00'],
+			['monthly', '2026-13'],
+			['monthly', '2026-10-07'],
+			['daily', 'x']
+		] as const) {
+			expect(periodStart(kind, key)).toBeNull();
+		}
 	});
 
 	it('uses ISO weeks across year boundaries', () => {

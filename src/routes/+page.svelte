@@ -9,6 +9,8 @@
 	import Pumpkin from '#lib/components/halloween/Pumpkin.svelte';
 	import Spider from '#lib/components/halloween/Spider.svelte';
 	import Stars from '#lib/components/halloween/Stars.svelte';
+	import { currentPlayer } from '#lib/client/api.ts';
+	import { syncGamePeriods } from '#lib/client/periodSync.ts';
 	import { latestUnfinished } from '#lib/client/resume.ts';
 	import type { SavedGame } from '#lib/client/session/saves.ts';
 	import { currentPeriodStreak, getStats } from '#lib/client/stats.ts';
@@ -41,6 +43,15 @@
 		const latest = latestUnfinished();
 		const game = latest && GAMES.find((g) => g.id === latest.gameId);
 		if (game) resume = { game, save: latest!.save };
+		readStatus();
+		// A signed-in player's streak goes on from any device: add the days solved elsewhere.
+		if (currentPlayer()) {
+			Promise.all(GAMES.map((g) => syncGamePeriods(g.id, g.variants))).then(readStatus);
+		}
+		return () => clearInterval(tick);
+	});
+
+	function readStatus() {
 		for (const game of GAMES) {
 			const daily = game.variants.find((v) => v.special === 'daily');
 			const stats = daily ? getStats(game.id, daily.key) : null;
@@ -50,8 +61,7 @@
 				tutorials: tutorialsOf(game).filter((r) => !load<boolean>(tutorialDoneKey(r), false))
 			};
 		}
-		return () => clearInterval(tick);
-	});
+	}
 
 	/** The game's daily type, unless it is only announced. */
 	const dailyKey = (game: (typeof GAMES)[number]) =>

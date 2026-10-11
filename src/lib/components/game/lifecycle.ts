@@ -1,5 +1,7 @@
 import { currentPlayer, onSync, pullSave, pushSave, watchServer } from '../../client/api';
+import { syncGamePeriods } from '../../client/periodSync';
 import type { GameSession } from '../../client/session.svelte';
+import type { Variant } from '../../core/variants';
 import type { GameSettings, StoredSettings } from '../../client/settings.svelte';
 import { watchStorage } from '../../client/storage';
 import { settingsKey } from '../../client/storageKeys';
@@ -10,7 +12,7 @@ export const SETTINGS_PUSH_DELAY_MS = 1500;
 type Session = Pick<
 	GameSession,
 	'slot' | 'setActive' | 'followStorage' | 'refreshFromServer' | 'flush'
->;
+> & { game: { id: string; variants: readonly Variant[] } };
 type Settings = Pick<GameSettings<string>, 'game' | 'reload' | 'merge'>;
 
 /**
@@ -21,8 +23,8 @@ type Settings = Pick<GameSettings<string>, 'game' | 'reload' | 'merge'>;
  * - hiding or leaving the page saves the game; showing it again takes over what another tab or
  *   device played meanwhile;
  * - another tab's saves and settings are followed as they change;
- * - once the server answers (also later, e.g. after being offline), and on "Sync now", the game
- *   and the settings are fetched from it.
+ * - once the server answers (also later, e.g. after being offline), and on "Sync now", the game,
+ *   the settings and the periods solved of the special types are fetched from it.
  */
 export function watchPage(session: Session, settings: Settings): () => void {
 	const activity = () =>
@@ -52,6 +54,8 @@ export function watchPage(session: Session, settings: Settings): () => void {
 		const remote = await pullSave<StoredSettings>(key);
 		if (remote) settings.merge(remote.data);
 	};
+	const pull = () =>
+		Promise.all([pullSettings(), syncGamePeriods(session.game.id, session.game.variants)]);
 	// The server can also answer only later, e.g. when the device was offline at the start.
 	let answered = false;
 	let server = false;
@@ -62,10 +66,10 @@ export function watchPage(session: Session, settings: Settings): () => void {
 		server = ok;
 		if (!ok || !currentPlayer()) return;
 		if (back) session.refreshFromServer();
-		await pullSettings();
+		await pull();
 	});
 	// "Sync now", also in offline mode.
-	const stopSync = onSync(() => Promise.all([session.refreshFromServer(), pullSettings()]));
+	const stopSync = onSync(() => Promise.all([session.refreshFromServer(), pull()]));
 
 	return () => {
 		stopStorage();
