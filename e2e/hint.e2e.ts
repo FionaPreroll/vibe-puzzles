@@ -305,3 +305,25 @@ test('painting wrong digits red counts as a hint, the settings say so, and shari
 	const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
 	expect(shared.text).toContain(', with mistakes shown in red. Can you do it without?');
 });
+
+test('a hint message over the board lets clicks through to the cells beneath', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+	});
+	await page.goto(PUZZLE);
+	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	await page.keyboard.press('h');
+	await page.keyboard.press('h');
+	const message = page.locator('p.rounded-xl', { hasText: 'shade them' });
+	await expect(message).toBeVisible();
+	const box = (await message.boundingBox())!;
+	const grid = (await board.locator('rect').first().boundingBox())!;
+	// Long enough to reach over the top row of cells.
+	expect(box.y + box.height).toBeGreaterThan(grid.y + 10);
+	await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
+	await page.mouse.click(box.x + 12, Math.max(grid.y, box.y + box.height - 8));
+	await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
+	await expect(board.locator('g.spotlight > *')).toHaveCount(0);
+});
