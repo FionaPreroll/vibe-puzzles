@@ -11,6 +11,7 @@ The first version with a number of its own and this changelog. It lists what cha
 ### Added
 
 - **Changelog** on the About page.
+- **Contact address** on the About page, for questions, ideas and bugs.
 - **Wrong marks** a hint finds are framed in red and stay framed until you change them or close the hint with ✕. Undo brings them back.
 - **Streaks across devices**: a daily, weekly or monthly streak goes on from whichever signed-in device you solve on.
 - **New daily puzzle**: a daily, weekly or monthly puzzle still open when its period ends says that the new one is out, and its button opens it.

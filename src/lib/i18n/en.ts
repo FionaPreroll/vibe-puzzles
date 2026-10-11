@@ -460,6 +460,8 @@ const en = {
 		link: 'About',
 		title: 'About Vibe Puzzles',
 		intro: 'Logic puzzles in the browser. Every puzzle has exactly one solution.',
+		/** Followed by the contact address. */
+		contact: 'Questions, ideas or a bug to report? Write to',
 		build: 'Build',
 		version: 'Version',
 		commit: 'Commit',

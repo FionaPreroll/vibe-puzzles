@@ -136,7 +136,7 @@ The unit tests check every stored puzzle again (valid, one solution, the difficu
 
 - `CHANGELOG.md` lists what changes for players, newest first, in the format of [Keep a Changelog](https://keepachangelog.com/): a release per `## [x.y.z] - YYYY-MM-DD` heading, its changes in the sections `### Added`, `### Changed`, `### Fixed` and `### Removed`, one per `- ` item (continued on indented lines), with `**bold**` and `` `code` `` inside. Text before a release's first section is a note on it.
 - The About page shows the changelog in English, with its headings in the player's language. `scripts/changelog.ts` reads it when the app is built, and the build fails on a line it does not understand.
-- Changes that have no version yet go under `## [Unreleased]` at the top; the About page lists them as "Not in a version yet".
+- Changes that have no version yet go under `## [Unreleased]` at the top; the About page lists them as "Not in a version yet", above the newest version. Both stay open, older versions fold away.
 - A new version: rename `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD` and set the same version in `package.json`, which the footer and the About page show. A unit test fails while the newest version in the changelog differs from the one in `package.json`. Versions follow [Semantic Versioning](https://semver.org/).
 
 ## Continuous integration

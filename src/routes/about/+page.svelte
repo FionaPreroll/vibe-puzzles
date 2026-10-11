@@ -6,8 +6,11 @@
 	import type { ChangelogRelease, Inline } from '../../../scripts/changelog';
 
 	const build = __BUILD__;
-	const [latest, ...earlier] = __CHANGELOG__;
+	/** Open: changes not in a version yet and the newest version; the older ones fold away. */
+	const open = __CHANGELOG__.slice(0, Math.max(1, __CHANGELOG__.findIndex((r) => r.date) + 1));
+	const earlier = __CHANGELOG__.slice(open.length);
 	const REPO = 'https://github.com/FionaPreroll/vibe-puzzles';
+	const CONTACT = 'fipreroll+app@gmail.com';
 	const schemaUrl = asset('backup.schema.json');
 
 	let error = $state('');
@@ -85,6 +88,9 @@
 
 <h1 class="font-display text-3xl font-bold tracking-tight">{t('about.title')}</h1>
 <p class="mt-2 text-stone-600 dark:text-stone-400">{t('about.intro')}</p>
+<p class="mt-1 text-stone-600 dark:text-stone-400">
+	{t('about.contact')} <a class="link" href="mailto:{CONTACT}">{CONTACT}</a>
+</p>
 
 <div class="mt-6 grid max-w-3xl gap-6">
 	<section class="panel">
@@ -107,11 +113,13 @@
 		</dl>
 	</section>
 
-	{#if latest}
+	{#if open.length}
 		<section class="panel text-sm" id="changes">
 			<h2 class="section-title">{t('about.changes')}</h2>
 			<p class="mt-2 text-stone-600 dark:text-stone-400">{t('about.changesNote')}</p>
-			{@render release(latest)}
+			{#each open as r (r.version)}
+				{@render release(r)}
+			{/each}
 			{#if earlier.length}
 				<details class="mt-4">
 					<summary class="cursor-pointer text-stone-600 dark:text-stone-400">

@@ -2,6 +2,10 @@
 	"name": "vibe-puzzles",
 	"private": true,
 	"version": "0.8.0",
+	"bugs": {
+		"url": "https://github.com/FionaPreroll/vibe-puzzles/issues",
+		"email": "fipreroll+app@gmail.com"
+	},
 	"type": "module",
 	"packageManager": "pnpm@12.10.1",
 	"scripts": {
