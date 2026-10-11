@@ -1,21 +1,18 @@
 name: Deploy to Cloudflare Workers
 
-# Full build with server features (saves, sync, leaderboards). Runs only when the
-# repository variable CLOUDFLARE_DEPLOY is "true", or when started by hand.
+# Full build with server features (saves, sync, leaderboards). Started only by CI (ci.yml) on
+# main, after every test has passed, and deploys only when the repository variable
+# CLOUDFLARE_DEPLOY is "true" or CI was started by hand. CI also holds the concurrency group,
+# so a newer run cancels a deploy still in progress.
 # Needs the secrets CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_D1_DATABASE_ID.
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
 
-# Only the newest commit may go live: a newer push cancels a run still in progress, and the
-# job checks again right before deploying (e.g. when an old run is re-run).
-concurrency:
-  group: cloudflare-deploy
-  cancel-in-progress: true
+# The job checks right before deploying that this is still the newest commit
+# (e.g. when an old run is re-run).
 
 jobs:
   deploy:

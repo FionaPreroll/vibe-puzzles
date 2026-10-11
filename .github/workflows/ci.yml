@@ -5,6 +5,8 @@ on:
     branches: [main, dev]
   # Every pull request, also one stacked on another feature branch.
   pull_request:
+  # By hand: on main this also deploys once the tests pass (Cloudflare even without CLOUDFLARE_DEPLOY).
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,7 +16,8 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# The jobs run in parallel; each one fails fast instead of hanging for hours.
+# The test jobs run in parallel; each one fails fast instead of hanging for hours.
+# The deploy jobs run only on main, and only after every test job has passed.
 jobs:
   lint:
     name: Lint and type check
@@ -87,3 +90,28 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm ${{ matrix.script }}
+
+  # Deploys reuse pages.yml and cloudflare.yml. Only the newest commit may go live: a newer run
+  # cancels a deploy still in progress, and each deploy checks again right before publishing.
+  pages:
+    name: Deploy to GitHub Pages
+    needs: [lint, unit, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
+
+  cloudflare:
+    name: Deploy to Cloudflare Workers
+    needs: [lint, unit, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    concurrency:
+      group: cloudflare-deploy
+      cancel-in-progress: true
+    uses: ./.github/workflows/cloudflare.yml
+    secrets: inherit

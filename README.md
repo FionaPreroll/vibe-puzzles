@@ -141,19 +141,19 @@ The unit tests check every stored puzzle again (valid, one solution, the difficu
 
 ## Continuous integration
 
-- **CI** runs on every push to `main` and `dev` and on every pull request, whatever its base: lint and type checks, unit tests with coverage (reported to Codecov), browser tests and the server tests. Coverage counts the TypeScript modules; Svelte components and the service worker are covered by the browser tests.
+- **CI** runs on every push to `main` and `dev` and on every pull request, whatever its base: lint and type checks, unit tests with coverage (reported to Codecov), browser tests and the server tests. On `main` it then deploys, but only once all of these have passed. Coverage counts the TypeScript modules; Svelte components and the service worker are covered by the browser tests.
 - **Soak test** plays a long session every night (or by hand) and checks that nothing leaks: memory, DOM nodes (also detached ones), listeners, timers, animation frames, observers, object URLs, workers and storage. A failed night opens an issue, or comments on the one still open; the run's artifacts hold the measurements of every round.
 - **Grow puzzle collection**: see [Growing it](#growing-it).
-- **Deploy to GitHub Pages** and **Deploy to Cloudflare Workers**: see [Deployment](#deployment).
+- **Deploy to GitHub Pages** and **Deploy to Cloudflare Workers**: run as the last jobs of CI, see [Deployment](#deployment).
 
 ## Deployment
 
-Both deploy workflows only publish the newest commit of their branch: a newer push cancels a run that is still in progress, and each run checks again right before going live, so a run for an older commit never replaces a newer site.
+Nothing is deployed without passing tests: both deploys run only from CI on `main` (`pages.yml` and `cloudflare.yml` are reusable workflows that CI calls), after lint, type checks, unit, browser and server tests have all passed. If any of them fails, nothing goes live. They only publish the newest commit of their branch: a newer run cancels a deploy that is still in progress, and each deploy checks again right before going live, so a run for an older commit never replaces a newer site.
 
 ### GitHub Pages (static, no server features)
 
 1. In the repository settings under **Pages**, set the source to **GitHub Actions**.
-2. Push to `main`. The `Deploy to GitHub Pages` workflow builds with `BASE_PATH=/<repository name>` and publishes the site.
+2. Push to `main`. Once the tests pass, CI's `Deploy to GitHub Pages` job builds with `BASE_PATH=/<repository name>` and publishes the site.
 
 Without a server the app keeps everything in the browser; the player page and the online leaderboard say that the server is not available. The workflow builds with `HAS_SERVER=false`, so the app never asks for one.
 
@@ -163,7 +163,7 @@ One-time setup:
 
 1. Create the database: `pnpm exec wrangler d1 create vibe-puzzles`.
 2. Add the repository secrets `CLOUDFLARE_API_TOKEN` (with Workers and D1 edit permissions), `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_D1_DATABASE_ID` (the ID printed in step 1).
-3. Set the repository variable `CLOUDFLARE_DEPLOY` to `true` to deploy on every push to `main`, or run the `Deploy to Cloudflare Workers` workflow by hand.
+3. Set the repository variable `CLOUDFLARE_DEPLOY` to `true` to deploy on every push to `main` whose tests pass, or run the `CI` workflow on `main` by hand (it deploys once its tests pass, even without the variable).
 
 To deploy from a local machine instead, put the database ID into `wrangler.jsonc` and run `pnpm cf:deploy`.
 
