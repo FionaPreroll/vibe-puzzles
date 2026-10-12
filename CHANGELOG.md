@@ -10,6 +10,10 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 
 - **Two fingers** scroll a board that is larger than the screen, and pinch to zoom it, with the touch input "Always draw" (the default). One finger still draws.
 
+### Fixed
+
+- **Menu ticks**: a solved daily, weekly or monthly puzzle gets its ✓ in the puzzle type menu right away, and a type solved 100 times in a row its ★, instead of only after reloading the page. A solve in another tab shows too, and the ✓ goes when a new period begins.
+
 ## [0.8.0] - 2026-10-11
 
 The first version with a number of its own and this changelog. It lists what changed lately; Tetroid, Pinwheel, Sudoku with Calcudoku and Loop (early access) were all playable before.

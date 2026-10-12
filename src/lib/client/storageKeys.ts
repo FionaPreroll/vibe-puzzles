@@ -50,8 +50,10 @@ export function parseSaveKey(key: string): SaveSlot | null {
 	return slot === ARCHIVE ? { game, variant, archive: true } : { game, variant, period: slot };
 }
 
+export const STATS_PREFIX = 'stats:';
+
 /** `stats:<game>:<variant>`: solves, streaks and times of a puzzle type. */
-export const statsKey = (game: string, variant: string) => `stats:${game}:${variant}`;
+export const statsKey = (game: string, variant: string) => `${STATS_PREFIX}${game}:${variant}`;
 
 /**
  * `periods:<game>:<variant>`: on the server only, the periods of a special type the player solved
