@@ -26,14 +26,16 @@
 		);
 	}
 
+	/** For the countdown to the next daily puzzle, and the ticks of a new period. */
+	let now = $state(Date.now());
+
+	/** Follows the statistics: a solve ticks its type at once. */
 	function marker(v: Variant) {
 		const stats = getStats(game.id, v.key);
-		if (v.special) return stats.lastPeriod === periodKey(v.special) ? '✓' : '';
+		if (v.special) return stats.lastPeriod === periodKey(v.special, new Date(now)) ? '✓' : '';
 		return stats.streak >= 100 ? '★' : '';
 	}
 
-	/** For the countdown to the next daily puzzle. */
-	let now = $state(Date.now());
 	$effect(() => {
 		const tick = setInterval(() => (now = Date.now()), 30_000);
 		return () => clearInterval(tick);
