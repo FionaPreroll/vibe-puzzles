@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import type { AnySession } from '../../client/session.svelte';
 	import type { BoardKeys, Settings, TouchMode } from '../../core/types';
 	import type { AnyGame } from '../../games';
@@ -9,11 +10,13 @@
 	import MessageToast from './MessageToast.svelte';
 	import StageDecor from './StageDecor.svelte';
 	import type { ToolState } from './tools.svelte';
+	import { twoFingers } from './twoFingers';
 
 	/**
 	 * The board on its surface (the stage), with what goes over it: the celebration, the phones'
 	 * message toast, and while there is no board to play, "Creating…", "Paused" or "Try again". The
-	 * middle mouse button pans the board area.
+	 * middle mouse button pans the board area. So do two fingers in the "Always draw" touch mode,
+	 * which also pinch to zoom.
 	 */
 	let {
 		game,
@@ -22,6 +25,8 @@
 		fit,
 		tools,
 		cellSize,
+		zoom,
+		onzoom,
 		touchMode,
 		celebrate,
 		showTools,
@@ -33,6 +38,9 @@
 		fit: BoardFit;
 		tools: ToolState;
 		cellSize: number;
+		/** The player's zoom (1 = fit the screen), which two fingers change. */
+		zoom: number;
+		onzoom: (zoom: number) => void;
 		touchMode: TouchMode;
 		/** The win animation is running. */
 		celebrate: boolean;
@@ -57,6 +65,24 @@
 	);
 
 	let pan: { x: number; y: number } | null = null;
+	/** The board without its surface, which two fingers move and zoom. */
+	let boardEl: HTMLElement | undefined = $state();
+
+	/** Scroll the board area sideways and the page up and down, as the board is in both. */
+	function scrollView(dx: number, dy: number) {
+		if (fit.boardArea) fit.boardArea.scrollLeft += dx;
+		window.scrollBy(0, dy);
+	}
+
+	// Elsewhere the page scrolls and zooms under the fingers itself.
+	const fingers = twoFingers({
+		enabled: () => touchMode === 'draw',
+		zoom: () => zoom,
+		setZoom: (z) => onzoom(z),
+		board: () => boardEl?.getBoundingClientRect() ?? null,
+		scroll: scrollView,
+		settle: tick
+	});
 
 	function onpanstart(e: PointerEvent) {
 		if (e.button !== 1) return;
@@ -65,9 +91,8 @@
 	}
 
 	function onpanmove(e: PointerEvent) {
-		if (!pan || !fit.boardArea) return;
-		fit.boardArea.scrollLeft -= e.clientX - pan.x;
-		window.scrollBy(0, -(e.clientY - pan.y));
+		if (!pan) return;
+		scrollView(pan.x - e.clientX, pan.y - e.clientY);
 		pan = { x: e.clientX, y: e.clientY };
 	}
 </script>
@@ -84,6 +109,7 @@
 		class="overflow-x-auto py-1"
 		role="presentation"
 		onpointerdown={onpanstart}
+		{@attach fingers}
 	>
 		{#if session.puzzle && session.state}
 			<div
@@ -93,6 +119,7 @@
 			>
 				<StageDecor beside={decorBeside} />
 				<div
+					bind:this={boardEl}
 					class="relative z-10 mx-auto w-fit rounded-sm {session.paused
 						? 'invisible'
 						: ''} {celebrate ? 'solved-glow' : ''}"

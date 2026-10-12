@@ -130,7 +130,7 @@ const de: Dictionary = {
 		touchAutoText:
 			'Wischen scrollt die Seite. Lass den Finger kurz liegen und zieh dann, um zu zeichnen.',
 		touchDrawText:
-			'Ziehen auf dem Spielfeld zeichnet immer. Scrollen und Zoomen geht neben dem Spielfeld.',
+			'Ziehen auf dem Spielfeld zeichnet immer. Mit zwei Fingern scrollst du das Spielfeld und zoomst es.',
 		touchPanText: 'Ziehen scrollt und zoomt immer die Seite. Antippen markiert trotzdem.',
 		checkpoints: 'Zwischenstände',
 		save: 'Speichern',

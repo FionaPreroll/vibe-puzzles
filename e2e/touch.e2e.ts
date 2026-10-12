@@ -76,3 +76,84 @@ test('holding a circle of an open region, then sliding, shows the symmetry helpe
 	await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 	await expect(lit).toHaveCount(0);
 });
+
+/** Two fingers moving together from `from` to `to`, as raw touch events. */
+async function twoFingers(page: Page, from: [Point, Point], to: [Point, Point]) {
+	const cdp = await page.context().newCDPSession(page);
+	const step = (s: number) =>
+		from.map((a, id) => ({
+			id,
+			x: a.x + ((to[id].x - a.x) * s) / 5,
+			y: a.y + ((to[id].y - a.y) * s) / 5
+		}));
+	await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: step(0) });
+	for (let s = 1; s <= 5; s++) {
+		await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: step(s) });
+	}
+	await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+}
+
+test('two fingers scroll a board zoomed past the screen, and pinch to zoom it', async ({
+	page
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:pinwheel', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		localStorage.setItem('vp:boardZoom:pinwheel:5n', '2');
+	});
+	await page.goto('/pinwheel?v=5n&id=612979536');
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+	const area = board.locator('xpath=ancestor::div[contains(@class, "overflow-x-auto")]');
+	const view = async () => ({
+		x: await area.evaluate((el) => el.scrollLeft),
+		y: await page.evaluate(() => scrollY)
+	});
+	const lines = board.locator('path[data-line]');
+	const drawn = await lines.count();
+	const start = await view();
+
+	// Up and to the left, across cell edges that one finger would draw on.
+	await twoFingers(
+		page,
+		[
+			{ x: 150, y: 450 },
+			{ x: 250, y: 450 }
+		],
+		[
+			{ x: 70, y: 370 },
+			{ x: 170, y: 370 }
+		]
+	);
+	const moved = await view();
+	expect(moved.x - start.x).toBeCloseTo(80, -1);
+	expect(moved.y - start.y).toBeCloseTo(80, -1);
+	await expect(lines).toHaveCount(drawn);
+
+	// Apart: the zoom grows to its most, and the spot between the fingers stays between them.
+	const spot = async () => {
+		const box = (await board.boundingBox())!;
+		return { fx: (200 - box.x) / box.width, fy: (450 - box.y) / box.height, width: box.width };
+	};
+	const before = await spot();
+	await twoFingers(
+		page,
+		[
+			{ x: 150, y: 450 },
+			{ x: 250, y: 450 }
+		],
+		[
+			{ x: 80, y: 450 },
+			{ x: 320, y: 450 }
+		]
+	);
+	await expect
+		.poll(() => page.evaluate(() => localStorage.getItem('vp:boardZoom:pinwheel:5n')))
+		.toBe('3');
+	const after = await spot();
+	expect(after.width / before.width).toBeCloseTo(1.5, 1);
+	expect(after.fx).toBeCloseTo(before.fx, 1);
+	expect(after.fy).toBeCloseTo(before.fy, 1);
+	await expect(lines).toHaveCount(drawn);
+});

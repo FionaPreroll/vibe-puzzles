@@ -220,6 +220,16 @@ describe('touch', () => {
 		expect(log).toEqual(['start 0,0 touch', 'cancel']);
 	});
 
+	it('drops the move on a second finger beside the board', () => {
+		const { log, gesture } = setup('draw');
+		gesture.touchstart(touches([0, 0]));
+		gesture.touchmove(touches([0, 5], [50, 50]));
+		gesture.touchmove(touches([0, 10]));
+		gesture.touchend(touches());
+		expect(gesture.touching).toBe(false);
+		expect(log).toEqual(['start 0,0 touch', 'cancel']);
+	});
+
 	it('ignores fingers on a read-only board, but the mouse still selects', () => {
 		const { log, gesture, state } = setup('draw');
 		state.readonly = true;
