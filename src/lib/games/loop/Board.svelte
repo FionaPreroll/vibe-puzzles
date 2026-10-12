@@ -487,6 +487,14 @@
 						rx="4"
 						stroke-dasharray="6 4"
 					/>
+				{:else if key.startsWith('d:')}
+					{@const k = Number(key.slice(2))}
+					<circle
+						cx={px(k % (w + 1))}
+						cy={py(Math.floor(k / (w + 1)))}
+						r={cellSize * 0.2}
+						stroke-dasharray="4 3"
+					/>
 				{:else if key.startsWith('h:') || key.startsWith('v:')}
 					{@const e = parseEdge(key)}
 					{@const m = edgeMid(e)}

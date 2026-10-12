@@ -8,6 +8,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 
 ### Added
 
+- **Loop tutorial**: six short steps on a 5×5 board teach the three ideas Loop needs. A 0 has no line on any side, so the 3s next to it have lines on their other three; every dot gets two lines or none; and the loop must not close early. Then you finish the loop on your own, with the Hint button at hand. It opens on your first visit to Loop and has its button on the home page.
 - **Two fingers** scroll a board that is larger than the screen, and pinch to zoom it, with the touch input "Always draw" (the default). One finger still draws.
 
 ### Fixed

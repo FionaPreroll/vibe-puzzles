@@ -25,8 +25,8 @@ describe('the first visit', () => {
 		save('tutorialDone:tetroid', true);
 		expect(firstVisitTutorial('tetroid', true, none)).toBe(false);
 		expect(load('tutorialSeen:tetroid', false)).toBe(true);
-		expect(firstVisitTutorial('loop', false, none)).toBe(false);
-		expect(load('tutorialSeen:loop', false)).toBe(false);
+		expect(firstVisitTutorial('nope', false, none)).toBe(false);
+		expect(load('tutorialSeen:nope', false)).toBe(false);
 	});
 });
 
