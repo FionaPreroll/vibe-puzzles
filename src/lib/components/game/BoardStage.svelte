@@ -99,8 +99,13 @@
 
 <svelte:window onpointermove={onpanmove} onpointerup={() => (pan = null)} />
 
-<!-- Room around the board on phones, so a quick swipe does not hit a button -->
-<div class="relative mt-5 lg:mt-4" bind:clientWidth={fit.areaWidth} bind:this={fit.areaWrap}>
+<!-- Room around the board on phones, so a quick swipe does not hit a button. Widescreen: nothing
+     above the board, its top in line with the panel's -->
+<div
+	class="relative mt-5 {fit.widescreen ? 'lg:mt-0' : 'lg:mt-4'}"
+	bind:clientWidth={fit.areaWidth}
+	bind:this={fit.areaWrap}
+>
 	{#if decorBeside && session.puzzle}
 		<HangingSpider headerGap={fit.headerGap} stageWidth={fit.stageWidth} />
 	{/if}
@@ -115,7 +120,9 @@
 			<div
 				class="board-stage"
 				bind:offsetWidth={fit.stageWidth}
-				style:min-width={fit.wide && fit.barWidth ? `${fit.barWidth}px` : undefined}
+				style:min-width={fit.wide && !fit.widescreen && fit.barWidth
+					? `${fit.barWidth}px`
+					: undefined}
 			>
 				<StageDecor beside={decorBeside} />
 				<div

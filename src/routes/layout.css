@@ -78,6 +78,13 @@
 	.play-sep {
 		@apply h-7 w-px shrink-0 bg-stone-200 lg:mx-0.5 dark:bg-stone-700;
 	}
+	/* The play bar on lines of its own in the widescreen panel, and in a column when it is folded. */
+	.play-bar-wrap .play-sep {
+		@apply hidden;
+	}
+	.play-bar-vertical .play-sep {
+		@apply mx-auto my-0.5 h-px w-7 lg:mx-auto;
+	}
 	.section-title {
 		@apply text-xs font-semibold tracking-wider text-stone-500 uppercase dark:text-stone-400;
 	}
@@ -85,6 +92,14 @@
 	.early-access {
 		@apply ml-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 font-sans text-[11px] leading-4 font-semibold tracking-wide whitespace-nowrap text-amber-800 uppercase dark:bg-amber-950 dark:text-amber-300;
 	}
+}
+
+/* Widescreen game page: the page takes the screen's full width, so the board can grow to its
+   height. Outside the layers, so it wins over the max-w-7xl of main and the footer. */
+body.widescreen header > div,
+body.widescreen main,
+body.widescreen footer {
+	max-width: none;
 }
 
 /* Solved: a green glow pulses around the board and a few sparkles fly out. Neither changes the

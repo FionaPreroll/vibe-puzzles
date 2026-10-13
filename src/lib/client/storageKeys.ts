@@ -13,6 +13,10 @@ export const KEY = {
 	touch: 'touch',
 	puzzleSource: 'puzzleSource',
 	rulesHidden: 'rulesHidden',
+	/** The game page's layout on wide screens (`PageLayout`). */
+	layout: 'layout',
+	/** The widescreen layout's panel is folded into a strip. */
+	panelCollapsed: 'panelCollapsed',
 	/** The player's choice of offline mode; the build's default until they switch it. */
 	offlineMode: 'offlineMode',
 	/** The player's choice of update checks; the build's default until they switch it. */
