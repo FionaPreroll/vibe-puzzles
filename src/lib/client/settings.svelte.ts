@@ -1,6 +1,6 @@
 import { settingValues, type CommonKey } from '../core/settings';
 import { isLookChoice, resolveLook, type LookChoice } from '../core/theme';
-import type { SettingInfo, Settings, TouchMode } from '../core/types';
+import type { PageLayout, SettingInfo, Settings, TouchMode } from '../core/types';
 import { load, save } from './storage';
 import { KEY, settingsKey, toolKey } from './storageKeys';
 
@@ -129,4 +129,16 @@ export function loadTouchMode(): TouchMode {
 
 export function saveTouchMode(mode: TouchMode) {
 	save(KEY.touch, mode);
+}
+
+export const PAGE_LAYOUTS: PageLayout[] = ['standard', 'right', 'left'];
+
+/** The layout of the game page on wide screens, on this device. */
+export function loadLayout(): PageLayout {
+	const stored = load<unknown>(KEY.layout, 'standard');
+	return PAGE_LAYOUTS.find((l) => l === stored) ?? 'standard';
+}
+
+export function saveLayout(layout: PageLayout) {
+	save(KEY.layout, layout);
 }

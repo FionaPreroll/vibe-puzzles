@@ -1,4 +1,11 @@
-import { afterBoard, DEFAULT_CELL, fitCellSize } from './boardFit';
+import type { PageLayout } from '../../core/types';
+import {
+	afterBoard,
+	DEFAULT_CELL,
+	fitCellSize,
+	panelHeight,
+	WIDESCREEN_MAX_CELL
+} from './boardFit';
 
 /** The wide layout, Tailwind's `lg`: the side panel beside the board, the play bar below it. */
 const WIDE = '(min-width: 1024px)';
@@ -14,6 +21,10 @@ export class BoardFit {
 	viewportHeight = $state(800);
 	/** The wide layout (side panel, play bar below the board) rather than the phone one. */
 	wide = $state(true);
+	/** The player's layout for wide screens; phones keep theirs. */
+	pageLayout = $state<PageLayout>('standard');
+	/** Height the widescreen panel may take without making the page scroll. */
+	panelHeight = $state(0);
 	toolbarHeight = $state(0);
 	/** Height of the play bar, ID line and buttons below the board. */
 	belowHeight = $state(0);
@@ -36,6 +47,14 @@ export class BoardFit {
 	areaWrap: HTMLElement | undefined = $state();
 	boardArea: HTMLElement | undefined = $state();
 
+	/**
+	 * Widescreen: the board alone in its column, as tall as the screen allows, and everything else
+	 * in a panel beside it (`WidePanel`).
+	 */
+	get widescreen(): boolean {
+		return this.wide && this.pageLayout !== 'standard';
+	}
+
 	/** Padding of the board's surface (p-2, lg:p-3), which the board's size leaves room for. */
 	get stagePad(): number {
 		return this.wide ? 12 : 8;
@@ -52,9 +71,12 @@ export class BoardFit {
 			this.headerGap = areaWrap.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
 		}
 		// Up to the page's end, but not where a longer side panel reaches beyond the game column.
-		const root = pageRoot.getBoundingClientRect().bottom;
+		const rootBox = pageRoot.getBoundingClientRect();
+		const root = rootBox.bottom;
+		const body = document.body.getBoundingClientRect().bottom;
+		this.panelHeight = panelHeight(this.viewportHeight, rootBox.top + window.scrollY, body - root);
 		this.afterBoard = afterBoard({
-			body: document.body.getBoundingClientRect().bottom,
+			body,
 			boardArea: boardArea.getBoundingClientRect().bottom,
 			rootContent: root - parseFloat(getComputedStyle(pageRoot).paddingBottom),
 			gameColumn: gameColumn.getBoundingClientRect().bottom
@@ -84,7 +106,8 @@ export class BoardFit {
 	/** Sizes that move the board when they change; reading them makes an effect re-measure. */
 	get layout(): number[] {
 		const { viewportHeight, wide, toolbarHeight, areaWidth, belowHeight, barHeight } = this;
-		return [viewportHeight, +wide, toolbarHeight, areaWidth, belowHeight, barHeight];
+		const layout = [viewportHeight, +wide, toolbarHeight, areaWidth, belowHeight, barHeight];
+		return [...layout, +this.widescreen];
 	}
 
 	/** The automatic cell size for a grid of `width` × `height` cells. */
@@ -97,6 +120,7 @@ export class BoardFit {
 		const { areaWidth, viewportHeight, boardTop, afterBoard, stagePad } = this;
 		const { width, height } = grid;
 		const input = { areaWidth, viewportHeight, boardTop, afterBoard, stagePad, width, height };
-		return fitCellSize({ ...input, padRows, showCoordinates });
+		const maxCell = this.widescreen ? WIDESCREEN_MAX_CELL : undefined;
+		return fitCellSize({ ...input, padRows, showCoordinates, maxCell });
 	}
 }

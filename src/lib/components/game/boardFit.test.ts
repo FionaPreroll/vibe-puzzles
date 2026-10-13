@@ -4,8 +4,12 @@ import {
 	clampZoom,
 	DEFAULT_CELL,
 	fitCellSize,
+	MAX_CELL,
+	MIN_PANEL_HEIGHT,
+	panelHeight,
 	printCellSize,
 	storedZoom,
+	WIDESCREEN_MAX_CELL,
 	zoomedCellSize,
 	type FitInput
 } from './boardFit';
@@ -83,6 +87,30 @@ describe('fitting the board', () => {
 const box = (top: number, bottom: number) =>
 	({ getBoundingClientRect: () => ({ top, bottom }) }) as HTMLElement;
 
+describe('widescreen', () => {
+	it('lets small boards grow beyond the usual largest cell', () => {
+		// 1080 px less 278 px above and below the board, for 5 cells and their margins.
+		const tall = { ...desk, areaWidth: 1500, viewportHeight: 1080, width: 5, height: 5 };
+		expect(fitCellSize(tall)).toBe(MAX_CELL);
+		expect(fitCellSize({ ...tall, maxCell: WIDESCREEN_MAX_CELL })).toBe(Math.floor(802 / 5.4));
+		const fit = new BoardFit();
+		Object.assign(fit, { areaWidth: 1500, viewportHeight: 1080, boardTop: 100, afterBoard: 150 });
+		expect(fit.fitCell({ width: 5, height: 5 })).toBe(MAX_CELL);
+		fit.pageLayout = 'right';
+		expect(fit.fitCell({ width: 5, height: 5 })).toBe(Math.floor(802 / 5.4));
+	});
+});
+
+describe('the widescreen panel', () => {
+	it('takes the screen below the page top, without what follows the page', () => {
+		expect(panelHeight(1080, 81, 52)).toBe(947);
+	});
+
+	it('keeps a usable height on short screens', () => {
+		expect(panelHeight(400, 81, 52)).toBe(MIN_PANEL_HEIGHT);
+	});
+});
+
 describe('measuring the page', () => {
 	it('fits the board with what it measured', () => {
 		const fit = new BoardFit();
@@ -103,7 +131,20 @@ describe('measuring the page', () => {
 		);
 		fit.wide = false;
 		expect(fit.stagePad).toBe(8);
-		expect(fit.layout).toEqual([900, 0, 0, 600, 0, 0]);
+		expect(fit.layout).toEqual([900, 0, 0, 600, 0, 0, 0]);
+	});
+
+	it('is widescreen only on wide screens, and only once the player picks it', () => {
+		const fit = new BoardFit();
+		expect(fit.widescreen).toBe(false);
+		fit.pageLayout = 'right';
+		expect(fit.widescreen).toBe(true);
+		expect(fit.layout.at(-1)).toBe(1);
+		fit.wide = false;
+		expect(fit.widescreen).toBe(false);
+		fit.wide = true;
+		fit.pageLayout = 'left';
+		expect(fit.widescreen).toBe(true);
 	});
 
 	it('reads where the board starts and what is below it', () => {
@@ -128,6 +169,8 @@ describe('measuring the page', () => {
 		expect(fit.headerGap).toBe(30);
 		// The side panel reaches 200 px below the game column.
 		expect(fit.afterBoard).toBe(300);
+		// The screen (800) from the page's top (110) down to the footer below the page (84).
+		expect(fit.panelHeight).toBe(606);
 
 		// Without the page's header (or before the board area is bound) the gap stays as it was.
 		header = null;

@@ -134,6 +134,17 @@ const en = {
 		touchDrawText:
 			'Dragging on the board always draws. Two fingers scroll the board and pinch to zoom it.',
 		touchPanText: 'Dragging always scrolls and zooms the page. A tap still marks.',
+		layout: 'Layout on wide screens',
+		layoutStandard: 'Standard',
+		layoutRight: 'Widescreen, controls on the right',
+		layoutLeft: 'Widescreen, controls on the left',
+		layoutStandardText: 'The clock above the board, the tools and buttons below it.',
+		layoutRightText:
+			'The board takes the full height of the screen; everything else sits in a column on the right that folds into a narrow strip.',
+		layoutLeftText:
+			'The board takes the full height of the screen; everything else sits in a column on the left that folds into a narrow strip.',
+		expandControls: 'Expand controls',
+		collapseControls: 'Collapse controls',
 		checkpoints: 'Checkpoints',
 		save: 'Save',
 		add: 'Add',

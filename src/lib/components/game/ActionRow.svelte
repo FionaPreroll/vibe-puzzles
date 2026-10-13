@@ -19,6 +19,7 @@
 		shared,
 		newPeriod,
 		newBusy,
+		menuStart = false,
 		onnew,
 		onsharesolve,
 		onshare,
@@ -32,6 +33,8 @@
 		newPeriod: SpecialKind | null;
 		/** "New puzzle" is busy (asking or loading). */
 		newBusy: boolean;
+		/** "More" opens its menu from the button's start rather than its end (near the left edge). */
+		menuStart?: boolean;
 		onnew: () => void;
 		onsharesolve: () => void;
 		onshare: () => void;
@@ -105,7 +108,9 @@
 					onclick={() => (moreOpen = false)}
 				></button>
 				<div
-					class="popover absolute right-0 bottom-full z-30 mb-1 flex w-56 flex-col p-1"
+					class="popover absolute {menuStart
+						? 'left-0'
+						: 'right-0'} bottom-full z-30 mb-1 flex w-56 flex-col p-1"
 					role="group"
 					aria-label={t('game.more')}
 					{@attach (node) => trapFocus(node, () => (moreOpen = false))}

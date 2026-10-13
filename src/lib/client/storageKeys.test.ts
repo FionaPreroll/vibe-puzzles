@@ -63,6 +63,8 @@ describe('other keys', () => {
 			'touch',
 			'puzzleSource',
 			'rulesHidden',
+			'layout',
+			'panelCollapsed',
 			'offlineMode',
 			'updateCheck',
 			'outbox'
