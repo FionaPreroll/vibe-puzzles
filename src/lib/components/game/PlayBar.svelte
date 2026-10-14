@@ -7,8 +7,9 @@
 
 	/**
 	 * Undo, redo, the trial, the tools and the hint: below the board on wide screens, fixed at the
-	 * bottom on phones, in a column in the folded widescreen panel (`vertical`). `showTools` is
-	 * false while the player hides the tool buttons.
+	 * bottom on phones, in a column in the folded widescreen panel (`vertical`). In a grid
+	 * (`grid`, the widescreen panel) the tools are cells of the parent's grid like the others.
+	 * `showTools` is false while the player hides the tool buttons.
 	 */
 	let {
 		game,
@@ -16,7 +17,8 @@
 		tools,
 		showTools,
 		wide,
-		vertical = false
+		vertical = false,
+		grid = false
 	}: {
 		game: AnyGame;
 		session: AnySession;
@@ -24,6 +26,7 @@
 		showTools: boolean;
 		wide: boolean;
 		vertical?: boolean;
+		grid?: boolean;
 	} = $props();
 </script>
 
@@ -43,7 +46,7 @@
 			stroke-linecap="round"
 			stroke-linejoin="round"
 		/>
-	</svg>{t('game.undoShort')}
+	</svg><span class="play-label">{t('game.undoShort')}</span>
 </HoldButton>
 <HoldButton
 	class="play-btn"
@@ -61,7 +64,7 @@
 			stroke-linecap="round"
 			stroke-linejoin="round"
 		/>
-	</svg>{t('game.redoShort')}
+	</svg><span class="play-label">{t('game.redoShort')}</span>
 </HoldButton>
 <!-- A trial: pressed while one runs, and then it keeps it (see `TrialRow`) -->
 <button
@@ -80,12 +83,12 @@
 			stroke-linecap="round"
 			stroke-linejoin="round"
 		/>
-	</svg>{t('game.trial')}
+	</svg><span class="play-label">{t('game.trial')}</span>
 </button>
 {#if showTools}
 	<span class="play-sep" aria-hidden="true"></span>
 	<div
-		class="flex flex-[999] lg:gap-0.5 {vertical ? 'flex-col' : ''}"
+		class={grid ? 'contents' : `flex flex-[999] lg:gap-0.5 ${vertical ? 'flex-col' : ''}`}
 		role="toolbar"
 		aria-label={t('game.tools')}
 	>
@@ -108,7 +111,7 @@
 				{:else}
 					<span class="text-lg leading-5" aria-hidden="true">{tl.icon}</span>
 				{/if}
-				{name}
+				<span class="play-label">{name}</span>
 			</button>
 		{/each}
 	</div>
@@ -131,6 +134,6 @@
 				stroke-linecap="round"
 				stroke-linejoin="round"
 			/>
-		</svg>{t('game.hint')}
+		</svg><span class="play-label">{t('game.hint')}</span>
 	</button>
 {/if}

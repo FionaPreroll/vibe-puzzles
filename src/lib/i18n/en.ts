@@ -49,7 +49,8 @@ const en = {
 		scores: 'Scores',
 		player: 'Player',
 		dayMode: 'Switch to day mode',
-		nightMode: 'Switch to night mode'
+		nightMode: 'Switch to night mode',
+		menu: 'Menu'
 	},
 	/** The site's look: the everyday one or a seasonal one. */
 	look: {

@@ -4,6 +4,7 @@
 	import '@fontsource/cinzel/latin-600.css';
 	import '@fontsource/fredoka/latin-600.css';
 	import { resolve } from '$app/paths';
+	import { afterNavigate } from '$app/navigation';
 	import { page, updated } from '$app/state';
 	import favicon from '#lib/assets/favicon.svg';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
@@ -11,6 +12,7 @@
 	import Bunting from '#lib/components/halloween/Bunting.svelte';
 	import HalloweenLogo from '#lib/components/halloween/Logo.svelte';
 	import { serverAvailable } from '#lib/client/api.ts';
+	import { headerBar } from '#lib/client/headerBar.svelte.ts';
 	import { net, tellServiceWorker } from '#lib/client/network.svelte.ts';
 	import { followSystemTheme, setLook, setNight, theme } from '#lib/client/settings.svelte.ts';
 	import { scheduleUpdateChecks } from '#lib/client/updates.ts';
@@ -62,6 +64,17 @@
 		else delete document.documentElement.dataset.theme;
 	});
 
+	// The hidden header bar (`headerBar`) goes away again on a tap or click anywhere else, on
+	// Escape, and once a link in it is followed.
+	afterNavigate(() => (headerBar.shown = false));
+	function hideHeader(e: Event) {
+		if (!headerBar.shown) return;
+		const target = e.target as Element;
+		if (target.closest?.('header, [data-header-toggle]')) return;
+		if (e instanceof KeyboardEvent && e.key !== 'Escape') return;
+		headerBar.shown = false;
+	}
+
 	const nav = $derived([
 		{ href: resolve('/'), label: t('nav.games'), match: (p: string) => p === resolve('/') },
 		{
@@ -84,10 +97,17 @@
 	{@html `<style>${paletteCss()}</style>`}
 </svelte:head>
 
+<svelte:window onpointerdown={hideHeader} onkeydown={hideHeader} />
+
 <!-- z-25: the connection menu opens over the page, the board and the top bar's messages (z-20)
-     included; drawers (z-30) and dialogs stay above it -->
+     included; drawers (z-30) and dialogs stay above it. Hidden on short screens while playing
+     (`headerBar`): then it comes down over the page when asked for. -->
 <header
-	class="relative z-25 border-b border-stone-200 bg-white/80 backdrop-blur dark:border-stone-800 dark:bg-stone-900/80"
+	class="z-25 border-b border-stone-200 backdrop-blur dark:border-stone-800 {headerBar.autoHide
+		? 'fixed inset-x-0 top-0 bg-white/95 transition-transform duration-200 dark:bg-stone-900/95 ' +
+			(headerBar.shown ? 'shadow-md' : '-translate-y-full')
+		: 'relative bg-white/80 dark:bg-stone-900/80'}"
+	inert={headerBar.autoHide && !headerBar.shown}
 >
 	<!-- Tight gaps on phones, so the connection button fits next to the menu -->
 	<div class="mx-auto flex max-w-7xl items-center gap-0.5 px-4 py-3 sm:gap-4">
@@ -142,7 +162,7 @@
 		>
 	</div>
 	<!-- Hangs into the space above the page's content, so nothing moves -->
-	<div class="absolute inset-x-0 top-full"><Bunting /></div>
+	{#if !headerBar.autoHide}<div class="absolute inset-x-0 top-full"><Bunting /></div>{/if}
 </header>
 
 <main class="mx-auto max-w-7xl px-4 py-6">

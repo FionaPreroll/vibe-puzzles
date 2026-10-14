@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { goto, replaceState } from '$app/navigation';
 	import { ask } from '../client/confirm.svelte';
+	import { autoHideHeader } from '../client/headerBar.svelte';
 	import { isTyping, KeyDispatcher } from '../client/keys';
 	import { GameSession } from '../client/session.svelte';
 	import { message } from '../client/session/messages';
@@ -229,6 +230,15 @@
 		document.body.classList.toggle('widescreen', fit.widescreen);
 		return () => document.body.classList.remove('widescreen');
 	});
+	// Short screens: the header bar hides, the page's paddings shrink (`layout.css`).
+	$effect(() => {
+		autoHideHeader(fit.short);
+		document.body.classList.toggle('widescreen-short', fit.short);
+		return () => {
+			autoHideHeader(false);
+			document.body.classList.remove('widescreen-short');
+		};
+	});
 
 	// Re-measure when anything around the board changes size.
 	$effect(() => {
@@ -299,6 +309,7 @@
 			{clock}
 			{isTouch}
 			{side}
+			compact={fit.short}
 			maxHeight={fit.panelHeight}
 			{zoom}
 			{tools}
@@ -323,7 +334,10 @@
 		/>
 	{/snippet}
 	<!-- Widescreen: the board alone in its column, the panel beside it on the side picked -->
-	<div bind:this={fit.pageRoot} class="screen-only flex items-start gap-6">
+	<div
+		bind:this={fit.pageRoot}
+		class="screen-only flex items-start {fit.short ? 'gap-3' : 'gap-6'}"
+	>
 		{#if side === 'left'}{@render panel()}{/if}
 		<section bind:this={fit.gameColumn} class="min-w-0 flex-1">
 			{@render boardStage()}

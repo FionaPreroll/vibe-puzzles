@@ -8,6 +8,7 @@ import {
 	MIN_PANEL_HEIGHT,
 	panelHeight,
 	printCellSize,
+	SHORT_SCREEN,
 	storedZoom,
 	WIDESCREEN_MAX_CELL,
 	zoomedCellSize,
@@ -132,7 +133,7 @@ describe('measuring the page', () => {
 		);
 		fit.wide = false;
 		expect(fit.stagePad).toBe(8);
-		expect(fit.layout).toEqual([900, 0, 0, 600, 0, 0, 0]);
+		expect(fit.layout).toEqual([900, 0, 0, 600, 0, 0, 0, 0]);
 	});
 
 	it('is widescreen on screens in landscape, unless the player picks the standard layout', () => {
@@ -141,7 +142,7 @@ describe('measuring the page', () => {
 		expect(fit.widescreen).toBe(false);
 		fit.pageLayout = 'right';
 		expect(fit.widescreen).toBe(true);
-		expect(fit.layout.at(-1)).toBe(1);
+		expect(fit.layout.at(-2)).toBe(1);
 		// Upright screens keep their layout, whatever their width.
 		fit.landscape = false;
 		expect(fit.widescreen).toBe(false);
@@ -182,6 +183,37 @@ describe('measuring the page', () => {
 		fit.measure();
 		expect(fit.boardTop).toBe(164);
 		expect(fit.headerGap).toBe(30);
+	});
+
+	it('is short on low screens in widescreen, and leaves the footer below the screen', () => {
+		vi.stubGlobal('window', { scrollY: 0 });
+		vi.stubGlobal('getComputedStyle', () => ({ paddingBottom: '0px' }));
+		const footer = box(390, 430);
+		vi.stubGlobal('document', {
+			querySelector: (selector: string) => (selector === 'footer' ? footer : null),
+			body: box(0, 430)
+		});
+		const fit = new BoardFit();
+		fit.viewportHeight = 390;
+		fit.pageRoot = box(8, 382);
+		fit.gameColumn = box(8, 362);
+		fit.boardArea = box(8, 362);
+		fit.measure();
+		expect(fit.short).toBe(false);
+		// The footer counts: the panel stops above it.
+		expect(fit.panelHeight).toBe(390 - 8 - 48);
+
+		fit.landscape = true;
+		fit.pageLayout = 'left';
+		expect(fit.short).toBe(true);
+		expect(fit.layout.at(-1)).toBe(1);
+		fit.measure();
+		// Down to the screen's edge, less the page's padding (8) below the panel.
+		expect(fit.panelHeight).toBe(374);
+		expect(fit.afterBoard).toBe(8);
+
+		fit.viewportHeight = SHORT_SCREEN;
+		expect(fit.short).toBe(false);
 	});
 
 	it('follows the layout and the page size until stopped', () => {

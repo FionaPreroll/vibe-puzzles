@@ -118,6 +118,41 @@ test.describe('phone', () => {
 	});
 });
 
+test.describe('phone on its side', () => {
+	test.use({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
+
+	test('hides the header bar and keeps the controls compact', async ({ page }) => {
+		await page.addInitScript(() => localStorage.setItem('vp:layout', '"left"'));
+		const board = await openPuzzle(page);
+		const nav = page.getByRole('navigation', { name: 'Main' });
+		await expect(nav).not.toBeInViewport();
+		await expect(board).toBeInViewport({ ratio: 1 });
+		expect((await board.boundingBox())!.y).toBeLessThan(40);
+		// Every button in the play bar has room for its name.
+		const panel = page.getByRole('complementary', { name: 'Tetroid menu' });
+		const crowded = () =>
+			panel.evaluate((el) =>
+				[...el.querySelectorAll<HTMLElement>('.play-btn')].filter(
+					(b) => b.scrollWidth > b.clientWidth
+				)
+			);
+		expect(await crowded()).toHaveLength(0);
+
+		// The header comes down from the panel's menu button, and goes away on a tap elsewhere.
+		await panel.getByRole('button', { name: 'Menu', exact: true }).click();
+		await expect(nav).toBeInViewport();
+		await page.touchscreen.tap(830, 380);
+		await expect(nav).not.toBeInViewport();
+
+		// Folded: the play bar's icons in two columns, still with their names.
+		await page.getByRole('button', { name: 'Collapse controls' }).click();
+		await expect.poll(async () => (await box(page, 'aside')).width).toBeLessThan(120);
+		await expect(panel.getByRole('button', { name: 'Hint', exact: true })).toBeInViewport();
+		await panel.getByRole('button', { name: 'Menu', exact: true }).click();
+		await expect(nav).toBeInViewport();
+	});
+});
+
 test.describe('by default', () => {
 	/** Without a choice of layout, as for a new player. */
 	const noChoice = (page: Page) => page.addInitScript(() => localStorage.removeItem('vp:layout'));
@@ -190,6 +225,7 @@ test.describe('by default', () => {
 			await expect(page.getByRole('button', { name: 'Puzzle types and rules' })).toBeVisible();
 			await expect(page.getByRole('button', { name: 'Collapse controls' })).toHaveCount(0);
 			await expect(undo).toBeEnabled();
+			await expect(page.getByRole('navigation', { name: 'Main' })).toBeInViewport();
 		});
 	});
 });

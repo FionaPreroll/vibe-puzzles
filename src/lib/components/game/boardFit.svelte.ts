@@ -4,6 +4,7 @@ import {
 	DEFAULT_CELL,
 	fitCellSize,
 	panelHeight,
+	SHORT_SCREEN,
 	WIDESCREEN_MAX_CELL
 } from './boardFit';
 
@@ -62,6 +63,14 @@ export class BoardFit {
 		return this.landscape && this.pageLayout !== 'standard';
 	}
 
+	/**
+	 * Widescreen on a short screen (`SHORT_SCREEN`): no header bar, the footer below the screen, a
+	 * compact panel.
+	 */
+	get short(): boolean {
+		return this.widescreen && this.viewportHeight < SHORT_SCREEN;
+	}
+
 	/** Padding of the board's surface (p-2, lg:p-3), which the board's size leaves room for. */
 	get stagePad(): number {
 		return this.wide ? 12 : 8;
@@ -80,7 +89,9 @@ export class BoardFit {
 		// Up to the page's end, but not where a longer side panel reaches beyond the game column.
 		const rootBox = pageRoot.getBoundingClientRect();
 		const root = rootBox.bottom;
-		const body = document.body.getBoundingClientRect().bottom;
+		// Short screens leave the footer below the screen, for whoever scrolls down to it.
+		const footer = this.short ? document.querySelector('footer') : null;
+		const body = (footer ?? document.body).getBoundingClientRect()[footer ? 'top' : 'bottom'];
 		this.panelHeight = panelHeight(this.viewportHeight, rootBox.top + window.scrollY, body - root);
 		this.afterBoard = afterBoard({
 			body,
@@ -118,7 +129,7 @@ export class BoardFit {
 	get layout(): number[] {
 		const { viewportHeight, wide, toolbarHeight, areaWidth, belowHeight, barHeight } = this;
 		const layout = [viewportHeight, +wide, toolbarHeight, areaWidth, belowHeight, barHeight];
-		return [...layout, +this.widescreen];
+		return [...layout, +this.widescreen, +this.short];
 	}
 
 	/** The automatic cell size for a grid of `width` × `height` cells. */

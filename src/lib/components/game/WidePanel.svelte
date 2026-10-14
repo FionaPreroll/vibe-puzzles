@@ -1,4 +1,6 @@
 <script lang="ts">
+	import favicon from '../../assets/favicon.svg';
+	import { headerBar, toggleHeader } from '../../client/headerBar.svelte';
 	import type { AnySession } from '../../client/session.svelte';
 	import { formatDuration } from '../../core/time';
 	import type { Settings } from '../../core/types';
@@ -7,6 +9,7 @@
 	import { t } from '../../i18n/index.svelte';
 	import ActionRow from './ActionRow.svelte';
 	import CheckpointBar from './CheckpointBar.svelte';
+	import HalloweenLogo from '../halloween/Logo.svelte';
 	import GameInfo from './GameInfo.svelte';
 	import HintNote from './HintNote.svelte';
 	import { SHORT_PANEL } from './boardFit';
@@ -28,6 +31,10 @@
 	 *
 	 * Folded (`collapsed`), it is a narrow strip with the play bar in a column and the settings;
 	 * messages and hints then show in a bubble beside it, over the room next to the board.
+	 *
+	 * On short screens (`compact`, a phone on its side) it is narrower and tighter, the folded strip
+	 * shows the play bar's icons in two columns, and it holds the button that brings down the page's
+	 * hidden header bar.
 	 */
 	let {
 		game,
@@ -38,6 +45,7 @@
 		clock,
 		isTouch,
 		side,
+		compact = false,
 		maxHeight,
 		zoom,
 		tools,
@@ -70,6 +78,8 @@
 		clock: number;
 		isTouch: boolean;
 		side: 'left' | 'right';
+		/** A short screen: see above. */
+		compact?: boolean;
 		/** Height in pixels the panel may take. */
 		maxHeight: number;
 		zoom: number;
@@ -143,20 +153,38 @@
 	</button>
 {/snippet}
 
-<div class="sticky top-4 shrink-0">
+{#snippet siteMenu()}
+	{#if headerBar.autoHide}
+		<button
+			class="btn-icon size-10 shrink-0"
+			data-header-toggle
+			aria-expanded={headerBar.shown}
+			aria-label={t('nav.menu')}
+			title={t('nav.menu')}
+			onclick={toggleHeader}
+		>
+			<img src={favicon} alt="" class="classic-only size-6" />
+			<HalloweenLogo class="halloween-only size-6" />
+		</button>
+	{/if}
+{/snippet}
+
+<div class="sticky {compact ? 'top-2' : 'top-4'} shrink-0">
 	<aside
 		class="panel {collapsed
-			? 'w-20 overflow-y-auto px-2'
-			: short
-				? 'w-88 overflow-y-auto'
-				: 'flex w-88 flex-col'}"
+			? `${compact ? 'w-26 py-2' : 'w-20'} overflow-y-auto px-2`
+			: `${compact ? 'p-3' : 'w-88'} ${short ? 'overflow-y-auto' : 'flex flex-col'}`}"
 		style:max-height="{maxHeight}px"
+		style:width={compact && !collapsed
+			? 'clamp(15rem, calc(100vw - 100dvh - 1.5rem), 22rem)'
+			: undefined}
 		aria-label={t('game.menu', { game: game.name })}
 	>
 		<!-- Always in the page: screen readers miss live regions added together with their text -->
 		<p class="sr-only" role="status">{session.message?.text ?? ''}</p>
 		{#if collapsed}
 			<div class="flex flex-col items-center gap-2">
+				{@render siteMenu()}
 				<button
 					class="btn-icon"
 					aria-label={t('game.expandControls')}
@@ -164,23 +192,39 @@
 					onclick={toggle}>{arrow}</button
 				>
 				{@render clockTime('text-sm')}
-				<div class="play-bar play-bar-vertical flex w-full flex-col">
-					<PlayBar {game} {session} {tools} {showTools} wide vertical />
-				</div>
+				{#if compact}
+					<div class="play-bar play-bar-grid play-bar-icons w-full">
+						<PlayBar {game} {session} {tools} {showTools} wide grid />
+					</div>
+				{:else}
+					<div class="play-bar play-bar-vertical flex w-full flex-col">
+						<PlayBar {game} {session} {tools} {showTools} wide vertical />
+					</div>
+				{/if}
 				{@render settingsButton()}
 			</div>
 		{:else}
 			<!-- Outside the part that scrolls, so that the zoom slider and the "More" menu may reach
 			     beyond the panel -->
 			<div class="shrink-0">
-				<div class="flex items-start justify-between gap-2">
-					<h1 class="font-display text-2xl font-bold tracking-tight">
-						<span aria-hidden="true">{game.icon}</span>
-						{game.name}
-						{#if game.earlyAccess}<span class="early-access align-middle"
-								>{t('game.earlyAccess')}</span
-							>{/if}
-					</h1>
+				<div class="flex items-start gap-2">
+					{@render siteMenu()}
+					<div class="min-w-0 flex-1">
+						<h1
+							class="font-display font-bold tracking-tight {compact
+								? 'text-lg leading-6'
+								: 'text-2xl'}"
+						>
+							<span aria-hidden="true">{game.icon}</span>
+							{game.name}
+							{#if game.earlyAccess}<span class="early-access align-middle"
+									>{t('game.earlyAccess')}</span
+								>{/if}
+						</h1>
+						<p class="{compact ? 'text-xs' : 'text-sm'} text-stone-500 dark:text-stone-400">
+							{label}
+						</p>
+					</div>
 					<button
 						class="btn-icon shrink-0"
 						aria-label={t('game.collapseControls')}
@@ -188,9 +232,7 @@
 						onclick={toggle}>{arrow}</button
 					>
 				</div>
-				<p class="text-sm text-stone-500 dark:text-stone-400">{label}</p>
-
-				<div class="mt-3 flex min-h-10 items-center gap-1">
+				<div class="{compact ? 'mt-1' : 'mt-3'} flex min-h-10 items-center gap-1">
 					{@render clockTime('text-lg')}
 					{#if !settings.hideTimer && settings.personalTimer && !session.solved}
 						<button
@@ -227,10 +269,10 @@
 					</p>
 				{/if}
 
-				<div class="mt-3 flex flex-col items-stretch gap-2">
-					<!-- Wraps where the tools do not fit on one line: no separators then -->
-					<div class="play-bar play-bar-wrap flex flex-wrap">
-						<PlayBar {game} {session} {tools} {showTools} wide />
+				<div class="{compact ? 'mt-2' : 'mt-3'} flex flex-col items-stretch gap-2">
+					<!-- In a grid, so that every button has room for its name -->
+					<div class="play-bar play-bar-grid">
+						<PlayBar {game} {session} {tools} {showTools} wide grid />
 					</div>
 					<SwatchRow {game} {tools} />
 					<TrialRow {session} />

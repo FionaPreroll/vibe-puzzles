@@ -50,7 +50,8 @@ const de: Dictionary = {
 		scores: 'Bestenliste',
 		player: 'Spieler',
 		dayMode: 'Zum Tagmodus wechseln',
-		nightMode: 'Zum Nachtmodus wechseln'
+		nightMode: 'Zum Nachtmodus wechseln',
+		menu: 'Menü'
 	},
 	look: {
 		label: 'Design',
