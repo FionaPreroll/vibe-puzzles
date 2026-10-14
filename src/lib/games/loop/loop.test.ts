@@ -388,3 +388,73 @@ describe('loop logic', () => {
 		expect(loopLogic.isValidState(puzzle, { ...emptyLoopState(puzzle), h: [] })).toBe(false);
 	});
 });
+
+describe('tutorial', () => {
+	/** The state at the start of step `n` (from 1): every task before it done with "Show me". */
+	async function before(n: number) {
+		const { LOOP_TUTORIAL: p, LOOP_TUTORIAL_STEPS: steps } = await import('./tutorial');
+		let s = emptyLoopState(p);
+		for (const step of steps.slice(0, n - 1)) if (step.show) s = step.show(p, s);
+		return s;
+	}
+
+	it('is solved by the basic techniques, and every task is part of its loop', async () => {
+		const { LOOP_TUTORIAL: p } = await import('./tutorial');
+		expect(rateLoop(p, LoopLevel.Basic).solved).toBe(true);
+		const solution = solveLoop(p, { limit: 2 }).solutions[0];
+		edgeValues(await before(6)).forEach((v, e) => {
+			if (v === LINE) expect(solution[e], edgeKey(p, e)).toBe(LINE);
+			if (v === CROSS) expect(solution[e], edgeKey(p, e)).not.toBe(LINE);
+		});
+	});
+
+	it('asks for each task where its rule is the next step', async () => {
+		const { LOOP_TUTORIAL: p, EARLY_LOOP } = await import('./tutorial');
+		const { loopHint } = await import('./hint');
+		const next = async (n: number) => {
+			const h = loopHint(p, await before(n));
+			if (h?.kind !== 'step') throw new Error(`step ${n}: no hint`);
+			return {
+				technique: h.technique,
+				reason: h.reason,
+				edges: h.edges.map((e) => edgeKey(p, e)),
+				support: (h.support ?? []).map((s) => s.reason)
+			};
+		};
+		// The first step on the board rests on the crosses of the 0, as in the hint.
+		expect(await next(2)).toMatchObject({ reason: 'clueFill', support: ['clueZero'] });
+		// With the crosses, a 3 next to the 0 has just enough sides left.
+		expect(await next(3)).toMatchObject({ reason: 'clueFill', support: [] });
+		// With the lines of the 3s, a line end above the 0 has one way on.
+		expect(await next(4)).toMatchObject({ reason: 'dotOn', edges: ['v:0:2'] });
+		// Then the line is one piece whose ends are the two dots of the edge that would close it.
+		const s = await before(5);
+		expect(analyze(p, s).pieces).toBe(1);
+		const g = loopGraph(p.width, p.height);
+		const degree = new Array<number>(g.dots).fill(0);
+		edgeValues(s).forEach((v, e) => {
+			if (v !== LINE) return;
+			degree[g.ends[2 * e]]++;
+			degree[g.ends[2 * e + 1]]++;
+		});
+		const ends = degree.flatMap((d, k) => (d === 1 ? [k] : []));
+		const e = edgeValues(s).findIndex((_, x) => edgeKey(p, x) === EARLY_LOOP);
+		expect(ends).toEqual([g.ends[2 * e], g.ends[2 * e + 1]].sort((a, b) => a - b));
+	});
+
+	it('leaves a finish that needs only the rules it taught', async () => {
+		const { LOOP_TUTORIAL: p } = await import('./tutorial');
+		const { loopHint } = await import('./hint');
+		let s = await before(6);
+		const used = new Set<string>();
+		while (!isSolvedState(p, s)) {
+			const h = loopHint(p, s);
+			if (h?.kind !== 'step') throw new Error('no hint');
+			for (const reason of [h.reason, ...(h.support ?? []).map((x) => x.reason)]) used.add(reason);
+			const values = edgeValues(s);
+			for (const e of h.edges) values[e] = h.mark === 'line' ? LINE : CROSS;
+			s = stateFromEdges(p, values);
+		}
+		for (const reason of used) expect(reason).toMatch(/^(clue|dot|loop)/);
+	});
+});

@@ -114,6 +114,13 @@ export interface TutorialStep<P, S> {
 
 export type TouchMode = 'auto' | 'draw' | 'pan';
 
+/**
+ * The game page on wide screens: the standard layout (clock above the board, play bar below it), or
+ * widescreen, where the board takes the screen's height and everything else sits in a column on
+ * the right or the left.
+ */
+export type PageLayout = 'standard' | 'right' | 'left';
+
 /** What the hint button shows for the current position. */
 export interface Hint {
 	/** Wrong marks, cells that follow from the marks, or a place to start case analysis. */

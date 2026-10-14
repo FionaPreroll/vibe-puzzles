@@ -4,7 +4,8 @@ import { LOOP_SETTINGS, type LoopSettingKey } from './settings';
 import Board from './Board.svelte';
 import { loopHint, type Reason } from './hint';
 import { loopLogic } from './logic';
-import { edgeKey, type LoopPuzzle, type LoopState } from './rules';
+import { edgeKey, emptyLoopState, type LoopPuzzle, type LoopState } from './rules';
+import { LOOP_TUTORIAL, LOOP_TUTORIAL_STEPS } from './tutorial';
 
 /** Why crosses a line rests on stay empty, per kind of deduction that crossed them. */
 export const EMPTY: Partial<Record<Reason, string>> = {
@@ -19,7 +20,7 @@ export const EMPTY: Partial<Record<Reason, string>> = {
 	sidesSame: 'emptySides'
 };
 
-/** Loop: early access, with a board, hints and the 5×5 and 7×7 types. No tutorial yet. */
+/** Loop: early access, with a board, hints, a tutorial and the 5×5 and 7×7 types. */
 export const loop: GameModule<LoopPuzzle, LoopState, LoopSettingKey> = {
 	...loopLogic,
 	name: 'Loop',
@@ -33,6 +34,11 @@ export const loop: GameModule<LoopPuzzle, LoopState, LoopSettingKey> = {
 	],
 	defaultTool: () => 'black',
 	settings: LOOP_SETTINGS,
+	tutorial: {
+		puzzle: LOOP_TUTORIAL,
+		start: emptyLoopState,
+		steps: LOOP_TUTORIAL_STEPS
+	},
 	board: Board,
 	changes: (puzzle, from, to) => changedEdges(puzzle.width, from, to),
 	hint(puzzle, state) {

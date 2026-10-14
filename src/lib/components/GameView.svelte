@@ -7,10 +7,16 @@
 	import { GameSession } from '../client/session.svelte';
 	import { message } from '../client/session/messages';
 	import { cleanupSpecialSaves } from '../client/session/saves';
-	import { GameSettings, loadTouchMode, saveTouchMode } from '../client/settings.svelte';
+	import {
+		GameSettings,
+		loadLayout,
+		loadTouchMode,
+		saveLayout,
+		saveTouchMode
+	} from '../client/settings.svelte';
 	import { load, save } from '../client/storage';
-	import { boardZoomKey } from '../client/storageKeys';
-	import type { TouchMode } from '../core/types';
+	import { boardZoomKey, KEY } from '../client/storageKeys';
+	import type { PageLayout, TouchMode } from '../core/types';
 	import { parsePlayableId } from '../core/variants';
 	import type { AnyGame } from '../games';
 	import { t, variantLabel } from '../i18n/index.svelte';
@@ -29,6 +35,7 @@
 	import PrintBoard from './game/PrintBoard.svelte';
 	import SidePanel from './game/SidePanel.svelte';
 	import TopBar from './game/TopBar.svelte';
+	import WidePanel from './game/WidePanel.svelte';
 	import SettingsDialog from './SettingsDialog.svelte';
 	import ShortcutsDialog from './ShortcutsDialog.svelte';
 
@@ -44,6 +51,7 @@
 	const isTouch = typeof window !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 	const tools = untrack(() => new ToolState(game, isTouch));
 	const fit = new BoardFit();
+	fit.pageLayout = loadLayout();
 	const sharing = untrack(() => new Sharing(game, session));
 	/** The one keyboard listener: the board gets each key first, then the page's shortcuts. */
 	const keys = new KeyDispatcher(shortcuts);
@@ -54,6 +62,8 @@
 	/** Phone layout: the side panel opens as a drawer. */
 	let menuOpen = $state(false);
 	let zoomOpen = $state(false);
+	/** The widescreen panel is folded into a strip. */
+	let panelCollapsed = $state(load<boolean>(KEY.panelCollapsed, false));
 	let now = $state(Date.now());
 	let newBusy = $state(false);
 	const celebrate = new CelebrationTimer();
@@ -93,6 +103,11 @@
 	function setTouchMode(mode: TouchMode) {
 		touchMode = mode;
 		saveTouchMode(mode);
+	}
+
+	function setLayout(layout: PageLayout) {
+		fit.pageLayout = layout;
+		saveLayout(layout);
 	}
 
 	// ---- Actions -------------------------------------------------------------------------------
@@ -206,6 +221,12 @@
 		};
 	});
 
+	// Widescreen takes the screen's full width (`layout.css`).
+	$effect(() => {
+		document.body.classList.toggle('widescreen', fit.widescreen);
+		return () => document.body.classList.remove('widescreen');
+	});
+
 	// Re-measure when anything around the board changes size.
 	$effect(() => {
 		void fit.layout;
@@ -246,72 +267,121 @@
 	<title>{session.puzzle ? `${game.name} · ${label}` : game.name} · {t('app.name')}</title>
 </svelte:head>
 
-<div bind:this={fit.pageRoot} class="screen-only flex flex-col gap-6 lg:flex-row lg:items-start">
-	<SidePanel
+{#snippet boardStage()}
+	<BoardStage
 		{game}
-		{variant}
-		{isTouch}
-		wide={fit.wide}
-		bind:open={menuOpen}
-		onpick={(key) => openVariant(key)}
-		onopenid={openById}
-		onshortcuts={() => (showShortcuts = true)}
+		{session}
+		settings={settings.values}
+		{fit}
+		{tools}
+		{cellSize}
+		{zoom}
+		onzoom={setZoom}
+		{touchMode}
+		celebrate={celebrate.on}
+		{showTools}
+		keys={keys.attach}
 	/>
+{/snippet}
 
-	<section bind:this={fit.gameColumn} class="min-w-0 flex-1">
-		<TopBar
+{#if fit.widescreen}
+	{@const side = fit.pageLayout === 'left' ? 'left' : 'right'}
+	{#snippet panel()}
+		<WidePanel
 			{game}
+			{variant}
 			{label}
 			{session}
 			settings={settings.values}
 			{clock}
-			wide={fit.wide}
 			{isTouch}
-			stageWidth={fit.stageWidth}
+			{side}
+			maxHeight={fit.panelHeight}
 			{zoom}
-			{menuOpen}
-			bind:height={fit.toolbarHeight}
-			bind:zoomOpen
-			onzoom={setZoom}
-			onmenu={() => (menuOpen = true)}
-			onsettings={() => (showSettings = true)}
-			onshortcuts={() => (showShortcuts = true)}
-		/>
-
-		<BoardStage
-			{game}
-			{session}
-			settings={settings.values}
-			{fit}
-			{tools}
-			{cellSize}
-			{zoom}
-			onzoom={setZoom}
-			{touchMode}
-			celebrate={celebrate.on}
-			{showTools}
-			keys={keys.attach}
-		/>
-
-		<BelowBoard
-			{game}
-			{session}
-			settings={settings.values}
-			{fit}
 			{tools}
 			{showTools}
 			shared={sharing.solveShared}
 			{newPeriod}
 			{newBusy}
 			share={sharing.board}
+			bind:collapsed={panelCollapsed}
+			bind:zoomOpen
+			oncollapse={() => save(KEY.panelCollapsed, panelCollapsed)}
+			onzoom={setZoom}
+			onsettings={() => (showSettings = true)}
+			onshortcuts={() => (showShortcuts = true)}
+			onpick={(key) => openVariant(key)}
+			onopenid={openById}
 			onnew={newPuzzle}
 			onsharesolve={() => sharing.shareSolve(label, clock)}
 			onshare={() => sharing.shareBoard(boardSvg())}
 			onstartover={startOver}
 			oncloseshare={() => (sharing.board = null)}
 		/>
-	</section>
-</div>
+	{/snippet}
+	<!-- Widescreen: the board alone in its column, the panel beside it on the side picked -->
+	<div bind:this={fit.pageRoot} class="screen-only flex items-start gap-6">
+		{#if side === 'left'}{@render panel()}{/if}
+		<section bind:this={fit.gameColumn} class="min-w-0 flex-1">
+			{@render boardStage()}
+		</section>
+		{#if side === 'right'}{@render panel()}{/if}
+	</div>
+{:else}
+	<div bind:this={fit.pageRoot} class="screen-only flex flex-col gap-6 lg:flex-row lg:items-start">
+		<SidePanel
+			{game}
+			{variant}
+			{isTouch}
+			wide={fit.wide}
+			bind:open={menuOpen}
+			onpick={(key) => openVariant(key)}
+			onopenid={openById}
+			onshortcuts={() => (showShortcuts = true)}
+		/>
+
+		<section bind:this={fit.gameColumn} class="min-w-0 flex-1">
+			<TopBar
+				{game}
+				{label}
+				{session}
+				settings={settings.values}
+				{clock}
+				wide={fit.wide}
+				{isTouch}
+				stageWidth={fit.stageWidth}
+				{zoom}
+				{menuOpen}
+				bind:height={fit.toolbarHeight}
+				bind:zoomOpen
+				onzoom={setZoom}
+				onmenu={() => (menuOpen = true)}
+				onsettings={() => (showSettings = true)}
+				onshortcuts={() => (showShortcuts = true)}
+			/>
+
+			{@render boardStage()}
+
+			<BelowBoard
+				{game}
+				{session}
+				settings={settings.values}
+				{fit}
+				{tools}
+				{showTools}
+				shared={sharing.solveShared}
+				{newPeriod}
+				{newBusy}
+				share={sharing.board}
+				onnew={newPuzzle}
+				onsharesolve={() => sharing.shareSolve(label, clock)}
+				onshare={() => sharing.shareBoard(boardSvg())}
+				onstartover={startOver}
+				oncloseshare={() => (sharing.board = null)}
+			/>
+		</section>
+	</div>
+{/if}
 
 <PrintBoard
 	{game}
@@ -331,4 +401,6 @@
 	mode={variant.mode}
 	touchMode={isTouch && showTools ? touchMode : undefined}
 	ontouchmode={setTouchMode}
+	layout={fit.wide ? fit.pageLayout : undefined}
+	onlayout={setLayout}
 />

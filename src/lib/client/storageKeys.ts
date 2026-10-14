@@ -13,6 +13,10 @@ export const KEY = {
 	touch: 'touch',
 	puzzleSource: 'puzzleSource',
 	rulesHidden: 'rulesHidden',
+	/** The game page's layout on wide screens (`PageLayout`). */
+	layout: 'layout',
+	/** The widescreen layout's panel is folded into a strip. */
+	panelCollapsed: 'panelCollapsed',
 	/** The player's choice of offline mode; the build's default until they switch it. */
 	offlineMode: 'offlineMode',
 	/** The player's choice of update checks; the build's default until they switch it. */
@@ -50,8 +54,10 @@ export function parseSaveKey(key: string): SaveSlot | null {
 	return slot === ARCHIVE ? { game, variant, archive: true } : { game, variant, period: slot };
 }
 
+export const STATS_PREFIX = 'stats:';
+
 /** `stats:<game>:<variant>`: solves, streaks and times of a puzzle type. */
-export const statsKey = (game: string, variant: string) => `stats:${game}:${variant}`;
+export const statsKey = (game: string, variant: string) => `${STATS_PREFIX}${game}:${variant}`;
 
 /**
  * `periods:<game>:<variant>`: on the server only, the periods of a special type the player solved

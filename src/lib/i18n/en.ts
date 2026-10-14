@@ -134,6 +134,17 @@ const en = {
 		touchDrawText:
 			'Dragging on the board always draws. Two fingers scroll the board and pinch to zoom it.',
 		touchPanText: 'Dragging always scrolls and zooms the page. A tap still marks.',
+		layout: 'Layout on wide screens',
+		layoutStandard: 'Standard',
+		layoutRight: 'Widescreen, controls on the right',
+		layoutLeft: 'Widescreen, controls on the left',
+		layoutStandardText: 'The clock above the board, the tools and buttons below it.',
+		layoutRightText:
+			'The board takes the full height of the screen; everything else sits in a column on the right that folds into a narrow strip.',
+		layoutLeftText:
+			'The board takes the full height of the screen; everything else sits in a column on the left that folds into a narrow strip.',
+		expandControls: 'Expand controls',
+		collapseControls: 'Collapse controls',
 		checkpoints: 'Checkpoints',
 		save: 'Save',
 		add: 'Add',
@@ -802,7 +813,7 @@ const en = {
 				'A number tells how many of the four sides of its cell the loop runs along. Cells without a number can have any count.'
 			],
 			notes: [
-				'Early access: Loop is still being built. So far 5×5 and 7×7 are playable; more sizes, specials and a tutorial follow.'
+				'Early access: Loop is still being built. So far 5×5 and 7×7 are playable; more sizes and specials follow.'
 			],
 			tool: { black: 'Line' },
 			toolHint: {
@@ -884,7 +895,36 @@ const en = {
 				thenCross: 'So the loop must run there: draw the line.',
 				stuck:
 					'No rule decides an edge here. Try a line on the highlighted edge in your head and follow it until a rule breaks.'
-			}
+			},
+			tutorial: [
+				{
+					text: 'Loop is about one closed loop. You draw it between neighbouring dots, without branches or loose ends. A number tells how many of the four sides of its cell the loop runs along; cells without a number can have any count. Just look for now: you start drawing in step 2.'
+				},
+				{
+					text: 'Start with the 0: the loop runs along none of its sides. A cross marks an edge where no line goes.',
+					task: 'Pick the Cross tool (✕) and cross all four sides of the 0. With a mouse, a right click sets a cross too.',
+					done: 'Done. Crosses are not part of the loop, but they show at a glance where it cannot go.'
+				},
+				{
+					text: 'A 3 has the loop on three of its four sides. Each of these 3s shares a side with the 0, and that side has a cross. So the loop runs along all three other sides.',
+					task: 'Pick the Line tool (╱) again and draw the free sides of the three 3s. Drag along the dots to draw several lines at once.',
+					done: 'Right. A number turns grey once it has all its lines. Below the 0, the lines of the 3s already join up.'
+				},
+				{
+					text: 'The loop passes through a dot or misses it: every dot ends up with two lines or none, never one or three. At each marked dot, a line ends, and crosses block every way on but one.',
+					task: 'Continue the line at both marked dots.',
+					done: 'Exactly: where a line has only one way on, it goes there.'
+				},
+				{
+					text: 'Now the two ends of the line are neighbours. A line between them would close the loop around these few cells only, but the numbers further down still need their lines. There is just one loop, so it must not close early.',
+					task: 'Cross the edge between the two ends.',
+					done: 'Right. Now each end has only one way on again, along the border.'
+				},
+				{
+					text: 'The rest is yours, with the same three ideas: count the lines at each number, give every dot two lines or none, and close the loop only at the very end. A dot turns red where the line branches or gets stuck.',
+					task: 'Finish the loop on your own.'
+				}
+			]
 		}
 	}
 };

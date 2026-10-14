@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import { edgeKey } from '../src/lib/games/loop/rules';
+import { solveLoop } from '../src/lib/games/loop/solver';
+import { LOOP_TUTORIAL } from '../src/lib/games/loop/tutorial';
 
 /** Clicks the middle of an edge of the 5×5 tutorial board (padding: a fifth of a cell). */
 async function clickEdge(page: Page, kind: 'h' | 'v', i: number, j: number) {
@@ -233,4 +236,72 @@ test('Space switches between digits and notes in the Sudoku tutorial, as its tex
 	await expect(note).toHaveAttribute('aria-pressed', 'true');
 	await page.keyboard.press('Space');
 	await expect(digit).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('the Loop tutorial goes from the 0 to the 3s, the dots and the early loop', async ({
+	page
+}) => {
+	await page.goto('/');
+	await page.getByRole('link', { name: 'Learn Loop', exact: true }).click();
+	await expect(page).toHaveURL(/\/loop\/tutorial$/);
+	const next = page.getByRole('button', { name: 'Next' });
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const spotlight = board.locator('g.spotlight > *');
+	const edge = (key: string) => {
+		const [kind, i, j] = key.split(':');
+		return clickEdge(page, kind as 'h' | 'v', Number(i), Number(j));
+	};
+
+	await expect(page.getByText('Step 1 of 6')).toBeVisible();
+	await expect(page.getByText('Your turn')).toHaveCount(0);
+	await next.click();
+
+	// The four sides of the 0, with the Cross tool.
+	await expect(next).toBeDisabled();
+	await page.getByRole('button', { name: 'Cross' }).click();
+	for (const key of ['h:1:2', 'h:2:2', 'v:1:2', 'v:1:3']) await edge(key);
+	await expect(page.getByText(/Crosses are not part of the loop/)).toBeVisible();
+	await next.click();
+
+	// The free sides of the three 3s.
+	await expect(spotlight).toHaveCount(3);
+	await page.getByRole('button', { name: 'Line' }).click();
+	const threes = ['h:1:1', 'v:1:1', 'h:2:1', 'h:1:3', 'v:1:4', 'h:2:3', 'v:2:2', 'h:3:2', 'v:2:3'];
+	for (const key of threes) await edge(key);
+	await expect(page.getByText(/the lines of the 3s already join up/)).toBeVisible();
+	await next.click();
+
+	// The two line ends above the 0: the spotlight circles their dots.
+	await expect(board.locator('g.spotlight > circle')).toHaveCount(2);
+	await expect(next).toBeDisabled();
+	await page.getByRole('button', { name: 'Show me' }).click();
+	await expect(page.getByText(/it goes there/)).toBeVisible();
+	await next.click();
+
+	// The edge that would close the loop early: a right click sets the cross.
+	await expect(next).toBeDisabled();
+	const box = (await board.boundingBox())!;
+	const cell = box.width / 5.4;
+	await page.mouse.click(box.x + 2.7 * cell, box.y + 0.2 * cell, { button: 'right' });
+	await expect(page.getByText(/along the border/)).toBeVisible();
+	await next.click();
+
+	// The finish alone, with the game's hint: first where to look, then the step.
+	await expect(page.getByText('Step 6 of 6')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Show me' })).toHaveCount(0);
+	const hint = page.getByRole('button', { name: 'Hint' });
+	await hint.click();
+	await expect(page.getByRole('button', { name: 'Show the step' })).toBeVisible();
+	await expect(spotlight).toHaveCount(0);
+	await hint.click();
+	await expect(spotlight).not.toHaveCount(0);
+	const drawn = new Set([...threes, 'v:0:2', 'v:0:3']);
+	const loop = [...solveLoop(LOOP_TUTORIAL).solutions[0]].flatMap((v, e) =>
+		v === 1 ? [edgeKey(LOOP_TUTORIAL, e)] : []
+	);
+	for (const key of loop) if (!drawn.has(key)) await edge(key);
+	await expect(page.getByText('Well done!')).toBeVisible();
+	await page.getByRole('link', { name: 'Play a real puzzle' }).click();
+	await expect(page).toHaveURL(/\/loop(\?|$)/);
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 });

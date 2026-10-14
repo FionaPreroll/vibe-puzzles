@@ -132,6 +132,17 @@ const de: Dictionary = {
 		touchDrawText:
 			'Ziehen auf dem Spielfeld zeichnet immer. Mit zwei Fingern scrollst du das Spielfeld und zoomst es.',
 		touchPanText: 'Ziehen scrollt und zoomt immer die Seite. Antippen markiert trotzdem.',
+		layout: 'Ansicht auf großen Bildschirmen',
+		layoutStandard: 'Standard',
+		layoutRight: 'Breitbild, Bedienung rechts',
+		layoutLeft: 'Breitbild, Bedienung links',
+		layoutStandardText: 'Die Uhr über dem Spielfeld, Werkzeuge und Buttons darunter.',
+		layoutRightText:
+			'Das Spielfeld nutzt die ganze Bildschirmhöhe, alles andere steht in einer Spalte rechts, die sich zu einem schmalen Streifen einklappen lässt.',
+		layoutLeftText:
+			'Das Spielfeld nutzt die ganze Bildschirmhöhe, alles andere steht in einer Spalte links, die sich zu einem schmalen Streifen einklappen lässt.',
+		expandControls: 'Bedienung ausklappen',
+		collapseControls: 'Bedienung einklappen',
 		checkpoints: 'Zwischenstände',
 		save: 'Speichern',
 		add: 'Neu',
@@ -804,7 +815,7 @@ const de: Dictionary = {
 				'Eine Zahl sagt, an wie vielen der vier Seiten ihres Felds die Schleife entlangläuft. Felder ohne Zahl können beliebig viele haben.'
 			],
 			notes: [
-				'Early Access: Loop ist noch im Bau. Bisher sind 5×5 und 7×7 spielbar; weitere Größen, Specials und ein Tutorial folgen.'
+				'Early Access: Loop ist noch im Bau. Bisher sind 5×5 und 7×7 spielbar; weitere Größen und Specials folgen.'
 			],
 			tool: { black: 'Linie' },
 			toolHint: {
@@ -893,7 +904,36 @@ const de: Dictionary = {
 				thenCross: 'Also muss die Schleife dort entlang: Zieh die Linie.',
 				stuck:
 					'Hier legt keine Regel eine weitere Kante fest. Probier im Kopf eine Linie auf der markierten Kante aus und spiel sie durch, bis eine Regel verletzt wird.'
-			}
+			},
+			tutorial: [
+				{
+					text: 'Bei Loop geht es um eine einzige geschlossene Schleife. Du zeichnest sie zwischen benachbarten Punkten, ohne Abzweigungen und ohne lose Enden. Eine Zahl sagt, an wie vielen der vier Seiten ihres Felds die Schleife entlangläuft; Felder ohne Zahl können beliebig viele haben. Schau dir das Spielfeld erst einmal nur an: Ab Schritt 2 zeichnest du.'
+				},
+				{
+					text: 'Fang mit der 0 an: An keiner ihrer Seiten läuft die Schleife entlang. Ein Kreuz markiert eine Kante, auf der keine Linie verläuft.',
+					task: 'Wähle das Kreuz-Werkzeug (✕) und setz Kreuze auf alle vier Seiten der 0. Mit der Maus setzt auch ein Rechtsklick ein Kreuz.',
+					done: 'Geschafft. Kreuze gehören nicht zur Schleife, aber sie zeigen auf einen Blick, wo sie nicht hinkann.'
+				},
+				{
+					text: 'Eine 3 hat die Schleife an drei ihrer vier Seiten. Jede 3 hier grenzt mit einer Seite an die 0, und dort steht ein Kreuz. Also läuft die Schleife an ihren drei anderen Seiten entlang.',
+					task: 'Wähle wieder das Linien-Werkzeug (╱) und zieh Linien an den freien Seiten jeder 3. Zieh über die Punkte, um mehrere Linien auf einmal zu zeichnen.',
+					done: 'Richtig. Eine Zahl wird grau, sobald sie alle ihre Linien hat. Unter der 0 sind die Linien schon verbunden.'
+				},
+				{
+					text: 'Die Schleife geht durch einen Punkt hindurch oder an ihm vorbei: Jeder Punkt bekommt zwei Linien oder keine, nie eine oder drei. An jedem markierten Punkt endet eine Linie, und Kreuze versperren ihr jeden Weg bis auf einen.',
+					task: 'Führe die Linie an beiden markierten Punkten weiter.',
+					done: 'Genau: Wo eine Linie nur einen Weg weiter hat, geht sie dort entlang.'
+				},
+				{
+					text: 'Jetzt liegen die beiden Enden der Linie nebeneinander. Eine Linie zwischen ihnen würde die Schleife nur um diese paar Felder schließen, aber die Zahlen weiter unten brauchen noch ihre Linien. Es gibt nur eine Schleife, also darf sie sich nicht zu früh schließen.',
+					task: 'Setz ein Kreuz auf die Kante zwischen den beiden Enden.',
+					done: 'Richtig. Jetzt hat jedes Ende wieder nur einen Weg weiter, am Rand entlang.'
+				},
+				{
+					text: 'Der Rest gehört dir, mit denselben drei Ideen: Zähl die Linien an jeder Zahl, gib jedem Punkt zwei Linien oder keine, und schließ die Schleife erst ganz am Ende. Ein Punkt wird rot, wo sich die Linie verzweigt oder nicht weiterkommt.',
+					task: 'Vervollständige die Schleife selbst.'
+				}
+			]
 		}
 	}
 };

@@ -7,7 +7,8 @@ import {
 	notePeriodSolved,
 	solvedPeriods,
 	previousPeriod,
-	recordSolve
+	recordSolve,
+	watchStats
 } from './stats';
 import { keys, load, remove, save, setQuotaHandler } from './storage';
 import { MemoryStorage } from '../../test/memory-storage';
@@ -278,5 +279,34 @@ describe('the periods solved', () => {
 		const kept = mergePeriods('tetroid', 'daily', 'daily', many);
 		expect(kept).toHaveLength(400);
 		expect(kept.at(-1)).toBe('2026-10-07');
+	});
+});
+
+describe('watching the statistics', () => {
+	beforeEach(() => vi.stubGlobal('window', new EventTarget()));
+
+	it('reports every change, here and in other tabs, so the menu ticks a solve at once', () => {
+		const changed = vi.fn();
+		const stop = watchStats(changed);
+		recordSolve('tetroid', 'daily', 1, 1000, '2026-10-07', 'daily');
+		expect(changed).toHaveBeenCalledTimes(1);
+		// Solving it again changes nothing.
+		recordSolve('tetroid', 'daily', 1, 1000, '2026-10-07', 'daily');
+		expect(changed).toHaveBeenCalledTimes(1);
+		notePeriodSolved('tetroid', 'weekly', 2, '2026-W41', 'weekly');
+		mergePeriods('tetroid', 'monthly', 'monthly', ['2026-09']);
+		breakStreak('tetroid', 'daily');
+		expect(changed).toHaveBeenCalledTimes(4);
+		// Another tab's solve, or all of storage cleared; other keys are not statistics.
+		const write = (key: string | null) =>
+			window.dispatchEvent(Object.assign(new Event('storage'), { key }));
+		write('vp:stats:pinwheel:daily');
+		write(null);
+		write('vp:save:pinwheel:daily');
+		expect(changed).toHaveBeenCalledTimes(6);
+		stop();
+		recordSolve('tetroid', '6n', 3, 1000);
+		write('vp:stats:pinwheel:daily');
+		expect(changed).toHaveBeenCalledTimes(6);
 	});
 });

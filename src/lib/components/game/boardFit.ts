@@ -6,6 +6,10 @@
 
 /** Cell size before the page is measured. */
 export const DEFAULT_CELL = 36;
+/** The largest automatic cell size: small boards stop growing there. */
+export const MAX_CELL = 96;
+/** Widescreen lets small boards grow to the screen's height too. */
+export const WIDESCREEN_MAX_CELL = 240;
 export const MIN_ZOOM = 0.3;
 export const MAX_ZOOM = 3;
 
@@ -26,6 +30,8 @@ export interface FitInput {
 	padRows?: number;
 	/** Coordinates around the grid take room too. */
 	showCoordinates?: boolean;
+	/** The largest cell size (`MAX_CELL` unless given). */
+	maxCell?: number;
 }
 
 /** Largest cell size that shows the whole board without scrolling. */
@@ -39,7 +45,8 @@ export function fitCellSize(i: FitInput): number {
 	const byWidth = (i.areaWidth - 2 * i.stagePad) / (i.width + margin);
 	const byHeight =
 		Math.max(240, i.viewportHeight - chrome) / (i.height + margin + (i.padRows ?? 0));
-	return Math.max(16, Math.min(96, Math.floor(Math.min(byWidth, byHeight))));
+	const max = i.maxCell ?? MAX_CELL;
+	return Math.max(16, Math.min(max, Math.floor(Math.min(byWidth, byHeight))));
 }
 
 /** The cell size at `zoom` (1 = the automatic size). */
@@ -74,4 +81,16 @@ export interface Bottoms {
 /** Height of everything below the board area up to the page's end, without a longer side panel. */
 export function afterBoard(b: Bottoms): number {
 	return b.body - b.boardArea - Math.max(0, b.rootContent - b.gameColumn);
+}
+
+/** The widescreen panel is never shorter than this, even where the page then has to scroll. */
+export const MIN_PANEL_HEIGHT = 320;
+
+/**
+ * Height the widescreen layout's panel may take: the screen from the page's top (`rootTop`, page
+ * coordinates) down to what follows the page (`afterRoot`: the paddings and the footer), so that
+ * the panel never makes the page longer than the screen. Taller content scrolls inside it.
+ */
+export function panelHeight(viewportHeight: number, rootTop: number, afterRoot: number): number {
+	return Math.max(MIN_PANEL_HEIGHT, Math.floor(viewportHeight - rootTop - afterRoot));
 }

@@ -19,6 +19,8 @@ test('Loop is marked as early access on the home page and in its menu', async ({
 	// Its daily puzzle is not out yet.
 	await expect(card.getByText('Daily puzzle waiting')).toHaveCount(0);
 	await expect(card.getByRole('link', { name: 'Play' })).toBeVisible();
+	// The tutorial opens on the first visit: this test looks at the game itself.
+	await page.evaluate(() => localStorage.setItem('vp:tutorialSeen:loop', 'true'));
 	await page.goto('/loop');
 	await expect(page.getByRole('heading', { name: /Loop/ }).getByText('Early access')).toBeVisible();
 });

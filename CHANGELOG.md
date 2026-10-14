@@ -8,7 +8,13 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 
 ### Added
 
+- **Loop tutorial**: six short steps on a 5×5 board teach the three ideas Loop needs. A 0 has no line on any side, so the 3s next to it have lines on their other three; every dot gets two lines or none; and the loop must not close early. Then you finish the loop on your own, with the Hint button at hand. It opens on your first visit to Loop and has its button on the home page.
+- **Widescreen** for wide screens, in the settings: the board takes the full height of the screen, and the clock, the tools, the buttons and the puzzle types sit in a column on the right or the left. The column folds into a narrow strip with the tools; hints and messages then show beside it. Small boards grow beyond their usual largest size. The choice is kept on each device.
 - **Two fingers** scroll a board that is larger than the screen, and pinch to zoom it, with the touch input "Always draw" (the default). One finger still draws.
+
+### Fixed
+
+- **Menu ticks**: a solved daily, weekly or monthly puzzle gets its ✓ in the puzzle type menu right away, and a type solved 100 times in a row its ★, instead of only after reloading the page. A solve in another tab shows too, and the ✓ goes when a new period begins.
 
 ## [0.8.0] - 2026-10-11
 

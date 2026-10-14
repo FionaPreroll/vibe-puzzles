@@ -7,20 +7,23 @@
 
 	/**
 	 * Undo, redo, the trial, the tools and the hint: below the board on wide screens, fixed at the
-	 * bottom on phones. `showTools` is false while the player hides the tool buttons.
+	 * bottom on phones, in a column in the folded widescreen panel (`vertical`). `showTools` is
+	 * false while the player hides the tool buttons.
 	 */
 	let {
 		game,
 		session,
 		tools,
 		showTools,
-		wide
+		wide,
+		vertical = false
 	}: {
 		game: AnyGame;
 		session: AnySession;
 		tools: ToolState;
 		showTools: boolean;
 		wide: boolean;
+		vertical?: boolean;
 	} = $props();
 </script>
 
@@ -81,7 +84,11 @@
 </button>
 {#if showTools}
 	<span class="play-sep" aria-hidden="true"></span>
-	<div class="flex flex-[999] lg:gap-0.5" role="toolbar" aria-label={t('game.tools')}>
+	<div
+		class="flex flex-[999] lg:gap-0.5 {vertical ? 'flex-col' : ''}"
+		role="toolbar"
+		aria-label={t('game.tools')}
+	>
 		{#each game.tools as tl (tl.id)}
 			{@const name = toolLabel(game.id, tl)}
 			{@const hint = toolHint(game.id, tl.id)}

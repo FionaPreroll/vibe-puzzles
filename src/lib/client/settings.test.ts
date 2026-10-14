@@ -4,8 +4,10 @@ import { load, save } from './storage';
 import {
 	followSystemTheme,
 	GameSettings,
+	loadLayout,
 	loadTool,
 	loadTouchMode,
+	saveLayout,
 	saveTool,
 	saveTouchMode,
 	setLook,
@@ -37,6 +39,21 @@ describe('touch mode and tool', () => {
 		saveTool('tetroid', 'cross');
 		expect(loadTool('tetroid', 'black')).toBe('cross');
 		expect(loadTool('pinwheel', 'black')).toBe('black');
+	});
+});
+
+describe('page layout', () => {
+	it('is the standard layout until the player picks widescreen', () => {
+		expect(loadLayout()).toBe('standard');
+		saveLayout('left');
+		expect(loadLayout()).toBe('left');
+	});
+
+	it('falls back to the standard layout for anything it does not know', () => {
+		save('layout', 'sideways');
+		expect(loadLayout()).toBe('standard');
+		save('layout', 3);
+		expect(loadLayout()).toBe('standard');
 	});
 });
 

@@ -7,7 +7,8 @@
 		savePuzzleSource,
 		type PuzzleSource
 	} from '../client/bank';
-	import type { TouchMode } from '../core/types';
+	import { PAGE_LAYOUTS } from '../client/settings.svelte';
+	import type { PageLayout, TouchMode } from '../core/types';
 	import Dialog from './Dialog.svelte';
 
 	let {
@@ -15,7 +16,9 @@
 		settings,
 		mode,
 		touchMode,
-		ontouchmode
+		ontouchmode,
+		layout,
+		onlayout
 	}: {
 		open: boolean;
 		settings: GameSettings<string>;
@@ -24,14 +27,17 @@
 		/** Set on touch devices, which get a choice of how dragging on the board behaves. */
 		touchMode?: TouchMode;
 		ontouchmode?: (mode: TouchMode) => void;
+		/** Set on wide screens, which get a choice of the page's layout. */
+		layout?: PageLayout;
+		onlayout?: (layout: PageLayout) => void;
 	} = $props();
 
 	/** A line under a setting, lined up with its label. */
 	const HELP = '-mt-1 pr-2 pb-1 pl-9 text-xs text-stone-500 dark:text-stone-400';
 
 	const TOUCH_MODES: TouchMode[] = ['draw', 'auto', 'pan'];
-	/** 'draw' → 'Draw', for the translation keys of a touch mode. */
-	const name = (m: TouchMode) => `${m[0].toUpperCase()}${m.slice(1)}`;
+	/** 'draw' → 'Draw', for the translation keys of a touch mode or a layout. */
+	const name = (m: string) => `${m[0].toUpperCase()}${m.slice(1)}`;
 
 	let source = $state<PuzzleSource>(loadPuzzleSource());
 
@@ -71,6 +77,27 @@
 			</li>
 		{/each}
 	</ul>
+	{#if layout}
+		<fieldset class="mt-4 border-t border-stone-200 pt-3 dark:border-stone-700">
+			<legend class="section-title px-2">{t('game.layout')}</legend>
+			{#each PAGE_LAYOUTS as l (l)}
+				<label
+					class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-stone-100 dark:hover:bg-stone-800"
+				>
+					<input
+						type="radio"
+						name="page-layout"
+						class="size-4 accent-indigo-600"
+						checked={layout === l}
+						aria-describedby="layout-{l}-help"
+						onchange={() => onlayout?.(l)}
+					/>
+					<span>{t(`game.layout${name(l)}`)}</span>
+				</label>
+				<p id="layout-{l}-help" class={HELP}>{t(`game.layout${name(l)}Text`)}</p>
+			{/each}
+		</fieldset>
+	{/if}
 	{#if touchMode}
 		<fieldset class="mt-4 border-t border-stone-200 pt-3 dark:border-stone-700">
 			<legend class="section-title px-2">{t('game.touch')}</legend>
