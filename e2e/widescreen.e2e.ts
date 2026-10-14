@@ -1,8 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Widescreen, a choice in the settings on wide screens: the board alone in its column, as tall as
- * the screen, and everything else in a panel on the right or the left that folds into a strip.
+ * Widescreen on screens in landscape: the board alone in its column, as tall as the screen, and
+ * everything else in a panel on the right or the left that folds into a strip. The default is the
+ * panel on the left; the settings offer the standard layout too, which the other browser tests use
+ * (`playwright.config.ts`).
  */
 const PUZZLE = '/tetroid?v=6n&id=496678832';
 
@@ -112,6 +114,82 @@ test.describe('phone', () => {
 		await expect(page.getByRole('button', { name: 'Collapse controls' })).toHaveCount(0);
 		await page.getByRole('button', { name: 'Settings' }).click();
 		await expect(page.getByRole('group', { name: 'Touch input' })).toBeVisible();
-		await expect(page.getByRole('group', { name: 'Layout on wide screens' })).toHaveCount(0);
+		await expect(page.getByRole('group', { name: 'Layout in landscape' })).toHaveCount(0);
+	});
+});
+
+test.describe('by default', () => {
+	/** Without a choice of layout, as for a new player. */
+	const noChoice = (page: Page) => page.addInitScript(() => localStorage.removeItem('vp:layout'));
+
+	/** The panel is on the left of the board. */
+	async function expectPanelLeft(page: Page) {
+		const board = page.locator('.overflow-x-auto svg[role="grid"]');
+		await expect(page.getByRole('button', { name: 'Collapse controls' })).toBeVisible();
+		await expect
+			.poll(async () => {
+				const p = await box(page, 'aside');
+				return p.x + p.width < (await board.boundingBox())!.x;
+			})
+			.toBe(true);
+		await expect(board).toBeInViewport({ ratio: 1 });
+		expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+	}
+
+	test.describe('desktop', () => {
+		test.use({ viewport: { width: 1920, height: 1080 } });
+
+		test('is widescreen with the controls on the left', async ({ page }) => {
+			await noChoice(page);
+			await openPuzzle(page);
+			await expectPanelLeft(page);
+			await expectNoScroll(page);
+			await page.getByRole('button', { name: 'Settings' }).first().click();
+			const layouts = page.getByRole('group', { name: 'Layout in landscape' });
+			await expect(
+				layouts.getByRole('radio', { name: 'Widescreen, controls on the left' })
+			).toBeChecked();
+		});
+	});
+
+	for (const [name, width, height] of [
+		['tablet in landscape', 1180, 820],
+		['phone in landscape', 844, 390]
+	] as const) {
+		test.describe(name, () => {
+			test.use({ viewport: { width, height }, isMobile: true, hasTouch: true });
+
+			test('is widescreen with the controls on the left', async ({ page }) => {
+				await noChoice(page);
+				await openPuzzle(page);
+				await expectPanelLeft(page);
+				await page.getByRole('button', { name: 'Settings' }).first().click();
+				await expect(page.getByRole('group', { name: 'Touch input' })).toBeVisible();
+				await expect(page.getByRole('group', { name: 'Layout in landscape' })).toBeVisible();
+			});
+		});
+	}
+
+	test.describe('turning a phone', () => {
+		test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+		test('goes widescreen on its side and back upright, with the game kept', async ({ page }) => {
+			await noChoice(page);
+			const board = await openPuzzle(page);
+			await expect(page.getByRole('button', { name: 'Puzzle types and rules' })).toBeVisible();
+			const b = (await board.boundingBox())!;
+			await page.touchscreen.tap(b.x + b.width / 12, b.y + b.height / 12);
+			const undo = page.getByRole('button', { name: 'Undo' }).filter({ visible: true });
+			await expect(undo).toBeEnabled();
+
+			await page.setViewportSize({ width: 844, height: 390 });
+			await expectPanelLeft(page);
+			await expect(undo).toBeEnabled();
+
+			await page.setViewportSize({ width: 390, height: 844 });
+			await expect(page.getByRole('button', { name: 'Puzzle types and rules' })).toBeVisible();
+			await expect(page.getByRole('button', { name: 'Collapse controls' })).toHaveCount(0);
+			await expect(undo).toBeEnabled();
+		});
 	});
 });

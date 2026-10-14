@@ -102,7 +102,7 @@
 <!-- Room around the board on phones, so a quick swipe does not hit a button. Widescreen: nothing
      above the board, its top in line with the panel's -->
 <div
-	class="relative mt-5 {fit.widescreen ? 'lg:mt-0' : 'lg:mt-4'}"
+	class="relative {fit.widescreen ? '' : 'mt-5 lg:mt-4'}"
 	bind:clientWidth={fit.areaWidth}
 	bind:this={fit.areaWrap}
 >
@@ -164,7 +164,7 @@
 		{/if}
 	</div>
 	<MessageToast
-		phone={!fit.wide}
+		phone={!fit.wide && !fit.widescreen}
 		message={session.message}
 		hint={!!session.hint}
 		teaser={!!session.hint && !session.hintFull}

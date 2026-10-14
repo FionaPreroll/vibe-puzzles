@@ -132,7 +132,7 @@ const de: Dictionary = {
 		touchDrawText:
 			'Ziehen auf dem Spielfeld zeichnet immer. Mit zwei Fingern scrollst du das Spielfeld und zoomst es.',
 		touchPanText: 'Ziehen scrollt und zoomt immer die Seite. Antippen markiert trotzdem.',
-		layout: 'Ansicht auf großen Bildschirmen',
+		layout: 'Ansicht im Querformat',
 		layoutStandard: 'Standard',
 		layoutRight: 'Breitbild, Bedienung rechts',
 		layoutLeft: 'Breitbild, Bedienung links',

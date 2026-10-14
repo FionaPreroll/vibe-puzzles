@@ -9,6 +9,7 @@
 	import CheckpointBar from './CheckpointBar.svelte';
 	import GameInfo from './GameInfo.svelte';
 	import HintNote from './HintNote.svelte';
+	import { SHORT_PANEL } from './boardFit';
 	import { messageClass } from './messageStyle';
 	import PlayBar from './PlayBar.svelte';
 	import SharePanel from './SharePanel.svelte';
@@ -22,7 +23,8 @@
 	 * so that the board can take the screen's height. From the top: the game, the clock and the
 	 * icons, a message, the play bar with a hint's text, the checkpoints, the puzzle's ID with the
 	 * actions, and what the side panel shows (`GameInfo`). It never makes the page longer than the
-	 * screen (`maxHeight`): the part from the side panel scrolls inside it.
+	 * screen (`maxHeight`): the part from the side panel scrolls inside it, and on short screens
+	 * (a phone on its side) the whole panel does.
 	 *
 	 * Folded (`collapsed`), it is a narrow strip with the play bar in a column and the settings;
 	 * messages and hints then show in a bubble beside it, over the room next to the board.
@@ -98,6 +100,11 @@
 
 	/** A hint's text shows with the play bar; the other messages above it. */
 	const shown = $derived(session.message !== session.hintMessage ? session.message : null);
+	/**
+	 * Too short for the controls and a part of the side panel: all of it scrolls. (The menus
+	 * that open from the controls then stay within the panel.)
+	 */
+	const short = $derived(maxHeight < SHORT_PANEL);
 	/** The arrow points where the panel goes: towards the screen's edge to fold it. */
 	const arrow = $derived((side === 'right') === collapsed ? '«' : '»');
 
@@ -138,7 +145,11 @@
 
 <div class="sticky top-4 shrink-0">
 	<aside
-		class="panel {collapsed ? 'w-20 overflow-y-auto px-2' : 'flex w-88 flex-col'}"
+		class="panel {collapsed
+			? 'w-20 overflow-y-auto px-2'
+			: short
+				? 'w-88 overflow-y-auto'
+				: 'flex w-88 flex-col'}"
 		style:max-height="{maxHeight}px"
 		aria-label={t('game.menu', { game: game.name })}
 	>
@@ -262,7 +273,7 @@
 
 				<hr class="mt-5 border-stone-200 dark:border-stone-800" />
 			</div>
-			<div class="-mx-4 min-h-0 overflow-y-auto px-4">
+			<div class={short ? '' : '-mx-4 min-h-0 overflow-y-auto px-4'}>
 				<GameInfo {game} {variant} {isTouch} {onpick} {onopenid} {onshortcuts} />
 			</div>
 		{/if}

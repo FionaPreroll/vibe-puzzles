@@ -96,6 +96,7 @@ describe('widescreen', () => {
 		const fit = new BoardFit();
 		Object.assign(fit, { areaWidth: 1500, viewportHeight: 1080, boardTop: 100, afterBoard: 150 });
 		expect(fit.fitCell({ width: 5, height: 5 })).toBe(MAX_CELL);
+		fit.landscape = true;
 		fit.pageLayout = 'right';
 		expect(fit.fitCell({ width: 5, height: 5 })).toBe(Math.floor(802 / 5.4));
 	});
@@ -107,7 +108,7 @@ describe('the widescreen panel', () => {
 	});
 
 	it('keeps a usable height on short screens', () => {
-		expect(panelHeight(400, 81, 52)).toBe(MIN_PANEL_HEIGHT);
+		expect(panelHeight(300, 81, 52)).toBe(MIN_PANEL_HEIGHT);
 	});
 });
 
@@ -134,15 +135,18 @@ describe('measuring the page', () => {
 		expect(fit.layout).toEqual([900, 0, 0, 600, 0, 0, 0]);
 	});
 
-	it('is widescreen only on wide screens, and only once the player picks it', () => {
+	it('is widescreen on screens in landscape, unless the player picks the standard layout', () => {
 		const fit = new BoardFit();
+		fit.landscape = true;
 		expect(fit.widescreen).toBe(false);
 		fit.pageLayout = 'right';
 		expect(fit.widescreen).toBe(true);
 		expect(fit.layout.at(-1)).toBe(1);
-		fit.wide = false;
+		// Upright screens keep their layout, whatever their width.
+		fit.landscape = false;
 		expect(fit.widescreen).toBe(false);
-		fit.wide = true;
+		fit.landscape = true;
+		fit.wide = false;
 		fit.pageLayout = 'left';
 		expect(fit.widescreen).toBe(true);
 	});
@@ -182,7 +186,10 @@ describe('measuring the page', () => {
 
 	it('follows the layout and the page size until stopped', () => {
 		const media = Object.assign(new EventTarget(), { matches: true });
-		vi.stubGlobal('matchMedia', () => media);
+		const landscape = Object.assign(new EventTarget(), { matches: true });
+		vi.stubGlobal('matchMedia', (query: string) =>
+			query.includes('orientation') ? landscape : media
+		);
 		const observed = { body: null as unknown, callback: null as (() => void) | null, off: false };
 		vi.stubGlobal(
 			'ResizeObserver',
@@ -204,6 +211,11 @@ describe('measuring the page', () => {
 		const measure = vi.spyOn(fit, 'measure');
 		const stop = fit.observe(onLayout);
 		expect(onLayout).toHaveBeenLastCalledWith(true);
+		expect(fit.landscape).toBe(true);
+		// A phone turned upright.
+		landscape.matches = false;
+		landscape.dispatchEvent(new Event('change'));
+		expect(fit.landscape).toBe(false);
 		media.matches = false;
 		media.dispatchEvent(new Event('change'));
 		expect(fit.wide).toBe(false);
@@ -214,6 +226,7 @@ describe('measuring the page', () => {
 		stop();
 		expect(observed.off).toBe(true);
 		media.dispatchEvent(new Event('change'));
-		expect(onLayout).toHaveBeenCalledTimes(2);
+		landscape.dispatchEvent(new Event('change'));
+		expect(onLayout).toHaveBeenCalledTimes(3);
 	});
 });

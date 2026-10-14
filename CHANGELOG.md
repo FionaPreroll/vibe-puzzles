@@ -9,7 +9,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 ### Added
 
 - **Loop tutorial**: six short steps on a 5×5 board teach the three ideas Loop needs. A 0 has no line on any side, so the 3s next to it have lines on their other three; every dot gets two lines or none; and the loop must not close early. Then you finish the loop on your own, with the Hint button at hand. It opens on your first visit to Loop and has its button on the home page.
-- **Widescreen** for wide screens, in the settings: the board takes the full height of the screen, and the clock, the tools, the buttons and the puzzle types sit in a column on the right or the left. The column folds into a narrow strip with the tools; hints and messages then show beside it. Small boards grow beyond their usual largest size. The choice is kept on each device.
+- **Widescreen** on screens in landscape (desktops, and tablets and phones on their side): the board takes the full height of the screen, and the clock, the tools, the buttons and the puzzle types sit in a column on the left. The column folds into a narrow strip with the tools; hints and messages then show beside it. Small boards grow beyond their usual largest size. The settings move the column to the right or bring back the standard layout, on each device.
 - **Two fingers** scroll a board that is larger than the screen, and pinch to zoom it, with the touch input "Always draw" (the default). One finger still draws.
 
 ### Fixed

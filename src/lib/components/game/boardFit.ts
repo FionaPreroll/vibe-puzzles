@@ -84,7 +84,9 @@ export function afterBoard(b: Bottoms): number {
 }
 
 /** The widescreen panel is never shorter than this, even where the page then has to scroll. */
-export const MIN_PANEL_HEIGHT = 320;
+export const MIN_PANEL_HEIGHT = 240;
+/** A widescreen panel lower than this (a phone on its side) scrolls as a whole. */
+export const SHORT_PANEL = 480;
 
 /**
  * Height the widescreen layout's panel may take: the screen from the page's top (`rootTop`, page

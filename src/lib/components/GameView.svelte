@@ -221,7 +221,10 @@
 		};
 	});
 
-	// Widescreen takes the screen's full width (`layout.css`).
+	// Widescreen takes the screen's full width (`layout.css`), and has no drawer.
+	$effect(() => {
+		if (fit.widescreen) menuOpen = false;
+	});
 	$effect(() => {
 		document.body.classList.toggle('widescreen', fit.widescreen);
 		return () => document.body.classList.remove('widescreen');
@@ -401,6 +404,6 @@
 	mode={variant.mode}
 	touchMode={isTouch && showTools ? touchMode : undefined}
 	ontouchmode={setTouchMode}
-	layout={fit.wide ? fit.pageLayout : undefined}
+	layout={fit.landscape ? fit.pageLayout : undefined}
 	onlayout={setLayout}
 />

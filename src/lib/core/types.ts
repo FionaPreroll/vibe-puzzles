@@ -115,9 +115,9 @@ export interface TutorialStep<P, S> {
 export type TouchMode = 'auto' | 'draw' | 'pan';
 
 /**
- * The game page on wide screens: the standard layout (clock above the board, play bar below it), or
- * widescreen, where the board takes the screen's height and everything else sits in a column on
- * the right or the left.
+ * The game page on screens in landscape: the standard layout (clock above the board, play bar below
+ * it), or widescreen, where the board takes the screen's height and everything else sits in a
+ * column on the right or the left (the default).
  */
 export type PageLayout = 'standard' | 'right' | 'left';
 

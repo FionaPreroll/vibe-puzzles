@@ -27,7 +27,7 @@
 		/** Set on touch devices, which get a choice of how dragging on the board behaves. */
 		touchMode?: TouchMode;
 		ontouchmode?: (mode: TouchMode) => void;
-		/** Set on wide screens, which get a choice of the page's layout. */
+		/** Set on screens in landscape, which get a choice of the page's layout. */
 		layout?: PageLayout;
 		onlayout?: (layout: PageLayout) => void;
 	} = $props();
