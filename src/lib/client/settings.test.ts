@@ -43,17 +43,19 @@ describe('touch mode and tool', () => {
 });
 
 describe('page layout', () => {
-	it('is the standard layout until the player picks widescreen', () => {
-		expect(loadLayout()).toBe('standard');
-		saveLayout('left');
+	it('is widescreen with the controls on the left until the player picks another', () => {
 		expect(loadLayout()).toBe('left');
+		saveLayout('standard');
+		expect(loadLayout()).toBe('standard');
+		saveLayout('right');
+		expect(loadLayout()).toBe('right');
 	});
 
-	it('falls back to the standard layout for anything it does not know', () => {
+	it('falls back to the default for anything it does not know', () => {
 		save('layout', 'sideways');
-		expect(loadLayout()).toBe('standard');
+		expect(loadLayout()).toBe('left');
 		save('layout', 3);
-		expect(loadLayout()).toBe('standard');
+		expect(loadLayout()).toBe('left');
 	});
 });
 

@@ -78,9 +78,19 @@
 	.play-sep {
 		@apply h-7 w-px shrink-0 bg-stone-200 lg:mx-0.5 dark:bg-stone-700;
 	}
-	/* The play bar on lines of its own in the widescreen panel, and in a column when it is folded. */
-	.play-bar-wrap .play-sep {
+	/* The play bar in a grid in the widescreen panel, and in a column when it is folded. */
+	.play-bar-grid {
+		@apply grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))];
+	}
+	.play-bar-grid .play-sep {
 		@apply hidden;
+	}
+	/* Icons only, in the folded panel on short screens; the names stay for screen readers. */
+	.play-bar-icons {
+		@apply grid-cols-2;
+	}
+	.play-bar-icons .play-label {
+		@apply sr-only;
 	}
 	.play-bar-vertical .play-sep {
 		@apply mx-auto my-0.5 h-px w-7 lg:mx-auto;
@@ -100,6 +110,13 @@ body.widescreen header > div,
 body.widescreen main,
 body.widescreen footer {
 	max-width: none;
+}
+/* Widescreen on a short screen (a phone on its side): the header bar hides, the paddings shrink. */
+body.widescreen-short main {
+	padding: 0.5rem 0.75rem;
+}
+body.widescreen-short footer {
+	padding-inline: 0.75rem;
 }
 
 /* Solved: a green glow pulses around the board and a few sparkles fly out. Neither changes the

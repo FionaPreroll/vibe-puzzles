@@ -133,10 +133,13 @@ export function saveTouchMode(mode: TouchMode) {
 
 export const PAGE_LAYOUTS: PageLayout[] = ['standard', 'right', 'left'];
 
-/** The layout of the game page on wide screens, on this device. */
+/** Widescreen with the controls on the left, until the player picks another layout. */
+export const DEFAULT_LAYOUT: PageLayout = 'left';
+
+/** The layout of the game page on screens in landscape, on this device. */
 export function loadLayout(): PageLayout {
-	const stored = load<unknown>(KEY.layout, 'standard');
-	return PAGE_LAYOUTS.find((l) => l === stored) ?? 'standard';
+	const stored = load<unknown>(KEY.layout, DEFAULT_LAYOUT);
+	return PAGE_LAYOUTS.find((l) => l === stored) ?? DEFAULT_LAYOUT;
 }
 
 export function saveLayout(layout: PageLayout) {

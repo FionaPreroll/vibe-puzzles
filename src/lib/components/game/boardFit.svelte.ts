@@ -4,11 +4,17 @@ import {
 	DEFAULT_CELL,
 	fitCellSize,
 	panelHeight,
+	SHORT_SCREEN,
 	WIDESCREEN_MAX_CELL
 } from './boardFit';
 
 /** The wide layout, Tailwind's `lg`: the side panel beside the board, the play bar below it. */
 const WIDE = '(min-width: 1024px)';
+/**
+ * Screens where widescreen can apply: wider than tall, desktops as well as tablets and phones on
+ * their side, but not the narrowest phones.
+ */
+const LANDSCAPE = '(orientation: landscape) and (min-width: 600px)';
 
 /**
  * What the game page measures to fit the board on the screen. The page binds its elements and
@@ -21,7 +27,9 @@ export class BoardFit {
 	viewportHeight = $state(800);
 	/** The wide layout (side panel, play bar below the board) rather than the phone one. */
 	wide = $state(true);
-	/** The player's layout for wide screens; phones keep theirs. */
+	/** A screen in landscape (`LANDSCAPE`), where widescreen can apply. */
+	landscape = $state(typeof matchMedia === 'function' && matchMedia(LANDSCAPE).matches);
+	/** The player's layout for screens in landscape; upright ones keep theirs. */
 	pageLayout = $state<PageLayout>('standard');
 	/** Height the widescreen panel may take without making the page scroll. */
 	panelHeight = $state(0);
@@ -52,7 +60,15 @@ export class BoardFit {
 	 * in a panel beside it (`WidePanel`).
 	 */
 	get widescreen(): boolean {
-		return this.wide && this.pageLayout !== 'standard';
+		return this.landscape && this.pageLayout !== 'standard';
+	}
+
+	/**
+	 * Widescreen on a short screen (`SHORT_SCREEN`): no header bar, the footer below the screen, a
+	 * compact panel.
+	 */
+	get short(): boolean {
+		return this.widescreen && this.viewportHeight < SHORT_SCREEN;
 	}
 
 	/** Padding of the board's surface (p-2, lg:p-3), which the board's size leaves room for. */
@@ -73,7 +89,9 @@ export class BoardFit {
 		// Up to the page's end, but not where a longer side panel reaches beyond the game column.
 		const rootBox = pageRoot.getBoundingClientRect();
 		const root = rootBox.bottom;
-		const body = document.body.getBoundingClientRect().bottom;
+		// Short screens leave the footer below the screen, for whoever scrolls down to it.
+		const footer = this.short ? document.querySelector('footer') : null;
+		const body = (footer ?? document.body).getBoundingClientRect()[footer ? 'top' : 'bottom'];
 		this.panelHeight = panelHeight(this.viewportHeight, rootBox.top + window.scrollY, body - root);
 		this.afterBoard = afterBoard({
 			body,
@@ -89,17 +107,21 @@ export class BoardFit {
 	 */
 	observe(onLayout: (wide: boolean) => void = () => {}): () => void {
 		const media = matchMedia(WIDE);
+		const landscape = matchMedia(LANDSCAPE);
 		const layout = () => {
 			this.wide = media.matches;
+			this.landscape = landscape.matches;
 			onLayout(this.wide);
 		};
 		layout();
 		media.addEventListener('change', layout);
+		landscape.addEventListener('change', layout);
 		const observer = new ResizeObserver(() => this.measure());
 		observer.observe(document.body);
 		return () => {
 			observer.disconnect();
 			media.removeEventListener('change', layout);
+			landscape.removeEventListener('change', layout);
 		};
 	}
 
@@ -107,7 +129,7 @@ export class BoardFit {
 	get layout(): number[] {
 		const { viewportHeight, wide, toolbarHeight, areaWidth, belowHeight, barHeight } = this;
 		const layout = [viewportHeight, +wide, toolbarHeight, areaWidth, belowHeight, barHeight];
-		return [...layout, +this.widescreen];
+		return [...layout, +this.widescreen, +this.short];
 	}
 
 	/** The automatic cell size for a grid of `width` × `height` cells. */

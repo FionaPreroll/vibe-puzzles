@@ -49,7 +49,8 @@ const en = {
 		scores: 'Scores',
 		player: 'Player',
 		dayMode: 'Switch to day mode',
-		nightMode: 'Switch to night mode'
+		nightMode: 'Switch to night mode',
+		menu: 'Menu'
 	},
 	/** The site's look: the everyday one or a seasonal one. */
 	look: {
@@ -134,7 +135,7 @@ const en = {
 		touchDrawText:
 			'Dragging on the board always draws. Two fingers scroll the board and pinch to zoom it.',
 		touchPanText: 'Dragging always scrolls and zooms the page. A tap still marks.',
-		layout: 'Layout on wide screens',
+		layout: 'Layout in landscape',
 		layoutStandard: 'Standard',
 		layoutRight: 'Widescreen, controls on the right',
 		layoutLeft: 'Widescreen, controls on the left',

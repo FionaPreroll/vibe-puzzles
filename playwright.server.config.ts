@@ -14,6 +14,16 @@ export default defineConfig({
 	},
 	use: {
 		baseURL: 'http://localhost:8788',
+		// The standard layout on screens in landscape, as in the browser tests.
+		storageState: {
+			cookies: [],
+			origins: [
+				{
+					origin: 'http://localhost:8788',
+					localStorage: [{ name: 'vp:layout', value: '"standard"' }]
+				}
+			]
+		},
 		launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined }
 	}
 });
