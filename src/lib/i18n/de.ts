@@ -134,9 +134,12 @@ const de: Dictionary = {
 			'Ziehen auf dem Spielfeld zeichnet immer. Mit zwei Fingern scrollst du das Spielfeld und zoomst es.',
 		touchPanText: 'Ziehen scrollt und zoomt immer die Seite. Antippen markiert trotzdem.',
 		layout: 'Ansicht im Querformat',
+		layoutAuto: 'Vorgabe des Spiels ({layout})',
 		layoutStandard: 'Standard',
 		layoutRight: 'Breitbild, Bedienung rechts',
 		layoutLeft: 'Breitbild, Bedienung links',
+		layoutAutoText:
+			'Breitbild mit der Bedienung links auf Tablets, Handys und kleineren Desktop-Bildschirmen, die Standard-Ansicht auf großen Desktop-Bildschirmen. Ändert sich diese Vorgabe, folgt die Ansicht ihr.',
 		layoutStandardText: 'Die Uhr über dem Spielfeld, Werkzeuge und Buttons darunter.',
 		layoutRightText:
 			'Das Spielfeld nutzt die ganze Bildschirmhöhe, alles andere steht in einer Spalte rechts, die sich zu einem schmalen Streifen einklappen lässt.',

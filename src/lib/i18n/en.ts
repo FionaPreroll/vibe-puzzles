@@ -136,9 +136,12 @@ const en = {
 			'Dragging on the board always draws. Two fingers scroll the board and pinch to zoom it.',
 		touchPanText: 'Dragging always scrolls and zooms the page. A tap still marks.',
 		layout: 'Layout in landscape',
+		layoutAuto: 'Use game default ({layout})',
 		layoutStandard: 'Standard',
 		layoutRight: 'Widescreen, controls on the right',
 		layoutLeft: 'Widescreen, controls on the left',
+		layoutAutoText:
+			'Widescreen with the controls on the left on tablets, phones and smaller desktop screens, the standard layout on large desktop screens. Follows the game when this default changes.',
 		layoutStandardText: 'The clock above the board, the tools and buttons below it.',
 		layoutRightText:
 			'The board takes the full height of the screen; everything else sits in a column on the right that folds into a narrow strip.',

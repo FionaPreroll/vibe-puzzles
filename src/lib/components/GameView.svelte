@@ -10,14 +10,15 @@
 	import { cleanupSpecialSaves } from '../client/session/saves';
 	import {
 		GameSettings,
-		loadLayout,
+		layoutFor,
+		loadLayoutChoice,
 		loadTouchMode,
 		saveLayout,
 		saveTouchMode
 	} from '../client/settings.svelte';
 	import { load, save } from '../client/storage';
 	import { boardZoomKey, KEY } from '../client/storageKeys';
-	import type { PageLayout, TouchMode } from '../core/types';
+	import type { LayoutChoice, TouchMode } from '../core/types';
 	import { parsePlayableId } from '../core/variants';
 	import type { AnyGame } from '../games';
 	import { t, variantLabel } from '../i18n/index.svelte';
@@ -52,7 +53,10 @@
 	const isTouch = typeof window !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 	const tools = untrack(() => new ToolState(game, isTouch));
 	const fit = new BoardFit();
-	fit.pageLayout = loadLayout();
+	/** The player's layout in landscape, or the game's default for the device. */
+	const storedLayout = loadLayoutChoice();
+	let layoutChoice = $state(storedLayout);
+	fit.pageLayout = layoutFor(storedLayout);
 	const sharing = untrack(() => new Sharing(game, session));
 	/** The one keyboard listener: the board gets each key first, then the page's shortcuts. */
 	const keys = new KeyDispatcher(shortcuts);
@@ -106,9 +110,10 @@
 		saveTouchMode(mode);
 	}
 
-	function setLayout(layout: PageLayout) {
-		fit.pageLayout = layout;
-		saveLayout(layout);
+	function setLayout(choice: LayoutChoice) {
+		layoutChoice = choice;
+		fit.pageLayout = layoutFor(choice);
+		saveLayout(choice);
 	}
 
 	// ---- Actions -------------------------------------------------------------------------------
@@ -418,6 +423,6 @@
 	mode={variant.mode}
 	touchMode={isTouch && showTools ? touchMode : undefined}
 	ontouchmode={setTouchMode}
-	layout={fit.landscape ? fit.pageLayout : undefined}
+	layout={fit.landscape ? layoutChoice : undefined}
 	onlayout={setLayout}
 />
