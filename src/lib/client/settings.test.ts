@@ -5,7 +5,9 @@ import {
 	followSystemTheme,
 	GameSettings,
 	defaultLayout,
-	loadLayout,
+	deviceLayout,
+	layoutFor,
+	loadLayoutChoice,
 	loadTool,
 	loadTouchMode,
 	saveLayout,
@@ -57,24 +59,29 @@ describe('page layout', () => {
 		let coarse = false;
 		vi.stubGlobal('matchMedia', () => ({ matches: coarse }));
 		vi.stubGlobal('screen', { height: 1080 });
-		expect(loadLayout()).toBe('standard');
+		expect(deviceLayout()).toBe('standard');
+		expect(layoutFor('auto')).toBe('standard');
 		coarse = true;
-		expect(loadLayout()).toBe('left');
+		expect(layoutFor('auto')).toBe('left');
+		// A layout the player picked holds on any device.
+		expect(layoutFor('right')).toBe('right');
 	});
 
-	it('is widescreen with the controls on the left until the player picks another', () => {
-		expect(loadLayout()).toBe('left');
+	it("follows the game's default until the player picks a layout, and again once they pick it", () => {
+		expect(loadLayoutChoice()).toBe('auto');
 		saveLayout('standard');
-		expect(loadLayout()).toBe('standard');
+		expect(loadLayoutChoice()).toBe('standard');
 		saveLayout('right');
-		expect(loadLayout()).toBe('right');
+		expect(loadLayoutChoice()).toBe('right');
+		saveLayout('auto');
+		expect(loadLayoutChoice()).toBe('auto');
 	});
 
-	it('falls back to the default for anything it does not know', () => {
+	it("falls back to the game's default for anything it does not know", () => {
 		save('layout', 'sideways');
-		expect(loadLayout()).toBe('left');
+		expect(loadLayoutChoice()).toBe('auto');
 		save('layout', 3);
-		expect(loadLayout()).toBe('left');
+		expect(loadLayoutChoice()).toBe('auto');
 	});
 });
 

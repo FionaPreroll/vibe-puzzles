@@ -120,6 +120,8 @@ export type TouchMode = 'auto' | 'draw' | 'pan';
  * column on the right or the left (the default).
  */
 export type PageLayout = 'standard' | 'right' | 'left';
+/** A layout the player picks, or `auto`: the game's default for the device. */
+export type LayoutChoice = 'auto' | PageLayout;
 
 /** What the hint button shows for the current position. */
 export interface Hint {

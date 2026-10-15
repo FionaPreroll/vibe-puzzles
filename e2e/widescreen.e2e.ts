@@ -22,7 +22,7 @@ async function openPuzzle(page: Page) {
 
 async function pickLayout(page: Page, name: string) {
 	await page.getByRole('button', { name: 'Settings' }).first().click();
-	await page.getByRole('radio', { name }).check();
+	await page.getByRole('radio', { name, exact: true }).check();
 	await page.keyboard.press('Escape');
 }
 
@@ -183,7 +183,17 @@ test.describe('by default', () => {
 			await expect(page.getByRole('button', { name: 'Collapse controls' })).toHaveCount(0);
 			await page.getByRole('button', { name: 'Settings' }).first().click();
 			const layouts = page.getByRole('group', { name: 'Layout in landscape' });
-			await expect(layouts.getByRole('radio', { name: 'Standard' })).toBeChecked();
+			await expect(
+				layouts.getByRole('radio', { name: 'Use game default (Standard)' })
+			).toBeChecked();
+			await page.keyboard.press('Escape');
+
+			// A layout picked holds; the game's default can be picked again.
+			await pickLayout(page, 'Widescreen, controls on the left');
+			await expect(page.getByRole('button', { name: 'Collapse controls' })).toBeVisible();
+			await pickLayout(page, 'Use game default (Standard)');
+			await expect(page.getByRole('button', { name: 'Collapse panel' })).toBeVisible();
+			expect(await page.evaluate(() => localStorage.getItem('vp:layout'))).toBe('"auto"');
 		});
 	});
 
@@ -199,7 +209,7 @@ test.describe('by default', () => {
 			await page.getByRole('button', { name: 'Settings' }).first().click();
 			const layouts = page.getByRole('group', { name: 'Layout in landscape' });
 			await expect(
-				layouts.getByRole('radio', { name: 'Widescreen, controls on the left' })
+				layouts.getByRole('radio', { name: 'Use game default (Widescreen, controls on the left)' })
 			).toBeChecked();
 		});
 	});

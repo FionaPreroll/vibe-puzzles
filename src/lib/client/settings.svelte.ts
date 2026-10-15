@@ -1,6 +1,6 @@
 import { settingValues, type CommonKey } from '../core/settings';
 import { isLookChoice, resolveLook, type LookChoice } from '../core/theme';
-import type { PageLayout, SettingInfo, Settings, TouchMode } from '../core/types';
+import type { LayoutChoice, PageLayout, SettingInfo, Settings, TouchMode } from '../core/types';
 import { load, save } from './storage';
 import { KEY, settingsKey, toolKey } from './storageKeys';
 
@@ -132,27 +132,41 @@ export function saveTouchMode(mode: TouchMode) {
 }
 
 export const PAGE_LAYOUTS: PageLayout[] = ['standard', 'right', 'left'];
+/** The player's choice: a layout, or the game's default for the device (`auto`). */
+export const LAYOUT_CHOICES: LayoutChoice[] = ['auto', ...PAGE_LAYOUTS];
 
 /** A screen at least this tall (CSS pixels) is a large desktop screen. */
 export const LARGE_SCREEN = 1000;
 
 /**
- * The layout until the player picks one: widescreen with the controls on the left on touch screens
- * (tablets, phones) and on smaller desktop screens, the standard layout on large desktop screens,
- * where the board has room enough without it.
+ * The game's default layout: widescreen with the controls on the left on touch screens (tablets,
+ * phones) and on smaller desktop screens, the standard layout on large desktop screens, where the
+ * board has room enough without it.
  */
 export function defaultLayout(touch: boolean, screenHeight: number): PageLayout {
 	return touch || screenHeight < LARGE_SCREEN ? 'left' : 'standard';
 }
 
-/** The layout of the game page on screens in landscape, on this device. */
-export function loadLayout(): PageLayout {
+/** The game's default layout on this device. */
+export function deviceLayout(): PageLayout {
 	const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-	const fallback = defaultLayout(touch, typeof screen === 'object' ? screen.height : 0);
-	const stored = load<unknown>(KEY.layout, fallback);
-	return PAGE_LAYOUTS.find((l) => l === stored) ?? fallback;
+	return defaultLayout(touch, typeof screen === 'object' ? screen.height : 0);
 }
 
-export function saveLayout(layout: PageLayout) {
-	save(KEY.layout, layout);
+/** The layout a choice stands for on this device. */
+export function layoutFor(choice: LayoutChoice): PageLayout {
+	return choice === 'auto' ? deviceLayout() : choice;
+}
+
+/**
+ * The player's choice of layout for the game page on screens in landscape, on this device; the
+ * game's default (`auto`) until they pick one, so that a changed default reaches them.
+ */
+export function loadLayoutChoice(): LayoutChoice {
+	const stored = load<unknown>(KEY.layout, 'auto');
+	return LAYOUT_CHOICES.find((l) => l === stored) ?? 'auto';
+}
+
+export function saveLayout(choice: LayoutChoice) {
+	save(KEY.layout, choice);
 }

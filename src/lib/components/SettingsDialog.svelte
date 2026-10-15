@@ -7,8 +7,8 @@
 		savePuzzleSource,
 		type PuzzleSource
 	} from '../client/bank';
-	import { PAGE_LAYOUTS } from '../client/settings.svelte';
-	import type { PageLayout, TouchMode } from '../core/types';
+	import { deviceLayout, LAYOUT_CHOICES } from '../client/settings.svelte';
+	import type { LayoutChoice, TouchMode } from '../core/types';
 	import Dialog from './Dialog.svelte';
 
 	let {
@@ -28,8 +28,8 @@
 		touchMode?: TouchMode;
 		ontouchmode?: (mode: TouchMode) => void;
 		/** Set on screens in landscape, which get a choice of the page's layout. */
-		layout?: PageLayout;
-		onlayout?: (layout: PageLayout) => void;
+		layout?: LayoutChoice;
+		onlayout?: (layout: LayoutChoice) => void;
 	} = $props();
 
 	/** A line under a setting, lined up with its label. */
@@ -80,7 +80,7 @@
 	{#if layout}
 		<fieldset class="mt-4 border-t border-stone-200 pt-3 dark:border-stone-700">
 			<legend class="section-title px-2">{t('game.layout')}</legend>
-			{#each PAGE_LAYOUTS as l (l)}
+			{#each LAYOUT_CHOICES as l (l)}
 				<label
 					class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-stone-100 dark:hover:bg-stone-800"
 				>
@@ -92,7 +92,11 @@
 						aria-describedby="layout-{l}-help"
 						onchange={() => onlayout?.(l)}
 					/>
-					<span>{t(`game.layout${name(l)}`)}</span>
+					<span
+						>{l === 'auto'
+							? t('game.layoutAuto', { layout: t(`game.layout${name(deviceLayout())}`) })
+							: t(`game.layout${name(l)}`)}</span
+					>
 				</label>
 				<p id="layout-{l}-help" class={HELP}>{t(`game.layout${name(l)}Text`)}</p>
 			{/each}
