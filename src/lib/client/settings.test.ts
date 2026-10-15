@@ -4,6 +4,7 @@ import { load, save } from './storage';
 import {
 	followSystemTheme,
 	GameSettings,
+	defaultLayout,
 	loadLayout,
 	loadTool,
 	loadTouchMode,
@@ -43,6 +44,24 @@ describe('touch mode and tool', () => {
 });
 
 describe('page layout', () => {
+	it('is widescreen by default on touch screens and smaller screens, not on large ones', () => {
+		expect(defaultLayout(true, 1366)).toBe('left');
+		expect(defaultLayout(false, 900)).toBe('left');
+		expect(defaultLayout(false, 1080)).toBe('standard');
+		expect(defaultLayout(false, 1440)).toBe('standard');
+		// Large tablets are touch screens too.
+		expect(defaultLayout(true, 1440)).toBe('left');
+	});
+
+	it('reads the default from the device', () => {
+		let coarse = false;
+		vi.stubGlobal('matchMedia', () => ({ matches: coarse }));
+		vi.stubGlobal('screen', { height: 1080 });
+		expect(loadLayout()).toBe('standard');
+		coarse = true;
+		expect(loadLayout()).toBe('left');
+	});
+
 	it('is widescreen with the controls on the left until the player picks another', () => {
 		expect(loadLayout()).toBe('left');
 		saveLayout('standard');

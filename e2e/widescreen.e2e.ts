@@ -3,7 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 /**
  * Widescreen on screens in landscape: the board alone in its column, as tall as the screen, and
  * everything else in a panel on the right or the left that folds into a strip. The default is the
- * panel on the left; the settings offer the standard layout too, which the other browser tests use
+ * panel on the left on touch screens and smaller desktop screens, the standard layout on large
+ * desktop screens; the settings offer all three. The other browser tests use the standard layout
  * (`playwright.config.ts`).
  */
 const PUZZLE = '/tetroid?v=6n&id=496678832';
@@ -171,8 +172,24 @@ test.describe('by default', () => {
 		expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
 	}
 
-	test.describe('desktop', () => {
-		test.use({ viewport: { width: 1920, height: 1080 } });
+	test.describe('large desktop screen', () => {
+		const size = { width: 1920, height: 1080 };
+		test.use({ viewport: size, screen: size });
+
+		test('keeps the standard layout', async ({ page }) => {
+			await noChoice(page);
+			await openPuzzle(page);
+			await expect(page.getByRole('button', { name: 'Collapse panel' })).toBeVisible();
+			await expect(page.getByRole('button', { name: 'Collapse controls' })).toHaveCount(0);
+			await page.getByRole('button', { name: 'Settings' }).first().click();
+			const layouts = page.getByRole('group', { name: 'Layout in landscape' });
+			await expect(layouts.getByRole('radio', { name: 'Standard' })).toBeChecked();
+		});
+	});
+
+	test.describe('smaller desktop screen', () => {
+		const size = { width: 1440, height: 900 };
+		test.use({ viewport: { width: 1440, height: 780 }, screen: size });
 
 		test('is widescreen with the controls on the left', async ({ page }) => {
 			await noChoice(page);
@@ -189,6 +206,7 @@ test.describe('by default', () => {
 
 	for (const [name, width, height] of [
 		['tablet in landscape', 1180, 820],
+		['large tablet in landscape', 1366, 1024],
 		['phone in landscape', 844, 390]
 	] as const) {
 		test.describe(name, () => {
