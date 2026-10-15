@@ -56,6 +56,8 @@ describe('page layout', () => {
 	});
 
 	it('reads the default from the device', () => {
+		// Without a screen to measure (as on the server), widescreen.
+		expect(deviceLayout()).toBe('left');
 		let coarse = false;
 		vi.stubGlobal('matchMedia', () => ({ matches: coarse }));
 		vi.stubGlobal('screen', { height: 1080 });
