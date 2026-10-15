@@ -133,13 +133,24 @@ export function saveTouchMode(mode: TouchMode) {
 
 export const PAGE_LAYOUTS: PageLayout[] = ['standard', 'right', 'left'];
 
-/** Widescreen with the controls on the left, until the player picks another layout. */
-export const DEFAULT_LAYOUT: PageLayout = 'left';
+/** A screen at least this tall (CSS pixels) is a large desktop screen. */
+export const LARGE_SCREEN = 1000;
+
+/**
+ * The layout until the player picks one: widescreen with the controls on the left on touch screens
+ * (tablets, phones) and on smaller desktop screens, the standard layout on large desktop screens,
+ * where the board has room enough without it.
+ */
+export function defaultLayout(touch: boolean, screenHeight: number): PageLayout {
+	return touch || screenHeight < LARGE_SCREEN ? 'left' : 'standard';
+}
 
 /** The layout of the game page on screens in landscape, on this device. */
 export function loadLayout(): PageLayout {
-	const stored = load<unknown>(KEY.layout, DEFAULT_LAYOUT);
-	return PAGE_LAYOUTS.find((l) => l === stored) ?? DEFAULT_LAYOUT;
+	const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+	const fallback = defaultLayout(touch, typeof screen === 'object' ? screen.height : 0);
+	const stored = load<unknown>(KEY.layout, fallback);
+	return PAGE_LAYOUTS.find((l) => l === stored) ?? fallback;
 }
 
 export function saveLayout(layout: PageLayout) {
