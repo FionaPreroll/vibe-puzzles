@@ -53,6 +53,15 @@ describe('page layout', () => {
 		expect(defaultLayout(true, 1440)).toBe('left');
 	});
 
+	it('reads the default from the device', () => {
+		let coarse = false;
+		vi.stubGlobal('matchMedia', () => ({ matches: coarse }));
+		vi.stubGlobal('screen', { height: 1080 });
+		expect(loadLayout()).toBe('standard');
+		coarse = true;
+		expect(loadLayout()).toBe('left');
+	});
+
 	it('is widescreen with the controls on the left until the player picks another', () => {
 		expect(loadLayout()).toBe('left');
 		saveLayout('standard');
