@@ -472,12 +472,19 @@ const en = {
 		reload: 'Reload',
 		dismiss: 'Not now'
 	},
+	inside: {
+		/** The Inside page in the footer. */
+		link: 'Inside'
+	},
 	about: {
 		link: 'About',
 		title: 'About Vibe Puzzles',
 		intro: 'Logic puzzles in the browser. Every puzzle has exactly one solution.',
 		/** Followed by the contact address. */
 		contact: 'Questions, ideas or a bug to report? Write to',
+		/** Followed by a link to the Inside page. */
+		inside: 'How are the puzzles made, and how hard are they?',
+		insideLink: 'Watch it step by step',
 		build: 'Build',
 		version: 'Version',
 		commit: 'Commit',

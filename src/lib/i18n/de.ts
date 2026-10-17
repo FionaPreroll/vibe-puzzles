@@ -471,11 +471,16 @@ const de: Dictionary = {
 		reload: 'Neu laden',
 		dismiss: 'Später'
 	},
+	inside: {
+		link: 'Hinter den Kulissen'
+	},
 	about: {
 		link: 'Über',
 		title: 'Über Vibe Puzzles',
 		intro: 'Logikrätsel im Browser. Jedes Rätsel hat genau eine Lösung.',
 		contact: 'Fragen, Ideen oder einen Fehler gefunden? Schreib an',
+		inside: 'Wie entstehen die Rätsel, und wie schwer sind sie?',
+		insideLink: 'Schau Schritt für Schritt zu',
 		build: 'Build',
 		version: 'Version',
 		commit: 'Commit',

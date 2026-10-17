@@ -1,7 +1,7 @@
 import { Rng } from '../../core/rng';
 import type { Difficulty } from '../../core/variants';
 import type { SudokuPuzzle } from './rules';
-import { Level, ratePuzzle, solveSudoku } from './solver';
+import { Level, ratePuzzle, solveSudoku, type SudokuTrace } from './solver';
 
 export interface GeneratedSudoku {
 	puzzle: SudokuPuzzle;
@@ -26,7 +26,8 @@ function dig(
 	size: number,
 	maxLevel: Level,
 	rng: Rng,
-	minGivens = 0
+	minGivens = 0,
+	trace?: SudokuTrace
 ): SudokuPuzzle {
 	const n = size * size;
 	const puzzle: SudokuPuzzle = { width: size, height: size, givens: solution.slice() };
@@ -36,10 +37,17 @@ function dig(
 		const pair = [i, n - 1 - i];
 		const removed = i === n - 1 - i ? 1 : 2;
 		if (left - removed < minGivens) continue;
+		const cells = pair.slice(0, removed);
 		const kept = pair.map((j) => puzzle.givens[j]);
 		for (const j of pair) puzzle.givens[j] = 0;
-		if (ratePuzzle(puzzle, maxLevel).solved) left -= removed;
-		else pair.forEach((j, k) => (puzzle.givens[j] = kept[k]));
+		trace?.({ kind: 'try', cells });
+		if (ratePuzzle(puzzle, maxLevel).solved) {
+			left -= removed;
+			trace?.({ kind: 'keep', cells });
+		} else {
+			pair.forEach((j, k) => (puzzle.givens[j] = kept[k]));
+			trace?.({ kind: 'restore', cells });
+		}
 	}
 	return puzzle;
 }
@@ -50,25 +58,28 @@ const givenCount = (p: SudokuPuzzle) => p.givens.filter(Boolean).length;
  * Easy puzzles need only singles and keep many givens; normal ones need only singles too but have
  * as few givens as that allows; hard ones also need locked candidates or subsets. None needs
  * guessing. Deterministic per seed. Easy sizes below 9 keep a proportional share of givens.
+ * `trace` hears the search that fills the grid and the digging (`SudokuTraceEvent`).
  */
 export function generateSudoku(
 	size: number,
 	difficulty: Difficulty,
-	seed: number
+	seed: number,
+	trace?: SudokuTrace
 ): GeneratedSudoku {
 	const rng = new Rng(seed);
 	const fill = () =>
-		solveSudoku(new Array(size * size).fill(0), size, { limit: 1, rng }).solutions[0];
+		solveSudoku(new Array(size * size).fill(0), size, { limit: 1, rng, trace }).solutions[0];
 	if (difficulty !== 'hard') {
 		const solution = fill();
 		const min = difficulty === 'easy' ? Math.round((EASY_GIVENS * size * size) / 81) : 0;
-		return { puzzle: dig(solution, size, Level.Singles, rng, min), solution };
+		return { puzzle: dig(solution, size, Level.Singles, rng, min, trace), solution };
 	}
 	let best: GeneratedSudoku | null = null;
 	let bestScore = -Infinity;
 	for (let attempt = 0; attempt < HARD_ATTEMPTS; attempt++) {
+		trace?.({ kind: 'attempt', n: attempt });
 		const solution = fill();
-		const puzzle = dig(solution, size, Level.Subsets, rng);
+		const puzzle = dig(solution, size, Level.Subsets, rng, 0, trace);
 		const hard = ratePuzzle(puzzle, Level.Singles).solved ? 0 : 1;
 		const score = hard * 1000 - givenCount(puzzle);
 		if (score > bestScore) {
