@@ -20,12 +20,11 @@ export const EMPTY: Partial<Record<Reason, string>> = {
 	sidesSame: 'emptySides'
 };
 
-/** Loop: early access, with a board, hints, a tutorial and the 5×5 and 7×7 types. */
+/** Loop: a board, hints and a tutorial, from 5×5 to 25×30. */
 export const loop: GameModule<LoopPuzzle, LoopState, LoopSettingKey> = {
 	...loopLogic,
 	name: 'Loop',
 	icon: '▢',
-	earlyAccess: true,
 	tools: [
 		{ id: 'rotate', label: 'Cycle', icon: '⇄', key: '1' },
 		{ id: 'black', label: 'Line', icon: '╱', key: '2' },

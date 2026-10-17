@@ -14,12 +14,28 @@ export interface GeneratedLoop {
 const ATTEMPTS = 40;
 
 /**
+ * Boards from this many cells on (10×10) get a loop that spreads over the whole board
+ * (`spreadLoop`). Smaller ones keep the plain loop of `randomLoop`, so their puzzle IDs keep
+ * their puzzles.
+ */
+const SPREAD_FROM = 100;
+/** A spread loop leaves no square of more than this side untouched (`emptySquare`). */
+const MAX_EMPTY = 3;
+/** Loops tried for that; the one with the smallest untouched square wins if none gets there. */
+const SPREAD_TRIES = 30;
+/** How far around a cell `randomLoop` looks to see whether it reaches into an empty part. */
+const REACH = 3;
+
+/**
  * A random loop, as the cells inside it. Grows a region from one cell, adding neighbouring cells
  * only while the region's border stays one simple loop: the cells outside stay connected to the
  * edge of the grid (no holes), and no dot has inside cells on one diagonal and outside cells on
  * the other (where the loop would touch itself).
+ *
+ * With `spread`, cells that reach into a part of the board with few inside cells come up more
+ * often, so the region sends arms across the board instead of growing as one lump.
  */
-export function randomLoop(w: number, h: number, rng: Rng): boolean[] {
+export function randomLoop(w: number, h: number, rng: Rng, spread = false): boolean[] {
 	const n = w * h;
 	const inside = new Array<boolean>(n).fill(false);
 	const at = (r: number, c: number) => r >= 0 && c >= 0 && r < h && c < w && inside[r * w + c];
@@ -64,14 +80,20 @@ export function randomLoop(w: number, h: number, rng: Rng): boolean[] {
 	const blocked = new Set<number>();
 	while (size < target) {
 		const frontier: number[] = [];
+		const weights: number[] = [];
+		const around = spread ? insideAround(w, h, inside) : null;
 		for (let i = 0; i < n; i++) {
 			if (inside[i] || blocked.has(i)) continue;
 			// Cells with one inside neighbour come up more often: the loop gets more turns.
 			const touching = neighbours(i, w, h).filter((j) => inside[j]).length;
-			if (touching > 0) frontier.push(...(touching === 1 ? [i, i, i] : [i]));
+			if (touching === 0) continue;
+			if (around) {
+				frontier.push(i);
+				weights.push((touching === 1 ? 3 : 1) * (1 + 20 * (1 - around(i)) ** 3));
+			} else frontier.push(...(touching === 1 ? [i, i, i] : [i]));
 		}
 		if (frontier.length === 0) break;
-		const i = rng.pick(frontier);
+		const i = around ? pickWeighted(rng, frontier, weights) : rng.pick(frontier);
 		inside[i] = true;
 		if (touchesItself(Math.floor(i / w), i % w) || !outsideConnected()) {
 			inside[i] = false;
@@ -83,6 +105,81 @@ export function randomLoop(w: number, h: number, rng: Rng): boolean[] {
 		blocked.clear();
 	}
 	return inside;
+}
+
+/**
+ * The share of inside cells among the cells up to `REACH` rows and columns away from each cell
+ * (within the board), from running sums over the board.
+ */
+function insideAround(w: number, h: number, inside: boolean[]): (i: number) => number {
+	const sum = new Int32Array((w + 1) * (h + 1));
+	for (let r = 0; r < h; r++) {
+		for (let c = 0; c < w; c++) {
+			sum[(r + 1) * (w + 1) + c + 1] =
+				(inside[r * w + c] ? 1 : 0) +
+				sum[r * (w + 1) + c + 1] +
+				sum[(r + 1) * (w + 1) + c] -
+				sum[r * (w + 1) + c];
+		}
+	}
+	return (i) => {
+		const r = Math.floor(i / w);
+		const c = i % w;
+		const [r0, r1] = [Math.max(0, r - REACH), Math.min(h, r + REACH + 1)];
+		const [c0, c1] = [Math.max(0, c - REACH), Math.min(w, c + REACH + 1)];
+		const count =
+			sum[r1 * (w + 1) + c1] -
+			sum[r0 * (w + 1) + c1] -
+			sum[r1 * (w + 1) + c0] +
+			sum[r0 * (w + 1) + c0];
+		return count / ((r1 - r0) * (c1 - c0));
+	};
+}
+
+function pickWeighted(rng: Rng, items: number[], weights: number[]): number {
+	let r = rng.next() * weights.reduce((a, b) => a + b, 0);
+	for (let k = 0; k < items.length - 1; k++) {
+		if (r < weights[k]) return items[k];
+		r -= weights[k];
+	}
+	return items[items.length - 1];
+}
+
+/**
+ * The side of the largest square of cells that the loop around the inside cells does not touch:
+ * an empty patch where the puzzle has nothing to work out.
+ */
+export function emptySquare(w: number, h: number, inside: boolean[]): number {
+	const at = (r: number, c: number) => r >= 0 && c >= 0 && r < h && c < w && inside[r * w + c];
+	const size = new Int32Array(w * h);
+	let best = 0;
+	for (let r = 0; r < h; r++) {
+		for (let c = 0; c < w; c++) {
+			const me = at(r, c);
+			if (at(r - 1, c) !== me || at(r + 1, c) !== me || at(r, c - 1) !== me) continue;
+			if (at(r, c + 1) !== me) continue;
+			const i = r * w + c;
+			size[i] = r && c ? 1 + Math.min(size[i - w], size[i - 1], size[i - w - 1]) : 1;
+			best = Math.max(best, size[i]);
+		}
+	}
+	return best;
+}
+
+/**
+ * A loop that runs across the whole board: grown with `spread`, and tried again (up to
+ * `SPREAD_TRIES` times) while it leaves a square of more than `MAX_EMPTY` cells untouched.
+ * A single grown region leaves big empty patches on big boards: up to 12×12 cells on 25×30.
+ */
+export function spreadLoop(w: number, h: number, rng: Rng): boolean[] {
+	let best: boolean[] = [];
+	let bestEmpty = Infinity;
+	for (let t = 0; t < SPREAD_TRIES && bestEmpty > MAX_EMPTY; t++) {
+		const inside = randomLoop(w, h, rng, true);
+		const empty = emptySquare(w, h, inside);
+		if (empty < bestEmpty) [best, bestEmpty] = [inside, empty];
+	}
+	return best;
 }
 
 /** The loop around the inside cells, and the clue of every cell. */
@@ -139,8 +236,9 @@ export function fitsLoopDifficulty(p: LoopPuzzle, difficulty: Difficulty): boole
 }
 
 /**
- * A puzzle of the given size: a random loop with every clue shown, then clues removed in random
- * order while the techniques of the difficulty still solve the puzzle, which proves it unique.
+ * A puzzle of the given size: a random loop (spread over the board from 10×10 on) with every
+ * clue shown, then clues removed in random order while the techniques of the difficulty still
+ * solve the puzzle, which proves it unique.
  * Hard puzzles count when the basic techniques alone no longer solve them.
  */
 export function generateLoop(
@@ -153,7 +251,8 @@ export function generateLoop(
 	const level = LEVEL[difficulty];
 	let fallback: GeneratedLoop | null = null;
 	for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-		const { clues, lines } = loopOf(w, h, randomLoop(w, h, rng));
+		const inside = w * h >= SPREAD_FROM ? spreadLoop(w, h, rng) : randomLoop(w, h, rng);
+		const { clues, lines } = loopOf(w, h, inside);
 		if (!solves(puzzleOf(w, h, clues), level)) continue;
 		for (const c of rng.shuffle(Array.from({ length: w * h }, (_, k) => k))) {
 			const clue = clues[c];

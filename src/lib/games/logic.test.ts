@@ -74,8 +74,7 @@ describe('variant lists', () => {
 			tetroid: ['10n', '15h', '20h'],
 			pinwheel: ['10h', '15h', '15h'],
 			sudoku: ['9n', '9h', '9h'],
-			// Only 5×5 and 7×7 are playable so far.
-			loop: ['7n', '7h', '7h']
+			loop: ['10n', '15h', '25x30h']
 		});
 	});
 

@@ -186,11 +186,11 @@ describe('api', () => {
 		expect((await api('PATCH', '/player', { name: 5 }, token)).status).toBe(400);
 		const unknown = await api('POST', '/puzzles', { game: 'chess', variant: '6n' }, token);
 		expect(unknown).toEqual({ status: 400, body: { error: 'Unknown game or puzzle type' } });
-		// A type that is only announced hands out no puzzles and keeps no scores yet.
-		const announced = await api('POST', '/puzzles', { game: 'loop', variant: '10n' }, token);
-		expect(announced).toEqual({ status: 400, body: { error: 'Unknown game or puzzle type' } });
-		expect((await api('GET', '/scores?game=loop&variant=10n')).status).toBe(400);
-		expect((await api('GET', '/scores?game=loop&variant=5n')).status).toBe(200);
+		// Every Loop type hands out puzzles and keeps scores, the big ones too.
+		expect((await api('POST', '/puzzles', { game: 'loop', variant: '25x30h' }, token)).status).toBe(
+			201
+		);
+		expect((await api('GET', '/scores?game=loop&variant=25x30h')).status).toBe(200);
 		const big = await handleApi(
 			new Request('https://example.test/api/player', {
 				method: 'POST',

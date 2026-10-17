@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Rng } from '../../core/rng';
 import { isPlayable } from '../../core/variants';
-import { fitsLoopDifficulty, generateLoop, randomLoop } from './generator';
+import { emptySquare, fitsLoopDifficulty, generateLoop, randomLoop, spreadLoop } from './generator';
 import { LOOP_VARIANTS, loopLogic } from './logic';
 import {
 	analyze,
@@ -14,12 +14,13 @@ import {
 	isSolvedState,
 	LINE,
 	loopGraph,
+	OPEN,
 	stateFromEdges,
 	vIndex,
 	type LoopPuzzle,
 	type LoopState
 } from './rules';
-import { LoopLevel, rateLoop, solveLoop } from './solver';
+import { LoopLevel, LoopSolver, rateLoop, solveLoop } from './solver';
 
 /** A state with lines on the given edges, as `h:i:j` / `v:i:j` keys. */
 function lines(p: LoopPuzzle, ...keys: string[]): LoopState {
@@ -238,6 +239,34 @@ describe('rating solver', () => {
 	});
 });
 
+describe('trying single edges', () => {
+	it('finds the same contradictions as rating from the start', () => {
+		const { puzzle, solution } = generateLoop(7, 7, 'hard', 2);
+		const right = edgeValues(solution);
+		const rng = new Rng(5);
+		let broken = 0;
+		for (const share of [0, 0.3]) {
+			const from: number[] = right.map((x) =>
+				rng.next() < share ? (x === LINE ? LINE : CROSS) : OPEN
+			);
+			for (const level of [LoopLevel.Basic, LoopLevel.Advanced]) {
+				const trials = new LoopSolver(puzzle);
+				expect(trials.startTrials(level, from)).toBe(true);
+				for (let e = 0; e < from.length; e++) {
+					for (const value of [LINE, CROSS]) {
+						const tried = from.slice();
+						tried[e] = value;
+						const full = rateLoop(puzzle, level, tried).contradiction;
+						expect(trials.breaks(e, value), `${level} ${e} ${value}`).toBe(full);
+						if (full) broken++;
+					}
+				}
+			}
+		}
+		expect(broken).toBeGreaterThan(100);
+	});
+});
+
 describe('complete solver', () => {
 	it('solves a puzzle that the rules alone do not, by case analysis', () => {
 		const p: LoopPuzzle = { width: 3, height: 3, clues: '.1.....1.' };
@@ -256,6 +285,14 @@ describe('complete solver', () => {
 		expect(solveLoop({ width: 1, height: 1, clues: '0' }).solutions).toHaveLength(0);
 	});
 
+	it('needs no case analysis where inside and outside decide, also on big hard puzzles', () => {
+		// With the basic rules alone, search took minutes on some 10×10 hard puzzles.
+		const { puzzle } = generateLoop(10, 10, 'hard', 3);
+		const res = solveLoop(puzzle, { limit: 2 });
+		expect(res).toMatchObject({ finished: true, branched: false });
+		expect(res.solutions).toHaveLength(1);
+	});
+
 	it('gives up after its node budget', () => {
 		const open: LoopPuzzle = { width: 6, height: 6, clues: '.'.repeat(36) };
 		const res = solveLoop(open, { limit: 1000, maxNodes: 50 });
@@ -271,7 +308,7 @@ describe('generator', () => {
 			[10, 10]
 		]) {
 			for (let seed = 1; seed <= 20; seed++) {
-				const inside = randomLoop(w, h, new Rng(seed));
+				const inside = randomLoop(w, h, new Rng(seed), seed % 2 === 0);
 				expect(inside.some(Boolean)).toBe(true);
 				const p: LoopPuzzle = { width: w, height: h, clues: '.'.repeat(w * h) };
 				const s = emptyLoopState(p);
@@ -286,6 +323,24 @@ describe('generator', () => {
 		}
 	});
 
+	it('spreads the loop of big boards over the whole board', () => {
+		for (const [w, h] of [
+			[10, 10],
+			[15, 15],
+			[12, 16]
+		]) {
+			for (let seed = 1; seed <= 5; seed++) {
+				const spread = spreadLoop(w, h, new Rng(seed));
+				expect(emptySquare(w, h, spread), `${w}x${h} #${seed}`).toBeLessThanOrEqual(3);
+			}
+		}
+		// A region grown as one lump leaves big patches empty.
+		const lumps = [1, 2, 3, 4, 5].map((seed) =>
+			emptySquare(25, 30, randomLoop(25, 30, new Rng(seed)))
+		);
+		expect(Math.max(...lumps)).toBeGreaterThan(3);
+	});
+
 	it.each([
 		[5, 'normal', 1],
 		[5, 'normal', 2],
@@ -294,7 +349,10 @@ describe('generator', () => {
 		[7, 'normal', 1],
 		[7, 'normal', 2],
 		[7, 'hard', 1],
-		[7, 'hard', 2]
+		[7, 'hard', 2],
+		[10, 'normal', 1],
+		[10, 'hard', 1],
+		[15, 'hard', 1]
 	] as const)(
 		'makes a unique %i×%i… %s puzzle that fits its level (seed %i)',
 		(size, difficulty, seed) => {
@@ -334,9 +392,14 @@ describe('loop logic', () => {
 	const v = LOOP_VARIANTS[0];
 	const { puzzle, solution } = generateLoop(5, 5, 'normal', 31);
 
-	it('lists all fifteen types, of which 5×5 and 7×7 are playable yet', () => {
-		expect(LOOP_VARIANTS).toHaveLength(15);
-		expect(LOOP_VARIANTS.filter(isPlayable).map((x) => x.key)).toEqual(['5n', '5h', '7n', '7h']);
+	it('lists all fifteen types in their final order, all playable', () => {
+		expect(LOOP_VARIANTS.map((x) => x.key)).toEqual([
+			...['5', '7', '10', '15', '20', '25x30'].flatMap((size) => [`${size}n`, `${size}h`]),
+			'daily',
+			'weekly',
+			'monthly'
+		]);
+		expect(LOOP_VARIANTS.every(isPlayable)).toBe(true);
 		expect(LOOP_VARIANTS.find((x) => x.key === '25x30h')).toMatchObject({ width: 25, height: 30 });
 	});
 
