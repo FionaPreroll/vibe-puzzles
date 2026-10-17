@@ -255,6 +255,13 @@ The fix for issue #84 went this way. It changed all Tetroid normal puzzles and t
 
 The Loop rating (2026-10-10) went this way too: the basic rules got stronger (corner flags) and both levels became clue-minimal, so every Loop ID changed its puzzle. `pnpm bank:regrade` replaced 100 of the 111 stored 5×5 Normal puzzles, which had clues to spare under the new rules; the 11 others already fit. Loop had no specials yet.
 
+## Traces
+
+The Inside page (`/inside`) shows the generators at work from their own trace. A generator that has a film takes an optional `trace` callback, and passes it on to the solvers it calls:
+
+- **Sudoku** (`generateSudoku(size, difficulty, seed, trace)`): the search that fills the grid reports each digit it tries (`place`) and the ones a dead end takes back (`unplace`). Digging reports each pair it takes out (`try`) and whether it stays out (`keep`) or goes back (`restore`). Hard puzzles report each attempt. `ratePuzzle(puzzle, level, trace)` reports the candidates at the start, each single with the unit it was found in, and each elimination.
+- A tracer only listens. It is called where the algorithm decides something, never in its innermost loops; it draws no random numbers and changes no order, so a generator makes the same puzzle with or without one (unit test). Without a tracer, the calls cost a check each.
+
 ## Tests and budgets
 
 - Unit tests per game check uniqueness, validity, determinism and the difficulty of generated puzzles: Sudoku (9×9, and a seed whose first 30 attempts failed), Calcudoku (4×4 to 7×7), Tetroid (6×6 and 8×8 normal and hard, 10×10 normal), Pinwheel (5×5 normal and hard, 7×7 and 10×10 hard) and Loop (5×5 and 7×7 normal and hard, and the techniques on small patterns).

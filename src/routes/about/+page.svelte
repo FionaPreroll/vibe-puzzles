@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from '$app/paths';
+	import { asset, resolve } from '$app/paths';
 	import { createBackup, parseBackup, restoreBackup } from '#lib/client/backup.ts';
 	import { ask } from '#lib/client/confirm.svelte.ts';
 	import { i18n, t } from '#lib/i18n/index.svelte.ts';
@@ -90,6 +90,9 @@
 <p class="mt-2 text-stone-600 dark:text-stone-400">{t('about.intro')}</p>
 <p class="mt-1 text-stone-600 dark:text-stone-400">
 	{t('about.contact')} <a class="link" href="mailto:{CONTACT}">{CONTACT}</a>
+</p>
+<p class="mt-1 text-stone-600 dark:text-stone-400">
+	{t('about.inside')} <a class="link" href={resolve('/inside')}>{t('about.insideLink')}</a>
 </p>
 
 <div class="mt-6 grid max-w-3xl gap-6">
