@@ -10,29 +10,26 @@ const solution = [...solveLoop(puzzle).solutions[0]].flatMap((v, e) =>
 	v === 1 ? [edgeKey(puzzle, e)] : []
 );
 
-test('Loop is marked as early access on the home page and in its menu', async ({ page }) => {
+test('Loop has its daily puzzle on the home page, and no early-access badge', async ({ page }) => {
 	await page.goto('/');
 	const card = page
 		.getByRole('listitem')
 		.filter({ has: page.getByRole('heading', { name: 'Loop' }) });
-	await expect(card.getByText('Early access')).toBeVisible();
-	// Its daily puzzle is not out yet.
-	await expect(card.getByText('Daily puzzle waiting')).toHaveCount(0);
+	await expect(card.getByRole('link', { name: /Daily puzzle waiting/ })).toBeVisible();
 	await expect(card.getByRole('link', { name: 'Play' })).toBeVisible();
-	// The tutorial opens on the first visit: this test looks at the game itself.
-	await page.evaluate(() => localStorage.setItem('vp:tutorialSeen:loop', 'true'));
-	await page.goto('/loop');
-	await expect(page.getByRole('heading', { name: /Loop/ }).getByText('Early access')).toBeVisible();
+	await expect(card.getByText('Early access')).toHaveCount(0);
 });
 
-test('announced types are greyed out, and a link to one opens 5×5 Normal', async ({ page }) => {
+test('every size is playable: a link to 10×10 opens it', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:loop', 'true'));
 	await page.goto('/loop?v=10n');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	await expect(page).toHaveURL(/v=5n/);
-	await expect(page.getByRole('button', { name: '5×5 Normal', exact: true })).toBeEnabled();
-	await expect(page.getByRole('button', { name: '7×7 Hard', exact: true })).toBeEnabled();
-	await expect(page.getByRole('button', { name: '10×10 Normal: coming soon' })).toBeDisabled();
-	await expect(page.getByRole('button', { name: 'Daily: coming soon' })).toBeDisabled();
+	await expect(page).toHaveURL(/v=10n/);
+	await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible();
+	for (const name of ['10×10 Normal', '15×15 Hard', '20×20 Normal', '25×30 Hard']) {
+		await expect(page.getByRole('button', { name, exact: true })).toBeEnabled();
+	}
+	await expect(page.getByRole('button', { name: /coming soon/ })).toHaveCount(0);
 });
 
 test('a collection puzzle is solved by drawing its loop', async ({ page }) => {

@@ -17,35 +17,32 @@ import {
 import { solveLoop } from './solver';
 
 /**
- * Every type Loop will have. In early access 5×5 and 7×7 are playable; the others are listed as
- * coming soon until their generator settings are measured (`comingSoon`). Their place in this
- * list is final already, as puzzle IDs hold it.
+ * Every type of Loop, in their final order: puzzle IDs hold a type's place in this list, so new
+ * types may only be appended.
  */
-const regular = (width: number, height: number, key: string, comingSoon: boolean): Variant[] =>
+const regular = (width: number, height: number, key: string): Variant[] =>
 	(['normal', 'hard'] as const).map((difficulty) => ({
 		key: `${key}${difficulty[0]}`,
 		label: `${width}x${height} ${difficulty === 'normal' ? 'Normal' : 'Hard'}`,
 		width,
 		height,
-		difficulty,
-		...(comingSoon && { comingSoon })
+		difficulty
 	}));
 
 export const LOOP_VARIANTS: Variant[] = [
-	...regular(5, 5, '5', false),
-	...regular(7, 7, '7', false),
-	...regular(10, 10, '10', true),
-	...regular(15, 15, '15', true),
-	...regular(20, 20, '20', true),
-	...regular(25, 30, '25x30', true),
+	...regular(5, 5, '5'),
+	...regular(7, 7, '7'),
+	...regular(10, 10, '10'),
+	...regular(15, 15, '15'),
+	...regular(20, 20, '20'),
+	...regular(25, 30, '25x30'),
 	{
 		key: 'daily',
 		label: 'Special Daily',
 		width: 10,
 		height: 10,
 		difficulty: 'normal',
-		special: 'daily',
-		comingSoon: true
+		special: 'daily'
 	},
 	{
 		key: 'weekly',
@@ -53,8 +50,7 @@ export const LOOP_VARIANTS: Variant[] = [
 		width: 15,
 		height: 15,
 		difficulty: 'hard',
-		special: 'weekly',
-		comingSoon: true
+		special: 'weekly'
 	},
 	{
 		key: 'monthly',
@@ -62,8 +58,7 @@ export const LOOP_VARIANTS: Variant[] = [
 		width: 25,
 		height: 30,
 		difficulty: 'hard',
-		special: 'monthly',
-		comingSoon: true
+		special: 'monthly'
 	}
 ];
 

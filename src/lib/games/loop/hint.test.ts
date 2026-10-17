@@ -273,7 +273,9 @@ describe('loop hints', () => {
 		[5, 5, 'normal'],
 		[5, 5, 'hard'],
 		[7, 7, 'normal'],
-		[7, 7, 'hard']
+		[7, 7, 'hard'],
+		[10, 10, 'normal'],
+		[10, 10, 'hard']
 	] as const)(
 		'solves %i×%i %s puzzles by following the hints, line by line',
 		(w, h, difficulty) => {

@@ -819,7 +819,7 @@ const de: Dictionary = {
 				'Eine Zahl sagt, an wie vielen der vier Seiten ihres Felds die Schleife entlangläuft. Felder ohne Zahl können beliebig viele haben.'
 			],
 			notes: [
-				'Early Access: Loop ist noch im Bau. Bisher sind 5×5 und 7×7 spielbar; weitere Größen und Specials folgen.'
+				'Oft entscheidend: Die beiden Felder an einer Linie liegen auf verschiedenen Seiten der Schleife, die an einem Kreuz auf derselben.'
 			],
 			tool: { black: 'Linie' },
 			toolHint: {

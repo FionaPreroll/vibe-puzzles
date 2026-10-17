@@ -18,7 +18,8 @@ const BUDGET: Record<number, number> = {
 	9: 500,
 	10: 2000,
 	15: 5000,
-	20: 20000
+	20: 20000,
+	25: 20000
 };
 
 /** Rule sets that take longer than the game's main one, as a factor on the size's budget. */

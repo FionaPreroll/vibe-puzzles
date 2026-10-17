@@ -123,7 +123,12 @@ describe('opening a puzzle', () => {
 	});
 
 	it('opens the first playable type instead of one that is only announced', async () => {
-		const loop = GAME_LOGIC.loop as unknown as GameModule<BasePuzzle, unknown>;
+		// Loop with its 10×10 Normal type announced only, as it was in early access.
+		const game = GAME_LOGIC.loop as unknown as GameModule<BasePuzzle, unknown>;
+		const loop = {
+			...game,
+			variants: game.variants.map((v) => (v.key === '10n' ? { ...v, comingSoon: true } : v))
+		};
 		expect(loop.variants[4]).toMatchObject({ key: '10n', comingSoon: true });
 		const s = new GameSession(loop, new GameSettings('loop', withCommon([])));
 		await s.open('10n');
