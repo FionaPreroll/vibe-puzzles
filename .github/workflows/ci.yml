@@ -51,16 +51,37 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:coverage
-        env:
-          # Pull requests solve again only the collection puzzles they change (bank.test.ts);
-          # pushes to main check the whole collection.
-          BANK_TEST_SINCE: ${{ github.event_name == 'pull_request' && 'HEAD^1' || '' }}
+      # The puzzle collection has a job of its own (below).
+      - run: pnpm test:coverage --project server
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
           fail_ci_if_error: false
+
+  # Solving every stored puzzle again (bank.test.ts) takes minutes, Loop 25×30 most of them, and
+  # many times longer under coverage, so it runs here, without coverage and next to the unit tests.
+  collection:
+    name: Puzzle collection
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The merge commit of a pull request and its base, to see what the pull request changes.
+          fetch-depth: 2
+      # Installs the pnpm version from the packageManager field in package.json.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vitest --run --project collection
+        env:
+          # Pull requests solve again only the collection puzzles they change;
+          # pushes to main check the whole collection.
+          BANK_TEST_SINCE: ${{ github.event_name == 'pull_request' && 'HEAD^1' || '' }}
 
   e2e:
     name: ${{ matrix.name }}
@@ -95,7 +116,7 @@ jobs:
   # cancels a deploy still in progress, and each deploy checks again right before publishing.
   pages:
     name: Deploy to GitHub Pages
-    needs: [lint, unit, e2e]
+    needs: [lint, unit, collection, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     concurrency:
       group: pages
@@ -108,7 +129,7 @@ jobs:
 
   cloudflare:
     name: Deploy to Cloudflare Workers
-    needs: [lint, unit, e2e]
+    needs: [lint, unit, collection, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     concurrency:
       group: cloudflare-deploy

@@ -89,7 +89,17 @@ export default defineConfig({
 					name: 'server',
 					environment: 'node',
 					include: ['src/**/*.{test,spec}.{js,ts}', 'worker/**/*.test.ts', 'scripts/**/*.test.ts'],
-					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
+					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}', 'src/lib/games/bank.test.ts']
+				}
+			},
+			// Solving every stored puzzle again takes minutes and tests data, not code, so CI runs it
+			// in a job of its own without coverage (pnpm test still runs it).
+			{
+				extends: './vite.config.ts',
+				test: {
+					name: 'collection',
+					environment: 'node',
+					include: ['src/lib/games/bank.test.ts']
 				}
 			}
 		]
