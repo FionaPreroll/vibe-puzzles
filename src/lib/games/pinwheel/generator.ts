@@ -151,18 +151,16 @@ function makeUnique(
 	trace?: PinwheelTrace
 ): boolean {
 	const p: PinwheelPuzzle = { width: w, height: h, centres: [] };
-	const drop = () => (trace?.({ kind: 'drop' }), false);
 	for (let iter = 0; iter < w * h; iter++) {
 		p.centres = galaxies.map((g) => g.centre);
 		const res = new PinwheelSolver(p).solve({ limit: 2, maxNodes: NODE_BUDGET });
-		if (!res.finished) return drop();
+		if (!res.finished) return false;
 		const owner = new Int32Array(w * h);
 		galaxies.forEach((g, k) => g.cells.forEach((i) => (owner[i] = k)));
 		const other = res.solutions.find((s) => s.some((k, i) => k !== owner[i]));
 		if (!other) {
-			if (res.solutions.length !== 1) return drop();
 			trace?.({ kind: 'unique' });
-			return true;
+			return res.solutions.length === 1;
 		}
 		trace?.({
 			kind: 'second',
@@ -187,25 +185,24 @@ function makeUnique(
 			const ca = a % w;
 			const rb = Math.floor(b / w);
 			const cb = b % w;
-			const added: Galaxy[] =
-				Math.abs(ra - rb) + Math.abs(ca - cb) === 1
-					? [{ centre: [ra + rb, ca + cb], cells: new Set([a, b]) }]
-					: [
-							{ centre: [2 * ra, 2 * ca], cells: new Set([a]) },
-							{ centre: [2 * rb, 2 * cb], cells: new Set([b]) }
-						];
-			galaxies.push(...added);
+			const before = galaxies.length;
+			if (Math.abs(ra - rb) + Math.abs(ca - cb) === 1) {
+				galaxies.push({ centre: [ra + rb, ca + cb], cells: new Set([a, b]) });
+			} else {
+				galaxies.push({ centre: [2 * ra, 2 * ca], cells: new Set([a]) });
+				galaxies.push({ centre: [2 * rb, 2 * cb], cells: new Set([b]) });
+			}
 			trace?.({
 				kind: 'split',
 				cells: [i, m],
-				galaxies: added.map((g) => ({ centre: g.centre, cells: [...g.cells] }))
+				galaxies: galaxies.slice(before).map((g) => ({ centre: g.centre, cells: [...g.cells] }))
 			});
 			split = true;
 			break;
 		}
-		if (!split) return drop();
+		if (!split) return false;
 	}
-	return drop();
+	return false;
 }
 
 /**

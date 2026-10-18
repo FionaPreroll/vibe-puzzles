@@ -28,8 +28,6 @@ export type PinwheelTraceEvent =
 	  }
 	/** The partition is the only solution now. */
 	| { kind: 'unique' }
-	/** The attempt is given up: the search ran out of nodes, or no cell could be cut out. */
-	| { kind: 'drop' }
 	/** A unique partition: whether propagation alone solves it (normal) or not (hard). */
 	| { kind: 'rated'; easy: boolean }
 	/**

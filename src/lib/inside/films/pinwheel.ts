@@ -128,7 +128,8 @@ function paint(events: Event<'centre' | 'grow' | 'absorb' | 'second' | 'split'>[
 	const colours = new Map<string, number>();
 	for (const k of order) {
 		const used = new Set([...touching.get(k)!].map((o) => colours.get(o)));
-		colours.set(k, COLOURS.find((c) => !used.has(c)) ?? COLOURS[0]);
+		// The first colour no neighbour has (or, should all nine be taken, the first).
+		colours.set(k, [...COLOURS.filter((c) => !used.has(c)), COLOURS[0]][0]);
 	}
 	return colours;
 }
@@ -189,13 +190,19 @@ export function pinwheelFilm(
 		chapters: [
 			grow(only(last, 'centre', 'grow', 'absorb'), sky, colours),
 			unique(only(last, 'second', 'split', 'unique'), sky, colours),
-			grade(only(solving, 'round'), puzzle, solution, colours, {
-				attempt: only(events, 'attempt').length,
-				easy: only(earlier, 'rated').filter((e) => e.easy).length,
-				dropped: only(earlier, 'drop').length
-			})
+			grade(only(solving, 'round'), puzzle, solution, colours, attempts(earlier))
 		]
 	};
+}
+
+/**
+ * The attempts before the one that made the puzzle: unique ones that were too easy (rated), and
+ * those given up on the way to a unique partition (the rest).
+ */
+function attempts(earlier: PinwheelTraceEvent[]) {
+	const before = only(earlier, 'attempt').length;
+	const easy = only(earlier, 'rated').filter((e) => e.easy).length;
+	return { attempt: before + 1, easy, dropped: before - only(earlier, 'rated').length };
 }
 
 /** The partition: galaxies start at enclosed cells and grow in mirror pairs. */
