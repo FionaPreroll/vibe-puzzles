@@ -53,12 +53,20 @@ function lookup(dict: unknown, key: string): unknown {
 
 type Params = Record<string, string | number>;
 
-/** Text for a dotted key such as `game.undo`, with `{name}` placeholders filled in. */
-export function t(key: string, params?: Params): string {
-	const value = lookup(DICTIONARIES[i18n.locale], key) ?? lookup(en, key);
-	if (typeof value !== 'string') return key;
-	return params ? value.replace(/\{(\w+)\}/g, (m, p) => String(params[p] ?? m)) : value;
+/**
+ * `t` for other dictionaries, such as a page's own: texts in the current language, else in
+ * English, else the key.
+ */
+export function translator(dictionaries: Record<Locale, unknown>) {
+	return (key: string, params?: Params): string => {
+		const value = lookup(dictionaries[i18n.locale], key) ?? lookup(dictionaries.en, key);
+		if (typeof value !== 'string') return key;
+		return params ? value.replace(/\{(\w+)\}/g, (m, p) => String(params[p] ?? m)) : value;
+	};
 }
+
+/** Text for a dotted key such as `game.undo`, with `{name}` placeholders filled in. */
+export const t = translator(DICTIONARIES);
 
 /** A list of texts, e.g. the rules of a game. */
 export function tList(key: string): string[] {

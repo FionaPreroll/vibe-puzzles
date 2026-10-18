@@ -42,5 +42,22 @@ export default defineConfig(
 			// Plain Set/Map/URLSearchParams are only used as local temporaries, never as reactive state.
 			'svelte/prefer-svelte-reactivity': 'off'
 		}
+	},
+	{
+		// The Inside page stays apart: nothing else imports its code, so the game does not carry it.
+		ignores: ['src/lib/inside/**', 'src/routes/inside/**', 'src/test/**'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['**/inside', '**/inside/**'],
+							message: 'Only the Inside page (src/routes/inside) imports the Inside code.'
+						}
+					]
+				}
+			]
+		}
 	}
 );

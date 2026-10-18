@@ -1,6 +1,34 @@
 import type { Rng } from '../../core/rng';
 import { allMask, bit, geometry, popcount, type SudokuPuzzle } from './rules';
 
+/**
+ * What the generator and the solvers report to an optional tracer, for the Inside page's film.
+ * A tracer only listens: it draws no random numbers and changes no order, so a puzzle is the same
+ * with or without one.
+ */
+export type SudokuTraceEvent =
+	/** The search tries `digit` in `cell`. */
+	| { kind: 'place'; cell: number; digit: number }
+	/** The search takes the digit in `cell` back: nothing below it led anywhere. */
+	| { kind: 'unplace'; cell: number }
+	/** Digging takes the givens of `cells` out, to see whether the puzzle stays solvable. */
+	| { kind: 'try'; cells: number[] }
+	/** ...and they stay out, or go back in. */
+	| { kind: 'keep' | 'restore'; cells: number[] }
+	/** The rating solver starts: the givens' grid and every empty cell's candidates (bit masks). */
+	| { kind: 'start'; grid: number[]; candidates: number[] }
+	/**
+	 * The rating solver places `digit` in `cell`: the only candidate left there (`unit` null), or
+	 * the only spot for the digit in unit number `unit` of `geometry(size).units`.
+	 */
+	| { kind: 'single'; cell: number; digit: number; unit: number | null }
+	/** The rating solver rules `mask`'s digits out of `cells`, by locked candidates or a subset. */
+	| { kind: 'eliminate'; technique: 'locked' | 'subset'; cells: number[]; mask: number }
+	/** A hard puzzle's attempt `n` (from 0) starts with a new grid. */
+	| { kind: 'attempt'; n: number };
+
+export type SudokuTrace = (event: SudokuTraceEvent) => void;
+
 export interface SolveOptions {
 	/** Stop after this many solutions. */
 	limit: number;
@@ -8,6 +36,7 @@ export interface SolveOptions {
 	maxNodes?: number;
 	/** Try digits in a random order (used to fill an empty grid). */
 	rng?: Rng;
+	trace?: SudokuTrace;
 }
 
 export interface SolveResult {
@@ -32,6 +61,7 @@ export function solveSudoku(
 	const solutions: number[][] = [];
 	const full = allMask(size);
 	const maxNodes = opts.maxNodes ?? Infinity;
+	const trace = opts.trace;
 	let nodes = 0;
 
 	for (let i = 0; i < n; i++) {
@@ -79,12 +109,15 @@ export function solveSudoku(
 			used[r] |= b;
 			used[c] |= b;
 			used[x] |= b;
+			trace?.({ kind: 'place', cell: best, digit: d });
 			const go = search();
 			grid[best] = 0;
 			used[r] &= ~b;
 			used[c] &= ~b;
 			used[x] &= ~b;
 			if (!go) return false;
+			// Only a dead end takes a digit back; a finished search keeps its grid.
+			trace?.({ kind: 'unplace', cell: best });
 		}
 		return true;
 	};
@@ -154,7 +187,11 @@ export function subsets<T>(items: readonly T[], k: number): T[][] {
  * single is left. Used to grade generated puzzles. With `maxLevel` Singles it stops where singles
  * run out.
  */
-export function ratePuzzle(p: SudokuPuzzle, maxLevel: Level = Level.Subsets): Rating {
+export function ratePuzzle(
+	p: SudokuPuzzle,
+	maxLevel: Level = Level.Subsets,
+	trace?: SudokuTrace
+): Rating {
 	const size = p.width;
 	const { units, peers } = geometry(size);
 	const n = size * size;
@@ -173,6 +210,7 @@ export function ratePuzzle(p: SudokuPuzzle, maxLevel: Level = Level.Subsets): Ra
 	};
 	for (let i = 0; i < n; i++) cand[i] = grid[i] ? 0 : allMask(size);
 	for (let i = 0; i < n; i++) if (grid[i]) place(i, grid[i]);
+	trace?.({ kind: 'start', grid: grid.slice(), candidates: cand.slice() });
 
 	const singles = (): boolean => {
 		for (let i = 0; i < n; i++) {
@@ -182,11 +220,14 @@ export function ratePuzzle(p: SudokuPuzzle, maxLevel: Level = Level.Subsets): Ra
 				return false;
 			}
 			if (popcount(cand[i]) === 1) {
-				place(i, Math.log2(cand[i]) + 1);
+				const d = Math.log2(cand[i]) + 1;
+				place(i, d);
+				trace?.({ kind: 'single', cell: i, digit: d, unit: null });
 				return true;
 			}
 		}
-		for (const unit of units) {
+		for (let u = 0; u < units.length; u++) {
+			const unit = units[u];
 			for (let d = 1; d <= size; d++) {
 				const b = bit(d);
 				let spot = -1;
@@ -207,6 +248,7 @@ export function ratePuzzle(p: SudokuPuzzle, maxLevel: Level = Level.Subsets): Ra
 				}
 				if (count === 1) {
 					place(spot, d);
+					trace?.({ kind: 'single', cell: spot, digit: d, unit: u });
 					return true;
 				}
 			}
@@ -214,14 +256,21 @@ export function ratePuzzle(p: SudokuPuzzle, maxLevel: Level = Level.Subsets): Ra
 		return false;
 	};
 
-	const remove = (cells: Iterable<number>, mask: number): boolean => {
+	const remove = (
+		cells: Iterable<number>,
+		mask: number,
+		technique: 'locked' | 'subset'
+	): boolean => {
 		let changed = false;
+		const hit: number[] | null = trace ? [] : null;
 		for (const i of cells) {
 			if (cand[i] & mask) {
 				cand[i] &= ~mask;
 				changed = true;
+				hit?.push(i);
 			}
 		}
+		if (changed && hit) trace!({ kind: 'eliminate', technique, cells: hit, mask });
 		return changed;
 	};
 
@@ -231,7 +280,7 @@ export function ratePuzzle(p: SudokuPuzzle, maxLevel: Level = Level.Subsets): Ra
 			// digit still has a spot or is placed in the unit).
 			let outside = 0;
 			for (const i of within) outside |= cand[i] | (grid[i] ? bit(grid[i]) : 0);
-			if (remove(clear, allMask(size) & ~outside)) return true;
+			if (remove(clear, allMask(size) & ~outside, 'locked')) return true;
 		}
 		return false;
 	};
@@ -244,7 +293,7 @@ export function ratePuzzle(p: SudokuPuzzle, maxLevel: Level = Level.Subsets): Ra
 					const mask = group.reduce((m, i) => m | cand[i], 0);
 					if (popcount(mask) !== k) continue;
 					const rest = open.filter((i) => !group.includes(i));
-					if (remove(rest, mask)) return true;
+					if (remove(rest, mask, 'subset')) return true;
 				}
 				const missing = [];
 				for (let d = 1; d <= size; d++) if (open.some((i) => cand[i] & bit(d))) missing.push(d);
@@ -252,7 +301,7 @@ export function ratePuzzle(p: SudokuPuzzle, maxLevel: Level = Level.Subsets): Ra
 					const mask = digits.reduce((m, d) => m | bit(d), 0);
 					const spots = open.filter((i) => cand[i] & mask);
 					if (spots.length !== k) continue;
-					if (remove(spots, allMask(size) & ~mask)) return true;
+					if (remove(spots, allMask(size) & ~mask, 'subset')) return true;
 				}
 			}
 		}

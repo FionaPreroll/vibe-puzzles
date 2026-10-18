@@ -175,6 +175,11 @@
 	<span>
 		<a class="hover:underline" href={resolve('/about')}>{t('about.link')}</a>
 		·
+		<!-- Not on phones, where the footer must stay one line high; the About page leads there -->
+		<span class="hidden sm:inline">
+			<a class="hover:underline" href={resolve('/inside')}>{t('inside.link')}</a>
+			·
+		</span>
 		<a class="hover:underline" href="{resolve('/about')}#changes" title={t('about.changes')}
 			>v{__BUILD__.version}</a
 		>
