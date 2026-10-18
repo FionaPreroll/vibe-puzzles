@@ -3,7 +3,8 @@ import { assets, immutable, prerendered } from '$app/manifest';
 import { self } from '$app/service-worker';
 
 /**
- * Offline support: the app shell, static files and all prerendered pages are cached on install.
+ * Offline support: the app shell, static files and all prerendered pages are cached on install,
+ * apart from the Inside page's code, which is cached when the page is first opened.
  * Pages are served network first (so updates arrive), everything else cache first. The API is
  * never cached.
  *
@@ -17,6 +18,9 @@ import { self } from '$app/service-worker';
  * the puzzle on the device instead.
  */
 
+/** Built files of the Inside page, filled in by the build (`insideFiles` in vite.config.ts). */
+declare const __INSIDE_FILES__: string[];
+
 const CACHE = `vibe-puzzles-${version}`;
 const COLLECTION = 'vibe-puzzles-collection';
 /** Outlives new versions too: holds whether offline mode is on. */
@@ -24,11 +28,13 @@ const SETTINGS = 'vibe-puzzles-settings';
 const scope = new URL(self.registration.scope);
 const url = (path: string) => new URL(path.replace(/^\//, ''), scope).href;
 const inCollection = (href: string) => href.startsWith(url('puzzles/'));
+/** The Inside page's code: cached when the page is first opened, not on install. */
+const INSIDE_FILES = new Set(__INSIDE_FILES__.map(url));
 const PRECACHE = [...immutable, ...assets, ...prerendered]
 	.map((f) => f.path)
 	.filter((path) => !path.split('/').pop()!.startsWith('.'))
 	.map(url)
-	.filter((href) => !inCollection(href));
+	.filter((href) => !inCollection(href) && !INSIDE_FILES.has(href));
 /** The collection files of this version; cached ones that are gone are removed. */
 const COLLECTION_FILES = new Set(assets.map((f) => url(f.path)).filter(inCollection));
 
@@ -138,6 +144,15 @@ self.addEventListener('fetch', (event) => {
 
 	event.respondWith(
 		// ignoreVary: module scripts are requested with an Origin header that the cached copy lacks.
-		caches.match(req, { ignoreVary: true }).then((hit) => hit ?? fetch(req))
+		caches
+			.match(req, { ignoreVary: true })
+			.then((hit) => hit ?? (INSIDE_FILES.has(req.url) ? cacheOnUse(req) : fetch(req)))
 	);
 });
+
+/** Fetch a file and keep it for next time (offline too). */
+async function cacheOnUse(req: Request): Promise<Response> {
+	const res = await fetch(req);
+	if (res.ok) await (await caches.open(CACHE)).put(req, res.clone());
+	return res;
+}

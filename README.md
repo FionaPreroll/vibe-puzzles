@@ -33,6 +33,12 @@ Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4. The optional se
 - **Appearance**: English and German, picked from the browser language and switchable in the header. On touch screens in landscape (tablets and phones on their side) and on desktop screens lower than 1000 px (`LARGE_SCREEN`, `defaultLayout`) the game page is widescreen by default; large desktop screens keep the standard layout. In widescreen the board takes the screen's height, and everything else sits in a column on the left (`WidePanel`) that folds into a strip with the play bar. Screens lower than 500 px (a phone on its side, `SHORT_SCREEN`) hide the header bar (`headerBar`; the logo button in the panel brings it down), leave the footer below the screen and get a compact panel. The settings move the column to the right or switch to the standard layout, or follow the game's default (`auto`, stored until the player picks a layout, so a changed default reaches them); the browser tests use the standard layout unless they set another. Night mode for the whole site including the boards; it follows the system's colour scheme until switched in the header. Screenshots and prints stay light.
 - **Offline**: installable as an app (PWA) and playable offline after the first visit. Files of the puzzle collection are cached when a puzzle type first needs them and kept across app updates; offline, a type without a cached file gets puzzles generated on the device.
 - **Your data**: progress, settings and statistics (solves, streaks, best and average times) stay in the browser. The About page exports them to a backup file and imports it again; the file format is published as a JSON Schema (`static/backup.schema.json`).
+- **Inside** (`/inside`, linked from the About page and, from tablet width up, the footer): how the puzzles are made and graded, as a film on the game's own board. It plays like a video, in chapters, with a scrubber, single steps, speeds from 0.5× to 4× and the keys of a video player. A caption says what happens, and "More detail" adds the technical side. One film per game, each made from its generator's own trace:
+  - **Sudoku** (a normal 9×9): the backtracking search fills the grid, digging takes pairs of givens out while singles still solve the puzzle, and the rating solver solves it with pencil marks.
+  - **Pinwheel** (a hard 7×7): galaxies grow from enclosed cells in mirror pairs and swallow single cells; the solver finds a second partition (drawn in teal) and a cell with its mirror image is cut out until the partition is unique; propagation alone then gets stuck, which makes the puzzle hard, and the film says how many earlier attempts were too easy.
+
+  "Another example" replays another seed. The page keeps apart from the game (see [The Inside page](#the-inside-page)).
+
 - **Changelog**: the About page lists what changed in each version (`CHANGELOG.md`), and the version in the footer leads there. See [Changelog and versions](#changelog-and-versions).
 - **Optional server**: anonymous players with a name, games and settings synced across devices with a sync code, server-issued puzzles and online leaderboards. Statistics stay per device, but the days, weeks and months a player solved are shared (`periods:<game>:<variant>`), so a daily, weekly or monthly streak goes on from whichever device they solve on. Without it, everything else works the same.
 
@@ -69,10 +75,11 @@ src/lib/games/index.ts   registry of game modules (logic plus UI)
 src/lib/client/          browser-side storage and its keys, backup, API client, game session, generator web worker
 src/lib/client/session/  the game session's parts: saves (format, migration, housekeeping), save slot, undo history, clock, puzzle source, messages
 src/lib/components/      game shell, tutorial and dialogs
+src/lib/inside/          the Inside page: films (frames from a generator's trace), the player, its own texts
 src/lib/components/game/ the game page's parts: board fit, shortcuts, tools, sharing, page lifecycle, and the components around the board
 src/lib/i18n/            translations (en.ts is the reference, de.ts must have the same keys)
 src/service-worker/      offline cache
-src/routes/              pages: home, games, statistics (scores), player, about
+src/routes/              pages: home, games, statistics (scores), player, about, inside
 static/puzzles/          the puzzle collection, one folder per game and puzzle type
 static/backup.schema.json   JSON Schema of the backup file
 scripts/                 grow-puzzle-bank.ts, collection.ts (collection files), licenses.ts (licence notices), changelog.ts (CHANGELOG.md for the About page)
@@ -93,6 +100,15 @@ CHANGELOG.md             what changes for players, newest first
 4. Register the logic in `src/lib/games/logic.ts` and the module in `src/lib/games/index.ts`.
 5. Generators must be deterministic for a seed and must not depend on time, so puzzle IDs work everywhere. [docs/generators.md](docs/generators.md) describes how the existing generators build unique puzzles and grade their difficulty. Pin a few IDs of each new generator setting in `src/lib/games/generator-ids.test.ts` (a test fails until every setting is pinned).
 6. Only ever append new puzzle types to a game's variant list (at most 16): a puzzle ID stores the type's position in the list, so moving or inserting one changes every ID, save, link and leaderboard entry. A unit test pins the order.
+
+### The Inside page
+
+The films of `/inside` explain the generators and solvers without weighing on the game:
+
+- **Traces**: a generator or solver takes an optional `trace` callback (`SudokuTraceEvent` and `PinwheelTraceEvent`, next to each game's solver). It is called only where the algorithm decides something, never in its innermost loops, and it draws no random numbers and changes no order: a unit test generates the same seeds with and without a tracer and compares the puzzles.
+- **Films**: `src/lib/inside/films/` turns a trace into frames: a puzzle and a state for the game's board, its highlights, a caption and an optional technical line, each held for a number of beats. The film is computed in full before it plays, so seeking is instant (`Timeline`, `FilmPlayer`).
+- **Texts**: in `src/lib/inside/i18n/` (`ti`), not in the app's dictionaries, which every page loads. German needs the same keys as English (unit test).
+- **Bundles**: only `src/routes/inside/` imports the Inside code; a lint rule (`no-restricted-imports` in `eslint.config.js`) holds everyone else to that. The service worker leaves the page's built files out of its install and caches them when the page is first opened (`insideFiles` in `vite.config.ts` names them; a browser test checks it), so players who never open the page never download it.
 
 ## Puzzle collection
 

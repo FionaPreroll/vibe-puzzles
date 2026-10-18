@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
+import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
@@ -34,6 +35,31 @@ function commit(): string {
 	}
 }
 
+/** Modules of the Inside page (`src/lib/inside/`, `src/routes/inside/`). */
+const INSIDE = /[/\\]src[/\\](lib|routes)[/\\]inside[/\\]/;
+
+/**
+ * Tells the service worker which built files hold the Inside page's code (`__INSIDE_FILES__`), so
+ * that its install leaves them out: players who never open the page never download them. The
+ * service worker is built after the app, by the same builder.
+ */
+function insideFiles(): Plugin {
+	let files: string[] = [];
+	return {
+		name: 'inside-files',
+		generateBundle(_, bundle) {
+			if (this.environment.name !== 'client') return;
+			files = Object.values(bundle)
+				.filter((out) => out.type === 'chunk' && out.moduleIds.some((id) => INSIDE.test(id)))
+				.map((out) => out.fileName);
+		},
+		transform(code) {
+			if (!code.includes('__INSIDE_FILES__')) return;
+			return { code: code.replaceAll('__INSIDE_FILES__', JSON.stringify(files)), map: null };
+		}
+	};
+}
+
 /** Shown in the footer and on the About page. */
 const build = {
 	version: JSON.parse(readFileSync('package.json', 'utf8')).version as string,
@@ -53,6 +79,7 @@ export default defineConfig({
 	},
 	plugins: [
 		checkShippedLicenses(SHIPPED_PACKAGES),
+		insideFiles(),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {

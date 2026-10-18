@@ -96,7 +96,7 @@ for (const screen of SCREENS) {
 		test.beforeEach(async ({ page }) => prepare(page));
 
 		test('pages fit the screen', async ({ page }) => {
-			for (const path of ['/', '/scores', '/player', '/tetroid/tutorial']) {
+			for (const path of ['/', '/scores', '/player', '/tetroid/tutorial', '/inside']) {
 				await page.goto(path);
 				await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
 				await expectNoSideScroll(page);

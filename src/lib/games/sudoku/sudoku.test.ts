@@ -24,7 +24,7 @@ import {
 	type SudokuPuzzle
 } from './rules';
 import { CalcLevel, rateCalc, solveCalc } from './calc/solver';
-import { Level, ratePuzzle, solveSudoku } from './solver';
+import { Level, ratePuzzle, solveSudoku, type SudokuTraceEvent } from './solver';
 
 const parse = (text: string) => [...text.replace(/\s/g, '')].map((ch) => (ch === '.' ? 0 : +ch));
 
@@ -237,6 +237,102 @@ describe('generator', () => {
 		expect(generateSudoku(9, 'normal', 1).puzzle).not.toEqual(
 			generateSudoku(9, 'normal', 2).puzzle
 		);
+	});
+});
+
+describe('trace', () => {
+	const record = () => {
+		const events: SudokuTraceEvent[] = [];
+		return { events, trace: (e: SudokuTraceEvent) => void events.push(e) };
+	};
+
+	it('changes no puzzle', () => {
+		for (const difficulty of ['easy', 'normal', 'hard'] as const) {
+			for (const seed of [1, 2, 3, 386]) {
+				const { trace } = record();
+				expect(generateSudoku(9, difficulty, seed, trace)).toEqual(
+					generateSudoku(9, difficulty, seed)
+				);
+			}
+		}
+	});
+
+	it('replays the search and the digging to the generated puzzle', () => {
+		for (const seed of [1, 2, 3]) {
+			const { events, trace } = record();
+			const { puzzle, solution } = generateSudoku(9, 'normal', seed, trace);
+			const grid = new Array(81).fill(0);
+			let removed: number[] = [];
+			for (const e of events) {
+				if (e.kind === 'place') grid[e.cell] = e.digit;
+				else if (e.kind === 'unplace') grid[e.cell] = 0;
+				else if (e.kind === 'try') {
+					// Digging starts from the full grid, which is the solution.
+					if (!removed.length) expect(grid).toEqual(solution);
+					removed = e.cells.map((i) => grid[i]);
+					for (const i of e.cells) grid[i] = 0;
+				} else if (e.kind === 'restore') e.cells.forEach((i, k) => (grid[i] = removed[k]));
+			}
+			expect(grid).toEqual(puzzle.givens);
+			expect(events.filter((e) => e.kind === 'try')).toHaveLength(41);
+		}
+		// A hard puzzle says where each attempt starts.
+		const { events, trace } = record();
+		generateSudoku(9, 'hard', 386, trace);
+		const attempts = events.filter((e) => e.kind === 'attempt');
+		expect(attempts.length).toBeGreaterThan(30);
+		expect(attempts[0]).toEqual({ kind: 'attempt', n: 0 });
+	});
+
+	it('takes back only the digits of dead ends', () => {
+		// A finished search takes nothing back: every digit placed and not taken back stays.
+		for (const seed of [1, 2, 7]) {
+			const { events, trace } = record();
+			generateSudoku(9, 'normal', seed, trace);
+			const places = events.filter((e) => e.kind === 'place').length;
+			const unplaces = events.filter((e) => e.kind === 'unplace').length;
+			expect(places - unplaces).toBe(81);
+			// Seed 7's search hits a dead end, seed 1's does not.
+			expect(unplaces > 0, `seed ${seed}`).toBe(seed === 7);
+		}
+	});
+
+	it('replays the rating, single by single, to its grid', () => {
+		const { events, trace } = record();
+		const { puzzle } = generateSudoku(9, 'normal', 1);
+		const rating = ratePuzzle(puzzle, Level.Singles, trace);
+		expect(rating.solved).toBe(true);
+		const [start, ...steps] = events;
+		expect(start).toMatchObject({ kind: 'start', grid: puzzle.givens });
+		const { units } = geometry(9);
+		const grid = puzzle.givens.slice();
+		for (const e of steps) {
+			expect(e.kind).toBe('single');
+			if (e.kind !== 'single') continue;
+			if (e.unit !== null) expect(units[e.unit]).toContain(e.cell);
+			grid[e.cell] = e.digit;
+		}
+		expect(grid).toEqual(rating.grid);
+		expect(steps.some((e) => e.kind === 'single' && e.unit === null)).toBe(true);
+		expect(steps.some((e) => e.kind === 'single' && e.unit !== null)).toBe(true);
+		if (start.kind === 'start') {
+			// Candidates: none on a given, every digit its peers leave on an empty cell.
+			const given = puzzle.givens.findIndex(Boolean);
+			const open = puzzle.givens.indexOf(0);
+			expect(start.candidates[given]).toBe(0);
+			expect(start.candidates[open]).toBe(candidates(9, puzzle.givens, open));
+		}
+	});
+
+	it('names the eliminations of a hard rating', () => {
+		const { events, trace } = record();
+		ratePuzzle(generateSudoku(9, 'hard', 7).puzzle, Level.Subsets, trace);
+		const eliminations = events.filter((e) => e.kind === 'eliminate');
+		expect(eliminations.length).toBeGreaterThan(0);
+		for (const e of eliminations) {
+			expect(e.cells.length).toBeGreaterThan(0);
+			expect(e.mask).toBeGreaterThan(0);
+		}
 	});
 });
 

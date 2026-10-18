@@ -3,6 +3,7 @@ import { generatePinwheel } from './generator';
 import {
 	acceptByColours,
 	analyze,
+	coveredCells,
 	emptyPinwheelState,
 	hIndex,
 	innerDots,
@@ -10,10 +11,11 @@ import {
 	isSolvedState,
 	LINE,
 	linesFromAssignment,
+	mirrorCell,
 	vIndex,
 	type PinwheelPuzzle
 } from './rules';
-import { solvePinwheel } from './solver';
+import { PinwheelSolver, solvePinwheel, type PinwheelTraceEvent } from './solver';
 
 // Worked example of the spec (section 2).
 const example: PinwheelPuzzle = {
@@ -144,6 +146,102 @@ describe('generator', () => {
 		},
 		30_000
 	);
+});
+
+describe('trace', () => {
+	const record = () => {
+		const events: PinwheelTraceEvent[] = [];
+		return { events, trace: (e: PinwheelTraceEvent) => void events.push(e) };
+	};
+	const key = ([r, c]: [number, number]) => `${r},${c}`;
+
+	it('changes no puzzle', () => {
+		for (const [size, difficulty] of [
+			[5, 'normal'],
+			[7, 'hard'],
+			[10, 'normal']
+		] as const) {
+			for (const seed of [1, 2, 35]) {
+				const { trace } = record();
+				expect(generatePinwheel(size, size, difficulty, seed, trace)).toEqual(
+					generatePinwheel(size, size, difficulty, seed)
+				);
+			}
+		}
+	});
+
+	it('replays the last attempt to the generated partition', () => {
+		// 7×7 hard 35: the first attempt is too easy; the second needs a cut.
+		const { events, trace } = record();
+		const { puzzle, solution } = generatePinwheel(7, 7, 'hard', 35, trace);
+		expect(events.filter((e) => e.kind === 'attempt')).toEqual([
+			{ kind: 'attempt', n: 0 },
+			{ kind: 'attempt', n: 1 }
+		]);
+		expect(events.filter((e) => e.kind === 'rated')).toEqual([
+			{ kind: 'rated', easy: true },
+			{ kind: 'rated', easy: false }
+		]);
+		const last = events.slice(events.map((e) => e.kind).lastIndexOf('attempt'));
+		const owner = new Array<string | null>(49).fill(null);
+		const order: string[] = [];
+		const prune = () => order.splice(0, order.length, ...order.filter((k) => owner.includes(k)));
+		for (const e of last) {
+			if (e.kind === 'centre') {
+				order.push(key(e.centre));
+				for (const i of e.cells) owner[i] = key(e.centre);
+				expect(e.cells).toEqual(coveredCells(puzzle, e.centre));
+			} else if (e.kind === 'grow' || e.kind === 'absorb') {
+				// Always a cell and its mirror image through the galaxy's centre.
+				expect(mirrorCell(puzzle, e.cells[0], e.centre)).toBe(e.cells[1]);
+				for (const i of e.cells) owner[i] = key(e.centre);
+				prune();
+			} else if (e.kind === 'second') {
+				// The generator's galaxies, in its order, and a solution that differs somewhere.
+				expect(e.centres.map(key)).toEqual(order);
+				expect(e.owner.map((k) => order[k])).toEqual(owner);
+				expect(e.other.some((k, i) => k !== e.owner[i])).toBe(true);
+			} else if (e.kind === 'split') {
+				expect(e.galaxies).toHaveLength(2);
+				for (const g of e.galaxies) {
+					order.push(key(g.centre));
+					for (const i of g.cells) owner[i] = key(g.centre);
+				}
+			}
+		}
+		expect(last.filter((e) => e.kind === 'split')).toHaveLength(1);
+		expect(last.at(-2)).toEqual({ kind: 'unique' });
+		const centres = puzzle.centres.map(key);
+		expect(owner).toEqual(solution.map((k) => centres[k]));
+	});
+
+	it('reports each round of propagation, settling more cells each time', () => {
+		const { puzzle } = generatePinwheel(7, 7, 'hard', 35);
+		const { events, trace } = record();
+		const result = new PinwheelSolver(puzzle).solve({ branch: false, trace });
+		expect(result.solutions).toHaveLength(0);
+		const rounds = events.map((e) => (e.kind === 'round' ? e.owner : []));
+		// At first, the cells under the centres.
+		const covered = puzzle.centres.flatMap((c) => coveredCells(puzzle, c));
+		expect(rounds[0].flatMap((k, i) => (k >= 0 ? [i] : [])).sort((a, b) => a - b)).toEqual(
+			covered.sort((a, b) => a - b)
+		);
+		for (let n = 1; n < rounds.length; n++) {
+			const before = rounds[n - 1].filter((k) => k >= 0).length;
+			expect(rounds[n].filter((k) => k >= 0).length).toBeGreaterThan(before);
+			// A settled cell stays settled.
+			rounds[n - 1].forEach((k, i) => {
+				if (k >= 0) expect(rounds[n][i]).toBe(k);
+			});
+		}
+		// Hard: propagation leaves cells open. Normal: it settles them all.
+		expect(rounds.at(-1)!.some((k) => k < 0)).toBe(true);
+		const normal = generatePinwheel(7, 7, 'normal', 1);
+		const solved = record();
+		new PinwheelSolver(normal.puzzle).solve({ branch: false, trace: solved.trace });
+		const end = solved.events.at(-1)!;
+		expect(end.kind === 'round' && end.owner).toEqual(normal.solution);
+	});
 });
 
 describe('tutorial', () => {

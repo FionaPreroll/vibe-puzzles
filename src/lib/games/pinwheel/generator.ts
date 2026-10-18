@@ -2,7 +2,7 @@ import { neighbours } from '../../core/grid';
 import { Rng } from '../../core/rng';
 import type { Difficulty } from '../../core/variants';
 import { coveredCells, mirrorCell, type PinwheelPuzzle } from './rules';
-import { PinwheelSolver } from './solver';
+import { PinwheelSolver, type PinwheelTrace } from './solver';
 
 export interface GeneratedPinwheel {
 	puzzle: PinwheelPuzzle;
@@ -16,7 +16,7 @@ interface Galaxy {
 }
 
 /** Partition the grid into random point-symmetric galaxies. */
-function partition(w: number, h: number, rng: Rng): Galaxy[] {
+function partition(w: number, h: number, rng: Rng, trace?: PinwheelTrace): Galaxy[] {
 	const n = w * h;
 	const owner = new Int32Array(n).fill(-1);
 	const galaxies: Galaxy[] = [];
@@ -60,6 +60,7 @@ function partition(w: number, h: number, rng: Rng): Galaxy[] {
 		const id = galaxies.length;
 		const cells = new Set(coveredCells(p, centre));
 		cells.forEach((i) => (owner[i] = id));
+		trace?.({ kind: 'centre', centre, cells: [...cells] });
 		const target = 1 + rng.int(maxSize) + rng.int(maxSize);
 		while (cells.size < target) {
 			const frontier: number[] = [];
@@ -75,14 +76,21 @@ function partition(w: number, h: number, rng: Rng): Galaxy[] {
 			const m = mirrorCell(p, j, centre);
 			cells.add(j).add(m);
 			owner[j] = owner[m] = id;
+			trace?.({ kind: 'grow', centre, cells: [j, m] });
 		}
 		galaxies.push({ centre, cells });
 	}
-	return absorbSingles(p, galaxies, owner, rng);
+	return absorbSingles(p, galaxies, owner, rng, trace);
 }
 
 /** Let galaxies grow into single-cell galaxies (in symmetric pairs) to avoid many 1×1 pieces. */
-function absorbSingles(p: PinwheelPuzzle, galaxies: Galaxy[], owner: Int32Array, rng: Rng) {
+function absorbSingles(
+	p: PinwheelPuzzle,
+	galaxies: Galaxy[],
+	owner: Int32Array,
+	rng: Rng,
+	trace?: PinwheelTrace
+) {
 	const { width: w, height: h } = p;
 	const single = (i: number) => galaxies[owner[i]].cells.size === 1;
 	for (let round = 0; round < 3; round++) {
@@ -99,11 +107,13 @@ function absorbSingles(p: PinwheelPuzzle, galaxies: Galaxy[], owner: Int32Array,
 					}
 				}
 				if (options.length === 0 || rng.next() < 0.15) break;
-				for (const i of rng.pick(options)) {
+				const pair = rng.pick(options);
+				for (const i of pair) {
 					galaxies[owner[i]].cells.clear();
 					owner[i] = id;
 					g.cells.add(i);
 				}
+				trace?.({ kind: 'absorb', centre: g.centre, cells: [...pair] });
 			}
 		}
 	}
@@ -133,7 +143,13 @@ const NODE_BUDGET = 3000;
  * differs is cut out of its galaxy together with its mirror (which keeps the rest symmetric) and
  * becomes a new galaxy (a domino if the pair touches, otherwise two single cells).
  */
-function makeUnique(w: number, h: number, galaxies: Galaxy[], rng: Rng): boolean {
+function makeUnique(
+	w: number,
+	h: number,
+	galaxies: Galaxy[],
+	rng: Rng,
+	trace?: PinwheelTrace
+): boolean {
 	const p: PinwheelPuzzle = { width: w, height: h, centres: [] };
 	for (let iter = 0; iter < w * h; iter++) {
 		p.centres = galaxies.map((g) => g.centre);
@@ -142,7 +158,16 @@ function makeUnique(w: number, h: number, galaxies: Galaxy[], rng: Rng): boolean
 		const owner = new Int32Array(w * h);
 		galaxies.forEach((g, k) => g.cells.forEach((i) => (owner[i] = k)));
 		const other = res.solutions.find((s) => s.some((k, i) => k !== owner[i]));
-		if (!other) return res.solutions.length === 1;
+		if (!other) {
+			trace?.({ kind: 'unique' });
+			return res.solutions.length === 1;
+		}
+		trace?.({
+			kind: 'second',
+			centres: p.centres.slice(),
+			owner: Array.from(owner),
+			other: Array.from(other)
+		});
 
 		let split = false;
 		for (const i of rng.shuffle(Array.from({ length: w * h }, (_, i) => i))) {
@@ -160,12 +185,18 @@ function makeUnique(w: number, h: number, galaxies: Galaxy[], rng: Rng): boolean
 			const ca = a % w;
 			const rb = Math.floor(b / w);
 			const cb = b % w;
+			const before = galaxies.length;
 			if (Math.abs(ra - rb) + Math.abs(ca - cb) === 1) {
 				galaxies.push({ centre: [ra + rb, ca + cb], cells: new Set([a, b]) });
 			} else {
 				galaxies.push({ centre: [2 * ra, 2 * ca], cells: new Set([a]) });
 				galaxies.push({ centre: [2 * rb, 2 * cb], cells: new Set([b]) });
 			}
+			trace?.({
+				kind: 'split',
+				cells: [i, m],
+				galaxies: galaxies.slice(before).map((g) => ({ centre: g.centre, cells: [...g.cells] }))
+			});
 			split = true;
 			break;
 		}
@@ -184,18 +215,21 @@ const ATTEMPTS = 10_000;
 /**
  * Generate a puzzle with a unique solution; deterministic for a given seed.
  * Normal puzzles can be solved by propagation alone, hard puzzles need case analysis.
+ * `trace` hears every attempt's partition, its way to a unique one and its rating.
  */
 export function generatePinwheel(
 	width: number,
 	height: number,
 	difficulty: Difficulty,
-	seed: number
+	seed: number,
+	trace?: PinwheelTrace
 ): GeneratedPinwheel {
 	const rng = new Rng(seed);
 	let fallback: GeneratedPinwheel | null = null;
 	for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-		const galaxies = partition(width, height, rng);
-		if (!makeUnique(width, height, galaxies, rng)) continue;
+		trace?.({ kind: 'attempt', n: attempt });
+		const galaxies = partition(width, height, rng, trace);
+		if (!makeUnique(width, height, galaxies, rng, trace)) continue;
 		// Sort centres in reading order so the puzzle does not reveal how it was built.
 		const order = galaxies
 			.map((g, k) => ({ g, k }))
@@ -205,6 +239,7 @@ export function generatePinwheel(
 		order.forEach((o, k) => o.g.cells.forEach((i) => (solution[i] = k)));
 		const result = { puzzle, solution };
 		const easy = new PinwheelSolver(puzzle).solve({ branch: false }).solutions.length === 1;
+		trace?.({ kind: 'rated', easy });
 		if (easy === (difficulty === 'normal')) return result;
 		fallback ??= result;
 	}
