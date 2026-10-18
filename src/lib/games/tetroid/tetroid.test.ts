@@ -10,7 +10,7 @@ import {
 	type TetroidPuzzle
 } from './rules';
 import { classify, SHAPES } from './shapes';
-import { solveTetroid, TetroidSolver } from './solver';
+import { solveTetroid, TetroidSolver, type TetroidTraceEvent } from './solver';
 
 // Worked example of the spec (section 2).
 const REGIONS = ['AAABBB', 'ACCDBB', 'ACDDBE', 'ACDDBE', 'ACDBBE', 'ACDDDE'];
@@ -186,6 +186,112 @@ describe('generator', () => {
 		},
 		30_000
 	);
+});
+
+describe('trace', () => {
+	const record = () => {
+		const events: TetroidTraceEvent[] = [];
+		return { events, trace: (e: TetroidTraceEvent) => void events.push(e) };
+	};
+
+	it('changes no puzzle', () => {
+		for (const [size, difficulty] of [
+			[6, 'normal'],
+			[6, 'hard'],
+			[8, 'normal']
+		] as const) {
+			for (const seed of [1, 3, 12]) {
+				const { trace } = record();
+				expect(generateTetroid(size, size, difficulty, seed, trace)).toEqual(
+					generateTetroid(size, size, difficulty, seed)
+				);
+			}
+		}
+	});
+
+	it('replays the last attempt to the generated regions and solution', () => {
+		const { events, trace } = record();
+		const { puzzle, solution } = generateTetroid(6, 6, 'normal', 12, trace);
+		const last = events.slice(events.map((e) => e.kind).lastIndexOf('attempt'));
+		const regions = new Array<number>(36).fill(-1);
+		const shading = new Array<number>(36).fill(0);
+		let planted = 0;
+		let stuck = false;
+		for (const e of last) {
+			if (e.kind === 'plant') {
+				expect(classify(e.cells, 6)).toBe(['L', 'I', 'T', 'S'][e.type]);
+				for (const i of e.cells) [regions[i], shading[i]] = [planted, 1];
+				planted++;
+			} else if (e.kind === 'assign') {
+				expect(regions[e.cell]).toBe(-1);
+				regions[e.cell] = e.region;
+			} else if (e.kind === 'alternative') {
+				// Another tetromino of the region, not its planted one.
+				expect(e.cells.every((i) => regions[i] === e.region)).toBe(true);
+				expect(e.cells.every((i) => shading[i])).toBe(false);
+				expect(classify(e.cells, 6)).not.toBeNull();
+			} else if (e.kind === 'move') {
+				// Only free cells move.
+				expect(shading[e.cell]).toBe(0);
+				regions[e.cell] = e.region;
+			} else if (e.kind === 'replant') {
+				regions.forEach((r, i) => r === e.region && (shading[i] = 0));
+				for (const i of e.cells) shading[i] = 1;
+			} else if (e.kind === 'stuck') {
+				stuck = true;
+				expect(e.cells.every((i) => !shading[i])).toBe(true);
+			}
+		}
+		expect(regions).toEqual(puzzle.regions);
+		expect(shading).toEqual(solution);
+		expect(stuck).toBe(true);
+		expect(last.map((e) => e.kind)).toContain('replant');
+		expect(last.at(-1)).toEqual({ kind: 'unique' });
+		// The alternatives end before propagation takes over.
+		const kinds = last.map((e) => e.kind);
+		expect(kinds.lastIndexOf('alternative')).toBeLessThan(kinds.indexOf('alone'));
+		expect(kinds.indexOf('alone')).toBeLessThan(kinds.indexOf('stuck'));
+	});
+
+	it('reports the second solutions of a hard attempt, and its rating', () => {
+		const { events, trace } = record();
+		const { solution } = generateTetroid(6, 6, 'hard', 1, trace);
+		const second = events.filter((e) => e.kind === 'second');
+		expect(second.length).toBeGreaterThan(0);
+		const rated = events.filter((e) => e.kind === 'rated');
+		expect(rated.at(-1)).toEqual({ kind: 'rated', easy: false });
+		const last = events.slice(events.map((e) => e.kind).lastIndexOf('attempt'));
+		for (const e of last) {
+			if (e.kind === 'second') expect(e.shading).not.toEqual(solution);
+		}
+	});
+
+	it('reports each pass of propagation, deciding more cells each time', () => {
+		const { puzzle, solution } = generateTetroid(6, 6, 'normal', 12);
+		const { events, trace } = record();
+		expect(new TetroidSolver(puzzle).solve({ branch: false, trace }).solutions).toHaveLength(1);
+		const rounds = events.flatMap((e) => (e.kind === 'round' ? [e] : []));
+		expect(rounds[0].rule).toBe('start');
+		expect(rounds.map((r) => r.rule)).toContain('lookAhead');
+		let decided = 0;
+		for (const r of rounds) {
+			for (const i of r.shaded) expect(solution[i]).toBe(1);
+			for (const i of r.empty) expect(solution[i]).toBe(0);
+			expect(r.shaded.length + r.empty.length).toBeGreaterThanOrEqual(decided);
+			decided = r.shaded.length + r.empty.length;
+		}
+		expect(decided).toBe(36);
+		// A hard puzzle leaves cells open; the solver's other runs report nothing.
+		const hard = generateTetroid(6, 6, 'hard', 1).puzzle;
+		const open = record();
+		const solver = new TetroidSolver(hard);
+		solver.solve({ branch: false, trace: open.trace });
+		const end = open.events.at(-1)!;
+		expect(end.kind === 'round' && end.shaded.length + end.empty.length).toBeLessThan(36);
+		const before = open.events.length;
+		solver.propagated();
+		expect(open.events).toHaveLength(before);
+	});
 });
 
 describe('tutorial', () => {

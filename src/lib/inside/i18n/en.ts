@@ -9,7 +9,8 @@ const en = {
 	films: {
 		label: 'Films',
 		sudoku: 'How a Sudoku is made',
-		pinwheel: 'How a Pinwheel is made'
+		pinwheel: 'How a Pinwheel is made',
+		tetroid: 'How a Tetroid is made'
 	},
 	player: {
 		play: 'Play',
@@ -114,6 +115,69 @@ const en = {
 			attemptsDetail:
 				'Hard partitions are rare on small boards, but an attempt takes a fraction of a millisecond, so the generator simply tries again with the same random number generator, up to 10,000 times.',
 			solution: 'The solution, which the player has to find from the centres alone.'
+		}
+	},
+	tetroid: {
+		chapters: {
+			plant: 'Planting tetrominoes',
+			grow: 'Regions grow',
+			reshape: 'One way only',
+			solve: 'Solving by deduction'
+		},
+		plant: {
+			start:
+				'A Tetroid solution is a chain of tetrominoes in L, I, T and S shapes, one in each region. They all connect, never form a 2×2 block, and the same shape never touches across a region border. The computer starts from an empty 6×6 board.',
+			plant:
+				'It plants a tetromino where it touches the ones before, makes no 2×2 block and touches no tetromino of its own shape.',
+			done: 'No tetromino fits any more. Each one becomes the seed of a region; the colours show their shapes.',
+			detail:
+				'Every free position of every shape in every rotation is a candidate, and one of those that keep the rules is drawn at random. The planted tetrominoes are the solution: the regions are built around them.'
+		},
+		grow: {
+			assign:
+				'A free cell joins a neighbouring region: the one where it opens the fewest other ways to place a tetromino.',
+			done: 'Every cell has a region. But some regions could still hold other tetrominoes.',
+			detail:
+				'Cells join in random order from the edges of the regions. An "other way" is a tetromino in the region that fits with all the other planted ones: a second solution that differs in this region only. These are quick to count, so each cell picks the region where it adds the fewest.'
+		},
+		reshape: {
+			alternative:
+				'This region could also hold the teal tetromino, and everything else would still fit: a second solution.',
+			move: 'So a free cell moves to a neighbouring region, where it opens fewer other ways.',
+			replant:
+				'No move helps here. So the region gets the other tetromino instead, which changes the gaps around it.',
+			alone:
+				'No region has a second tetromino of its own any more. Now the computer tries to solve the puzzle by deduction alone.',
+			stuck:
+				'Deduction gets stuck: in the tinted cells, some regions still have more than one way.',
+			logicalMove:
+				'A cell those other ways need moves to a neighbouring region, which rules them out.',
+			unique: 'Now deduction alone settles every region: one solution, and a Normal puzzle.',
+			attempts:
+				'This was attempt {attempt}: the ones before could not be made solvable by deduction.',
+			detail:
+				'Moving a free cell never breaks the planted solution. The move taken is the one that removes the most other ways, with a short memory of recent moves so that it does not undo them. Now and then a worse move is taken to get out of a dead end.',
+			logicalDetail:
+				'Propagation (see the next chapter) runs after each move. The placements it cannot rule out cover free cells of their region, and moving such a cell to a neighbour rules them out. Cells that many of them share go first.'
+		},
+		solve: {
+			start:
+				'Solving by deduction, the way the computer checks it: cells that every possible tetromino of their region covers are shaded, cells that none covers are crossed.',
+			startDetail:
+				'Each region keeps the list of tetrominoes that still fit in it. A cell is certain when all of them cover it, and empty when none does.',
+			shapes:
+				'Neighbouring regions rule out tetrominoes that would touch the same shape or make a 2×2 block. Newly decided cells: {count}.',
+			shapesDetail:
+				'Arc consistency: a placement goes when every placement left in a neighbouring region conflicts with it, or when it completes a 2×2 block with certain cells.',
+			connect:
+				'All shaded cells must connect: tetrominoes cut off from them go. Newly decided cells: {count}.',
+			connectDetail:
+				'All certain cells must lie in one connected area of cells that may still be shaded; placements outside it are ruled out.',
+			lookAhead:
+				'Looking ahead: a tetromino after which the shaded cells could no longer connect goes. Newly decided cells: {count}.',
+			lookAheadDetail:
+				'For each placement left, the solver checks whether all certain cells could still connect with it. This is the expensive part, so it runs only when the cheaper rules are stuck.',
+			done: 'Every region is settled, without guessing: this is the solution.'
 		}
 	}
 };

@@ -3,7 +3,7 @@ import { Rng } from '../../core/rng';
 import type { Difficulty } from '../../core/variants';
 import { classify, SHAPES, TET_TYPES } from './shapes';
 import type { TetroidPuzzle } from './rules';
-import { TetroidModel, TetroidSolver } from './solver';
+import { TetroidModel, TetroidSolver, type TetroidTrace } from './solver';
 
 export interface GeneratedTetroid {
 	puzzle: TetroidPuzzle;
@@ -177,7 +177,7 @@ class Layout {
  * Plant a solution: grow a connected set of tetrominoes without 2×2 blocks where touching
  * tetrominoes always differ in type, until no further tetromino fits.
  */
-function plant(layout: Layout, rng: Rng): void {
+function plant(layout: Layout, rng: Rng, trace?: TetroidTrace): void {
 	const { w, h, regions, solution, types } = layout;
 	const shaded = (r: number, c: number) =>
 		r >= 0 && c >= 0 && r < h && c < w && regions[r * w + c] >= 0;
@@ -227,6 +227,7 @@ function plant(layout: Layout, rng: Rng): void {
 			solution[i] = 1;
 		}
 		types.push(pick.type);
+		trace?.({ kind: 'plant', cells: pick.cells, type: pick.type });
 	}
 }
 
@@ -234,7 +235,7 @@ function plant(layout: Layout, rng: Rng): void {
  * Assign every unshaded cell to a neighbouring region by random flood fill, preferring the
  * neighbour where the cell opens the fewest alternative placements.
  */
-function growRegions(layout: Layout, rng: Rng): void {
+function growRegions(layout: Layout, rng: Rng, trace?: TetroidTrace): void {
 	const { regions } = layout;
 	const frontier: number[] = [];
 	const queued = new Uint8Array(layout.n);
@@ -264,6 +265,7 @@ function growRegions(layout: Layout, rng: Rng): void {
 			}
 		}
 		regions[i] = best;
+		trace?.({ kind: 'assign', cell: i, region: best });
 		enqueue(i);
 	}
 }
@@ -278,7 +280,7 @@ const NODE_BUDGET = 1500;
  * cannot be fixed by moving cells, its planted tetromino is swapped for one of its alternatives,
  * which changes the pockets around it.
  */
-function makeUnique(layout: Layout, rng: Rng, search = true): boolean {
+function makeUnique(layout: Layout, rng: Rng, search = true, trace?: TetroidTrace): boolean {
 	const { n, regions, solution } = layout;
 	const alts = Array.from({ length: layout.regionCount }, (_, r) => layout.alternatives(r).length);
 	const recount = () => alts.forEach((_, r) => (alts[r] = layout.alternatives(r).length));
@@ -307,6 +309,7 @@ function makeUnique(layout: Layout, rng: Rng, search = true): boolean {
 		regions[m.cell] = m.target;
 		tabu.push(m.cell * 4096 + from);
 		if (tabu.length > 12) tabu.shift();
+		trace?.({ kind: 'move', cell: m.cell, region: m.target });
 	};
 	const replant = (shading: ArrayLike<number>) => {
 		layout.replant(shading);
@@ -318,6 +321,8 @@ function makeUnique(layout: Layout, rng: Rng, search = true): boolean {
 		const badRegions = alts.flatMap((a, r) => (a > 0 ? [r] : []));
 		if (badRegions.length > 0) {
 			const bad = rng.pick(badRegions);
+			if (trace)
+				trace({ kind: 'alternative', region: bad, cells: layout.alternatives(bad)[0].cells });
 			const m = bestMove((i) => regions[i] === bad);
 			// Mostly take improving moves; sometimes accept a worse one to escape dead ends.
 			if (m && (m.score < 1 || rng.next() < 0.5)) {
@@ -331,14 +336,20 @@ function makeUnique(layout: Layout, rng: Rng, search = true): boolean {
 			regions.forEach((r, i) => r === bad && (shading[i] = 0));
 			alt.cells.forEach((i) => (shading[i] = 1));
 			replant(shading);
+			trace?.({ kind: 'replant', region: bad, cells: alt.cells });
 			continue;
 		}
+		trace?.({ kind: 'alone' });
 		if (!search) return true;
 		const puzzle = { width: layout.w, height: layout.h, regions: Array.from(regions) };
 		const res = new TetroidSolver(puzzle).solve({ limit: 2, maxNodes: NODE_BUDGET });
 		if (!res.finished) return false;
 		const other = res.solutions.find((s) => s.some((v, i) => v !== solution[i]));
-		if (!other) return res.solutions.length === 1;
+		if (!other) {
+			trace?.({ kind: 'unique' });
+			return res.solutions.length === 1;
+		}
+		trace?.({ kind: 'second', shading: Array.from(other) });
 		// Move a cell the alternative shades; failing that, any unshaded cell of a region where
 		// the two solutions differ, which may open up a move next time.
 		const differs = new Set<number>();
@@ -361,7 +372,7 @@ function makeUnique(layout: Layout, rng: Rng, search = true): boolean {
  * cell holds its region together, another cell of a stuck region moves first, preferably one
  * next to them, which frees them for a later move.
  */
-function makeLogical(layout: Layout, rng: Rng): boolean {
+function makeLogical(layout: Layout, rng: Rng, trace?: TetroidTrace): boolean {
 	const { n, regions, solution } = layout;
 	// Recently left (cell, region) pairs, as in makeUnique.
 	const tabu: number[] = [];
@@ -392,7 +403,11 @@ function makeLogical(layout: Layout, rng: Rng): boolean {
 			stuck = true;
 			for (const i of pl.cells) if (!solution[i]) open[i]++;
 		});
-		if (!stuck) return true;
+		if (!stuck) {
+			trace?.({ kind: 'unique' });
+			return true;
+		}
+		trace?.({ kind: 'stuck', cells: Array.from(open).flatMap((k, i) => (k > 0 ? [i] : [])) });
 		const stuckCell = (i: number) => (open[i] > 0 ? open[i] : -1);
 		const nearStuck = (i: number) =>
 			dom.size[regions[i]] > 1 ? layout.nb[i].filter((j) => open[j] > 0).length : -1;
@@ -401,6 +416,7 @@ function makeLogical(layout: Layout, rng: Rng): boolean {
 		tabu.push(m.cell * 4096 + regions[m.cell]);
 		if (tabu.length > 12) tabu.shift();
 		regions[m.cell] = m.target;
+		trace?.({ kind: 'move', cell: m.cell, region: m.target });
 	}
 	return false;
 }
@@ -418,19 +434,22 @@ const ATTEMPTS = 100;
  *
  * Normal puzzles can be solved by deduction alone (propagation with the connectivity look-ahead,
  * no guessing); regions are reshaped until they are. Hard puzzles cannot be solved that way.
+ * `trace` hears every attempt: planting, growing, the way to a unique puzzle and the rating.
  */
 export function generateTetroid(
 	width: number,
 	height: number,
 	difficulty: Difficulty,
-	seed: number
+	seed: number,
+	trace?: TetroidTrace
 ): GeneratedTetroid {
 	const rng = new Rng(seed);
 	let fallback: GeneratedTetroid | null = null;
 	for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+		trace?.({ kind: 'attempt', n: attempt });
 		const layout = new Layout(width, height);
-		plant(layout, rng);
-		growRegions(layout, rng);
+		plant(layout, rng, trace);
+		growRegions(layout, rng, trace);
 		const result = (): GeneratedTetroid => ({
 			puzzle: { width, height, regions: Array.from(layout.regions) },
 			solution: Array.from(layout.solution)
@@ -438,13 +457,15 @@ export function generateTetroid(
 		if (difficulty === 'normal') {
 			// makeLogical finishes whatever makeUnique leaves (the planted solution stays valid
 			// even when it gives up). A normal puzzle never falls back to one that needs guessing.
-			makeUnique(layout, rng, false);
-			if (makeLogical(layout, rng)) return result();
+			makeUnique(layout, rng, false, trace);
+			if (makeLogical(layout, rng, trace)) return result();
 			continue;
 		}
-		if (!makeUnique(layout, rng)) continue;
+		if (!makeUnique(layout, rng, true, trace)) continue;
 		const { puzzle } = result();
-		if (new TetroidSolver(puzzle).solve({ branch: false }).solutions.length === 0) return result();
+		const easy = new TetroidSolver(puzzle).solve({ branch: false }).solutions.length > 0;
+		trace?.({ kind: 'rated', easy });
+		if (!easy) return result();
 		fallback ??= result();
 	}
 	if (fallback) return fallback;
