@@ -29,6 +29,39 @@ export interface LoopRating {
 
 export type LoopFailure = { kind: 'cell' | 'dot'; at: number } | { kind: 'loop' | 'sides' };
 
+/**
+ * What the generator and the rating solver report to an optional tracer, for the Inside page's
+ * film. A tracer only listens: it draws no random numbers and changes no order, so a puzzle is the
+ * same with or without one. Cells, dots and edges are numbered as in the graph.
+ */
+export type LoopTraceEvent =
+	/** The generator starts attempt `n` (from 0). */
+	| { kind: 'attempt'; n: number }
+	/** A cell joins the region inside the loop (the first one starts it). Boards below 10×10. */
+	| { kind: 'grow'; cell: number }
+	/**
+	 * A cell is left out: with it, the loop would touch itself at a dot or close off outside cells.
+	 * It may join later, once the region has changed. Boards below 10×10.
+	 */
+	| { kind: 'block'; cell: number }
+	/** The clue of every cell around the loop, before any is removed. */
+	| { kind: 'clues'; clues: number[] }
+	/** A clue is taken out; it goes back unless the techniques still solve the puzzle (`solved`). */
+	| { kind: 'remove'; cell: number; solved: boolean }
+	/**
+	 * The rating solver decides edges: a cell's rule (`at` the cell), a dot's (`at` the dot), the
+	 * rule against closing a loop too early, or inside and outside (`at` -1 for both).
+	 */
+	| {
+			kind: 'decide';
+			rule: 'cell' | 'dot' | 'loop' | 'sides';
+			at: number;
+			lines: number[];
+			crosses: number[];
+	  };
+
+export type LoopTrace = (event: LoopTraceEvent) => void;
+
 export interface LoopSolveOptions {
 	limit?: number;
 	maxNodes?: number;
@@ -187,6 +220,9 @@ export class LoopSolver {
 	/** Edges decided by inside and outside since `rate` started them. */
 	private colourSteps = 0;
 	private failure: LoopFailure | undefined;
+	/** The tracer of `rate`, and the edges as it last heard of them. */
+	private trace: LoopTrace | undefined;
+	private seen = new Uint8Array(0);
 	private readonly parent: Int32Array;
 	private readonly parity: Uint8Array;
 	/** The colour difference to its root of the last cell `find` looked up. */
@@ -223,11 +259,18 @@ export class LoopSolver {
 
 	/**
 	 * Applies the techniques up to `maxLevel`, the weakest ones first, without guessing. `from`
-	 * gives edges that are already decided (in the graph's numbering).
+	 * gives edges that are already decided (in the graph's numbering). `trace` hears every rule
+	 * that decides edges, with the edges it decided.
 	 */
-	rate(maxLevel: LoopLevel = LoopLevel.Advanced, from?: ArrayLike<number>): LoopRating {
+	rate(
+		maxLevel: LoopLevel = LoopLevel.Advanced,
+		from?: ArrayLike<number>,
+		trace?: LoopTrace
+	): LoopRating {
 		this.v = from ? Uint8Array.from(from) : new Uint8Array(this.g.edges);
 		this.f = new Uint8Array(4 * this.n);
+		this.trace = trace;
+		if (trace) this.seen = this.v.slice();
 		this.colouring = false;
 		let level: LoopLevel = LoopLevel.Basic;
 		let advancedSteps = 0;
@@ -263,6 +306,7 @@ export class LoopSolver {
 		this.branched = false;
 		this.solutions = [];
 		this.colouring = false;
+		this.trace = undefined;
 		this.search(new Uint8Array(this.g.edges), new Uint8Array(4 * this.n), opts.branch ?? true);
 		return {
 			solutions: this.solutions,
@@ -357,6 +401,7 @@ export class LoopSolver {
 			if (!this.colouring && !this.startColouring()) return false;
 			const changed = this.colourRules();
 			if (!changed) return changed !== null;
+			if (this.trace) this.report('sides');
 			// The edges it decided queued their cells and dots; nothing else changed for them.
 			if (!this.propagate(false)) return false;
 		}
@@ -409,6 +454,17 @@ export class LoopSolver {
 		}
 	}
 
+	/** Tells the tracer the edges decided since it last heard, if any, and the rule that did. */
+	private report(rule: 'cell' | 'dot' | 'loop' | 'sides', at = -1) {
+		const lines: number[] = [];
+		const crosses: number[] = [];
+		for (let e = 0; e < this.g.edges; e++) {
+			if (this.v[e] !== this.seen[e]) (this.v[e] === LINE ? lines : crosses).push(e);
+		}
+		this.seen = this.v.slice();
+		if (lines.length + crosses.length) this.trace!({ kind: 'decide', rule, at, lines, crosses });
+	}
+
 	/** Adds flags to a corner whose two edges are both open, and queues its cell and dot. */
 	private flag(corner: number, bits: number) {
 		if ((this.f[corner] | bits) === this.f[corner]) return;
@@ -437,6 +493,10 @@ export class LoopSolver {
 						item < this.n ? { kind: 'cell', at: item } : { kind: 'dot', at: item - this.n };
 				}
 				if (!ok || this.broken) return (this.broken = false);
+				if (this.trace) {
+					if (item < this.n) this.report('cell', item);
+					else this.report('dot', item - this.n);
+				}
 			}
 			const changed = this.loopRule();
 			if (this.broken) return (this.broken = false);
@@ -444,6 +504,7 @@ export class LoopSolver {
 				this.failure = { kind: 'loop' };
 				return false;
 			}
+			if (this.trace) this.report('loop');
 			if (!changed) return true;
 		}
 	}
@@ -814,7 +875,8 @@ export function solveLoop(p: LoopPuzzle, opts: LoopSolveOptions = {}): LoopSolve
 export function rateLoop(
 	p: LoopPuzzle,
 	maxLevel: LoopLevel = LoopLevel.Advanced,
-	from?: ArrayLike<number>
+	from?: ArrayLike<number>,
+	trace?: LoopTrace
 ): LoopRating {
-	return new LoopSolver(p).rate(maxLevel, from);
+	return new LoopSolver(p).rate(maxLevel, from, trace);
 }

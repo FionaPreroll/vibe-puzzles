@@ -2,6 +2,7 @@
 	import { t } from '#lib/i18n/index.svelte.ts';
 	import type { BasePuzzle } from '#lib/core/types.ts';
 	import type { Film } from '#lib/inside/film.ts';
+	import { loopFilm } from '#lib/inside/films/loop.ts';
 	import { pinwheelFilm } from '#lib/inside/films/pinwheel.ts';
 	import { sudokuFilm } from '#lib/inside/films/sudoku.ts';
 	import { tetroidFilm } from '#lib/inside/films/tetroid.ts';
@@ -17,7 +18,8 @@
 		[
 			{ id: 'sudoku', name: 'Sudoku', make: sudokuFilm },
 			{ id: 'pinwheel', name: 'Pinwheel', make: pinwheelFilm },
-			{ id: 'tetroid', name: 'Tetroid', make: tetroidFilm }
+			{ id: 'tetroid', name: 'Tetroid', make: tetroidFilm },
+			{ id: 'loop', name: 'Loop', make: loopFilm }
 		];
 
 	// Raw: a deep proxy would never be one of FILMS.
