@@ -8,6 +8,48 @@ interface Placement {
 	cells: number[];
 }
 
+/**
+ * What the generator and the solver report to an optional tracer, for the Inside page's film. A
+ * tracer only listens: it draws no random numbers and changes no order, so a puzzle is the same
+ * with or without one. Regions are numbered as in the puzzle.
+ */
+export type TetroidTraceEvent =
+	/** The generator starts attempt `n` (from 0). */
+	| { kind: 'attempt'; n: number }
+	/** A tetromino of type `type` (index into `TET_TYPES`) is planted; it starts the next region. */
+	| { kind: 'plant'; cells: number[]; type: number }
+	/** An unshaded cell joins `region` as the regions grow. */
+	| { kind: 'assign'; cell: number; region: number }
+	/** Another tetromino `cells` fits `region` while every other planted one stays: two solutions. */
+	| { kind: 'alternative'; region: number; cells: number[] }
+	/** A cell moves to `region`. */
+	| { kind: 'move'; cell: number; region: number }
+	/** `region` gets the tetromino `cells` instead of its planted one. */
+	| { kind: 'replant'; region: number; cells: number[] }
+	/** No region has an alternative of its own any more. */
+	| { kind: 'alone' }
+	/** The solver found another solution (`shading`, 0/1 per cell) than the planted one. */
+	| { kind: 'second'; shading: number[] }
+	/** Propagation gets stuck: the unshaded cells that placements left besides the planted ones cover. */
+	| { kind: 'stuck'; cells: number[] }
+	/** Propagation solves the puzzle (normal), or the solver finds no second solution (hard). */
+	| { kind: 'unique' }
+	/** A unique puzzle: whether propagation alone solves it. */
+	| { kind: 'rated'; easy: boolean }
+	/**
+	 * Propagation: the cells every placement left in their region shades (`shaded`) and those none
+	 * shades (`empty`), after the start or a pass of a rule: neighbouring regions' shapes and 2×2
+	 * blocks (`shapes`), connection (`connect`), or the look-ahead (`lookAhead`).
+	 */
+	| {
+			kind: 'round';
+			rule: 'start' | 'shapes' | 'connect' | 'lookAhead';
+			shaded: number[];
+			empty: number[];
+	  };
+
+export type TetroidTrace = (event: TetroidTraceEvent) => void;
+
 export interface SolveOptions {
 	/** Stop after this many solutions (2 is enough to prove uniqueness). */
 	limit?: number;
@@ -17,6 +59,8 @@ export interface SolveOptions {
 	advanced?: boolean;
 	/** Allow guessing. Without it the solver only propagates. */
 	branch?: boolean;
+	/** Hears each pass of propagation (`round`). */
+	trace?: TetroidTrace;
 }
 
 export interface SolveResult {
@@ -122,6 +166,7 @@ export class TetroidSolver {
 	private advanced = true;
 	private branched = false;
 	private aborted = false;
+	private trace: TetroidTrace | undefined;
 	// Scratch buffers.
 	private readonly cnt: Int32Array;
 	private readonly size0: Int32Array;
@@ -146,6 +191,7 @@ export class TetroidSolver {
 		this.limit = opts.limit ?? 2;
 		this.maxNodes = opts.maxNodes ?? Infinity;
 		this.advanced = opts.advanced ?? true;
+		this.trace = opts.trace;
 		this.nodes = 0;
 		this.solutions = [];
 		this.branched = false;
@@ -180,6 +226,7 @@ export class TetroidSolver {
 	 */
 	propagated(advanced = true): Domain | null {
 		this.advanced = advanced;
+		this.trace = undefined;
 		const { placements, byRegion } = this.m;
 		const dom: Domain = {
 			alive: new Uint8Array(placements.length).fill(1),
@@ -195,6 +242,7 @@ export class TetroidSolver {
 	 */
 	consistent(dom: Domain): boolean {
 		this.advanced = true;
+		this.trace = undefined;
 		return this.propagate(dom);
 	}
 
@@ -247,9 +295,28 @@ export class TetroidSolver {
 		return this.cnt[i] > 0 && this.cnt[i] === this.size0[this.m.p.regions[i]];
 	}
 
+	/** Reports what `dom` decides: cells every placement of their region shades, or none does. */
+	private report(dom: Domain, rule: 'start' | 'shapes' | 'connect' | 'lookAhead') {
+		const { placements, p } = this.m;
+		const covers = new Int32Array(this.n);
+		for (let k = 0; k < placements.length; k++) {
+			if (dom.alive[k]) for (const i of placements[k].cells) covers[i]++;
+		}
+		const shaded: number[] = [];
+		const empty: number[] = [];
+		for (let i = 0; i < this.n; i++) {
+			if (!covers[i]) empty.push(i);
+			else if (covers[i] === dom.size[p.regions[i]]) shaded.push(i);
+		}
+		this.trace!({ kind: 'round', rule, shaded, empty });
+	}
+
 	/** Reduce domains until a fixpoint. Returns false on contradiction. */
 	private propagate(dom: Domain, depth = 0): boolean {
 		const { placements, conflicts, byRegion, regionNeighbours } = this.m;
+		const trace = this.trace;
+		// The rule whose pass changed something last, for the tracer.
+		let rule: 'start' | 'shapes' | 'connect' | 'lookAhead' = 'start';
 		const regionCount = byRegion.length;
 		const dirty = new Uint8Array(regionCount).fill(1);
 		// The look-ahead is expensive: below the root it runs once per node.
@@ -263,7 +330,9 @@ export class TetroidSolver {
 		};
 
 		for (;;) {
+			if (trace) this.report(dom, rule);
 			// Arc consistency against neighbouring regions, plus 2×2 squares with certain cells.
+			rule = 'shapes';
 			this.cover(dom);
 			let any = false;
 			const check = dirty.slice();
@@ -281,6 +350,7 @@ export class TetroidSolver {
 			if (any) continue;
 
 			// Connectivity: all certain cells must lie in one component of possible cells.
+			rule = 'connect';
 			const main = this.mainComponent(this.comp, -1, null);
 			if (main === -2) return false;
 			if (main >= 0) {
@@ -295,6 +365,7 @@ export class TetroidSolver {
 			if (!this.advanced || lookAheads-- <= 0) return true;
 
 			// Look-ahead: choosing a placement must leave everything connectable.
+			rule = 'lookAhead';
 			for (let k = 0; k < placements.length; k++) {
 				const pl = placements[k];
 				if (!dom.alive[k] || dom.size[pl.region] === 1) continue;

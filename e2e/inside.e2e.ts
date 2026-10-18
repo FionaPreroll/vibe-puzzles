@@ -165,6 +165,37 @@ test('the Pinwheel film: galaxies grow, a second solution is cut away, propagati
 	await expect(p.step).toHaveText(/^Step 1 of \d+$/);
 });
 
+test('the Tetroid film: tetrominoes planted, regions grown and reshaped, then solved by deduction', async ({
+	page
+}) => {
+	const p = await open(page);
+	await page.getByRole('group', { name: 'Films' }).getByRole('button', { name: 'Tetroid' }).click();
+	await expect(page.getByRole('heading', { name: 'How a Tetroid is made' })).toBeVisible();
+	await expect(p.caption).toHaveText(/^A Tetroid solution is a chain of tetrominoes/);
+	await page.keyboard.press('ArrowRight');
+	await expect(p.caption).toHaveText(/^It plants a tetromino/);
+
+	await page.keyboard.press('PageDown');
+	await expect(p.caption).toHaveText(/^A free cell joins a neighbouring region/);
+	await page.keyboard.press('PageDown');
+	await expect(p.chapters.getByRole('button', { name: /^3\. One way only/ })).toHaveAttribute(
+		'aria-current',
+		'step'
+	);
+	await expect(p.caption).toHaveText(/^This region could also hold the teal tetromino/);
+	await page.getByRole('button', { name: 'More detail' }).click();
+	await expect(page.getByTestId('detail')).toContainText('never breaks the planted solution');
+
+	await page.keyboard.press('PageDown');
+	await expect(p.caption).toHaveText(/^Solving by deduction/);
+	await page.keyboard.press('End');
+	await expect(p.caption).toHaveText(
+		'Every region is settled, without guessing: this is the solution.'
+	);
+	await page.keyboard.press('ArrowLeft');
+	await expect(p.caption).toHaveText(/^Looking ahead/);
+});
+
 test('the page speaks German, and the footer and About page lead to it', async ({ page }) => {
 	await page.goto('/about');
 	await page.getByRole('link', { name: 'Watch it step by step' }).click();

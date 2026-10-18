@@ -4,6 +4,7 @@
 	import type { Film } from '#lib/inside/film.ts';
 	import { pinwheelFilm } from '#lib/inside/films/pinwheel.ts';
 	import { sudokuFilm } from '#lib/inside/films/sudoku.ts';
+	import { tetroidFilm } from '#lib/inside/films/tetroid.ts';
 	import { ti } from '#lib/inside/i18n/index.ts';
 	import Player from '#lib/inside/Player.svelte';
 
@@ -15,7 +16,8 @@
 	const FILMS: { id: string; name: string; make: (seed?: number) => Film<BasePuzzle, unknown> }[] =
 		[
 			{ id: 'sudoku', name: 'Sudoku', make: sudokuFilm },
-			{ id: 'pinwheel', name: 'Pinwheel', make: pinwheelFilm }
+			{ id: 'pinwheel', name: 'Pinwheel', make: pinwheelFilm },
+			{ id: 'tetroid', name: 'Tetroid', make: tetroidFilm }
 		];
 
 	// Raw: a deep proxy would never be one of FILMS.
