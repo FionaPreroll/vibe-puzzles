@@ -184,6 +184,8 @@ export class LoopSolver {
 	/** Inside and outside: a parent and the colour difference to it per cell, outside last. */
 	private colouring = false;
 	private broken = false;
+	/** Edges decided by inside and outside since `rate` started them. */
+	private colourSteps = 0;
 	private failure: LoopFailure | undefined;
 	private readonly parent: Int32Array;
 	private readonly parity: Uint8Array;
@@ -240,16 +242,12 @@ export class LoopSolver {
 		});
 		const broken = () => result(false, true);
 		if (!this.propagate()) return broken();
-		while (maxLevel >= LoopLevel.Advanced && this.v.includes(OPEN)) {
+		if (maxLevel >= LoopLevel.Advanced && this.v.includes(OPEN)) {
 			level = LoopLevel.Advanced;
-			if (!this.colouring && !this.startColouring()) return broken();
-			const before = this.v.reduce((k, x) => k + (x === OPEN ? 1 : 0), 0);
-			const changed = this.colourRules();
-			if (changed === null) return broken();
-			if (!changed) break;
-			advancedSteps += before - this.v.reduce((k, x) => k + (x === OPEN ? 1 : 0), 0);
-			// The edges it decided queued their cells and dots; nothing else changed for them.
-			if (!this.propagate(false)) return broken();
+			this.colourSteps = 0;
+			const ok = this.colourRounds();
+			advancedSteps = this.colourSteps;
+			if (!ok) return broken();
 		}
 		if (this.v.includes(OPEN)) return result(false);
 		if (this.isLoop(this.v)) return result(true);
@@ -307,16 +305,10 @@ export class LoopSolver {
 		this.parent.set(base.parent);
 		this.parity.set(base.parity);
 		this.clearQueue();
+		// The edge queues its cells and dots, so propagating also reports a broken class.
 		this.set(e, value);
-		if (this.broken) return !(this.broken = false);
 		if (!this.propagate(false)) return true;
-		while (base.level >= LoopLevel.Advanced && this.v.includes(OPEN)) {
-			if (!this.colouring && !this.startColouring()) return true;
-			const changed = this.colourRules();
-			if (changed === null) return true;
-			if (!changed) break;
-			if (!this.propagate(false)) return true;
-		}
+		if (base.level >= LoopLevel.Advanced && !this.colourRounds()) return true;
 		return !this.v.includes(OPEN) && !this.isLoop(this.v);
 	}
 
@@ -350,22 +342,25 @@ export class LoopSolver {
 	 */
 	private deduce(): boolean {
 		this.colouring = false;
-		let ok = this.propagate();
-		while (ok && this.v.includes(OPEN)) {
-			if (!this.colouring && !this.startColouring()) {
-				ok = false;
-				break;
-			}
-			const changed = this.colourRules();
-			if (!changed) {
-				ok = changed !== null;
-				break;
-			}
-			ok = this.propagate(false);
-		}
+		const ok = this.propagate() && this.colourRounds();
 		// The classes belong to this node; its children start their own.
 		this.colouring = false;
 		return ok;
+	}
+
+	/**
+	 * Rounds of inside and outside, each followed by the basic rules on the edges it decided,
+	 * until a round changes nothing or no edge is open; false on a contradiction.
+	 */
+	private colourRounds(): boolean {
+		while (this.v.includes(OPEN)) {
+			if (!this.colouring && !this.startColouring()) return false;
+			const changed = this.colourRules();
+			if (!changed) return changed !== null;
+			// The edges it decided queued their cells and dots; nothing else changed for them.
+			if (!this.propagate(false)) return false;
+		}
+		return true;
 	}
 
 	/** An open edge to branch on, or -1 when all are decided. */
@@ -698,6 +693,7 @@ export class LoopSolver {
 			const da = this.found;
 			if (ra !== this.find(edgeSide[2 * e + 1])) continue;
 			this.set(e, da ^ this.found ? LINE : CROSS);
+			this.colourSteps++;
 			changed = true;
 		}
 		// The edges follow from known differences, so drawing them contradicts no class.
