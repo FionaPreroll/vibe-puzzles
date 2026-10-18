@@ -257,9 +257,10 @@ The Loop rating (2026-10-10) went this way too: the basic rules got stronger (co
 
 ## Traces
 
-The Inside page (`/inside`) shows the generators at work from their own trace. A generator that has a film takes an optional `trace` callback, and passes it on to the solvers it calls:
+The Inside page (`/inside`) shows the generators at work from their own trace. A generator that has a film takes an optional `trace` callback:
 
 - **Sudoku** (`generateSudoku(size, difficulty, seed, trace)`): the search that fills the grid reports each digit it tries (`place`) and the ones a dead end takes back (`unplace`). Digging reports each pair it takes out (`try`) and whether it stays out (`keep`) or goes back (`restore`). Hard puzzles report each attempt. `ratePuzzle(puzzle, level, trace)` reports the candidates at the start, each single with the unit it was found in, and each elimination.
+- **Pinwheel** (`generatePinwheel(width, height, difficulty, seed, trace)`): each attempt (`attempt`); the partition's new galaxies with the cells under their centre (`centre`), each cell taken with its mirror image (`grow`) and each pair of single cells swallowed (`absorb`); every second solution the solver finds (`second`, with both assignments), the cut that follows (`split`) and the end (`unique`, or `drop` for an attempt given up); and the rating (`rated`). `PinwheelSolver.solve({ trace })` reports each round of propagation: the cells settled so far (`round`). A cut never makes a domino: a cell next to its own mirror image lies under the centre, and those cells are never cut.
 - A tracer only listens. It is called where the algorithm decides something, never in its innermost loops; it draws no random numbers and changes no order, so a generator makes the same puzzle with or without one (unit test). Without a tracer, the calls cost a check each.
 
 ## Tests and budgets

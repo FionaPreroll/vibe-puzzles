@@ -6,7 +6,9 @@ const de: InsideDictionary = {
 	intro:
 		'Wie baut ein Computer ein Rätsel mit genau einer Lösung, und woher weiß er, wie schwer es ist? Schau ihm an einem echten Rätsel zu, Schritt für Schritt.',
 	films: {
-		sudoku: 'So entsteht ein Sudoku'
+		label: 'Filme',
+		sudoku: 'So entsteht ein Sudoku',
+		pinwheel: 'So entsteht ein Pinwheel'
 	},
 	player: {
 		play: 'Abspielen',
@@ -68,6 +70,51 @@ const de: InsideDictionary = {
 			done: 'Gelöst mit {singles} Singles und ohne Raten: ein normales Sudoku.',
 			doneDetail:
 				'Die Schwierigkeit ist die schwächste Gruppe von Techniken, die das Rätsel löst. Normal braucht nur Singles. Schwer braucht dazu gesperrte Kandidaten oder nackte und versteckte Paare und Dreier.'
+		}
+	},
+	pinwheel: {
+		chapters: {
+			grow: 'Galaxien wachsen',
+			unique: 'Nur eine Lösung',
+			grade: 'Normal oder schwer?'
+		},
+		grow: {
+			start:
+				'Ein Pinwheel-Spielfeld ist in Galaxien aufgeteilt. Jede sieht nach einer halben Drehung um ihr Zentrum gleich aus. Der Computer beginnt mit einem leeren 7×7-Feld.',
+			centre:
+				'Eine neue Galaxie beginnt an einem freien Feld mit wenigen freien Nachbarn. Ihr Zentrum liegt auf einem Feld, einer Kante oder einer Ecke.',
+			grow: 'Sie wächst um ein Feld und sein Spiegelbild durch das Zentrum, so bleibt sie symmetrisch.',
+			absorb:
+				'Eine Galaxie schluckt zwei Ein-Feld-Galaxien, die Spiegelbilder voneinander sind: weniger winzige Stücke.',
+			done: 'Jedes Feld gehört zu einer Galaxie. Aber ist das die einzige Art, das Feld um diese Zentren aufzuteilen?',
+			detail:
+				'Zentren haben halbe Feldkoordinaten: Eines auf einer Kante deckt zwei Felder, eines auf einer Ecke vier. Jede Galaxie wächst bis zu einer zufälligen Größe und nimmt ein freies Feld nur zusammen mit seinem freien Spiegelfeld.'
+		},
+		unique: {
+			start:
+				'Der Spieler sieht nur die Zentren. Der Solver prüft, ob sie eine zweite Aufteilung erlauben.',
+			second:
+				'Er findet eine: Die markierten Felder könnten zu anderen Galaxien gehören. Die türkisen Linien zeigen diese andere Lösung.',
+			cut: 'Also wird eines dieser Felder mit seinem Spiegelbild herausgeschnitten, und jedes wird eine eigene Galaxie.',
+			done: 'Jetzt findet der Solver keine andere Aufteilung mehr: Die Lösung ist eindeutig.',
+			already: 'Der Solver findet keine andere Aufteilung: Die Lösung ist so schon eindeutig.',
+			detail:
+				'Der Solver merkt sich für jedes Feld die Zentren, zu denen es noch gehören kann (eine Bitmap). Die Propagation streicht die, die Symmetrie oder Zusammenhang verletzen. Kommt sie nicht weiter, probiert der Solver die Möglichkeiten des Felds mit den wenigsten übrigen. Er hört bei der zweiten Lösung auf oder nach 3.000 Suchknoten.'
+		},
+		grade: {
+			start:
+				'Zur Bewertung schließt der Solver jetzt nur noch, ohne etwas auszuprobieren. Zu Beginn stehen {settled} Felder fest: die unter den Zentren.',
+			round: 'Runde {round}: Spiegelbilder und Zusammenhang legen {count} weitere Felder fest.',
+			stuck:
+				'Festgefahren: {open} Felder könnten noch zu mehr als einer Galaxie gehören. Weiter geht es nur mit Ausprobieren, also ist das ein schweres Rätsel.',
+			solved: 'Jedes Feld steht allein durch Schließen fest: ein normales Rätsel.',
+			levels:
+				'Die Propagation wiederholt zwei Regeln, bis sich nichts mehr ändert: Ein Feld kann nur zu einem Zentrum gehören, solange sein Spiegelbild das auch kann, und nur, wenn Felder, die ebenfalls dazugehören können, es mit dem Zentrum verbinden. Normale Rätsel lösen sich so; schwere brauchen Fallunterscheidungen.',
+			attempts:
+				'Das war Versuch {attempt}. Davor: {easy} zu leicht für Schwer, {dropped} aufgegeben.',
+			attemptsDetail:
+				'Schwere Aufteilungen sind auf kleinen Feldern selten, aber ein Versuch dauert nur Bruchteile einer Millisekunde. Also probiert der Generator mit demselben Zufallsgenerator einfach weiter, bis zu 10.000 Mal.',
+			solution: 'Die Lösung, die der Spieler allein aus den Zentren finden muss.'
 		}
 	}
 };

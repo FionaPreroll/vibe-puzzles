@@ -1,11 +1,52 @@
 import { neighbours } from '../../core/grid';
 import { coveredCells, mirrorCell, type PinwheelPuzzle } from './rules';
 
+/**
+ * What the generator and the solver report to an optional tracer, for the Inside page's film. A
+ * tracer only listens: it draws no random numbers and changes no order, so a puzzle is the same
+ * with or without one. Centres are in half-cell coordinates, as in the puzzle.
+ */
+export type PinwheelTraceEvent =
+	/** The generator starts attempt `n` (from 0) with a new partition. */
+	| { kind: 'attempt'; n: number }
+	/** A galaxy starts at `centre`, with the cells under it. */
+	| { kind: 'centre'; centre: [number, number]; cells: number[] }
+	/** The galaxy at `centre` takes a cell and its mirror image (`cells`). */
+	| { kind: 'grow'; centre: [number, number]; cells: number[] }
+	/** The galaxy at `centre` swallows the single-cell galaxies of `cells`, a symmetric pair. */
+	| { kind: 'absorb'; centre: [number, number]; cells: number[] }
+	/**
+	 * The solver found a second solution: `other` assigns every cell another way than `owner`
+	 * (both as indices into `centres`).
+	 */
+	| { kind: 'second'; centres: [number, number][]; owner: number[]; other: number[] }
+	/** A cell and its mirror (`cells`) leave their galaxy and become `galaxies` of their own. */
+	| {
+			kind: 'split';
+			cells: number[];
+			galaxies: { centre: [number, number]; cells: number[] }[];
+	  }
+	/** The partition is the only solution now. */
+	| { kind: 'unique' }
+	/** The attempt is given up: the search ran out of nodes, or no cell could be cut out. */
+	| { kind: 'drop' }
+	/** A unique partition: whether propagation alone solves it (normal) or not (hard). */
+	| { kind: 'rated'; easy: boolean }
+	/**
+	 * A round of propagation is done: the centre (index) of every cell that has only one left, -1
+	 * for the others. The first round is the state before propagation.
+	 */
+	| { kind: 'round'; owner: number[] };
+
+export type PinwheelTrace = (event: PinwheelTraceEvent) => void;
+
 export interface PinwheelSolveOptions {
 	limit?: number;
 	maxNodes?: number;
 	/** Allow guessing. Without it the solver only propagates. */
 	branch?: boolean;
+	/** Hears the rounds of propagation (`round`). */
+	trace?: PinwheelTrace;
 }
 
 export interface PinwheelSolveResult {
@@ -34,6 +75,7 @@ export class PinwheelSolver {
 	private aborted = false;
 	private branched = false;
 	private solutions: Int32Array[] = [];
+	private trace: PinwheelTrace | undefined;
 	private readonly seen: Uint8Array;
 	private readonly queue: Int32Array;
 
@@ -55,6 +97,7 @@ export class PinwheelSolver {
 	solve(opts: PinwheelSolveOptions = {}): PinwheelSolveResult {
 		this.limit = opts.limit ?? 2;
 		this.maxNodes = opts.maxNodes ?? Infinity;
+		this.trace = opts.trace;
 		this.nodes = 0;
 		this.aborted = false;
 		this.branched = false;
@@ -141,9 +184,24 @@ export class PinwheelSolver {
 		}
 	}
 
+	/** The centre of every cell that has only one left, -1 for the others. */
+	private settled(dom: Uint8Array): number[] {
+		const { n, g } = this;
+		return Array.from({ length: n }, (_, c) => {
+			let only = -1;
+			for (let k = 0; k < g; k++) {
+				if (!dom[c * g + k]) continue;
+				if (only >= 0) return -1;
+				only = k;
+			}
+			return only;
+		});
+	}
+
 	/** Propagate to a fixpoint; false on contradiction. */
 	private propagate(dom: Uint8Array): boolean {
-		const { n, g, mirror } = this;
+		const { n, g, mirror, trace } = this;
+		trace?.({ kind: 'round', owner: this.settled(dom) });
 		for (;;) {
 			let changed = false;
 			// Symmetry: k stays possible for c only while it is possible for c's mirror.
@@ -178,6 +236,7 @@ export class PinwheelSolver {
 				if (this.prune(dom, k)) changed = true;
 			}
 			if (!changed) return true;
+			trace?.({ kind: 'round', owner: this.settled(dom) });
 		}
 	}
 

@@ -17,6 +17,8 @@ export interface Frame<P, S> {
 	/** Elements in the board's keys (as for hints): ringed, tinted softly. */
 	spotlight?: string[];
 	area?: string[];
+	/** Elements drawn in the trial colour (teal): something the algorithm only considers. */
+	trial?: string[];
 	/** The ring in the error colour: something that failed. */
 	mistake?: boolean;
 	/** What is said, for everyone. */
@@ -36,6 +38,8 @@ export interface Chapter<P, S> {
 export interface Film<P, S> {
 	/** The game whose board shows the film. */
 	game: string;
+	/** Board settings that differ from the game's defaults while the film plays. */
+	settings?: Record<string, boolean>;
 	chapters: Chapter<P, S>[];
 }
 

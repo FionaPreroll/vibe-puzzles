@@ -24,7 +24,8 @@
 	const settings = $derived({
 		...settingValues(game.settings),
 		showCoordinates: false,
-		highlightLastChange: false
+		highlightLastChange: false,
+		...film.settings
 	});
 	const timeline = $derived(player.timeline);
 	const frame = $derived(player.frame);
@@ -33,7 +34,9 @@
 	let detail = $state(false);
 	let width = $state(360);
 	/** As large as fits the column, up to the size of a comfortable board. */
-	const cellSize = $derived(Math.max(24, Math.min(48, Math.floor((width - 24) / 9.6))));
+	const cellSize = $derived(
+		Math.max(24, Math.min(56, Math.floor((width - 24) / ((frame?.puzzle.width ?? 9) + 0.6))))
+	);
 
 	const say = (c: Caption) => ti(c.key, c.params);
 	const set = (keys?: string[]) => (keys ? new Set(keys) : undefined);
@@ -77,6 +80,7 @@
 				spotlight={set(frame.spotlight)}
 				mistake={frame.mistake}
 				area={set(frame.area)}
+				trial={set(frame.trial)}
 				touchMode="pan"
 				onmove={() => {}}
 			/>

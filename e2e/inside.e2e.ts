@@ -118,6 +118,53 @@ test('another example starts the film over with another puzzle', async ({ page }
 	expect(await page.locator('[data-testid="film"] .board-stage').innerHTML()).not.toBe(before);
 });
 
+test('the Pinwheel film: galaxies grow, a second solution is cut away, propagation gets stuck', async ({
+	page
+}) => {
+	const p = await open(page);
+	const films = page.getByRole('group', { name: 'Films' });
+	await films.getByRole('button', { name: 'Pinwheel' }).click();
+	await expect(films.getByRole('button', { name: 'Pinwheel' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await expect(page.getByRole('heading', { name: 'How a Pinwheel is made' })).toBeVisible();
+	await expect(p.caption).toHaveText(/^A Pinwheel board is split into galaxies/);
+	await expect(p.step).toHaveText(/^Step 1 of \d+$/);
+
+	await page.keyboard.press('PageDown');
+	await expect(p.chapters.getByRole('button', { name: /^2\. One solution only/ })).toHaveAttribute(
+		'aria-current',
+		'step'
+	);
+	await expect(p.caption).toHaveText(/^The player will see only the centres/);
+	const trial = page.locator('[data-testid="film"] [data-trial]');
+	await expect(trial).toHaveCount(0);
+	await page.keyboard.press('ArrowRight');
+	await expect(p.caption).toHaveText(/^It finds one/);
+	// The other solution's lines, in the trial colour.
+	expect(await trial.count()).toBeGreaterThan(0);
+	await page.keyboard.press('ArrowRight');
+	await expect(p.caption).toHaveText(/^So one of those cells is cut out/);
+	await expect(trial).toHaveCount(0);
+
+	await page.keyboard.press('PageDown');
+	await expect(p.caption).toHaveText(/^To grade the puzzle, the solver now only deduces/);
+	await page.keyboard.press('End');
+	await expect(p.caption).toHaveText(/^The solution, which the player has to find/);
+	await page.keyboard.press('ArrowLeft');
+	await expect(p.caption).toHaveText(
+		'This was attempt 2. Before it: 1 too easy for Hard, 0 given up.'
+	);
+	await page.keyboard.press('ArrowLeft');
+	await expect(p.caption).toHaveText(/^Stuck: 4 cells could still belong to more than one galaxy/);
+
+	// Back to the Sudoku film, from its start.
+	await films.getByRole('button', { name: 'Sudoku' }).click();
+	await expect(p.caption).toHaveText(/^Every Sudoku starts empty/);
+	await expect(p.step).toHaveText(/^Step 1 of \d+$/);
+});
+
 test('the page speaks German, and the footer and About page lead to it', async ({ page }) => {
 	await page.goto('/about');
 	await page.getByRole('link', { name: 'Watch it step by step' }).click();
