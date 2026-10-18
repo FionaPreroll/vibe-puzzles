@@ -362,7 +362,9 @@ describe('generator', () => {
 			expect(fitsLoopDifficulty(puzzle, difficulty)).toBe(true);
 			expect(fitsLoopDifficulty(puzzle, difficulty === 'hard' ? 'normal' : 'hard')).toBe(false);
 			expect(generateLoop(size, size, difficulty, seed).puzzle).toEqual(puzzle);
-		}
+		},
+		// 15×15 hard takes about 2 s under coverage, more with the other test files running.
+		30_000
 	);
 
 	it('keeps a puzzle with a clue to spare out of its level', () => {

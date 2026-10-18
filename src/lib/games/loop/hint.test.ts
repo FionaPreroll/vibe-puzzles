@@ -300,7 +300,9 @@ describe('loop hints', () => {
 				expect(reasons).toContain(r);
 			}
 			expect([...used].every((t) => TECHNIQUES.includes(t))).toBe(true);
-		}
+		},
+		// 10×10 takes about 3 s under coverage, more with the other test files running.
+		30_000
 	);
 });
 
