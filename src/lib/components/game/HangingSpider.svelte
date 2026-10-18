@@ -16,7 +16,7 @@
 </script>
 
 <div
-	class="halloween-only halloween-sway pointer-events-none absolute flex w-8 flex-col items-center"
+	class="halloween-only halloween-sway pointer-events-none absolute flex w-8 flex-col items-center select-none"
 	style:top="{-headerGap}px"
 	style:right="calc(50% + {stageWidth / 2}px + 2rem)"
 	aria-hidden="true"
