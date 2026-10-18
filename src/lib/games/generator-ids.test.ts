@@ -11,7 +11,8 @@ import { GAME_LOGIC } from './logic';
  *
  * This test pins the puzzle behind a few IDs of every distinct generator setting (rule set, size
  * and difficulty; special types share the setting of a regular type except Pinwheel's monthly
- * 20×20). Types that are only announced (`comingSoon`) have no IDs yet, so they are left out. If it fails, the generator changed what an ID means. When that is deliberate, treat it
+ * 20×20). Types that are only announced (`comingSoon`) have no IDs yet, so they are left out. If
+ * it fails, the generator changed what an ID means. When that is deliberate, treat it
  * as a migration (see docs/generators.md) and replace the hashes with the new ones.
  *
  * Keys are `<game> <type> <seed>`; values are the first 16 hex digits of the SHA-256 of the
@@ -80,7 +81,17 @@ const PINNED: Record<string, string> = {
 	'loop 7n 1': 'd0421f34c7840e6f',
 	'loop 7n 2': 'f0b2ed39e5cb8e1f',
 	'loop 7h 1': 'ba714946c189a79d',
-	'loop 7h 2': '3a796f1fa84091e4'
+	'loop 7h 2': '3a796f1fa84091e4',
+	'loop 10n 1': '8e498041e97c3366',
+	'loop 10n 2': 'f23a6758e357c8f3',
+	'loop 10h 1': '6bb5b8f73b103d97',
+	'loop 10h 2': '6233b97c22ecc0dd',
+	'loop 15n 1': '46e71ebea6c528dc',
+	'loop 15h 1': '50c563e39f3ce15b',
+	'loop 20n 1': '798a98678dc67d86',
+	'loop 20h 1': 'ab970a6a53efa8c6',
+	'loop 25x30n 1': 'fce977fc4e2bf2ad',
+	'loop 25x30h 1': '57425beb8e018673'
 };
 
 const fingerprint = (puzzle: unknown) =>

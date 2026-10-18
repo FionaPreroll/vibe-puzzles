@@ -160,7 +160,7 @@ export function loopLayout(w: number, h: number): LoopLayout {
  * the edge between them; a clue and a dot rule out colourings that break them, which links cells
  * that may be far apart once the links chain up.
  *
- * Search branches on an open edge, preferably one that continues a line.
+ * Search applies both, then branches on an open edge, preferably one that continues a line.
  */
 export class LoopSolver {
 	private readonly l: LoopLayout;
@@ -184,12 +184,29 @@ export class LoopSolver {
 	/** Inside and outside: a parent and the colour difference to it per cell, outside last. */
 	private colouring = false;
 	private broken = false;
+	/** Edges decided by inside and outside since `rate` started them. */
+	private colourSteps = 0;
 	private failure: LoopFailure | undefined;
 	private readonly parent: Int32Array;
 	private readonly parity: Uint8Array;
 	/** The colour difference to its root of the last cell `find` looked up. */
 	private found = 0;
 	private linked = false;
+	/** Scratch space of `colourCases`: up to five classes. */
+	private readonly cases = {
+		roots: new Int32Array(5),
+		rootOf: new Int8Array(5),
+		diffOf: new Int8Array(5)
+	};
+	/** Where `startTrials` stopped, for `breaks`. */
+	private base: {
+		level: LoopLevel;
+		v: Uint8Array;
+		f: Uint8Array;
+		colouring: boolean;
+		parent: Int32Array;
+		parity: Uint8Array;
+	} | null = null;
 
 	constructor(p: LoopPuzzle) {
 		this.l = loopLayout(p.width, p.height);
@@ -225,15 +242,12 @@ export class LoopSolver {
 		});
 		const broken = () => result(false, true);
 		if (!this.propagate()) return broken();
-		while (maxLevel >= LoopLevel.Advanced && this.v.includes(OPEN)) {
+		if (maxLevel >= LoopLevel.Advanced && this.v.includes(OPEN)) {
 			level = LoopLevel.Advanced;
-			if (!this.colouring && !this.startColouring()) return broken();
-			const before = this.v.reduce((k, x) => k + (x === OPEN ? 1 : 0), 0);
-			const changed = this.colourRules();
-			if (changed === null) return broken();
-			if (!changed) break;
-			advancedSteps += before - this.v.reduce((k, x) => k + (x === OPEN ? 1 : 0), 0);
-			if (!this.propagate()) return broken();
+			this.colourSteps = 0;
+			const ok = this.colourRounds();
+			advancedSteps = this.colourSteps;
+			if (!ok) return broken();
 		}
 		if (this.v.includes(OPEN)) return result(false);
 		if (this.isLoop(this.v)) return result(true);
@@ -258,6 +272,46 @@ export class LoopSolver {
 		};
 	}
 
+	/**
+	 * Gets ready for `breaks`: applies the techniques up to `level` from the edges `from`, as
+	 * `rate` does, and keeps where they stop. False when they find a contradiction already.
+	 */
+	startTrials(level: LoopLevel, from: ArrayLike<number>): boolean {
+		const rating = this.rate(level, from);
+		if (rating.contradiction) return false;
+		this.base = {
+			level,
+			v: this.v.slice(),
+			f: this.f.slice(),
+			colouring: this.colouring,
+			parent: this.parent.slice(),
+			parity: this.parity.slice()
+		};
+		return true;
+	}
+
+	/**
+	 * Whether deciding edge `e` as `value` on top of the edges `startTrials` started from runs the
+	 * techniques into a contradiction. The same answer as `rate` from those edges plus this one,
+	 * as the techniques only ever add to what they know, but much faster on a big grid: it goes
+	 * on from where `startTrials` stopped and looks again only at what the edge changes.
+	 */
+	breaks(e: number, value: number): boolean {
+		const base = this.base!;
+		if (base.v[e] !== OPEN) return base.v[e] !== value;
+		this.v = base.v.slice();
+		this.f = base.f.slice();
+		this.colouring = base.colouring;
+		this.parent.set(base.parent);
+		this.parity.set(base.parity);
+		this.clearQueue();
+		// The edge queues its cells and dots, so propagating also reports a broken class.
+		this.set(e, value);
+		if (!this.propagate(false)) return true;
+		if (base.level >= LoopLevel.Advanced && !this.colourRounds()) return true;
+		return !this.v.includes(OPEN) && !this.isLoop(this.v);
+	}
+
 	private search(v: Uint8Array, f: Uint8Array, branch: boolean) {
 		if (++this.nodes > this.maxNodes) {
 			this.aborted = true;
@@ -265,7 +319,7 @@ export class LoopSolver {
 		}
 		this.v = v;
 		this.f = f;
-		if (!this.propagate()) return;
+		if (!(branch ? this.deduce() : this.propagate())) return;
 		const e = this.pickEdge(v);
 		if (e < 0) {
 			if (this.isLoop(v)) this.solutions.push(v);
@@ -279,6 +333,34 @@ export class LoopSolver {
 			this.search(next, f.slice(), branch);
 			if (this.solutions.length >= this.limit || this.aborted) return;
 		}
+	}
+
+	/**
+	 * The basic rules, then inside and outside until nothing changes, as `rate` applies them;
+	 * false on a contradiction. Search uses both, so that it only branches where neither decides
+	 * an edge: with the basic rules alone, hard puzzles from 10×10 on took minutes.
+	 */
+	private deduce(): boolean {
+		this.colouring = false;
+		const ok = this.propagate() && this.colourRounds();
+		// The classes belong to this node; its children start their own.
+		this.colouring = false;
+		return ok;
+	}
+
+	/**
+	 * Rounds of inside and outside, each followed by the basic rules on the edges it decided,
+	 * until a round changes nothing or no edge is open; false on a contradiction.
+	 */
+	private colourRounds(): boolean {
+		while (this.v.includes(OPEN)) {
+			if (!this.colouring && !this.startColouring()) return false;
+			const changed = this.colourRules();
+			if (!changed) return changed !== null;
+			// The edges it decided queued their cells and dots; nothing else changed for them.
+			if (!this.propagate(false)) return false;
+		}
+		return true;
 	}
 
 	/** An open edge to branch on, or -1 when all are decided. */
@@ -298,6 +380,11 @@ export class LoopSolver {
 			if (open >= 0 && any < 0) any = open;
 		}
 		return any;
+	}
+
+	private clearQueue() {
+		this.head = this.tail = this.size = 0;
+		this.queued.fill(0);
 	}
 
 	private push(item: number) {
@@ -330,11 +417,15 @@ export class LoopSolver {
 		this.push(this.n + this.l.cornerDot[corner]);
 	}
 
-	/** Applies the basic rules until nothing changes; false on a contradiction. */
-	private propagate(): boolean {
-		this.head = this.tail = this.size = 0;
-		this.queued.fill(0);
-		for (let item = 0; item < this.n + this.g.dots; item++) this.push(item);
+	/**
+	 * Applies the basic rules until nothing changes; false on a contradiction. Looks at every cell
+	 * and dot, or with `all` false only at those queued already.
+	 */
+	private propagate(all = true): boolean {
+		if (all) {
+			this.clearQueue();
+			for (let item = 0; item < this.n + this.g.dots; item++) this.push(item);
+		}
 		for (;;) {
 			while (this.size > 0) {
 				const item = this.queue[this.tail++ % this.queue.length];
@@ -382,16 +473,17 @@ export class LoopSolver {
 	}
 
 	/**
-	 * Keeps the ways to draw these four edges that fit the known ones and `fits`, then decides
-	 * the edges and the flags of the corners (pairs of the edges) that all of them agree on.
+	 * Keeps the ways to draw these four edges that fit the known ones and the rule of `cell` (when
+	 * it is not -1) or `dot`, then decides the edges and the flags of the corners (pairs of the
+	 * edges) that all of them agree on.
 	 */
 	private local(
 		edges: Int32Array,
 		at: number,
 		candidates: ArrayLike<number>,
 		corners: number[],
-		cornerOf: (k: number) => number,
-		fits: (m: number) => boolean
+		cell: number,
+		dot: number
 	): boolean {
 		let line = 0;
 		let cross = 0;
@@ -408,7 +500,8 @@ export class LoopSolver {
 		let found = false;
 		for (let i = 0; i < candidates.length; i++) {
 			const m = candidates[i];
-			if ((m & line) !== line || m & cross || !fits(m)) continue;
+			if ((m & line) !== line || m & cross) continue;
+			if (!(cell >= 0 ? this.cellFits(cell, m) : this.dotFits(dot, m))) continue;
 			found = true;
 			all &= m;
 			any |= m;
@@ -426,7 +519,7 @@ export class LoopSolver {
 			else if (!(any & (1 << k))) this.set(e, CROSS);
 		}
 		for (let k = 0; k < 4; k++) {
-			const corner = cornerOf(k);
+			const corner = cell >= 0 ? 4 * cell + k : this.l.dotCorner[4 * dot + k];
 			if (corner < 0) continue;
 			const pair = corners[k];
 			const open = pair & ~line & ~cross & ~(all | (15 & ~any));
@@ -444,25 +537,11 @@ export class LoopSolver {
 		) {
 			return true;
 		}
-		return this.local(
-			this.g.cellEdges,
-			4 * c,
-			ALL_MASKS,
-			CELL_CORNER,
-			(k) => 4 * c + k,
-			(m) => this.cellFits(c, m)
-		);
+		return this.local(this.g.cellEdges, 4 * c, ALL_MASKS, CELL_CORNER, c, -1);
 	}
 
 	private dotRule(d: number): boolean {
-		return this.local(
-			this.l.dotEdge,
-			4 * d,
-			this.l.dotMasks[d],
-			DOT_CORNER,
-			(k) => this.l.dotCorner[4 * d + k],
-			(m) => this.dotFits(d, m)
-		);
+		return this.local(this.l.dotEdge, 4 * d, this.l.dotMasks[d], DOT_CORNER, -1, d);
 	}
 
 	/**
@@ -600,22 +679,11 @@ export class LoopSolver {
 			}
 			items[0] = c;
 			items.set(cellSide.subarray(4 * c, 4 * c + 4), 1);
-			// Edge k of the cell is a line where its neighbour k differs from it.
-			const ok = this.colourCases(items, 5, (bits) => {
-				const m = ((bits >> 1) ^ (bits & 1 ? 15 : 0)) & 15;
-				return this.cellFits(c, m);
-			});
-			if (!ok) return null;
+			if (!this.colourCases(items, 5, c, -1)) return null;
 		}
 		for (let d = 0; d < this.g.dots; d++) {
 			items.set(dotCell.subarray(4 * d, 4 * d + 4));
-			// Cells up left, up right, down left, down right; the edges up, right, down, left.
-			const ok = this.colourCases(items, 4, (bits) => {
-				const [ul, ur, dl, dr] = [bits & 1, (bits >> 1) & 1, (bits >> 2) & 1, bits >> 3];
-				const m = (ul ^ ur) | ((ur ^ dr) << 1) | ((dl ^ dr) << 2) | ((ul ^ dl) << 3);
-				return (POP[m] === 0 || POP[m] === 2) && this.dotFits(d, m);
-			});
-			if (!ok) return null;
+			if (!this.colourCases(items, 4, -1, d)) return null;
 		}
 		let changed = this.linked;
 		const { edgeSide } = this.l;
@@ -625,6 +693,7 @@ export class LoopSolver {
 			const da = this.found;
 			if (ra !== this.find(edgeSide[2 * e + 1])) continue;
 			this.set(e, da ^ this.found ? LINE : CROSS);
+			this.colourSteps++;
 			changed = true;
 		}
 		// The edges follow from known differences, so drawing them contradicts no class.
@@ -633,38 +702,70 @@ export class LoopSolver {
 
 	/**
 	 * Tries every colouring of the classes these cells belong to and links the classes whose
-	 * difference is the same in every colouring that `fits` (bit i: colour of cell i). False
-	 * when none fits.
+	 * difference is the same in every colouring that fits the rule of `cell` (when it is not -1)
+	 * or `dot` (bit i: colour of cell i). False when none fits.
 	 */
-	private colourCases(items: Int32Array, count: number, fits: (bits: number) => boolean): boolean {
-		const roots: number[] = [];
-		const rootOf = new Int8Array(count);
-		const diffOf = new Int8Array(count);
+	private colourCases(items: Int32Array, count: number, cell: number, dot: number): boolean {
+		const { roots, rootOf, diffOf } = this.cases;
+		let classes = 0;
 		for (let i = 0; i < count; i++) {
 			const r = this.find(items[i]);
 			diffOf[i] = this.found;
-			let k = roots.indexOf(r);
-			if (k < 0) k = roots.push(r) - 1;
+			let k = 0;
+			while (k < classes && roots[k] !== r) k++;
+			if (k === classes) roots[classes++] = r;
 			rootOf[i] = k;
 		}
-		if (roots.length < 2) return fits(colours(0, count, rootOf, diffOf));
-		// The first class is colour 0: only differences matter.
-		const fitting: number[] = [];
-		for (let a = 0; a < 1 << (roots.length - 1); a++) {
-			if (fits(colours(a << 1, count, rootOf, diffOf))) fitting.push(a << 1);
+		if (classes < 2) return this.colourFits(colours(0, count, rootOf, diffOf), cell, dot);
+		// The first class is colour 0: only differences matter. `same` keeps a bit per pair of
+		// classes (i, j) that differ the same way in every colouring that fits as in `first`.
+		let found = false;
+		let same = 0;
+		let first = 0;
+		for (let a = 0; a < 1 << (classes - 1); a++) {
+			const assign = a << 1;
+			if (!this.colourFits(colours(assign, count, rootOf, diffOf), cell, dot)) continue;
+			if (!found) {
+				found = true;
+				first = assign;
+				same = (1 << (classes * classes)) - 1;
+			}
+			// Pairs i, j whose difference differs from the first fitting colouring drop out.
+			for (let i = 0; i < classes; i++) {
+				for (let j = i + 1; j < classes; j++) {
+					if ((((assign >> i) ^ (assign >> j) ^ (first >> i) ^ (first >> j)) & 1) !== 0) {
+						same &= ~(1 << (i * classes + j));
+					}
+				}
+			}
 		}
-		if (fitting.length === 0) return false;
+		if (!found) return false;
 		// Link the classes that differ the same way in every colouring that fits.
-		for (let i = 0; i < roots.length; i++) {
-			for (let j = i + 1; j < roots.length; j++) {
-				const diff = ((fitting[0] >> i) ^ (fitting[0] >> j)) & 1;
+		for (let i = 0; i < classes; i++) {
+			for (let j = i + 1; j < classes; j++) {
 				// All differences come from one colouring, so these links never contradict.
-				if (fitting.every((a) => (((a >> i) ^ (a >> j)) & 1) === diff)) {
-					this.union(roots[i], roots[j], diff);
+				if (same & (1 << (i * classes + j))) {
+					this.union(roots[i], roots[j], ((first >> i) ^ (first >> j)) & 1);
 				}
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Whether a colouring of a cell and its four neighbours (bit 0: the cell; bits 1–4: above,
+	 * below, left, right), or of the four cells around a dot (up left, up right, down left, down
+	 * right), fits the cell's or dot's rule.
+	 */
+	private colourFits(bits: number, cell: number, dot: number): boolean {
+		if (cell >= 0) {
+			// Edge k of the cell is a line where its neighbour k differs from it.
+			return this.cellFits(cell, ((bits >> 1) ^ (bits & 1 ? 15 : 0)) & 15);
+		}
+		// The edges up, right, down, left lie between the cells on either side of them.
+		const [ul, ur, dl, dr] = [bits & 1, (bits >> 1) & 1, (bits >> 2) & 1, bits >> 3];
+		const m = (ul ^ ur) | ((ur ^ dr) << 1) | ((dl ^ dr) << 2) | ((ul ^ dl) << 3);
+		return (POP[m] === 0 || POP[m] === 2) && this.dotFits(dot, m);
 	}
 
 	/** Whether the decided lines form exactly one loop. */

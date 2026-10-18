@@ -8,7 +8,7 @@ import {
 	type LoopPuzzle,
 	type LoopState
 } from './rules';
-import { LoopLevel, loopLayout, rateLoop, solveLoop, type LoopLayout } from './solver';
+import { LoopLevel, loopLayout, LoopSolver, rateLoop, solveLoop, type LoopLayout } from './solver';
 
 /**
  * Deductions a hint can name, from the simplest to the hardest. Each looks at a small part of the
@@ -122,6 +122,26 @@ export function loopHint(p: LoopPuzzle, state: LoopState): LoopHint | null {
 	return new Deduction(p, v).next();
 }
 
+const lists = new WeakMap<LoopLayout, { cells: number[][]; dots: number[][] }>();
+
+/** The edges of every cell and every dot of a grid, made once per size: hints look them up a lot. */
+function edgeLists(l: LoopLayout) {
+	let known = lists.get(l);
+	if (!known) {
+		known = {
+			cells: Array.from({ length: l.n }, (_, c) => [...l.g.cellEdges.subarray(4 * c, 4 * c + 4)]),
+			dots: Array.from({ length: l.g.dots }, (_, d) =>
+				[...l.dotEdge.subarray(4 * d, 4 * d + 4)].filter((e) => e >= 0)
+			)
+		};
+		lists.set(l, known);
+	}
+	return known;
+}
+
+/** Edges a window decides, and the edges it looked at; null when it decides none. */
+type WindowResult = { edges: number[]; inputs: number[] } | null;
+
 /** The steps of one technique with a given mark (LINE or CROSS), found one after the other. */
 type Finder = (want: number) => Iterable<Step>;
 
@@ -132,9 +152,17 @@ class Deduction {
 	/** The deductions, simplest first. */
 	private readonly finders: Finder[];
 	/** The edges each step looked at, to find the crosses it rests on. */
-	private readonly inputs = new Map<Step, number[]>();
+	private readonly inputs = new Map<Step, readonly number[]>();
 	/** Crosses that followed on the way to a line, per edge, in the order they followed. */
 	private readonly made = new Map<number, Step>();
+	/** When each edge got a cross that followed (`clock` counts the crosses), for `cachedWindow`. */
+	private readonly changedAt: Int32Array;
+	private clock = 0;
+	private border: [number, number][] | null = null;
+	private readonly windowCache = new Map<
+		string,
+		{ at: number; reads: number[]; found: WindowResult }
+	>();
 
 	/** `v`: the player's marks, a copy that takes the crosses that follow. */
 	constructor(
@@ -144,6 +172,7 @@ class Deduction {
 		this.l = loopLayout(p.width, p.height);
 		this.n = p.width * p.height;
 		this.clue = Array.from({ length: this.n }, (_, c) => clueAt(p, c));
+		this.changedAt = new Int32Array(v.length);
 		this.finders = [
 			(want) => this.clueSteps(want),
 			(want) => this.dotSteps(want),
@@ -173,8 +202,10 @@ class Deduction {
 				continue;
 			}
 			first ??= cross;
+			this.clock++;
 			for (const e of cross.edges) {
 				this.v[e] = CROSS;
+				this.changedAt[e] = this.clock;
 				this.made.set(e, cross);
 			}
 		}
@@ -195,7 +226,7 @@ class Deduction {
 	 */
 	private support(step: Step): Support[] {
 		const needed = new Map<Step, Set<number>>();
-		const visit = (edges: number[]) => {
+		const visit = (edges: readonly number[]) => {
 			for (const e of edges) {
 				const by = this.made.get(e);
 				if (!by) continue;
@@ -225,19 +256,19 @@ class Deduction {
 		return [...this.v.keys()].filter((e) => this.v[e] === OPEN);
 	}
 
-	private cellEdges(c: number): number[] {
-		return [...this.l.g.cellEdges.subarray(4 * c, 4 * c + 4)];
+	private cellEdges(c: number): readonly number[] {
+		return edgeLists(this.l).cells[c];
 	}
 
-	private dotEdges(d: number): number[] {
-		return [...this.l.dotEdge.subarray(4 * d, 4 * d + 4)].filter((e) => e >= 0);
+	private dotEdges(d: number): readonly number[] {
+		return edgeLists(this.l).dots[d];
 	}
 
 	private cornerDots(c: number): number[] {
 		return [...this.l.cornerDot.subarray(4 * c, 4 * c + 4)];
 	}
 
-	private count(edges: number[], value: number): number {
+	private count(edges: readonly number[], value: number): number {
 		return edges.filter((e) => this.v[e] === value).length;
 	}
 
@@ -247,7 +278,7 @@ class Deduction {
 		reason: Reason,
 		edges: number[],
 		value: number,
-		inputs: number[],
+		inputs: readonly number[],
 		where: Partial<Pick<Step, 'cells' | 'dots' | 'path' | 'clue' | 'breaks'>>
 	): Step {
 		const step: Step = {
@@ -336,41 +367,58 @@ class Deduction {
 	}
 
 	/**
+	 * `window`, looked up again only when an edge it reads has changed since: `next` scans the
+	 * whole board again after every cross it finds, which would try thousands of ways for every
+	 * 2×2 block of a big grid each time.
+	 */
+	private cachedWindow(cells: number[], want: number): WindowResult {
+		const key = `${want}:${cells.join(',')}`;
+		const known = this.windowCache.get(key);
+		if (known && known.reads.every((e) => this.changedAt[e] <= known.at)) return known.found;
+		const reads: number[] = [];
+		const found = this.window(cells, want, reads);
+		this.windowCache.set(key, { at: this.clock, reads, found });
+		return found;
+	}
+
+	/**
 	 * Tries every way to draw the open edges of these cells. A way fits when each number keeps
 	 * its count and each dot can still end with two lines or none: no dot gets three lines, and
 	 * one with a single line has a free edge left outside these cells. Returns the edges that
 	 * every way that fits agrees on with mark `want`, and the edges it looked at.
 	 */
-	private window(cells: number[], want: number): { edges: number[]; inputs: number[] } | null {
+	private window(cells: number[], want: number, reads: number[]): WindowResult {
 		const around = [...new Set(cells.flatMap((c) => this.cellEdges(c)))];
+		reads.push(...around);
 		const w = around.filter((e) => this.v[e] === OPEN);
 		if (!w.length) return null;
 		const { ends } = this.l.g;
 		const dots = [...new Set(w.flatMap((e) => [ends[2 * e], ends[2 * e + 1]]))];
-		const bit = new Map(w.map((e, k) => [e, k]));
-		const value = (e: number, a: number) => {
-			const k = bit.get(e);
-			return k === undefined ? this.v[e] : (a >> k) & 1 ? LINE : CROSS;
-		};
+		for (const d of dots) reads.push(...this.dotEdges(d));
+		const bit = new Map(w.map((e, k) => [e, 1 << k]));
+		const maskOf = (edges: readonly number[]) => edges.reduce((m, e) => m | (bit.get(e) ?? 0), 0);
+		// Each number needs this many more lines among its open edges, which are all in the window.
+		const needs = cells.flatMap((c) => {
+			if (this.clue[c] < 0) return [];
+			const edges = this.cellEdges(c);
+			return [[maskOf(edges), this.clue[c] - this.count(edges, LINE)]];
+		});
+		// Each dot: its edges in the window, its lines, and whether an edge outside stays free.
+		const ways = dots.map((d) => {
+			const edges = this.dotEdges(d);
+			const free = edges.some((e) => this.v[e] === OPEN && !bit.has(e));
+			return [maskOf(edges), this.count(edges, LINE), free ? 1 : 0];
+		});
 		let all = (1 << w.length) - 1;
 		let any = 0;
 		let found = false;
 		for (let a = 0; a < 1 << w.length; a++) {
-			const fits =
-				cells.every((c) => {
-					if (this.clue[c] < 0) return true;
-					return this.cellEdges(c).filter((e) => value(e, a) === LINE).length === this.clue[c];
-				}) &&
-				dots.every((d) => {
-					let lines = 0;
-					let free = 0;
-					for (const e of this.dotEdges(d)) {
-						const x = value(e, a);
-						if (x === LINE) lines++;
-						else if (x === OPEN) free++;
-					}
-					return lines <= 2 && (lines !== 1 || free > 0);
-				});
+			let fits = needs.every(([mask, need]) => popCount(a & mask) === need);
+			for (let k = 0; fits && k < ways.length; k++) {
+				const [mask, before, free] = ways[k];
+				const lines = before + popCount(a & mask);
+				fits = lines <= 2 && (lines !== 1 || free === 1);
+			}
 			if (!fits) continue;
 			found = true;
 			all &= a;
@@ -390,7 +438,7 @@ class Deduction {
 		make: (cells: number[], edges: number[], inputs: number[]) => Step
 	): Generator<Step> {
 		for (const cells of groups) {
-			const found = this.window(cells, want);
+			const found = this.cachedWindow(cells, want);
 			if (found) yield make(cells, found.edges, found.inputs);
 		}
 	}
@@ -459,8 +507,18 @@ class Deduction {
 		const { edgeSide, cellSide } = this.l;
 		const out = this.n;
 		let best: { e: number; cells: number[]; path: number[] } | null = null;
+		// Cells joined by decided edges: only edges between two joined cells need the search.
+		const parent = Int32Array.from({ length: out + 1 }, (_, x) => x);
+		const root = (x: number): number => {
+			while (parent[x] !== x) x = parent[x] = parent[parent[x]];
+			return x;
+		};
+		for (let e = 0; e < this.v.length; e++) {
+			if (this.v[e] !== OPEN) parent[root(edgeSide[2 * e])] = root(edgeSide[2 * e + 1]);
+		}
 		for (const e of this.open()) {
 			const [a, b] = [edgeSide[2 * e], edgeSide[2 * e + 1]];
+			if (root(a) !== root(b)) continue;
 			// Breadth-first from a to b over decided edges.
 			const prev = new Map<number, [number, number]>([[a, [-1, -1]]]);
 			const queue = [a];
@@ -497,6 +555,7 @@ class Deduction {
 
 	/** The cells along the border, with the edge between each and the outside. */
 	private borderSteps(): [number, number][] {
+		if (this.border) return this.border;
 		const { cellSide } = this.l;
 		const steps: [number, number][] = [];
 		for (let c = 0; c < this.n; c++) {
@@ -504,7 +563,7 @@ class Deduction {
 				if (cellSide[4 * c + k] === this.n) steps.push([c, this.l.g.cellEdges[4 * c + k]]);
 			}
 		}
-		return steps;
+		return (this.border = steps);
 	}
 
 	/**
@@ -523,8 +582,13 @@ class Deduction {
 		const rank = (e: number) => (touchesLine(e) ? 0 : nearClue(e) ? 1 : 2);
 		const order = this.open().sort((a, b) => rank(a) - rank(b));
 		for (const level of [LoopLevel.Basic, LoopLevel.Advanced]) {
+			// Trying an edge picks up where the techniques stop without it, which is much faster on a
+			// big grid; only the edge that breaks is rated again from the start, to say where.
+			const trials = new LoopSolver(this.p);
+			const quick = trials.startTrials(level, this.v);
 			for (const trial of [CROSS, LINE]) {
 				for (const e of order) {
+					if (quick && !trials.breaks(e, trial)) continue;
 					const from = this.v.slice();
 					from[e] = trial;
 					const { brokenAt } = rateLoop(this.p, level, from);
@@ -548,4 +612,11 @@ class Deduction {
 		}
 		return null;
 	}
+}
+
+/** The number of bits set in `m`. */
+function popCount(m: number): number {
+	let k = 0;
+	for (; m; m &= m - 1) k++;
+	return k;
 }

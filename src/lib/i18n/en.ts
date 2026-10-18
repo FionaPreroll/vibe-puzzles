@@ -824,7 +824,7 @@ const en = {
 				'A number tells how many of the four sides of its cell the loop runs along. Cells without a number can have any count.'
 			],
 			notes: [
-				'Early access: Loop is still being built. So far 5×5 and 7×7 are playable; more sizes and specials follow.'
+				'Often decisive: the two cells at a line lie on different sides of the loop, the two at a cross on the same side.'
 			],
 			tool: { black: 'Line' },
 			toolHint: {

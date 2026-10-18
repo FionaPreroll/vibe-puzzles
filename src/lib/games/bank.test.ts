@@ -37,7 +37,8 @@ const solveAgain = filesToCheck(changed);
 
 /**
  * Every puzzle in the collection must be valid, belong to its file, have one solution and fit
- * its type's difficulty (special puzzles from DIFFICULTY_CHECKED_FROM on).
+ * its type's difficulty (special puzzles from DIFFICULTY_CHECKED_FROM on). Rating a big puzzle
+ * takes up to about 2 s (Loop 25×30 hard), so a type gets up to 10 minutes.
  */
 describe('puzzle collection', () => {
 	it('lists the size of every regular type, at most MAX_PER_TYPE', () => {
@@ -91,7 +92,7 @@ describe('puzzle collection', () => {
 						);
 					}
 				}
-			}, 120_000);
+			}, 600_000);
 		});
 	}
 });

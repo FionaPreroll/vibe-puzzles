@@ -50,7 +50,7 @@ Each game's `GameLogic.fitsDifficulty(puzzle, variant)` applies the same rating 
 | Pinwheel  | –                                          | Solvable by propagation alone                                              | Not solvable without case analysis                                           |
 | Loop      | –                                          | Basic rules only, as few clues as they allow                               | Needs inside and outside; never guessing; as few clues as that allows        |
 
-Specials use these levels too: Sudoku and Tetroid daily normal, weekly and monthly hard; Pinwheel all three hard.
+Specials use these levels too: Sudoku, Tetroid and Loop daily normal, weekly and monthly hard; Pinwheel all three hard.
 
 ## Sudoku
 
@@ -135,9 +135,10 @@ Two other ways to make hard puzzles did not help and are not used: larger galaxi
 
 ## Loop
 
-`generateLoop(width, height, difficulty, seed)` in `src/lib/games/loop/generator.ts`. Loop is in early access: 5×5 and 7×7 are playable, Normal and Hard. The larger types and the specials are in the variant list with `comingSoon: true`, so their IDs are reserved, but they have no collection and no pinned IDs, and their generator settings may still change before they open.
+`generateLoop(width, height, difficulty, seed)` in `src/lib/games/loop/generator.ts`. Types: 5×5, 7×7, 10×10, 15×15, 20×20 and 25×30 (width 25, height 30), Normal and Hard; daily 10×10 normal, weekly 15×15 hard, monthly 25×30 hard.
 
 1. **Loop** (`randomLoop`): grow a region of "inside" cells from one random cell to 40–60 % of the board, preferring cells with a single inside neighbour so the loop takes more turns. A cell is only added while the region's border stays one simple loop: the outside cells stay connected to the edge of the board, and no dot has inside cells on one diagonal and outside cells on the other.
+   - From 10×10 on (`spreadLoop`), a region grown this way stays one lump and leaves big patches the loop never comes near: on 25×30 typically 7×7 to 8×8 cells, up to 12×12, which the puzzle fills with 0s or leaves blank. So big boards also prefer cells that reach into parts of the board with few inside cells (the share of inside cells within 3 rows and columns, weighted `1 + 20 × (1 − share)³`), which sends arms across the board, and a loop that still leaves a square of more than 3×3 cells untouched (`emptySquare`) is drawn again, up to 30 times (then the one with the smallest such square; not observed). 5×5 and 7×7 keep the plain loop, so their IDs keep their puzzles.
 2. **Clues**: every cell gets the number of loop edges around it. If the difficulty's techniques cannot solve the board with all clues, the attempt is dropped.
 3. **Digging**: visit the cells in random order and remove each clue while the rating solver still solves the puzzle with the difficulty's techniques (`LoopLevel.Basic` for normal, `LoopLevel.Advanced` for hard), which also proves the solution unique. A clue kept once stays needed, so the result has as few clues as the techniques allow.
 4. **Difficulty**: _normal_ is right by construction. _Hard_ counts when the basic techniques alone no longer solve it; up to 40 attempts (`ATTEMPTS`), then the first puzzle (see [Fallbacks](#fallbacks)). In practice the first attempt fits: digging down to what inside and outside allow leaves the basic rules stuck.
@@ -152,7 +153,9 @@ Two other ways to make hard puzzles did not help and are not used: larger galaxi
 
 `fitsDifficulty` (`fitsLoopDifficulty`) applies the same definition to any stored puzzle: normal must be solved by the basic rules, hard by inside and outside and not by the basic rules alone, and in both cases removing any clue must leave the techniques stuck.
 
-**Complete solver** (`LoopSolver.solve`): the basic rules plus branching on an open edge, preferably one that continues a line. `countSolutions` and the collection use it.
+**Complete solver** (`LoopSolver.solve`): the basic rules and inside and outside at every node, then branching on an open edge, preferably one that continues a line. `countSolutions`, the collection and the hints use it. With the basic rules alone it took minutes on some 10×10 hard puzzles (and gave up on others after 2 million nodes); with inside and outside it solves every puzzle of the generator without branching, in milliseconds.
+
+**Trials** (`startTrials` and `breaks`): whether deciding one edge runs the techniques into a contradiction, which the hints' assumptions try edge after edge. It goes on from where the techniques stopped without that edge and looks again only at what the edge changes, which gives the same answer as rating from the start (the techniques only ever add to what they know) at a fraction of the cost.
 
 **Hints** (`loopHint` in `hint.ts`) start from the player's lines and crosses. Marks that disagree with the solution come first. Otherwise the simplest deduction that decides an open edge is named, in this order:
 
@@ -164,7 +167,9 @@ Two other ways to make hard puzzles did not help and are not used: larger galaxi
 6. _Inside and outside_: two cells by an open edge that a walk over the player's marks connects (beyond the grid counts as one more cell). An odd number of lines on the way puts them on different sides (a line), an even number on the same side (a cross). The shortest walk is tinted.
 7. _Assumption_: a line or a cross on an open edge (next to a line or a number first) that the basic rules, then inside and outside, run into a contradiction with. The hint names what breaks (a number's count, a dot, a loop that closes too early, inside and outside) and tints it.
 
-Each step first tints where to look (the number, the dot, the line, the walk) with the rule that applies, then highlights the edges and says whether they get lines or crosses. Following the hints solves all 444 bank puzzles (5×5 and 7×7, normal and hard), never with a wrong mark. Assumptions are 0.2 % to 0.3 % of the steps on normal puzzles and 0.6 % to 0.9 % on hard ones; 7 to 34 puzzles of each 111 need one at all.
+Each step first tints where to look (the number, the dot, the line, the walk) with the rule that applies, then highlights the edges and says whether they get lines or crosses. Following the hints solves all 444 bank puzzles (5×5 and 7×7, normal and hard), never with a wrong mark. Assumptions are 0.2 % to 0.3 % of the steps on normal puzzles and 0.6 % to 0.9 % on hard ones; 7 to 34 puzzles of each 111 need one at all. On the bigger boards (the puzzles measured above) the hints solve every puzzle too; assumptions are 1 % to 3 % of the steps on normal puzzles and 3 % to 6 % on hard ones, more on bigger boards, where inside and outside link cells far apart through numbers and dots, which no hint names yet.
+
+A hint scans the whole board again after every cross it finds on the way to a line, so on big boards it keeps what it worked out: a window (`cachedWindow`) is tried again only when an edge it reads changed, inside and outside only search a walk between cells that decided edges join, and assumptions use the trials of the rating solver. The hints are the same as without these shortcuts (checked step by step on 115 puzzles of every size) and take about 25 ms in the median and 300 ms at most on 25×30. Before, single hints took up to 4 s on 15×15, and the first hint of some 10×10 hard puzzles 2 minutes, as it solves the puzzle to find wrong marks (see the complete solver).
 
 ## Fallbacks
 
@@ -223,8 +228,18 @@ Measured on 2026-10-09 (commit `e88783b`, after issue #84) with each game's `fit
 | Loop 5×5 hard         | 40  | 40           | 9 ms    | 29 ms  |
 | Loop 7×7 normal       | 40  | 40           | 12 ms   | 36 ms  |
 | Loop 7×7 hard         | 40  | 40           | 19 ms   | 88 ms  |
+| Loop 10×10 normal     | 40  | 40           | 31 ms   | 51 ms  |
+| Loop 10×10 hard       | 40  | 40           | 59 ms   | 64 ms  |
+| Loop 15×15 normal     | 20  | 20           | 180 ms  | 210 ms |
+| Loop 15×15 hard       | 20  | 20           | 243 ms  | 278 ms |
+| Loop 20×20 normal     | 10  | 10           | 0.6 s   | 0.7 s  |
+| Loop 20×20 hard       | 10  | 10           | 1.0 s   | 1.1 s  |
+| Loop 25×30 normal     | 5   | 5            | 2.6 s   | 2.7 s  |
+| Loop 25×30 hard       | 5   | 5            | 4.0 s   | 4.6 s  |
 
 Loop was measured on 2026-10-10 (on top of commit `ccd2ccd`), with the clue-minimal definition of `fitsDifficulty`. Normal and hard puzzles have about as many clues (median 10 on 5×5, 19 on 7×7); the difference is how far the basic rules get. On a hard puzzle they stop with 13 % to 100 % of the edges still open (median 57 % on 5×5 and 50 % on 7×7, 100 seeds each), so every hard puzzle needs inside and outside for a good part of the board, not for one last edge.
+
+The sizes from 10×10 on were measured on 2026-10-17, with the spread loop; their times are the median and maximum of seeds 1 to 5 in `pnpm test:perf`. Every puzzle has one solution (the complete solver agrees), and every one fits its type. All have about 40 % of their cells numbered, of which 15 % to 18 % are 0s and 16 % to 20 % are 3s, and none leaves a square of more than 3×3 cells that the loop does not touch (with the plain loop: up to 4×4 on 10×10, 5×5 on 20×20 and 12×12 on 25×30). On hard puzzles the basic rules stop with a median of 43 % (10×10) to 54 % (15×15) of the edges open; as on 5×5 and 7×7, a few percent stop late (9 of 200 10×10 hard puzzles below 20 %, the lowest at 5 %).
 
 Before the fix (2026-10-08, commit `9a96875`), Tetroid missed on up to 12 of 40 per type and on 5 of 12 at 20×20 normal, Pinwheel hard below 15×15 was graded right for only 2 to 16 of 40, and Tetroid 20×20 normal took a median of 8.3 s.
 
@@ -265,7 +280,7 @@ The Inside page (`/inside`) shows the generators at work from their own trace. A
 
 ## Tests and budgets
 
-- Unit tests per game check uniqueness, validity, determinism and the difficulty of generated puzzles: Sudoku (9×9, and a seed whose first 30 attempts failed), Calcudoku (4×4 to 7×7), Tetroid (6×6 and 8×8 normal and hard, 10×10 normal), Pinwheel (5×5 normal and hard, 7×7 and 10×10 hard) and Loop (5×5 and 7×7 normal and hard, and the techniques on small patterns).
+- Unit tests per game check uniqueness, validity, determinism and the difficulty of generated puzzles: Sudoku (9×9, and a seed whose first 30 attempts failed), Calcudoku (4×4 to 7×7), Tetroid (6×6 and 8×8 normal and hard, 10×10 normal), Pinwheel (5×5 normal and hard, 7×7 and 10×10 hard) and Loop (5×5, 7×7 and 10×10 normal and hard, 15×15 hard, the spread loop of big boards, single-edge trials against rating from the start, and the techniques on small patterns).
 - `src/lib/games/generator-ids.test.ts` pins the puzzle behind a few IDs of every distinct generator setting (rule set, size, difficulty) and checks that every setting is pinned.
 - `src/lib/games/bank.test.ts` checks every stored puzzle for validity, a unique solution and its type's difficulty (special puzzles from `DIFFICULTY_CHECKED_FROM` on; see the README on `BANK_TEST_SINCE`).
 - `perf/generate.perf.ts` (`pnpm test:perf`) holds median time budgets per board size over five fixed seeds: 200 ms (5×5) up to 20 s (20×20), four times as much for Calcudoku. `PERF_BUDGET_SCALE` relaxes them on slow machines.
