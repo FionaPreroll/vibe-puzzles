@@ -15,6 +15,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 
 ### Fixed
 
+- **"Creating puzzle…"** no longer gets selected like text when you drag across the board while a new puzzle is being made.
 - **Menu ticks**: a solved daily, weekly or monthly puzzle gets its ✓ in the puzzle type menu right away, and a type solved 100 times in a row its ★, instead of only after reloading the page. A solve in another tab shows too, and the ✓ goes when a new period begins.
 
 ## [0.8.0] - 2026-10-11

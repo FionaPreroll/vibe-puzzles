@@ -172,7 +172,8 @@
 		ondismisshint={() => session.dismissHint()}
 	/>
 	{#if session.loading}
-		<div class="absolute inset-0 grid min-h-48 place-items-center text-stone-500">
+		<!-- Not selectable: a drag on the board while the puzzle is made would select the text -->
+		<div class="absolute inset-0 grid min-h-48 place-items-center text-stone-500 select-none">
 			{t('game.creating')}
 		</div>
 	{:else if session.paused}

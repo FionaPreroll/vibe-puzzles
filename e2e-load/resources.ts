@@ -10,7 +10,8 @@ import type { CDPSession, Page } from '@playwright/test';
 export async function trackResources(page: Page) {
 	await page.addInitScript(() => {
 		const intervals = new Set<number>();
-		const timeouts = new Set<number>();
+		/** Pending timeouts and when they fire. */
+		const timeouts = new Map<number, number>();
 		const frames = new Set<number>();
 		const observers = new Set<object>();
 		const urls = new Set<string>();
@@ -36,7 +37,7 @@ export async function trackResources(page: Page) {
 				ms,
 				...args
 			);
-			timeouts.add(id);
+			timeouts.set(id, performance.now() + (ms ?? 0));
 			return id;
 		};
 		// Either clear function clears either kind of timer.
@@ -123,6 +124,8 @@ export async function trackResources(page: Page) {
 		w.__resources = () => ({
 			intervals: intervals.size,
 			timeouts: timeouts.size,
+			// Ones that fire within a few seconds, e.g. a message that hides itself.
+			soonTimeouts: [...timeouts.values()].filter((at) => at < performance.now() + 5000).length,
 			frames: frames.size,
 			observers: observers.size,
 			objectURLs: urls.size,
@@ -171,6 +174,7 @@ export async function resources(page: Page, cdp: CDPSession) {
 		...(inPage as typeof inPage & {
 			intervals: number;
 			timeouts: number;
+			soonTimeouts: number;
 			frames: number;
 			observers: number;
 			objectURLs: number;

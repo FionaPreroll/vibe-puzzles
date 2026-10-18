@@ -94,17 +94,21 @@ async function solve(page: Page, game: Game) {
 	await expect(page.locator('.solved-burst')).toHaveCount(0, { timeout: 10_000 });
 }
 
-/** Waits until no generator job and no animation frame is pending, then measures. */
+/**
+ * Waits until no generator job, no animation frame and no timeout due within a few seconds is
+ * pending, then measures. Right after a solve, the message, the celebration and the upload each
+ * wait a moment; counted mid-way, the same state measured 1 or 4 timeouts.
+ */
 async function settle(page: Page, cdp: CDPSession) {
 	await expect
 		.poll(
 			async () => {
-				const { jobs, frames } = await resources(page, cdp);
-				return { jobs, frames };
+				const { jobs, frames, soonTimeouts } = await resources(page, cdp);
+				return { jobs, frames, soonTimeouts };
 			},
 			{ timeout: 15_000 }
 		)
-		.toEqual({ jobs: 0, frames: 0 });
+		.toEqual({ jobs: 0, frames: 0, soonTimeouts: 0 });
 	return resources(page, cdp);
 }
 

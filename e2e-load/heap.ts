@@ -41,7 +41,7 @@ export function retainers(snap: Snapshot, paths = Infinity): string {
 	const nf = meta.node_fields;
 	const ef = meta.edge_fields;
 	const [N, E] = [nf.length, ef.length];
-	const [nName, nCount, nDetached] = ['name', 'edge_count', 'detachedness'].map((f) =>
+	const [nName, nCount, nDetached, nId] = ['name', 'edge_count', 'detachedness', 'id'].map((f) =>
 		nf.indexOf(f)
 	);
 	const [eType, eName, eTo] = ['type', 'name_or_index', 'to_node'].map((f) => ef.indexOf(f));
@@ -56,21 +56,41 @@ export function retainers(snap: Snapshot, paths = Infinity): string {
 	const via = new Array<string>(count);
 	const firstEdge = new Int32Array(count);
 	for (let n = 1; n < count; n++) firstEdge[n] = firstEdge[n - 1] + nodes[(n - 1) * N + nCount];
+	const index = new Map<number, number>();
+	for (let n = 0; n < count; n++) index.set(nodes[n * N + nId], n);
+	// A WeakMap holds a value only while its key is alive elsewhere: such an edge counts once the
+	// key is reached. Svelte's size bindings keep each element's last ResizeObserverEntry in one,
+	// which points back at the element and would otherwise look like what holds it.
+	const pending: { from: number; to: number; key: number; label: string }[] = [];
 	parent[0] = 0;
 	const queue = [0];
-	for (let q = 0; q < queue.length; q++) {
-		const n = queue[q];
-		for (let k = 0; k < nodes[n * N + nCount]; k++) {
-			const e = (firstEdge[n] + k) * E;
-			const type = edgeTypes[edges[e + eType]];
-			if (type === 'weak') continue;
-			const to = edges[e + eTo] / N;
-			if (parent[to] >= 0) continue;
-			parent[to] = n;
-			const label = edges[e + eName];
-			via[to] = ['element', 'hidden'].includes(type) ? `[${label}]` : String(strings[label]);
-			queue.push(to);
+	const visit = (from: number, to: number, label: string) => {
+		if (parent[to] >= 0) return;
+		parent[to] = from;
+		via[to] = label;
+		queue.push(to);
+	};
+	for (let q = 0; ;) {
+		for (; q < queue.length; q++) {
+			const n = queue[q];
+			for (let k = 0; k < nodes[n * N + nCount]; k++) {
+				const e = (firstEdge[n] + k) * E;
+				const type = edgeTypes[edges[e + eType]];
+				if (type === 'weak') continue;
+				const to = edges[e + eTo] / N;
+				const label = edges[e + eName];
+				const text = ['element', 'hidden'].includes(type) ? `[${label}]` : String(strings[label]);
+				if (text.includes('part of key')) {
+					const key = index.get(Number(/part of key \([^)]*@(\d+)\)/.exec(text)?.[1]));
+					if (key !== undefined) pending.push({ from: n, to, key, label: text });
+					continue;
+				}
+				visit(n, to, text);
+			}
 		}
+		const ready = pending.filter((p) => parent[p.key] >= 0 && parent[p.to] < 0);
+		if (!ready.length) break;
+		for (const p of ready) visit(p.from, p.to, p.label);
 	}
 
 	const all = [...Array(count).keys()].filter(detached);
