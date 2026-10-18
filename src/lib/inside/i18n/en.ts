@@ -7,7 +7,9 @@ const en = {
 	intro:
 		'How does a computer make a puzzle with exactly one solution, and how does it know how hard the puzzle is? Watch it happen on a real puzzle, step by step.',
 	films: {
-		sudoku: 'How a Sudoku is made'
+		label: 'Films',
+		sudoku: 'How a Sudoku is made',
+		pinwheel: 'How a Pinwheel is made'
 	},
 	player: {
 		play: 'Play',
@@ -67,6 +69,51 @@ const en = {
 			done: 'Solved with {singles} singles and no guessing: a Normal Sudoku.',
 			doneDetail:
 				'The difficulty is the weakest set of techniques that solves the puzzle. Normal needs singles only. Hard also needs locked candidates, or naked and hidden pairs and triples.'
+		}
+	},
+	pinwheel: {
+		chapters: {
+			grow: 'Galaxies grow',
+			unique: 'One solution only',
+			grade: 'Normal or hard?'
+		},
+		grow: {
+			start:
+				'A Pinwheel board is split into galaxies. Each one looks the same after a half turn around its centre. The computer starts with an empty 7×7 board.',
+			centre:
+				'A new galaxy starts at a free cell with few free neighbours. Its centre sits on a cell, an edge or a corner.',
+			grow: 'It grows by a cell and its mirror image through the centre, so it stays symmetric.',
+			absorb:
+				'A galaxy swallows two single-cell galaxies that are mirror images of each other: fewer tiny pieces.',
+			done: 'Every cell belongs to a galaxy. But is this the only way to split the board around these centres?',
+			detail:
+				'Centres are in half-cell coordinates, so a centre on an edge covers two cells and one on a corner four. Each galaxy grows towards a random size, and takes a free cell only together with its free mirror cell.'
+		},
+		unique: {
+			start:
+				'The player will see only the centres. The solver checks whether they allow a second way to split the board.',
+			second:
+				'It finds one: the ringed cells could belong to other galaxies. The teal lines show that other solution.',
+			cut: 'So one of those cells is cut out together with its mirror image, and each becomes a galaxy of its own.',
+			done: 'Now the solver finds no other way: the solution is unique.',
+			already: 'The solver finds no other way: the solution is unique as it is.',
+			detail:
+				'For every cell, the solver keeps the centres it may still belong to (a bitmap). Propagation removes those that break symmetry or connection. When it gets stuck, the solver tries the options of the cell with the fewest left. It stops at the second solution, or after 3,000 search nodes.'
+		},
+		grade: {
+			start:
+				'To grade the puzzle, the solver now only deduces, without trying anything. At first {settled} cells are settled: the ones under the centres.',
+			round: 'Round {round}: mirror images and connections settle {count} more cells.',
+			stuck:
+				'Stuck: {open} cells could still belong to more than one galaxy. Going on means trying cases, so this is a Hard puzzle.',
+			solved: 'Every cell is settled by deduction alone: a Normal puzzle.',
+			levels:
+				'Propagation repeats two rules until nothing changes: a cell may belong to a centre only while its mirror image may too, and only if cells that may belong to the centre as well connect it to the centre. Normal puzzles are solved this way; Hard ones need case analysis.',
+			attempts:
+				'This was attempt {attempt}. Before it: {easy} too easy for Hard, {dropped} given up.',
+			attemptsDetail:
+				'Hard partitions are rare on small boards, but an attempt takes a fraction of a millisecond, so the generator simply tries again with the same random number generator, up to 10,000 times.',
+			solution: 'The solution, which the player has to find from the centres alone.'
 		}
 	}
 };
