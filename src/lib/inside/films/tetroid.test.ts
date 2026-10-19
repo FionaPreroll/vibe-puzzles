@@ -4,7 +4,7 @@ import { CROSS, EMPTY, SHADED, type TetroidState } from '../../games/tetroid/rul
 import { i18n } from '../../i18n/index.svelte';
 import { Timeline } from '../film';
 import { ti } from '../i18n';
-import { TETROID_SEED, tetroidFilm } from './tetroid';
+import { TETROID_SEED, TETROID_TYPE, tetroidFilm } from './tetroid';
 
 const film = tetroidFilm();
 const [plant, grow, reshape, solve] = film.chapters;
@@ -83,6 +83,17 @@ describe('the Tetroid film', () => {
 		expect(end.state.marks).toEqual(solution.map((s) => (s ? SHADED : CROSS)));
 	});
 
+	it('makes an 8×8 puzzle the same way', () => {
+		const big = tetroidFilm(1, { ...TETROID_TYPE, width: 8, height: 8 });
+		expect(big.chapters[0].frames[0].caption.params).toEqual({ size: 8 });
+		const end = big.chapters[2].frames.at(-1)!;
+		const made = generateTetroid(8, 8, 'normal', 1);
+		expect(end.puzzle).toEqual(made.puzzle);
+		expect(big.chapters[3].frames.at(-1)!.state.marks).toEqual(
+			made.solution.map((s) => (s ? SHADED : CROSS))
+		);
+	});
+
 	it('says how many attempts a puzzle took, and is the same for the same seed', () => {
 		expect(keys(reshape)).not.toContain('tetroid.reshape.attempts');
 		const retried = tetroidFilm(3).chapters[2].frames.at(-1)!;
@@ -91,7 +102,8 @@ describe('the Tetroid film', () => {
 	});
 
 	it('has every text it says in both languages, with its values', () => {
-		const frames = [film, tetroidFilm(3)].flatMap((f) => new Timeline(f).frames);
+		const big = tetroidFilm(1, { ...TETROID_TYPE, width: 8, height: 8 });
+		const frames = [film, tetroidFilm(3), big].flatMap((f) => new Timeline(f).frames);
 		const captions = frames.flatMap((f) => [f.caption, ...(f.detail ? [f.detail] : [])]);
 		try {
 			for (const locale of ['en', 'de'] as const) {

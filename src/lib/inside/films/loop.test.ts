@@ -12,7 +12,7 @@ import {
 import { i18n } from '../../i18n/index.svelte';
 import { Timeline } from '../film';
 import { ti } from '../i18n';
-import { LOOP_SEED, loopFilm } from './loop';
+import { LOOP_SEED, LOOP_TYPE, loopFilm } from './loop';
 
 const film = loopFilm();
 const [grow, numbers, solve] = film.chapters;
@@ -149,6 +149,17 @@ describe('the Loop film', () => {
 		expect(edgeValues(end.state)).toEqual(right.map((x) => (x === LINE ? LINE : CROSS)));
 	});
 
+	it('makes a 5×5 puzzle the same way', () => {
+		const small = loopFilm(1, { ...LOOP_TYPE, width: 5, height: 5 });
+		const made = generateLoop(5, 5, 'normal', 1);
+		const [growing, , solving] = small.chapters;
+		expect(growing.frames[0].caption.params).toEqual({ size: 5 });
+		expect(growing.frames.at(-1)!.state).toEqual(made.solution);
+		expect(solving.frames[0].puzzle).toEqual(made.puzzle);
+		const right = edgeValues(made.solution).map((x) => (x === LINE ? LINE : CROSS));
+		expect(edgeValues(solving.frames.at(-1)!.state)).toEqual(right);
+	});
+
 	it('is the same for the same seed, and makes another puzzle for another', () => {
 		expect(loopFilm(LOOP_SEED)).toEqual(film);
 		const other = loopFilm(1);
@@ -156,7 +167,8 @@ describe('the Loop film', () => {
 	});
 
 	it('has every text it says in both languages, with its values', () => {
-		const frames = new Timeline(film).frames;
+		const small = loopFilm(1, { ...LOOP_TYPE, width: 5, height: 5 });
+		const frames = [film, small].flatMap((f) => new Timeline(f).frames);
 		const captions = frames.flatMap((f) => [f.caption, ...(f.detail ? [f.detail] : [])]);
 		try {
 			for (const locale of ['en', 'de'] as const) {

@@ -10,7 +10,7 @@ import {
 import { i18n } from '../../i18n/index.svelte';
 import { Timeline } from '../film';
 import { ti } from '../i18n';
-import { PINWHEEL_SEED, pinwheelFilm } from './pinwheel';
+import { PINWHEEL_SEED, PINWHEEL_TYPE, pinwheelFilm } from './pinwheel';
 
 const film = pinwheelFilm();
 const [grow, unique, grade] = film.chapters;
@@ -76,7 +76,7 @@ describe('the Pinwheel film', () => {
 		expect(49 - coloured(stuck.state)).toBe(stuck.caption.params!.open);
 		expect(
 			grade.frames.find((f) => f.caption.key === 'pinwheel.grade.attempts')!.caption.params
-		).toEqual({ attempt: 2, easy: 1, dropped: 0 });
+		).toEqual({ attempt: 2, rated: 1, dropped: 0 });
 		const end = grade.frames.at(-1)!;
 		expect(end.caption.key).toBe('pinwheel.grade.solution');
 		expect(end.puzzle).toEqual(puzzle);
@@ -89,7 +89,7 @@ describe('the Pinwheel film', () => {
 	});
 
 	it('says when a partition is unique at once, settled by propagation, in one attempt', () => {
-		const normal = pinwheelFilm(1, 'normal');
+		const normal = pinwheelFilm(1, { ...PINWHEEL_TYPE, difficulty: 'normal' });
 		const [, plain, graded] = normal.chapters;
 		expect(plain.frames.map((f) => f.caption.key)).toEqual([
 			'pinwheel.unique.start',
@@ -100,12 +100,29 @@ describe('the Pinwheel film', () => {
 		expect(captions).not.toContain('pinwheel.grade.attempts');
 	});
 
+	it('makes other small puzzles too, and says why a normal one took another attempt', () => {
+		const small = pinwheelFilm(1, { width: 5, height: 5, difficulty: 'hard' });
+		const [start] = small.chapters[0].frames;
+		expect(start.caption.params).toEqual({ size: 5 });
+		expect(small.chapters[2].frames.at(-1)!.puzzle).toEqual(
+			generatePinwheel(5, 5, 'hard', 1).puzzle
+		);
+		// Seed 36 makes a partition that is too hard for Normal first.
+		const retried = pinwheelFilm(36, { ...PINWHEEL_TYPE, difficulty: 'normal' }).chapters[2].frames;
+		const attempts = retried.find((f) => f.caption.key === 'pinwheel.grade.attemptsNormal')!;
+		expect(attempts.caption.params).toEqual({ attempt: 2, rated: 1, dropped: 0 });
+		expect(attempts.detail!.key).toBe('pinwheel.grade.attemptsNormalDetail');
+	});
+
 	it('is the same for the same seed', () => {
 		expect(pinwheelFilm(PINWHEEL_SEED)).toEqual(film);
 	});
 
 	it('has every text it says in both languages, with its values', () => {
-		const frames = [film, pinwheelFilm(1, 'normal')].flatMap((f) => new Timeline(f).frames);
+		const normal = { ...PINWHEEL_TYPE, difficulty: 'normal' } as const;
+		const frames = [film, pinwheelFilm(1, normal), pinwheelFilm(36, normal)].flatMap(
+			(f) => new Timeline(f).frames
+		);
 		const captions = frames.flatMap((f) => [f.caption, ...(f.detail ? [f.detail] : [])]);
 		try {
 			for (const locale of ['en', 'de'] as const) {

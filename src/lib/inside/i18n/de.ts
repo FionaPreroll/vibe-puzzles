@@ -12,6 +12,12 @@ const de: InsideDictionary = {
 		tetroid: 'So entsteht ein Tetroid',
 		loop: 'So entsteht ein Loop'
 	},
+	puzzle: {
+		made: 'So entstand Rätsel {id} ({type}).',
+		type: 'Von Rätsel {id} ({type}) gibt es keinen Film: Die Filme zeigen nur kleine Rätsel, manche nur einer Schwierigkeit. Hier siehst du, wie ein {game} ({example}) entsteht.',
+		version:
+			'Von Rätsel {id} gibt es keinen Film: Es stammt aus der Rätselsammlung und wurde von einer früheren Version des Generators gemacht. Hier siehst du, wie ein {game} ({example}) entsteht.'
+	},
 	player: {
 		play: 'Abspielen',
 		pause: 'Pause',
@@ -51,6 +57,8 @@ const de: InsideDictionary = {
 			keep: 'Ja, also bleiben sie draußen. Noch {givens} Ziffern.',
 			restore: 'Nein, man käme nicht weiter. Sie kommen zurück.',
 			done: 'Alle Paare sind probiert. {givens} Ziffern bleiben: Das ist das Rätsel.',
+			doneEasy:
+				'Ein leichtes Rätsel behält mindestens {least} Ziffern, also bleiben Paare drin, die darunter führen würden. {givens} Ziffern bleiben: Das ist das Rätsel.',
 			detail:
 				'Nach jedem Herausnehmen läuft der Bewertungs-Solver, nur mit nackten und versteckten Singles. Füllt er das Gitter, war jede Ziffer erzwungen. Das beweist auch, dass die Lösung eindeutig ist: Eine Suche nach einer zweiten Lösung braucht es nicht. Weil immer Paare herausgehen, bleiben die Vorgaben punktsymmetrisch.'
 		},
@@ -70,8 +78,10 @@ const de: InsideDictionary = {
 			hiddenDetail:
 				'Ein versteckter Single: Kein anderes Feld der Zeile, der Spalte oder des Blocks kann die Ziffer nehmen.',
 			done: 'Gelöst mit {singles} Singles und ohne Raten: ein normales Sudoku.',
+			doneEasy:
+				'Gelöst mit {singles} Singles und ohne Raten, aus vielen Ziffern: ein leichtes Sudoku.',
 			doneDetail:
-				'Die Schwierigkeit ist die schwächste Gruppe von Techniken, die das Rätsel löst. Normal braucht nur Singles. Schwer braucht dazu gesperrte Kandidaten oder nackte und versteckte Paare und Dreier.'
+				'Die Schwierigkeit ist die schwächste Gruppe von Techniken, die das Rätsel löst. Leicht und Normal brauchen nur Singles, und Leicht behält mehr Ziffern. Schwer braucht dazu gesperrte Kandidaten oder nackte und versteckte Paare und Dreier.'
 		}
 	},
 	pinwheel: {
@@ -82,7 +92,7 @@ const de: InsideDictionary = {
 		},
 		grow: {
 			start:
-				'Ein Pinwheel-Spielfeld ist in Galaxien aufgeteilt. Jede sieht nach einer halben Drehung um ihr Zentrum gleich aus. Der Computer beginnt mit einem leeren 7×7-Feld.',
+				'Ein Pinwheel-Spielfeld ist in Galaxien aufgeteilt. Jede sieht nach einer halben Drehung um ihr Zentrum gleich aus. Der Computer beginnt mit einem leeren {size}×{size}-Feld.',
 			centre:
 				'Eine neue Galaxie beginnt an einem freien Feld mit wenigen freien Nachbarn. Ihr Zentrum liegt auf einem Feld, einer Kante oder einer Ecke.',
 			grow: 'Sie wächst um ein Feld und sein Spiegelbild durch das Zentrum, so bleibt sie symmetrisch.',
@@ -113,9 +123,13 @@ const de: InsideDictionary = {
 			levels:
 				'Die Propagation wiederholt zwei Regeln, bis sich nichts mehr ändert: Ein Feld kann nur zu einem Zentrum gehören, solange sein Spiegelbild das auch kann, und nur, wenn Felder, die ebenfalls dazugehören können, es mit dem Zentrum verbinden. Normale Rätsel lösen sich so; schwere brauchen Fallunterscheidungen.',
 			attempts:
-				'Das war Versuch {attempt}. Davor: {easy} zu leicht für Schwer, {dropped} aufgegeben.',
+				'Das war Versuch {attempt}. Davor: {rated} zu leicht für Schwer, {dropped} aufgegeben.',
 			attemptsDetail:
 				'Schwere Aufteilungen sind auf kleinen Feldern selten, aber ein Versuch dauert nur Bruchteile einer Millisekunde. Also probiert der Generator mit demselben Zufallsgenerator einfach weiter, bis zu 10.000 Mal.',
+			attemptsNormal:
+				'Das war Versuch {attempt}. Davor: {rated} zu schwer für Normal, {dropped} aufgegeben.',
+			attemptsNormalDetail:
+				'Die meisten Aufteilungen eines kleinen Felds lassen sich allein durch Schließen festlegen. Wenn eine es nicht tut, probiert der Generator mit demselben Zufallsgenerator einfach weiter.',
 			solution: 'Die Lösung, die der Spieler allein aus den Zentren finden muss.'
 		}
 	},
@@ -128,7 +142,7 @@ const de: InsideDictionary = {
 		},
 		plant: {
 			start:
-				'Eine Tetroid-Lösung ist eine Kette aus Tetrominos in L-, I-, T- und S-Form, eines in jeder Region. Alle hängen zusammen, bilden nie einen 2×2-Block, und dieselbe Form berührt sich nie über eine Regionsgrenze. Der Computer beginnt mit einem leeren 6×6-Feld.',
+				'Eine Tetroid-Lösung ist eine Kette aus Tetrominos in L-, I-, T- und S-Form, eines in jeder Region. Alle hängen zusammen, bilden nie einen 2×2-Block, und dieselbe Form berührt sich nie über eine Regionsgrenze. Der Computer beginnt mit einem leeren {size}×{size}-Feld.',
 			plant:
 				'Er pflanzt ein Tetromino dort, wo es die bisherigen berührt, keinen 2×2-Block bildet und kein Tetromino seiner eigenen Form berührt.',
 			done: 'Es passt kein Tetromino mehr. Jedes wird der Kern einer Region; die Farben zeigen die Formen.',
@@ -190,7 +204,7 @@ const de: InsideDictionary = {
 		},
 		grow: {
 			start:
-				'Eine Loop-Lösung ist eine geschlossene Linie entlang des Gitters, ohne Abzweigungen und Kreuzungen. So eine Schleife ist immer der Rand einer Region aus Feldern. Statt eine Linie zu zeichnen, lässt der Computer darum auf einem leeren 7×7-Feld eine Region wachsen.',
+				'Eine Loop-Lösung ist eine geschlossene Linie entlang des Gitters, ohne Abzweigungen und Kreuzungen. So eine Schleife ist immer der Rand einer Region aus Feldern. Statt eine Linie zu zeichnen, lässt der Computer darum auf einem leeren {size}×{size}-Feld eine Region wachsen.',
 			first:
 				'Sie beginnt mit einem zufälligen Feld. Sein Rand ist die kleinste Schleife, die es gibt.',
 			grow: 'Ein zufälliges Feld neben der Region kommt dazu, und die Schleife läuft um es herum.',

@@ -158,6 +158,7 @@ const de: Dictionary = {
 		done: 'Fertig',
 		startOver: 'Neu beginnen',
 		print: 'Drucken…',
+		howMade: 'Wie ist dieses Rätsel entstanden?',
 		more: 'Weitere Aktionen',
 		share: 'Spielstand teilen',
 		newPuzzle: 'Neues Rätsel',

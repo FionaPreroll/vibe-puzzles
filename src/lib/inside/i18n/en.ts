@@ -13,6 +13,13 @@ const en = {
 		tetroid: 'How a Tetroid is made',
 		loop: 'How a Loop is made'
 	},
+	/** A puzzle a game linked to. */
+	puzzle: {
+		made: 'The making of puzzle {id} ({type}).',
+		type: 'There is no film of puzzle {id} ({type}): the films show small puzzles only, and some only of one difficulty. Here is how a {example} {game} is made.',
+		version:
+			'There is no film of puzzle {id}: it comes from the puzzle collection, made by an earlier version of the generator. Here is how a {example} {game} is made.'
+	},
 	player: {
 		play: 'Play',
 		pause: 'Pause',
@@ -52,6 +59,8 @@ const en = {
 			keep: 'Yes, so they stay out. {givens} digits left.',
 			restore: 'No: a person would get stuck. They go back in.',
 			done: 'Every pair has been tried. {givens} digits are left: that is the puzzle.',
+			doneEasy:
+				'An Easy puzzle keeps at least {least} digits, so pairs that would go below that stay in. {givens} digits are left: that is the puzzle.',
 			detail:
 				'After each removal the rating solver runs with naked and hidden singles only. If it fills the grid, every digit was forced, which also proves that the solution is unique: no search for a second solution is needed. Removing pairs keeps the givens point-symmetric.'
 		},
@@ -69,8 +78,9 @@ const en = {
 			},
 			hiddenDetail: 'A hidden single: no other cell of the row, column or box can take the digit.',
 			done: 'Solved with {singles} singles and no guessing: a Normal Sudoku.',
+			doneEasy: 'Solved with {singles} singles and no guessing, from many digits: an Easy Sudoku.',
 			doneDetail:
-				'The difficulty is the weakest set of techniques that solves the puzzle. Normal needs singles only. Hard also needs locked candidates, or naked and hidden pairs and triples.'
+				'The difficulty is the weakest set of techniques that solves the puzzle. Easy and Normal need singles only, and Easy keeps more digits. Hard also needs locked candidates, or naked and hidden pairs and triples.'
 		}
 	},
 	pinwheel: {
@@ -81,7 +91,7 @@ const en = {
 		},
 		grow: {
 			start:
-				'A Pinwheel board is split into galaxies. Each one looks the same after a half turn around its centre. The computer starts with an empty 7×7 board.',
+				'A Pinwheel board is split into galaxies. Each one looks the same after a half turn around its centre. The computer starts with an empty {size}×{size} board.',
 			centre:
 				'A new galaxy starts at a free cell with few free neighbours. Its centre sits on a cell, an edge or a corner.',
 			grow: 'It grows by a cell and its mirror image through the centre, so it stays symmetric.',
@@ -112,9 +122,13 @@ const en = {
 			levels:
 				'Propagation repeats two rules until nothing changes: a cell may belong to a centre only while its mirror image may too, and only if cells that may belong to the centre as well connect it to the centre. Normal puzzles are solved this way; Hard ones need case analysis.',
 			attempts:
-				'This was attempt {attempt}. Before it: {easy} too easy for Hard, {dropped} given up.',
+				'This was attempt {attempt}. Before it: {rated} too easy for Hard, {dropped} given up.',
 			attemptsDetail:
 				'Hard partitions are rare on small boards, but an attempt takes a fraction of a millisecond, so the generator simply tries again with the same random number generator, up to 10,000 times.',
+			attemptsNormal:
+				'This was attempt {attempt}. Before it: {rated} too hard for Normal, {dropped} given up.',
+			attemptsNormalDetail:
+				'Most partitions of a small board are settled by deduction alone. When one is not, the generator simply tries again with the same random number generator.',
 			solution: 'The solution, which the player has to find from the centres alone.'
 		}
 	},
@@ -127,7 +141,7 @@ const en = {
 		},
 		plant: {
 			start:
-				'A Tetroid solution is a chain of tetrominoes in L, I, T and S shapes, one in each region. They all connect, never form a 2×2 block, and the same shape never touches across a region border. The computer starts from an empty 6×6 board.',
+				'A Tetroid solution is a chain of tetrominoes in L, I, T and S shapes, one in each region. They all connect, never form a 2×2 block, and the same shape never touches across a region border. The computer starts from an empty {size}×{size} board.',
 			plant:
 				'It plants a tetromino where it touches the ones before, makes no 2×2 block and touches no tetromino of its own shape.',
 			done: 'No tetromino fits any more. Each one becomes the seed of a region; the colours show their shapes.',
@@ -189,7 +203,7 @@ const en = {
 		},
 		grow: {
 			start:
-				'A Loop solution is one closed line along the grid, without branches or crossings. Such a loop is always the border of a region of cells. So instead of drawing a line, the computer grows a region on an empty 7×7 board.',
+				'A Loop solution is one closed line along the grid, without branches or crossings. Such a loop is always the border of a region of cells. So instead of drawing a line, the computer grows a region on an empty {size}×{size} board.',
 			first: 'It starts with one random cell. Its border is the smallest loop there is.',
 			grow: 'A random cell next to the region joins it, and the loop runs around it.',
 			touch:

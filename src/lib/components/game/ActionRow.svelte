@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { trapFocus } from '../../client/focus';
+	import { insideQuery } from '../../core/filmLink';
 	import type { AnySession } from '../../client/session.svelte';
 	import type { SpecialKind } from '../../core/variants';
 	import { t } from '../../i18n/index.svelte';
@@ -11,7 +13,8 @@
 	 * is the way on ("Done" without automatic submitting, "Share success" once solved, then "New
 	 * puzzle" once the solve is shared, or as "Today's puzzle" once the daily puzzle on the board is
 	 * yesterday's). On one line, the buttons that come with solving would wrap
-	 * them and shrink the board. "More" holds sharing the board, printing and starting over.
+	 * them and shrink the board. "More" holds sharing the board, printing and starting over, and
+	 * once the puzzle is solved (a film shows the solution) how it was made, on the Inside page.
 	 */
 	let {
 		session,
@@ -45,6 +48,13 @@
 
 	/** "New puzzle" is the way on: after sharing the solve, or once a newer special is out. */
 	const nextUp = $derived(shared || !!newPeriod);
+
+	/** The Inside page's film of the puzzle, once solved, where its game has one. */
+	const howMade = $derived.by(() => {
+		const { game, variant, puzzleId, puzzle, solved } = session;
+		const query = solved && puzzleId ? insideQuery(game.id, variant, puzzleId, puzzle) : null;
+		return query && `${resolve('/inside')}?${query}`;
+	});
 
 	/** Close the menu, then do what was picked. */
 	const pick = (action: () => void) => () => ((moreOpen = false), action());
@@ -121,6 +131,9 @@
 						disabled={session.loading || !session.puzzleId}>{t('game.share')}</button
 					>
 					<button class="menu-item" onclick={pick(() => window.print())}>{t('game.print')}</button>
+					{#if howMade}
+						<a class="menu-item" href={howMade}>{t('game.howMade')}</a>
+					{/if}
 					<!-- Not for the current special puzzle once solved: it is played once -->
 					{#if session.canStartOver}
 						<hr class="mx-2 my-1 border-stone-200 dark:border-stone-700" />
