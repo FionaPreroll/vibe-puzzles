@@ -1,4 +1,4 @@
-import { generateSudoku } from '../../games/sudoku/generator';
+import { EASY_GIVENS, generateSudoku } from '../../games/sudoku/generator';
 import {
 	bit,
 	candidates,
@@ -7,7 +7,7 @@ import {
 	type SudokuState
 } from '../../games/sudoku/rules';
 import { Level, ratePuzzle, type SudokuTraceEvent } from '../../games/sudoku/solver';
-import type { Chapter, Film, Frame } from '../film';
+import type { Chapter, Film, FilmType, Frame } from '../film';
 
 type SudokuFrame = Frame<SudokuPuzzle, SudokuState>;
 type SudokuChapter = Chapter<SudokuPuzzle, SudokuState>;
@@ -17,6 +17,8 @@ type Event<K extends Kind> = Extract<SudokuTraceEvent, { kind: K }>;
 const SIZE = 9;
 /** The film's puzzle when the viewer has not asked for another: a search with dead ends. */
 export const SUDOKU_SEED = 12;
+/** The type of the film's puzzle; Easy ones are made the same way and keep more digits. */
+export const SUDOKU_TYPE: FilmType = { width: 9, height: 9, difficulty: 'normal' };
 /** The first steps of a kind stay longer, so that the idea can be followed before it speeds up. */
 const SLOW_STEPS = 3;
 
@@ -38,21 +40,25 @@ function only<K extends Kind>(events: SudokuTraceEvent[], ...kinds: K[]): Event<
 }
 
 /**
- * How a normal 9×9 Sudoku is made, from the generator's own trace: the search fills the empty grid
- * (with its dead ends), digging takes givens out while singles still solve the puzzle, and the
- * rating solver solves the result with pencil marks.
+ * How a 9×9 Sudoku (normal, or easy) is made, from the generator's own trace: the search fills the
+ * empty grid (with its dead ends), digging takes givens out while singles still solve the puzzle,
+ * and the rating solver solves the result with pencil marks.
  */
-export function sudokuFilm(seed = SUDOKU_SEED): Film<SudokuPuzzle, SudokuState> {
+export function sudokuFilm(
+	seed = SUDOKU_SEED,
+	type: FilmType = SUDOKU_TYPE
+): Film<SudokuPuzzle, SudokuState> {
 	const made: SudokuTraceEvent[] = [];
-	const { puzzle, solution } = generateSudoku(SIZE, 'normal', seed, (e) => made.push(e));
+	const { puzzle, solution } = generateSudoku(SIZE, type.difficulty, seed, (e) => made.push(e));
+	const easy = type.difficulty === 'easy';
 	const rated: SudokuTraceEvent[] = [];
 	ratePuzzle(puzzle, Level.Singles, (e) => rated.push(e));
 	return {
 		game: 'sudoku',
 		chapters: [
 			fill(only(made, 'place', 'unplace')),
-			dig(only(made, 'try', 'keep', 'restore'), solution),
-			solve(only(rated, 'start')[0], only(rated, 'single'), puzzle)
+			dig(only(made, 'try', 'keep', 'restore'), solution, easy),
+			solve(only(rated, 'start')[0], only(rated, 'single'), puzzle, easy)
 		]
 	};
 }
@@ -118,8 +124,15 @@ function fill(events: Event<'place' | 'unplace'>[]): SudokuChapter {
 	return { title: 'sudoku.chapters.fill', frames };
 }
 
-/** Pairs of givens go out while the rating solver still solves the puzzle with singles. */
-function dig(events: Event<'try' | 'keep' | 'restore'>[], solution: number[]): SudokuChapter {
+/**
+ * Pairs of givens go out while the rating solver still solves the puzzle with singles (and, for an
+ * easy puzzle, while enough givens are left).
+ */
+function dig(
+	events: Event<'try' | 'keep' | 'restore'>[],
+	solution: number[],
+	easy: boolean
+): SudokuChapter {
 	// Digging starts from the full grid, the solution.
 	const grid = solution.slice();
 	const detail = { key: 'sudoku.dig.detail' };
@@ -163,7 +176,10 @@ function dig(events: Event<'try' | 'keep' | 'restore'>[], solution: number[]): S
 	frames.push({
 		puzzle: board(grid),
 		state: empty(),
-		caption: { key: 'sudoku.dig.done', params: { givens: count(grid) } },
+		caption: {
+			key: easy ? 'sudoku.dig.doneEasy' : 'sudoku.dig.done',
+			params: { givens: count(grid), least: EASY_GIVENS }
+		},
 		detail,
 		hold: 4
 	});
@@ -174,7 +190,8 @@ function dig(events: Event<'try' | 'keep' | 'restore'>[], solution: number[]): S
 function solve(
 	start: Event<'start'>,
 	singles: Event<'single'>[],
-	puzzle: SudokuPuzzle
+	puzzle: SudokuPuzzle,
+	easy: boolean
 ): SudokuChapter {
 	const { units, unitsOf, peers } = geometry(SIZE);
 	const state: SudokuState = { values: empty().values, notes: start.candidates.slice() };
@@ -217,7 +234,10 @@ function solve(
 	frames.push({
 		puzzle,
 		state: snapshot(),
-		caption: { key: 'sudoku.solve.done', params: { singles: singles.length } },
+		caption: {
+			key: easy ? 'sudoku.solve.doneEasy' : 'sudoku.solve.done',
+			params: { singles: singles.length }
+		},
 		detail: { key: 'sudoku.solve.doneDetail' },
 		hold: 5
 	});

@@ -7,17 +7,16 @@ import {
 	type TetroidState
 } from '../../games/tetroid/rules';
 import { TetroidSolver, type TetroidTraceEvent } from '../../games/tetroid/solver';
-import type { Caption, Chapter, Film, Frame } from '../film';
+import type { Caption, Chapter, Film, FilmType, Frame } from '../film';
 
 type TetroidFrame = Frame<TetroidPuzzle, TetroidState>;
 type TetroidChapter = Chapter<TetroidPuzzle, TetroidState>;
 type Kind = TetroidTraceEvent['kind'];
 type Event<K extends Kind> = Extract<TetroidTraceEvent, { kind: K }>;
 
-const SIZE = 6;
-const N = SIZE * SIZE;
 /** The film's puzzle: its regions need moves, a new tetromino and a look-ahead to settle. */
 export const TETROID_SEED = 12;
+export const TETROID_TYPE: FilmType = { width: 6, height: 6, difficulty: 'normal' };
 /** The first steps of a kind stay longer, so that the idea can be followed before it speeds up. */
 const SLOW_STEPS = 3;
 
@@ -31,10 +30,15 @@ function only<K extends Kind>(events: TetroidTraceEvent[], ...kinds: K[]): Event
 /** The planted tetrominoes and the regions as the film goes. */
 class Garden {
 	/** Region of every cell, -1 while it has none. */
-	readonly regions = new Array<number>(N).fill(-1);
+	readonly regions: number[];
 	/** The planted shading, 0/1 per cell. */
-	readonly shading = new Array<number>(N).fill(0);
+	readonly shading: number[];
 	private planted = 0;
+
+	constructor(readonly size: number) {
+		this.regions = new Array<number>(size * size).fill(-1);
+		this.shading = new Array<number>(size * size).fill(0);
+	}
 
 	apply(e: Event<'plant' | 'assign' | 'move' | 'replant'>) {
 		if (e.kind === 'plant') {
@@ -58,30 +62,35 @@ class Garden {
 	 * default the planted one.
 	 */
 	draw(shading: number[] = this.shading): { puzzle: TetroidPuzzle; state: TetroidState } {
+		const n = this.regions.length;
 		return {
 			puzzle: {
-				width: SIZE,
-				height: SIZE,
-				regions: this.regions.map((r, i) => (r < 0 ? N + i : r))
+				width: this.size,
+				height: this.size,
+				regions: this.regions.map((r, i) => (r < 0 ? n + i : r))
 			},
-			state: { marks: shading.map((s) => (s ? SHADED : EMPTY)), auto: new Array(N).fill(0) }
+			state: { marks: shading.map((s) => (s ? SHADED : EMPTY)), auto: new Array(n).fill(0) }
 		};
 	}
 }
 
 /**
- * How a normal 6×6 Tetroid is made, from the generator's own trace: tetrominoes are planted, the
+ * How a small normal Tetroid is made, from the generator's own trace: tetrominoes are planted, the
  * free cells grow into regions around them, regions are reshaped until there is one solution that
  * deduction alone finds, and the deduction is shown round by round.
  */
-export function tetroidFilm(seed = TETROID_SEED): Film<TetroidPuzzle, TetroidState> {
+export function tetroidFilm(
+	seed = TETROID_SEED,
+	type: FilmType = TETROID_TYPE
+): Film<TetroidPuzzle, TetroidState> {
 	const events: TetroidTraceEvent[] = [];
-	const { puzzle } = generateTetroid(SIZE, SIZE, 'normal', seed, (e) => events.push(e));
+	const size = type.width;
+	const { puzzle } = generateTetroid(size, size, 'normal', seed, (e) => events.push(e));
 	// Only the last attempt made the puzzle; the ones before could not be made logical.
 	const last = events.slice(events.map((e) => e.kind).lastIndexOf('attempt'));
 	const solving: TetroidTraceEvent[] = [];
 	new TetroidSolver(puzzle).solve({ branch: false, trace: (e) => solving.push(e) });
-	const garden = new Garden();
+	const garden = new Garden(size);
 	return {
 		game: 'tetroid',
 		settings: { highlightErrors: false, colorTetrominoes: true },
@@ -102,7 +111,12 @@ export function tetroidFilm(seed = TETROID_SEED): Film<TetroidPuzzle, TetroidSta
 function plant(events: Event<'plant'>[], garden: Garden): TetroidChapter {
 	const detail = { key: 'tetroid.plant.detail' };
 	const frames: TetroidFrame[] = [
-		{ ...garden.draw(), caption: { key: 'tetroid.plant.start' }, detail, hold: 6 }
+		{
+			...garden.draw(),
+			caption: { key: 'tetroid.plant.start', params: { size: garden.size } },
+			detail,
+			hold: 6
+		}
 	];
 	events.forEach((e, k) => {
 		garden.apply(e);
@@ -196,8 +210,9 @@ function reshape(
 function solve(rounds: Event<'round'>[], puzzle: TetroidPuzzle): TetroidChapter {
 	const frames: TetroidFrame[] = [];
 	let known = new Set<number>();
+	const n = puzzle.regions.length;
 	for (const r of rounds) {
-		const marks = new Array<number>(N).fill(EMPTY);
+		const marks = new Array<number>(n).fill(EMPTY);
 		for (const i of r.shaded) marks[i] = SHADED;
 		for (const i of r.empty) marks[i] = CROSS;
 		const decided = [...r.shaded, ...r.empty];
@@ -205,7 +220,7 @@ function solve(rounds: Event<'round'>[], puzzle: TetroidPuzzle): TetroidChapter 
 		known = new Set(decided);
 		frames.push({
 			puzzle,
-			state: { marks, auto: new Array(N).fill(0) },
+			state: { marks, auto: new Array(n).fill(0) },
 			spotlight: r.rule === 'start' ? undefined : keys(fresh),
 			caption: { key: `tetroid.solve.${r.rule}`, params: { count: fresh.length } },
 			detail: { key: `tetroid.solve.${r.rule}Detail` },

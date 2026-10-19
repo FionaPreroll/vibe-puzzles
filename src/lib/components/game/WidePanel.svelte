@@ -169,7 +169,8 @@
 	{/if}
 {/snippet}
 
-<div class="sticky {compact ? 'top-2' : 'top-4'} shrink-0">
+<!-- z-20: what opens from the panel, such as the "more" menu, lies over the board (z-10) -->
+<div class="sticky z-20 {compact ? 'top-2' : 'top-4'} shrink-0">
 	<aside
 		class="panel {collapsed
 			? `${compact ? 'w-26 py-2' : 'w-20'} overflow-y-auto px-2`

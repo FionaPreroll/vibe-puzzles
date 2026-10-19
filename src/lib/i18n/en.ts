@@ -160,6 +160,7 @@ const en = {
 		done: 'Done',
 		startOver: 'Start over',
 		print: 'Print…',
+		howMade: 'How was this puzzle made?',
 		more: 'More actions',
 		share: 'Share board',
 		newPuzzle: 'New puzzle',

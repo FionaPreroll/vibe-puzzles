@@ -9,8 +9,7 @@ import {
 	type PinwheelState
 } from '../../games/pinwheel/rules';
 import { PinwheelSolver, type PinwheelTraceEvent } from '../../games/pinwheel/solver';
-import type { Difficulty } from '../../core/variants';
-import type { Caption, Chapter, Film, Frame } from '../film';
+import type { Caption, Chapter, Film, FilmType, Frame } from '../film';
 
 type PinwheelFrame = Frame<PinwheelPuzzle, PinwheelState>;
 type PinwheelChapter = Chapter<PinwheelPuzzle, PinwheelState>;
@@ -18,9 +17,9 @@ type Kind = PinwheelTraceEvent['kind'];
 type Event<K extends Kind> = Extract<PinwheelTraceEvent, { kind: K }>;
 type Centre = [number, number];
 
-const SIZE = 7;
 /** The film's puzzle: a hard 7×7 whose second attempt needs a cut to become unique. */
 export const PINWHEEL_SEED = 35;
+export const PINWHEEL_TYPE: FilmType = { width: 7, height: 7, difficulty: 'hard' };
 /** The first steps of a kind stay longer, so that the idea can be followed before it speeds up. */
 const SLOW_STEPS = 3;
 /** Galaxy colours (the board's note colours), in the order the board colours finished galaxies. */
@@ -38,6 +37,8 @@ function only<K extends Kind>(events: PinwheelTraceEvent[], ...kinds: K[]): Even
 class Sky {
 	readonly galaxies = new Map<string, { centre: Centre; cells: Set<number> }>();
 
+	constructor(readonly size: number) {}
+
 	add(centre: Centre, cells: number[]) {
 		this.galaxies.set(key(centre), { centre, cells: new Set(cells) });
 	}
@@ -49,7 +50,7 @@ class Sky {
 
 	/** The galaxy (centre key) of every cell, or null. */
 	get owners(): (string | null)[] {
-		return Array.from({ length: SIZE * SIZE }, (_, i) => this.ownerOf(i));
+		return Array.from({ length: this.size ** 2 }, (_, i) => this.ownerOf(i));
 	}
 
 	/** Moves `cells` to the galaxy at `centre`; galaxies left empty go. */
@@ -82,7 +83,7 @@ class Sky {
 
 	/** The board: every galaxy's centre and colour, and lines around each galaxy. */
 	draw(colours: Map<string, number>): { puzzle: PinwheelPuzzle; state: PinwheelState } {
-		return board(this.centres, this.owners, (k) => colours.get(k)!);
+		return board(this.size, this.centres, this.owners, (k) => colours.get(k)!);
 	}
 
 	/** Spotlight keys of the centres at `centres`. */
@@ -96,11 +97,11 @@ class Sky {
  * A colour for every galaxy of the film (by centre key) that no galaxy it ever touches has, so
  * that colours stay put while galaxies grow, and neighbours always differ.
  */
-function paint(events: Event<'centre' | 'grow' | 'absorb' | 'second' | 'split'>[]) {
-	const sky = new Sky();
+function paint(events: Event<'centre' | 'grow' | 'absorb' | 'second' | 'split'>[], size: number) {
+	const sky = new Sky(size);
 	const touching = new Map<string, Set<string>>();
 	const meet = (owner: (string | null)[]) => {
-		for (const { a, b } of interiorEdges({ width: SIZE, height: SIZE, centres: [] })) {
+		for (const { a, b } of interiorEdges({ width: size, height: size, centres: [] })) {
 			const [x, y] = [owner[a], owner[b]];
 			if (!x || !y || x === y) continue;
 			for (const [p, q] of [
@@ -135,15 +136,16 @@ function paint(events: Event<'centre' | 'grow' | 'absorb' | 'second' | 'split'>[
 }
 
 /**
- * A board with `centres`, cells coloured by `colour(owner)` (no colour without an owner), and a
- * line wherever two cells have different owners and at least one has one.
+ * A board of `size`×`size` with `centres`, cells coloured by `colour(owner)` (no colour without an
+ * owner), and a line wherever two cells have different owners and at least one has one.
  */
 function board<O>(
+	size: number,
 	centres: Centre[],
 	owner: (O | null)[],
 	colour: (owner: O) => number
 ): { puzzle: PinwheelPuzzle; state: PinwheelState } {
-	const puzzle: PinwheelPuzzle = { width: SIZE, height: SIZE, centres };
+	const puzzle: PinwheelPuzzle = { width: size, height: size, centres };
 	const state = emptyPinwheelState(puzzle);
 	state.colors = owner.map((o) => (o === null ? 0 : colour(o)));
 	for (const e of interiorEdges(puzzle)) {
@@ -164,24 +166,25 @@ function newLines(before: PinwheelState, next: PinwheelState, puzzle: PinwheelPu
 }
 
 /**
- * How a 7×7 Pinwheel is made, from the generator's own trace: galaxies grow in mirror pairs, the
+ * How a small Pinwheel is made, from the generator's own trace: galaxies grow in mirror pairs, the
  * solver looks for a second solution and a cut removes it, and propagation alone settles every
- * cell (normal) or gets stuck (hard). The film shows a hard one.
+ * cell (normal) or gets stuck (hard). The film shows a hard 7×7 unless asked for another type.
  */
 export function pinwheelFilm(
 	seed = PINWHEEL_SEED,
-	difficulty: Difficulty = 'hard'
+	type: FilmType = PINWHEEL_TYPE
 ): Film<PinwheelPuzzle, PinwheelState> {
 	const events: PinwheelTraceEvent[] = [];
-	const { puzzle, solution } = generatePinwheel(SIZE, SIZE, difficulty, seed, (e) =>
+	const size = type.width;
+	const { puzzle, solution } = generatePinwheel(size, size, type.difficulty, seed, (e) =>
 		events.push(e)
 	);
-	// Only the last attempt made the puzzle; the ones before were given up or too easy.
+	// Only the last attempt made the puzzle; the ones before were given up or of the other difficulty.
 	const start = events.map((e) => e.kind).lastIndexOf('attempt');
 	const earlier = events.slice(0, start);
 	const last = events.slice(start);
-	const colours = paint(only(last, 'centre', 'grow', 'absorb', 'second', 'split'));
-	const sky = new Sky();
+	const colours = paint(only(last, 'centre', 'grow', 'absorb', 'second', 'split'), size);
+	const sky = new Sky(size);
 	const solving: PinwheelTraceEvent[] = [];
 	new PinwheelSolver(puzzle).solve({ branch: false, trace: (e) => solving.push(e) });
 	return {
@@ -190,19 +193,19 @@ export function pinwheelFilm(
 		chapters: [
 			grow(only(last, 'centre', 'grow', 'absorb'), sky, colours),
 			unique(only(last, 'second', 'split', 'unique'), sky, colours),
-			grade(only(solving, 'round'), puzzle, solution, colours, attempts(earlier))
+			grade(only(solving, 'round'), puzzle, solution, colours, attempts(earlier, type))
 		]
 	};
 }
 
 /**
- * The attempts before the one that made the puzzle: unique ones that were too easy (rated), and
- * those given up on the way to a unique partition (the rest).
+ * The attempts before the one that made the puzzle: unique ones of the other difficulty (rated),
+ * and those given up on the way to a unique partition (the rest).
  */
-function attempts(earlier: PinwheelTraceEvent[]) {
+function attempts(earlier: PinwheelTraceEvent[], type: FilmType) {
 	const before = only(earlier, 'attempt').length;
-	const easy = only(earlier, 'rated').filter((e) => e.easy).length;
-	return { attempt: before + 1, easy, dropped: before - only(earlier, 'rated').length };
+	const rated = only(earlier, 'rated').length;
+	return { attempt: before + 1, rated, dropped: before - rated, hard: type.difficulty === 'hard' };
 }
 
 /** The partition: galaxies start at enclosed cells and grow in mirror pairs. */
@@ -213,7 +216,12 @@ function grow(
 ): PinwheelChapter {
 	const detail = { key: 'pinwheel.grow.detail' };
 	const frames: PinwheelFrame[] = [
-		{ ...sky.draw(colours), caption: { key: 'pinwheel.grow.start' }, detail, hold: 5 }
+		{
+			...sky.draw(colours),
+			caption: { key: 'pinwheel.grow.start', params: { size: sky.size } },
+			detail,
+			hold: 5
+		}
 	];
 	const seen = { centre: 0, grow: 0, absorb: 0 };
 	for (const e of events) {
@@ -246,7 +254,7 @@ function unique(
 		if (e.kind === 'second') {
 			const now = sky.draw(colours);
 			const centreKeys = e.centres.map(key);
-			const other = board(e.centres, e.other, (k) => colours.get(centreKeys[k])!);
+			const other = board(sky.size, e.centres, e.other, (k) => colours.get(centreKeys[k])!);
 			const differ = e.other.flatMap((k, i) => (k !== e.owner[i] ? [i] : []));
 			frames.push({
 				...other,
@@ -284,12 +292,13 @@ function grade(
 	puzzle: PinwheelPuzzle,
 	solution: number[],
 	colours: Map<string, number>,
-	attempts: { attempt: number; easy: number; dropped: number }
+	attempts: { attempt: number; rated: number; dropped: number; hard: boolean }
 ): PinwheelChapter {
 	const keys = puzzle.centres.map(key);
 	const colour = (k: number) => colours.get(keys[k])!;
 	const settledBoard = (owner: number[]) =>
 		board(
+			puzzle.width,
 			puzzle.centres,
 			owner.map((k) => (k < 0 ? null : k)),
 			colour
@@ -326,10 +335,17 @@ function grade(
 		hold: 6
 	});
 	if (attempts.attempt > 1) {
+		// Earlier unique attempts were too easy for a hard puzzle, or too hard for a normal one.
+		const { attempt, rated, dropped, hard } = attempts;
 		frames.push({
 			...settledBoard(end),
-			caption: { key: 'pinwheel.grade.attempts', params: attempts },
-			detail: { key: 'pinwheel.grade.attemptsDetail' },
+			caption: {
+				key: hard ? 'pinwheel.grade.attempts' : 'pinwheel.grade.attemptsNormal',
+				params: { attempt, rated, dropped }
+			},
+			detail: {
+				key: hard ? 'pinwheel.grade.attemptsDetail' : 'pinwheel.grade.attemptsNormalDetail'
+			},
 			hold: 6
 		});
 	}
