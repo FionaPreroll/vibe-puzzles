@@ -196,6 +196,41 @@ test('the Tetroid film: tetrominoes planted, regions grown and reshaped, then so
 	await expect(p.caption).toHaveText(/^Looking ahead/);
 });
 
+test('the Loop film: a region grows, numbers come in and out, then the rules solve it', async ({
+	page
+}) => {
+	const p = await open(page);
+	await page.getByRole('group', { name: 'Films' }).getByRole('button', { name: 'Loop' }).click();
+	await expect(page.getByRole('heading', { name: 'How a Loop is made' })).toBeVisible();
+	await expect(p.caption).toHaveText(/^A Loop solution is one closed line/);
+	const board = page.locator('[data-testid="film"] .board-stage svg');
+	await page.keyboard.press('ArrowRight');
+	await expect(p.caption).toHaveText(/^It starts with one random cell/);
+	await expect(board.locator('[data-line]')).toHaveCount(4);
+	// The first cell turned away: the loop it would make, its new lines in teal.
+	for (let k = 0; k < 7; k++) await page.keyboard.press('ArrowRight');
+	await expect(p.caption).toHaveText(/^With this cell, the loop would touch itself/);
+	await expect(board.locator('[data-trial]')).not.toHaveCount(0);
+
+	await page.keyboard.press('PageDown');
+	await expect(
+		p.chapters.getByRole('button', { name: /^2\. Numbers in, numbers out/ })
+	).toHaveAttribute('aria-current', 'step');
+	await expect(p.caption).toHaveText(/^Every cell gets a number/);
+	await expect(board.locator('[data-clue]')).toHaveCount(49);
+	await page.getByRole('button', { name: 'More detail' }).click();
+	await expect(page.getByTestId('detail')).toContainText(
+		'a 4 would be a loop around that one cell'
+	);
+
+	await page.keyboard.press('PageDown');
+	await expect(p.caption).toHaveText(/^Solving it the way a person would/);
+	await page.keyboard.press('End');
+	await expect(p.caption).toHaveText(/^Every edge is decided after \d+ steps, without guessing/);
+	await page.keyboard.press('ArrowLeft');
+	await expect(p.caption).toHaveText(/^The loop is closed/);
+});
+
 test('the page speaks German, and the footer and About page lead to it', async ({ page }) => {
 	await page.goto('/about');
 	await page.getByRole('link', { name: 'Watch it step by step' }).click();

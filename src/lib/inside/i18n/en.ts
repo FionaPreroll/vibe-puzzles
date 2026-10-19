@@ -10,7 +10,8 @@ const en = {
 		label: 'Films',
 		sudoku: 'How a Sudoku is made',
 		pinwheel: 'How a Pinwheel is made',
-		tetroid: 'How a Tetroid is made'
+		tetroid: 'How a Tetroid is made',
+		loop: 'How a Loop is made'
 	},
 	player: {
 		play: 'Play',
@@ -178,6 +179,73 @@ const en = {
 			lookAheadDetail:
 				'For each placement left, the solver checks whether all certain cells could still connect with it. This is the expensive part, so it runs only when the cheaper rules are stuck.',
 			done: 'Every region is settled, without guessing: this is the solution.'
+		}
+	},
+	loop: {
+		chapters: {
+			grow: 'A region grows',
+			numbers: 'Numbers in, numbers out',
+			solve: 'Solving with rules'
+		},
+		grow: {
+			start:
+				'A Loop solution is one closed line along the grid, without branches or crossings. Such a loop is always the border of a region of cells. So instead of drawing a line, the computer grows a region on an empty 7×7 board.',
+			first: 'It starts with one random cell. Its border is the smallest loop there is.',
+			grow: 'A random cell next to the region joins it, and the loop runs around it.',
+			touch:
+				'With this cell, the loop would touch itself at the ringed dot: four lines would meet there. So the cell stays out, for now.',
+			hole: 'With this cell, the ringed cells would be cut off from the edge: a hole in the region, with a second loop around it. So the cell stays out, for now.',
+			done: 'The region has {cells} cells, about half the board. Its border is the loop of the puzzle.',
+			detail:
+				'The region grows to a random size between 40 and 60 % of the board. Cells that touch it on one side only come up three times as often, which gives the loop more turns. A cell is left out if a dot would get inside cells on one diagonal and outside cells on the other, or if the outside cells would no longer all reach the edge (checked by a flood fill). Cells left out get another chance once the region has grown.'
+		},
+		numbers: {
+			all: 'Every cell gets a number: how many of its four edges belong to the loop.',
+			example: 'Here {clue} of the four edges belong to the loop, so the cell gets a {clue}.',
+			hide: 'Now the loop is hidden. With every number shown, the rules of chapter 3 find it again, and no other loop.',
+			detail:
+				'A number is 0 to 3: a 4 would be a loop around that one cell. Before going on, the rating solver must solve the puzzle with every number shown, using the rules of the difficulty; otherwise the computer starts over with a new loop.'
+		},
+		dig: {
+			start:
+				'Now numbers come out, one at a time in random order. After each one, the rules must still find the loop.',
+			try: 'This number comes out.',
+			keep: 'The rules still find the loop: {count} numbers left.',
+			stuck:
+				'Without it, the rules get stuck: they cannot decide the edges left open. So the number goes back.',
+			done: '{count} numbers are left. Without any one of them the rules would get stuck: this is the puzzle.',
+			detail:
+				'The order is a random shuffle of all cells. After each removal the rating solver tries to decide every edge with the rules of the difficulty (Normal: the rules of chapter 3; Hard: also inside and outside). A puzzle the rules solve has exactly one solution, so uniqueness needs no check of its own.'
+		},
+		solve: {
+			start:
+				'Solving it the way a person would, with rules about one cell or one dot at a time. Each rule decides edges: a line belongs to the loop, a cross does not.',
+			startDetail:
+				'The rating solver keeps a queue of cells and dots to look at. When a rule decides an edge, the cells and dots beside it are queued again, until nothing changes.',
+			zero: 'A 0 has no line around it: its edges get crosses.',
+			full: 'This {clue} has all its lines: its other edges get crosses.',
+			needs: 'This {clue} needs every edge it has left: they become lines.',
+			clueCorner:
+				'Of all the ways to draw the lines of this {clue}, only some fit what its corners already know. They all agree on the ringed edges.',
+			cellCorner:
+				'This cell has no number, but what its corners know, passed on through their dots, decides the ringed edges.',
+			dotFull:
+				'Two lines meet at this dot already, and a third one cannot: its other edges get crosses.',
+			dotOn: 'A line cannot end at a dot, and here only one way is left: the line goes on there.',
+			dotEnd:
+				'Only one edge at this dot could still be a line, but a line cannot end here: it gets a cross.',
+			dotCorner: 'What the corners of the cells around this dot know decides the ringed edges.',
+			loop: 'A line on the ringed edge would close the tinted path into a loop and leave other lines out: it gets a cross.',
+			closed: 'The loop is closed, and every number has its lines: all edges left get crosses.',
+			cellDetail:
+				'The cell rule tries all 16 ways to draw a cell’s four edges and keeps those that fit its number, the edges decided so far and what is known about its corners (at least one line, at most one line). What they all agree on is decided: edges, and facts about corners.',
+			dotDetail:
+				'The dot rule does the same with a dot’s edges: two lines or none, and the corners of the cells around it. That is how a corner passes on what it knows to the cell diagonally across the dot, for example from one 3 to another.',
+			loopDetail:
+				'The lines so far form paths. An open edge that joins both ends of one path would close a loop. It gets a cross, unless that loop would be the whole solution: every line in it and every number satisfied.',
+			done: 'Every edge is decided after {steps} steps, without guessing: one loop that fits every number.',
+			doneDetail:
+				'These are the basic rules, and a Normal puzzle needs nothing else. A Hard puzzle also needs inside and outside: every cell lies inside or outside the loop, a line separates the two, a cross joins them, and the border of the grid is outside.'
 		}
 	}
 };

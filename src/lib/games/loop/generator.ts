@@ -2,7 +2,7 @@ import { neighbours } from '../../core/grid';
 import { Rng } from '../../core/rng';
 import type { Difficulty } from '../../core/variants';
 import { emptyLoopState, hIndex, LINE, vIndex, type LoopPuzzle, type LoopState } from './rules';
-import { LoopLevel, rateLoop } from './solver';
+import { LoopLevel, rateLoop, type LoopTrace } from './solver';
 
 export interface GeneratedLoop {
 	puzzle: LoopPuzzle;
@@ -33,9 +33,16 @@ const REACH = 3;
  * the other (where the loop would touch itself).
  *
  * With `spread`, cells that reach into a part of the board with few inside cells come up more
- * often, so the region sends arms across the board instead of growing as one lump.
+ * often, so the region sends arms across the board instead of growing as one lump. `trace` hears
+ * every cell that joins the region and every cell left out.
  */
-export function randomLoop(w: number, h: number, rng: Rng, spread = false): boolean[] {
+export function randomLoop(
+	w: number,
+	h: number,
+	rng: Rng,
+	spread = false,
+	trace?: LoopTrace
+): boolean[] {
 	const n = w * h;
 	const inside = new Array<boolean>(n).fill(false);
 	const at = (r: number, c: number) => r >= 0 && c >= 0 && r < h && c < w && inside[r * w + c];
@@ -74,7 +81,9 @@ export function randomLoop(w: number, h: number, rng: Rng, spread = false): bool
 		return inside.every((x, i) => x || seen[i]);
 	};
 
-	inside[rng.int(n)] = true;
+	const start = rng.int(n);
+	inside[start] = true;
+	trace?.({ kind: 'grow', cell: start });
 	let size = 1;
 	const target = Math.round(n * (0.4 + 0.2 * rng.next()));
 	const blocked = new Set<number>();
@@ -98,8 +107,10 @@ export function randomLoop(w: number, h: number, rng: Rng, spread = false): bool
 		if (touchesItself(Math.floor(i / w), i % w) || !outsideConnected()) {
 			inside[i] = false;
 			blocked.add(i);
+			trace?.({ kind: 'block', cell: i });
 			continue;
 		}
+		trace?.({ kind: 'grow', cell: i });
 		size++;
 		// A cell blocked before may fit now that the region changed.
 		blocked.clear();
@@ -240,24 +251,30 @@ export function fitsLoopDifficulty(p: LoopPuzzle, difficulty: Difficulty): boole
  * clue shown, then clues removed in random order while the techniques of the difficulty still
  * solve the puzzle, which proves it unique.
  * Hard puzzles count when the basic techniques alone no longer solve them.
+ * `trace` hears every attempt: the loop growing (below 10×10), its clues and the removals.
  */
 export function generateLoop(
 	w: number,
 	h: number,
 	difficulty: Difficulty,
-	seed: number
+	seed: number,
+	trace?: LoopTrace
 ): GeneratedLoop {
 	const rng = new Rng(seed);
 	const level = LEVEL[difficulty];
 	let fallback: GeneratedLoop | null = null;
 	for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-		const inside = w * h >= SPREAD_FROM ? spreadLoop(w, h, rng) : randomLoop(w, h, rng);
+		trace?.({ kind: 'attempt', n: attempt });
+		const inside =
+			w * h >= SPREAD_FROM ? spreadLoop(w, h, rng) : randomLoop(w, h, rng, false, trace);
 		const { clues, lines } = loopOf(w, h, inside);
+		trace?.({ kind: 'clues', clues: clues.slice() });
 		if (!solves(puzzleOf(w, h, clues), level)) continue;
 		for (const c of rng.shuffle(Array.from({ length: w * h }, (_, k) => k))) {
 			const clue = clues[c];
 			clues[c] = -1;
 			if (!solves(puzzleOf(w, h, clues), level)) clues[c] = clue;
+			trace?.({ kind: 'remove', cell: c, solved: clues[c] < 0 });
 		}
 		const result = { puzzle: puzzleOf(w, h, clues), solution: lines };
 		if (level === LoopLevel.Basic || !solves(result.puzzle, LoopLevel.Basic)) return result;

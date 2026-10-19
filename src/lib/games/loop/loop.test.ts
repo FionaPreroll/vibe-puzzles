@@ -20,7 +20,7 @@ import {
 	type LoopPuzzle,
 	type LoopState
 } from './rules';
-import { LoopLevel, LoopSolver, rateLoop, solveLoop } from './solver';
+import { LoopLevel, LoopSolver, rateLoop, solveLoop, type LoopTraceEvent } from './solver';
 
 /** A state with lines on the given edges, as `h:i:j` / `v:i:j` keys. */
 function lines(p: LoopPuzzle, ...keys: string[]): LoopState {
@@ -387,6 +387,120 @@ describe('generator', () => {
 		// The loop around the single cell of a 1×1 grid.
 		const { puzzle } = generateLoop(1, 1, 'hard', 1);
 		expect(rateLoop(puzzle, LoopLevel.Basic).solved).toBe(true);
+	});
+});
+
+describe('trace', () => {
+	const record = () => {
+		const events: LoopTraceEvent[] = [];
+		return { events, trace: (e: LoopTraceEvent) => void events.push(e) };
+	};
+	/** The loop around the inside cells, as a state. */
+	const around = (p: LoopPuzzle, inside: boolean[]) => {
+		const keys: string[] = [];
+		const at = (r: number, c: number) =>
+			r >= 0 && c >= 0 && r < p.height && c < p.width && inside[r * p.width + c];
+		for (let i = 0; i <= p.height; i++)
+			for (let j = 0; j < p.width; j++) if (at(i - 1, j) !== at(i, j)) keys.push(`h:${i}:${j}`);
+		for (let i = 0; i < p.height; i++)
+			for (let j = 0; j <= p.width; j++) if (at(i, j - 1) !== at(i, j)) keys.push(`v:${i}:${j}`);
+		return lines(p, ...keys);
+	};
+
+	it('changes no puzzle', () => {
+		for (const [size, difficulty] of [
+			[5, 'normal'],
+			[5, 'hard'],
+			[7, 'normal'],
+			[7, 'hard'],
+			[10, 'normal']
+		] as const) {
+			for (const seed of [1, 2, 13]) {
+				const { trace } = record();
+				expect(generateLoop(size, size, difficulty, seed, trace)).toEqual(
+					generateLoop(size, size, difficulty, seed)
+				);
+			}
+		}
+	});
+
+	it('replays the last attempt to the loop, its clues and the puzzle', () => {
+		const { events, trace } = record();
+		const { puzzle, solution } = generateLoop(7, 7, 'normal', 13, trace);
+		const last = events.slice(events.map((e) => e.kind).lastIndexOf('attempt'));
+		const bare: LoopPuzzle = { width: 7, height: 7, clues: '.'.repeat(49) };
+		const inside = new Array<boolean>(49).fill(false);
+		let clues: number[] = [];
+		const blocked: number[] = [];
+		for (const e of last) {
+			if (e.kind === 'grow') {
+				// Every cell that joins keeps the border one loop.
+				expect(inside[e.cell]).toBe(false);
+				inside[e.cell] = true;
+				expect(isSolvedState(bare, around(bare, inside))).toBe(true);
+			} else if (e.kind === 'block') {
+				// Every cell left out would break it.
+				blocked.push(e.cell);
+				const tried = inside.slice();
+				tried[e.cell] = true;
+				expect(isSolvedState(bare, around(bare, tried))).toBe(false);
+			} else if (e.kind === 'clues') {
+				expect(around(bare, inside)).toEqual(solution);
+				clues = e.clues.slice();
+				clues.forEach((clue, c) => expect(clue).toBe(analyze(bare, solution).count[c]));
+			} else if (e.kind === 'remove') {
+				const clue = clues[e.cell];
+				clues[e.cell] = -1;
+				const p = { ...bare, clues: clues.map((x) => (x < 0 ? '.' : x)).join('') };
+				expect(rateLoop(p, LoopLevel.Basic).solved).toBe(e.solved);
+				if (!e.solved) clues[e.cell] = clue;
+			}
+		}
+		expect(blocked.length).toBeGreaterThan(0);
+		expect(clues.map((x) => (x < 0 ? '.' : x)).join('')).toBe(puzzle.clues);
+		expect(last.filter((e) => e.kind === 'remove')).toHaveLength(49);
+	});
+
+	it('reports every rule that decides edges, with the edges it decided', () => {
+		const { puzzle, solution } = generateLoop(7, 7, 'normal', 13);
+		const right = edgeValues(solution);
+		const { events, trace } = record();
+		expect(rateLoop(puzzle, LoopLevel.Basic, undefined, trace).solved).toBe(true);
+		const decided = new Set<number>();
+		const rules = new Set<string>();
+		for (const e of events) {
+			if (e.kind !== 'decide') continue;
+			rules.add(e.rule);
+			expect(e.lines.length + e.crosses.length).toBeGreaterThan(0);
+			for (const x of e.lines) expect(right[x]).toBe(LINE);
+			for (const x of e.crosses) expect(right[x]).not.toBe(LINE);
+			for (const x of [...e.lines, ...e.crosses]) {
+				expect(decided.has(x)).toBe(false);
+				decided.add(x);
+			}
+			if (e.rule === 'cell') expect(e.at).toBeLessThan(49);
+			if (e.rule === 'loop') expect(e.at).toBe(-1);
+		}
+		expect(decided.size).toBe(right.length);
+		expect([...rules].sort()).toEqual(['cell', 'dot', 'loop']);
+		// Edges it starts from are known already, and inside and outside reports its own.
+		const from = right.map((x, e) => (e < 10 ? (x === LINE ? LINE : CROSS) : OPEN));
+		const started = record();
+		rateLoop(puzzle, LoopLevel.Basic, from, started.trace);
+		const reported = started.events.flatMap((e) =>
+			e.kind === 'decide' ? [...e.lines, ...e.crosses] : []
+		);
+		expect(reported.some((x) => x < 10)).toBe(false);
+		expect(reported).toHaveLength(right.length - 10);
+		const hard = generateLoop(5, 5, 'hard', 1).puzzle;
+		const sides = record();
+		const solver = new LoopSolver(hard);
+		expect(solver.rate(LoopLevel.Advanced, undefined, sides.trace).solved).toBe(true);
+		expect(sides.events.some((e) => e.kind === 'decide' && e.rule === 'sides')).toBe(true);
+		// The solver's other runs report nothing.
+		const before = sides.events.length;
+		solver.solve();
+		expect(sides.events).toHaveLength(before);
 	});
 });
 
