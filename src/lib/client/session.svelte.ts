@@ -711,6 +711,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			t('session.solved', { time: formatDuration(shown, true) })
 		);
 
+		// The answer is about this game: a game opened meanwhile gets neither its ID nor its message.
+		const token = this.openToken;
 		this.submitting = true;
 		try {
 			const res = await submitScore({
@@ -725,14 +727,16 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 				hinted: this.hinted,
 				ticket: this.ticket ?? undefined
 			});
+			// The statistics still take the ID of a server puzzle.
+			if (res && res !== 'queued' && res.puzzleId && recordedAt !== null) {
+				notePuzzleId(this.game.id, variant.key, recordedAt, res.puzzleId);
+			}
+			if (token !== this.openToken) return;
 			if (res === 'queued') {
 				this.message = message('info', () =>
 					t('session.queued', { time: formatDuration(shown, true) })
 				);
 				return;
-			}
-			if (res?.puzzleId && recordedAt !== null) {
-				notePuzzleId(this.game.id, variant.key, recordedAt, res.puzzleId);
 			}
 			if (res?.puzzleId && !this.puzzleId) {
 				this.puzzleId = res.puzzleId;
@@ -740,6 +744,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			}
 			if (res) this.message = scoreMessage(res, shown, variant);
 		} catch (e) {
+			if (token !== this.openToken) return;
 			const error = (e as Error).message;
 			this.message = message('info', () =>
 				t('session.uploadFailed', { time: formatDuration(shown, true), error })

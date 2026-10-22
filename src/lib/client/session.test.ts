@@ -720,6 +720,43 @@ describe('solving', () => {
 		expect(getStats('tetroid', '6n')).toMatchObject({ solved: 1, streak: 1 });
 	});
 
+	it('leaves an answer that comes after the next puzzle opened to the solved one', async () => {
+		vi.mocked(api.serverPuzzles).mockResolvedValueOnce(true).mockResolvedValueOnce(true);
+		const next = generateTetroid(6, 6, 'normal', SEED + 1).puzzle;
+		vi.mocked(api.issuePuzzle)
+			.mockResolvedValueOnce({ ticket: 't1', puzzle, issuedAt: Date.now(), puzzleId: null })
+			.mockResolvedValueOnce({ ticket: 't2', puzzle: next, issuedAt: Date.now(), puzzleId: null });
+		let answer: (r: api.ScoreResult) => void = () => {};
+		vi.mocked(api.submitScore).mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+		const s = session();
+		await s.open('6n');
+		s.move(solvedState(), []);
+		expect(s.submitting).toBe(true);
+		await s.newPuzzle();
+		expect(s.ticket).toBe('t2');
+		answer({ ok: true, code: 'ranked', rank: 1, total: 1, message: '', puzzleId: ID });
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		// The next puzzle keeps its secret ID, and shows nothing about the last one.
+		expect(s.puzzleId).toBe(0);
+		expect(s.message).toBeNull();
+		expect(load<{ puzzleId: number } | null>('save:tetroid:6n', null)?.puzzleId).toBe(0);
+		// The statistics still learn the ID of the solved one.
+		expect(getStats('tetroid', '6n').recent[0].puzzleId).toBe(ID);
+	});
+
+	it('says nothing on the next puzzle when the upload of the last solve fails late', async () => {
+		let fail: (e: Error) => void = () => {};
+		vi.mocked(api.submitScore).mockReturnValueOnce(new Promise((_, reject) => (fail = reject)));
+		const s = await opened();
+		s.move(solvedState(), []);
+		vi.mocked(api.serverPuzzles).mockResolvedValueOnce(false);
+		await s.newPuzzle();
+		expect(s.message).toBeNull();
+		fail(new Error('offline'));
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		expect(s.message).toBeNull();
+	});
+
 	it('keeps the solve when the upload fails', async () => {
 		vi.mocked(api.submitScore).mockRejectedValueOnce(new Error('offline'));
 		const s = await opened();
