@@ -2,6 +2,7 @@
 	import { asset, resolve } from '$app/paths';
 	import { createBackup, parseBackup, restoreBackup } from '#lib/client/backup.ts';
 	import { ask } from '#lib/client/confirm.svelte.ts';
+	import { downloadFile } from '#lib/client/download.ts';
 	import { i18n, t } from '#lib/i18n/index.svelte.ts';
 	import type { ChangelogRelease, Inline } from '../../../scripts/changelog';
 
@@ -23,11 +24,7 @@
 			new URL(schemaUrl, location.href).href
 		);
 		const blob = new Blob([JSON.stringify(backup, null, '\t')], { type: 'application/json' });
-		const a = document.createElement('a');
-		a.href = URL.createObjectURL(blob);
-		a.download = `vibe-puzzles-backup-${backup.exportedAt.slice(0, 10)}.json`;
-		a.click();
-		URL.revokeObjectURL(a.href);
+		downloadFile(blob, `vibe-puzzles-backup-${backup.exportedAt.slice(0, 10)}.json`);
 	}
 
 	/** A release's heading: its version and day, in the page's language. */

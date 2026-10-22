@@ -35,6 +35,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **Streaks across devices** after 400 solved daily puzzles of one type: a day solved on another device counts on this one too. It used to be left out, so the streak on this device broke.
 - **Leaderboards** on the Scores page belong to the game and puzzle type chosen, also after a quick switch. A late answer for the one chosen before could take their place.
 - **Tetroid with the keyboard**: pressing Shift or Ctrl alone no longer changes the cell at the keyboard cursor, for example when you hold Shift to see the group under the mouse. With the arrow keys, Ctrl or Shift still mark the cells the cursor passes (Shift like a right click), from the cell it leaves on.
+- **Export backup** in Safari: the app keeps the file ready until the browser has saved it. Letting go of it at once can break the download there.
 
 ## [0.8.0] - 2026-10-11
 
