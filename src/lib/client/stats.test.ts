@@ -296,6 +296,22 @@ describe('the periods solved', () => {
 		expect(kept).toHaveLength(400);
 		expect(kept.at(-1)).toBe('2026-10-07');
 	});
+
+	it('keep a period from another device when the list is full', () => {
+		const days = (from: number, count: number) =>
+			Array.from({ length: count }, (_, i) =>
+				new Date(Date.UTC(2025, 0, 1) + (from + i) * 86400000).toISOString().slice(0, 10)
+			);
+		save('stats:tetroid:daily', { periods: days(0, 400) });
+		// The next day was solved on another device: it comes in, the oldest goes.
+		const all = mergePeriods('tetroid', 'daily', 'daily', days(400, 1));
+		expect(all).toEqual(days(1, 400));
+		expect(getStats('tetroid', 'daily')).toMatchObject({ periods: all, lastPeriod: '2026-02-05' });
+		// Nothing new: nothing to write.
+		const setItem = vi.spyOn(storage, 'setItem');
+		expect(mergePeriods('tetroid', 'daily', 'daily', days(0, 401))).toEqual(all);
+		expect(setItem).not.toHaveBeenCalled();
+	});
 });
 
 describe('watching the statistics', () => {
