@@ -230,6 +230,7 @@ const de: Dictionary = {
 		serverFailed:
 			'Der Server konnte kein Rätsel erstellen. Dieses wird offline gespielt und nicht gewertet.',
 		continued: 'Spielstand von deinem anderen Gerät übernommen.',
+		takenBack: 'Deine Züge wurden auf deinem anderen Gerät zurückgenommen.',
 		otherTab: 'Spielstand aus einem anderen Tab übernommen.',
 		notSolved: 'Noch nicht gelöst. Bleib dran!',
 		solved: 'In {time} gelöst!',

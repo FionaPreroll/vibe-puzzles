@@ -89,6 +89,42 @@ describe('save slot', () => {
 		expect(api.pushSave).toHaveBeenCalledWith(KEY, stored(), stored()?.updatedAt);
 	});
 
+	it('uploads a game whose moves were all taken back, once', () => {
+		const s = slot();
+		s.write(record(0), true);
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		expect(api.pushSave).toHaveBeenCalledTimes(1);
+		// Undone, or started over: the other devices must not keep the move.
+		s.write(record(), true);
+		// Saved again before it went up (leaving the page, say): it still goes.
+		s.write(record(), false);
+		expect(api.pushSave).toHaveBeenCalledTimes(2);
+		expect(api.pushSave).toHaveBeenLastCalledWith(
+			KEY,
+			expect.objectContaining({ state: record().state }),
+			stored()?.updatedAt
+		);
+		// After that, an untouched game stays here again.
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		s.write(record(), false);
+		expect(api.pushSave).toHaveBeenCalledTimes(2);
+	});
+
+	it('uploads a game it read with progress once all of that is taken back', () => {
+		const s = slot();
+		// From another device, whose clock runs ahead.
+		s.adopt({ ...record(3), version: 1, updatedAt: 50_000 });
+		s.write(record(), true);
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		expect(api.pushSave).toHaveBeenCalledWith(KEY, stored(), 50_001);
+		// A new puzzle starts untouched, and stays here.
+		s.adopt({ ...record(3), version: 1, updatedAt: 60_000 });
+		s.claim();
+		s.write(record(), true);
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		expect(api.pushSave).toHaveBeenCalledTimes(1);
+	});
+
 	it("sends the last game's waiting upload at once when another game takes the slot", () => {
 		const s = slot();
 		s.write(record(0), true);

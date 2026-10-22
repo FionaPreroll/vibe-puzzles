@@ -112,22 +112,25 @@ export function hasProgress<P extends BasePuzzle, S>(
 /**
  * Whether a save from another device replaces the game in this slot (`local`, null if there is
  * none or it cannot be played), given which of the two have progress. A newer local game wins,
- * unless nobody has played it yet: then the other device's game continues here. A solved or
- * untouched remote game never replaces anything, nor does an older save of the same game.
+ * unless nobody has played it yet: then the other device's game continues here. A solved remote
+ * game never replaces anything, nor does an older save of the same game. An untouched one only
+ * replaces an older save of the same game with progress: every move of it was taken back there.
  */
 export function remoteWins<S>(
 	local: SavedGame<S> | null,
 	remote: SavedGame<S>,
 	progress: (save: SavedGame<S>) => boolean
 ): boolean {
-	if (local && remote.updatedAt <= local.updatedAt && progress(local)) return false;
-	if (remote.solved || !progress(remote)) return false;
+	if (remote.solved) return false;
 	// Server-issued puzzles keep their ID secret (0) until solved, so the ticket tells them apart.
 	const same =
 		!!local &&
 		local.puzzleId === remote.puzzleId &&
 		(local.ticket ?? null) === (remote.ticket ?? null);
-	return !(same && remote.updatedAt <= local!.updatedAt);
+	const newer = !local || remote.updatedAt > local.updatedAt;
+	if (!progress(remote)) return same && newer && progress(local!);
+	if (local && !newer && progress(local)) return false;
+	return !(same && !newer);
 }
 
 // The housekeeping below reads saves as they are: it must not take a save from a newer version,

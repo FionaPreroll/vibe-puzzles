@@ -157,7 +157,11 @@ describe('which save wins between devices', () => {
 		['a game of the same time', saved({ ...other, updatedAt: 2000 }), false],
 		['an untouched game', saved({ ...other, updatedAt: 1 }), true],
 		['an older game', saved({ ...other, updatedAt: 3000, solved: true }), false],
-		['an older game', saved({ ...other, updatedAt: 3000, state: empty }), false]
+		['an older game', saved({ ...other, updatedAt: 3000, state: empty }), false],
+		// Every move taken back there (undone, or started over).
+		['an older game', saved({ updatedAt: 3000, state: empty }), true],
+		['a newer game', saved({ updatedAt: 1000, state: empty }), false],
+		['an untouched game', saved({ updatedAt: 3000, state: empty }), false]
 	] as const)('%s here, and from there %o: %s', (here, remote, wins) => {
 		const local = {
 			nothing: null,

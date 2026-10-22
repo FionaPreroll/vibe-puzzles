@@ -17,7 +17,13 @@ import { History, type HistoryStart } from './session/history.svelte';
 import { message, scoreMessage, type Message } from './session/messages';
 import { PuzzleSource, type FoundPuzzle, type PuzzleOrigin } from './session/puzzleSource';
 import { SaveSlot } from './session/saveSlot';
-import { hasProgress, playableSave, remoteWins, type PlayableSave } from './session/saves';
+import {
+	hasProgress,
+	playableSave,
+	remoteWins,
+	type PlayableSave,
+	type SavedGame
+} from './session/saves';
 import type { GameSettings } from './settings.svelte';
 import { syncPeriods } from './periodSync';
 import { breakStreak, notePeriodSolved, notePuzzleId, recordSolve } from './stats';
@@ -381,12 +387,15 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			return;
 		}
 		const local = this.saves.playable(this.variant);
-		if (!remoteWins(local, data, (s) => hasProgress(this.game, s))) return;
+		const progress = (s: SavedGame<S>) => hasProgress(this.game, s);
+		if (!remoteWins(local, data, progress)) return;
 		this.clock.pause();
 		this.saves.cancelPush();
 		this.restore(data);
 		this.saves.store(data);
-		this.message = message('info', () => t('session.continued'));
+		// The game went on there, or every move of it was taken back.
+		const text = progress(data) ? 'session.continued' : 'session.takenBack';
+		this.message = message('info', () => t(text));
 		this.clock.resume();
 	}
 
