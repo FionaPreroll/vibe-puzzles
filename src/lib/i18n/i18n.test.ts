@@ -7,6 +7,7 @@ import { TETROID_SETTINGS } from '../games/tetroid/settings';
 import de from './de';
 import en from './en';
 import {
+	controlsKeys,
 	i18n,
 	initLocale,
 	nextDailyText,
@@ -190,6 +191,20 @@ describe('labels', () => {
 		stubBrowser([]);
 		setLocale('de');
 		expect(toolHint('tetroid', 'rotate')).toBe(de.games.tetroid.toolHint.rotate);
+	});
+
+	it("says how to play the board with the keys, naming the device's Ctrl key", () => {
+		expect(controlsKeys('tetroid', 'Ctrl')).toBe(
+			en.games.tetroid.controlsKeys.replace('{mod}', 'Ctrl')
+		);
+		expect(controlsKeys('loop', '⌘')).toContain('Hold ⌘ and press the arrows');
+		// Sudoku's mouse text names its keys already.
+		expect(controlsKeys('sudoku', 'Ctrl')).toBe('');
+		stubBrowser([]);
+		setLocale('de');
+		expect(controlsKeys('pinwheel', 'Ctrl')).toBe(
+			de.games.pinwheel.controlsKeys.replace('{mod}', 'Ctrl')
+		);
 	});
 });
 

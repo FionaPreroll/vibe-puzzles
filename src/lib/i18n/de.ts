@@ -537,6 +537,8 @@ const de: Dictionary = {
 				'Klicke auf ein Feld, um es zu schattieren, Rechtsklick setzt ein Kreuz. Ziehen markiert mehrere Felder. Die Tasten 1–4 wählen ein Werkzeug.',
 			controlsTouch:
 				'Tippe ein Feld an, um zwischen schattiert, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Felder.',
+			controlsKeys:
+				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Felder, die Leertaste wirkt auf das Feld darunter wie ein Klick. Halte {mod} und drücke die Pfeile, um jedes Feld auf dem Weg zu markieren, oder halte Shift für die Markierung der rechten Maustaste; beim Loslassen wird sie gesetzt. Esc blendet den Cursor aus.',
 			settingHelp: {
 				highlightErrors:
 					'Schattierte Felder werden rot, wenn sie gegen eine Regel verstoßen: ein voller 2×2-Block, gleiche Tetrominos nebeneinander, mehr als vier Felder in einem Bereich oder eine Gruppe, die nicht mehr zum Rest finden kann.'
@@ -613,6 +615,8 @@ const de: Dictionary = {
 				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen. Rechtsklick setzt ein Kreuz, Shift+Klick färbt ein Feld. Rechtsklick auf einen Kreis sperrt einen fertigen Bereich.',
 			controlsTouch:
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen. Mit dem Farbwerkzeug färbst du Felder. Einen Kreis halten sperrt einen fertigen Bereich.',
+			controlsKeys:
+				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Punkte. Halte {mod} und drücke die Pfeile, um Linien entlang des Wegs zu ziehen, wie mit der Maus; beim Loslassen werden sie gesetzt. Esc blendet den Cursor aus.',
 			settingHelp: {
 				autoSubmit:
 					'Das Rätsel gilt als gelöst, sobald alle Bereiche stimmen, ob mit Linien gezogen oder mit Farben ausgemalt. Aus: Du drückst selbst auf „Fertig“, und nur die Linien zählen.',
@@ -841,6 +845,8 @@ const de: Dictionary = {
 				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen, oder zieh über die Punkte, um mehrere zu zeichnen. Rechtsklick setzt ein Kreuz.',
 			controlsTouch:
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen, oder halte und zieh über die Punkte, um mehrere zu zeichnen. Mit dem Kreuz-Werkzeug markierst du Kanten, die die Schleife meidet.',
+			controlsKeys:
+				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Punkte. Halte {mod} und drücke die Pfeile, um Linien entlang des Wegs zu ziehen, wie mit der Maus; beim Loslassen werden sie gesetzt. Esc blendet den Cursor aus.',
 			settingHelp: {
 				highlightErrors:
 					'Ein Punkt wird rot, wo sich die Linie verzweigt oder nicht weiterkommt, eine Zahl, wenn sie zu viele Linien oder Kreuze hat. Ist die Schleife geschlossen, werden auch Zahlen rot, denen noch Linien fehlen.'

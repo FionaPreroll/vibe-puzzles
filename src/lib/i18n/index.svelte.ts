@@ -121,6 +121,15 @@ export function toolHint(gameId: string, toolId: string): string {
 	return typeof lookup(en, key) === 'string' ? t(key) : '';
 }
 
+/**
+ * How to play a game's board with the keyboard, with `mod` the name of the Ctrl key on this
+ * device; empty for a game whose mouse text (`controlsMouse`) names its keys already.
+ */
+export function controlsKeys(gameId: string, mod: string): string {
+	const key = `games.${gameId}.controlsKeys`;
+	return typeof lookup(en, key) === 'string' ? t(key, { mod }) : '';
+}
+
 /** Keys of a setting text (`setting` or `settingHelp`): the mode's own, the game's, the shared. */
 function settingKeys(kind: string, key: string, gameId?: string, mode?: string): string[] {
 	const keys = [`${kind}.${key}`];
