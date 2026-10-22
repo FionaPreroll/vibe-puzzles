@@ -198,10 +198,13 @@
 		}
 	);
 
-	// Keyboard: cursor between cells; Ctrl/Shift hold a move at the cursor.
+	// Keyboard: cursor between cells. Ctrl/Cmd or Shift with the arrows paints a move from the cell
+	// the cursor leaves (Shift the opposite mark), applied when the key is let go. The key alone
+	// starts nothing: Shift also shows the group under the mouse, and Ctrl comes with a click.
 	let keyMove: 'ctrl' | 'shift' | null = null;
 
-	function moveCursor(dr: number, dc: number, extendMove: boolean) {
+	function moveCursor(dr: number, dc: number, paint: 'ctrl' | 'shift' | null) {
+		const from = cursor;
 		if (cursor == null) {
 			cursor = 0;
 		} else {
@@ -210,10 +213,12 @@
 			cursor = r * w + c;
 		}
 		current = cursor;
-		if (extendMove) {
-			if (!pending) begin(cursor, keyMove === 'shift');
-			else extend(cursor);
+		if (!paint || from == null) return;
+		if (!pending) {
+			keyMove = paint;
+			begin(from, paint === 'shift');
 		}
+		extend(cursor);
 	}
 
 	function onkeydown(e: KeyPress): boolean {
@@ -223,7 +228,8 @@
 		const isArrow = e.key.startsWith('Arrow');
 		if (dir && (isArrow || (!e.ctrlKey && !e.metaKey && !e.altKey))) {
 			e.preventDefault();
-			moveCursor(dir[0], dir[1], isArrow && (e.ctrlKey || e.metaKey || e.shiftKey));
+			const held = e.ctrlKey || e.metaKey ? 'ctrl' : e.shiftKey ? 'shift' : null;
+			moveCursor(dir[0], dir[1], isArrow ? held : null);
 			return true;
 		}
 		if (cursor == null) return false;
@@ -236,12 +242,6 @@
 			cancel();
 			cursor = null;
 			keyMove = null;
-		} else if ((e.key === 'Control' || e.key === 'Meta') && !e.repeat && !pending) {
-			keyMove = 'ctrl';
-			begin(cursor, false);
-		} else if (e.key === 'Shift' && !e.repeat && !pending) {
-			keyMove = 'shift';
-			begin(cursor, true);
 		} else if (keyMove && !['Control', 'Meta', 'Shift'].includes(e.key)) {
 			// Another shortcut while holding the modifier (e.g. Shift+Z): drop the held move.
 			cancel();
