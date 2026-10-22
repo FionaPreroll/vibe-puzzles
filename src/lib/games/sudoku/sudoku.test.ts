@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EASY_GIVENS, generateSudoku } from './generator';
+import { sudoku } from './index';
 import { SUDOKU_VARIANTS, sudokuLogic } from './logic';
 import { SUDOKU_SETTINGS } from './settings';
 import { settingValues } from '../../core/settings';
@@ -408,6 +409,21 @@ describe('logic', () => {
 		expect(sudokuLogic.afterMove!(easy, placeDigit(easy, pruned, 2, 0), both).notes[2]).toBe(
 			filled.notes[2]
 		);
+	});
+
+	it('shows auto notes on the board before the first move, which makes them part of the game', () => {
+		const on = settingValues(SUDOKU_SETTINGS, { autoNotes: true });
+		const start = emptySudokuState(easy);
+		// Shown at once, while the game itself stays as it was: opening it is no move.
+		const shown = sudoku.shown!(easy, start, on);
+		expect(shown).toEqual(fillNotes(easy, start));
+		expect(start).toEqual(emptySudokuState(easy));
+		expect(sudoku.shown!(easy, start, settingValues(SUDOKU_SETTINGS))).toBe(start);
+		// The first move starts from what is shown: taking one note away keeps all the others.
+		const moved = sudokuLogic.afterMove!(easy, toggleNote(easy, shown, 2, 1), on);
+		expect(digitsOf(moved.notes[2])).toEqual([2, 4]);
+		expect(moved.notes).toEqual(shown.notes.map((m, i) => (i === 2 ? bit(2) | bit(4) : m)));
+		expect(sudoku.shown!(easy, moved, on)).toBe(moved);
 	});
 
 	it('encodes and decodes states', () => {

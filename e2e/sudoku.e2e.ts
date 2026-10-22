@@ -80,6 +80,10 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	const empty = await board.locator('g.notes').count();
 	const given = await board.locator('text[data-cell]').count();
 	expect(empty + given).toBe(81);
+	// They only show: opening the game is no move, so there is nothing to undo yet.
+	const undo = page.getByRole('button', { name: 'Undo' }).first();
+	const redo = page.getByRole('button', { name: 'Redo' }).first();
+	await expect(undo).toBeDisabled();
 
 	// The number pad shows how often each digit is still missing.
 	const pad = page.getByRole('toolbar', { name: 'Number pad' });
@@ -108,6 +112,38 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	const [pick] = givens.find(([, d]) => givens.filter(([, x]) => x === d).length > 1)!;
 	await clickCell(page, 9, Math.floor(pick / 9), pick % 9);
 	await expect(board.locator(`rect[fill="${palette.sameDigit}"]`).first()).toBeVisible();
+
+	// Undoing the nine digits leads back to the start, notes shown, and they can be redone.
+	for (let k = 0; k < 9; k++) await undo.click();
+	await expect(undo).toBeDisabled();
+	await expect(board.locator('g.notes')).toHaveCount(empty);
+	await expect(redo).toBeEnabled();
+});
+
+test('auto notes that a trial makes part of the game keep their colour', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
+		const values = { autoNotes: true };
+		localStorage.setItem('vp:settings:sudoku', JSON.stringify({ values, updatedAt: 1 }));
+	});
+	await page.goto('/sudoku?v=9n&id=980291457');
+	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	await expect(board.locator('g.notes').first()).toBeVisible({ timeout: 30_000 });
+	const empty = await board.locator('g.notes').count();
+	const givenCells = await board
+		.locator('text[data-cell]')
+		.evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-cell'))));
+	const cell = [...Array(81).keys()].find((i) => !givenCells.includes(i))!;
+
+	// A trial before the first move: its first digit makes the shown notes the player's.
+	await page.getByRole('button', { name: 'Try', exact: true }).click();
+	await clickCell(page, 9, Math.floor(cell / 9), cell % 9);
+	const pad = page.getByRole('toolbar', { name: 'Number pad' });
+	await pad.getByRole('button', { name: '1', exact: true }).click();
+	await expect(board.locator(`text[data-cell="${cell}"]`)).toHaveAttribute('fill', palette.trial);
+	// Only that digit is the trial's: the notes keep their colour.
+	await expect(board.locator('g.notes')).toHaveCount(empty - 1);
+	await expect(board.locator(`g.notes[fill="${palette.trial}"]`)).toHaveCount(0);
 });
 
 test('the Sudoku screenshot shows the whole board', async ({ page }) => {

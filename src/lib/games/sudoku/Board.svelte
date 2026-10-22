@@ -105,13 +105,6 @@
 		calc && settings.highlightErrors && !blank ? brokenCages(calc, grid) : null
 	);
 
-	// Auto notes: a game without any notes gets them as soon as it is shown.
-	$effect(() => {
-		if (!settings.autoNotes || !keys || blank || readonly) return;
-		if (board.notes.some(Boolean) || !grid.some((d) => !d)) return;
-		onmove(board, []);
-	});
-
 	const boxLines = $derived.by(() => {
 		const segs: string[] = [];
 		if (cageOf) {

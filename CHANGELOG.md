@@ -26,6 +26,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **Loop hints** that try out an edge name the right step at the end. They asked for a line where the edge gets a cross, and the other way round.
 - **Playing on two devices**: coming back to a game left open on one device continues what you played on the other one meanwhile, also once you had made moves on the first. It used to keep the older game there, and its next move overwrote the newer one.
 - **Games and solves waiting to be uploaded** are no longer thrown away when the server turns the app away for a moment (too many requests, a blocked or timed-out request). The app asks again a little later and sends them then. It used to take the server for missing until the page was reloaded.
+- **Sudoku auto notes** no longer count as a move. Opening a puzzle with "Fill in notes automatically" on leaves it untouched: "New puzzle" neither asks about it nor breaks your streak, it does not replace your game on another device, and undoing back to the start keeps your moves to redo. The notes still show right away.
 
 ## [0.8.0] - 2026-10-11
 
