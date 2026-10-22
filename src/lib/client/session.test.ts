@@ -1174,6 +1174,17 @@ describe('syncing with other devices', () => {
 		expect(api.pushSave).toHaveBeenCalledTimes(1);
 	});
 
+	it('uploads the last move at once when another type opens right after it', async () => {
+		const s = await opened({ autoSubmit: false });
+		s.move(shaded(0), []);
+		await s.open('8n');
+		expect(api.pushSave).toHaveBeenCalledWith(
+			'save:tetroid:6n',
+			expect.objectContaining({ state: shaded(0) }),
+			expect.any(Number)
+		);
+	});
+
 	it('continues a newer game from another device', async () => {
 		vi.mocked(api.pullSave).mockResolvedValueOnce(remote(shaded(7), Date.now() + 1000));
 		const s = session();
@@ -1754,6 +1765,19 @@ describe('the current special puzzle', () => {
 		const again = session();
 		await again.open('daily');
 		expect(again.solved).toBe(true);
+	});
+
+	it('solved and left right away, it goes to the other devices solved', async () => {
+		const s = session();
+		await s.open('daily');
+		s.move(dailySolved(), []);
+		// On to a regular puzzle at once, before the pause after which a change goes up.
+		await s.open('6n');
+		expect(api.pushSave).toHaveBeenCalledWith(
+			`save:tetroid:daily:${PERIOD}`,
+			expect.objectContaining({ solved: true }),
+			expect.any(Number)
+		);
 	});
 
 	it('when storage is full, its solved save is not the first to go', () => {
