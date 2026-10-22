@@ -746,7 +746,10 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 
 	// ---- Persistence ------------------------------------------------------------------------
 
-	/** Save locally and, after a short pause, to the server. `changed` is false for a plain flush. */
+	/**
+	 * Save locally and, after a short pause, to the server. `changed` is false for a plain flush,
+	 * which uploads at once.
+	 */
 	persist(changed = true) {
 		const { puzzle, state } = this;
 		// Never save the previous puzzle into the slot of one that is still loading.
@@ -774,7 +777,10 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		);
 	}
 
-	/** Flush the play time into the save (page hide / unload). */
+	/**
+	 * Flush the play time into the save and upload it at once (page hidden or left), so that the
+	 * last moves reach the player's other devices.
+	 */
 	flush() {
 		this.persist(false);
 	}

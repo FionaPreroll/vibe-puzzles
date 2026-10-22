@@ -1091,6 +1091,24 @@ describe('syncing with other devices', () => {
 		);
 	});
 
+	it('uploads at once when the page is hidden or left, which may stop its timers', async () => {
+		const s = await opened({ autoSubmit: false });
+		// An untouched game is not uploaded.
+		s.flush();
+		expect(api.pushSave).not.toHaveBeenCalled();
+		s.move(shaded(0), []);
+		s.flush();
+		expect(api.pushSave).toHaveBeenCalledTimes(1);
+		expect(api.pushSave).toHaveBeenCalledWith(
+			'save:tetroid:6n',
+			expect.objectContaining({ state: shaded(0) }),
+			expect.any(Number)
+		);
+		// Instead of after the pause, not as well.
+		vi.advanceTimersByTime(1500);
+		expect(api.pushSave).toHaveBeenCalledTimes(1);
+	});
+
 	it('continues a newer game from another device', async () => {
 		vi.mocked(api.pullSave).mockResolvedValueOnce(remote(shaded(7), Date.now() + 1000));
 		const s = session();

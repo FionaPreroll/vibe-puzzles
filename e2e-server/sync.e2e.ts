@@ -260,3 +260,24 @@ test('offline mode sends nothing until "Sync now"', async ({ browser }) => {
 	});
 	expect(await shadedCells(laptop)).toEqual(cells);
 });
+
+test('a move made right before leaving the game reaches the other device', async ({ browser }) => {
+	const [phone, laptop] = await pair(browser, 'Leaving');
+	await phone.goto('/tetroid?v=6n');
+	await shade(phone, [[0, 0]]);
+	await phone.waitForResponse(savePut);
+
+	// One more move, and the page is left before the pause before its upload is over.
+	const pushed = phone.waitForResponse(savePut);
+	await shade(phone, [[2, 3]]);
+	await phone.goto('/');
+	await pushed;
+	const cells = await shadedCells(phone);
+	expect(cells).toHaveLength(2);
+
+	await laptop.goto('/tetroid?v=6n');
+	await expect(laptop.getByRole('status')).toHaveText('Continued your game from another device.', {
+		timeout: 15_000
+	});
+	expect(await shadedCells(laptop)).toEqual(cells);
+});

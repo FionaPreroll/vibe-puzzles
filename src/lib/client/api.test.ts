@@ -388,6 +388,15 @@ describe('outbox and offline mode', () => {
 		expect(net.latencyMs).toEqual(expect.any(Number));
 	});
 
+	it('puts an upload in the outbox before sending it, so that it outlives the page', async () => {
+		const { api, outbox } = await browser(server(routes));
+		const sent = api.pushSave('save:a', { v: 1 }, 1);
+		expect(outbox.pending().saves).toEqual([['save:a', { data: { v: 1 }, updatedAt: 1 }]]);
+		await sent;
+		expect(outbox.pendingCount()).toBe(0);
+		expect(puts()).toEqual([expect.objectContaining({ body: { data: { v: 1 }, updatedAt: 1 } })]);
+	});
+
 	it('keeps what got no answer and drops what the server refuses', async () => {
 		let status = 503;
 		const { api, outbox } = await browser((url) =>
