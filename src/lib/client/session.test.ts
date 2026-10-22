@@ -1110,11 +1110,43 @@ describe('syncing with other devices', () => {
 		]) {
 			vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
 			vi.mocked(api.pullSave).mockResolvedValueOnce(r);
-			// The page asks again when it becomes visible; the player has touched this game.
-			s.refreshFromServer();
-			await Promise.resolve();
+			// The page asks again when it becomes visible.
+			await s.refreshFromServer();
 			expect(s.state).toEqual(shaded(1));
 		}
+		vi.mocked(api.currentPlayer).mockReturnValue(null);
+	});
+
+	it('continues a game played on another device since the last move here', async () => {
+		const s = await opened({ autoSubmit: false });
+		s.move(shaded(1), []);
+		vi.advanceTimersByTime(60_000);
+		// The player went on on another device, then comes back to this page.
+		vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
+		vi.mocked(api.pullSave).mockResolvedValueOnce(remote(shaded(1, 7), Date.now()));
+		await s.refreshFromServer();
+		expect(s.state).toEqual(shaded(1, 7));
+		expect(s.message?.text).toBe('Continued your game from another device.');
+		// The next move builds on it, so the moves made there are kept.
+		s.move(shaded(1, 7, 8), []);
+		expect(load<{ state: TetroidState } | null>('save:tetroid:6n', null)?.state).toEqual(
+			shaded(1, 7, 8)
+		);
+		vi.mocked(api.currentPlayer).mockReturnValue(null);
+	});
+
+	it('keeps a move made while it asks the server', async () => {
+		const s = await opened({ autoSubmit: false });
+		vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
+		let answer: (r: ReturnType<typeof remote>) => void = () => {};
+		vi.mocked(api.pullSave).mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+		const refreshed = s.refreshFromServer();
+		s.move(shaded(1), []);
+		// Saved later by the other device's clock, which may run ahead.
+		answer(remote(shaded(7), Date.now() + 1000));
+		await refreshed;
+		expect(s.state).toEqual(shaded(1));
+		vi.mocked(api.currentPlayer).mockReturnValue(null);
 	});
 });
 

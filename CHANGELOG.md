@@ -24,6 +24,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **"Creating puzzle…"** no longer gets selected like text when you drag across the board while a new puzzle is being made.
 - **Menu ticks**: a solved daily, weekly or monthly puzzle gets its ✓ in the puzzle type menu right away, and a type solved 100 times in a row its ★, instead of only after reloading the page. A solve in another tab shows too, and the ✓ goes when a new period begins.
 - **Loop hints** that try out an edge name the right step at the end. They asked for a line where the edge gets a cross, and the other way round.
+- **Playing on two devices**: coming back to a game left open on one device continues what you played on the other one meanwhile, also once you had made moves on the first. It used to keep the older game there, and its next move overwrote the newer one.
 
 ## [0.8.0] - 2026-10-11
 

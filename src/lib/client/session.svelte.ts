@@ -85,8 +85,11 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	private lastOpen: [string, OpenOptions] = ['', {}];
 	/** Counts `open` and `newPuzzle` calls: a load that finishes after a newer one started is dropped. */
 	private openToken = 0;
-	/** The player changed the game since it was shown: a save from another device no longer replaces it. */
-	private touched = false;
+	/**
+	 * Counts the player's changes to the game. A save from another device that arrives after a
+	 * change made while it was being fetched does not replace that change.
+	 */
+	private changeCount = 0;
 	/** When the game on the board was solved (epoch ms), 0 while it is not. */
 	private solvedAt = 0;
 
@@ -333,7 +336,6 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.solved = false;
 		this.solvedAt = 0;
 		this.clock.reset(g?.startedAt ?? 0, g?.playMs ?? 0);
-		this.touched = false;
 	}
 
 	/** The restored game `s` was solved: when, and in what time (older saves: their last change). */
@@ -356,8 +358,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 
 	/** Pick up a newer save of the same slot from another device. */
 	private async syncFromServer(token: number) {
+		const changes = this.changeCount;
 		const remote = await pullSave<unknown>(this.saves.key);
-		if (!remote || token !== this.openToken || this.touched) return;
+		if (!remote || token !== this.openToken || this.changeCount !== changes) return;
 		const data = playableSave(this.game, this.variant, remote.data);
 		if (!data) return;
 		// The current special puzzle, solved on another device: solved here too, and its period
@@ -463,7 +466,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	private changed(changed: string[] = []) {
 		this.lastChange = new Set(changed);
 		this.followHint();
-		this.touched = true;
+		this.changeCount++;
 	}
 
 	/**
@@ -497,7 +500,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		// The server measures ranked time from when it issued the puzzle.
 		this.clock.reset(this.ticket ? this.clock.startedAt : Date.now());
 		this.message = null;
-		this.touched = true;
+		this.changeCount++;
 		this.clock.resume();
 		this.persist();
 	}
