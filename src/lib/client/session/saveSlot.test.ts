@@ -122,6 +122,20 @@ describe('save slot', () => {
 		expect(s.changedElsewhere(variant)).toBeNull();
 	});
 
+	it('uploads a new game in place of a started one at once, untouched, and newer than it', () => {
+		const s = slot();
+		// Saved by a device whose clock runs a minute ahead.
+		save(KEY, { ...record(5), version: 1, updatedAt: 70_000 });
+		s.claim(true);
+		s.write(record(), true);
+		expect(stored()?.updatedAt).toBe(70_001);
+		expect(api.pushSave).toHaveBeenCalledWith(KEY, stored(), 70_001);
+		// Only its first save: after that, an untouched game stays here again.
+		s.write(record(), false);
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		expect(api.pushSave).toHaveBeenCalledTimes(1);
+	});
+
 	it("keeps another device's game it had no room for from counting as another tab's", () => {
 		const s = slot();
 		s.write(record(0), true);

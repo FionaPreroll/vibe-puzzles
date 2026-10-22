@@ -14,7 +14,9 @@ async function device(browser: Browser): Promise<Page> {
 }
 
 /** The saved 6x6 Tetroid game: its puzzle, ticket (if the server issued it) and shaded cells. */
-async function savedGame(page: Page): Promise<{ puzzle: unknown; ticket?: string } | null> {
+async function savedGame(
+	page: Page
+): Promise<{ puzzle: unknown; puzzleId: number; ticket?: string } | null> {
 	return page.evaluate(() => JSON.parse(localStorage.getItem('vp:save:tetroid:6n') ?? 'null'));
 }
 
@@ -280,4 +282,63 @@ test('a move made right before leaving the game reaches the other device', async
 		timeout: 15_000
 	});
 	expect(await shadedCells(laptop)).toEqual(cells);
+});
+
+const savePull = (r: { url(): string; request(): { method(): string } }) =>
+	r.url().includes('/api/saves/save') && r.request().method() === 'GET';
+
+test('a game given up for a new puzzle does not come back', async ({ browser }) => {
+	const [phone, laptop] = await pair(browser, 'Fresh');
+	await phone.goto('/tetroid?v=6n');
+	await shade(phone, [[0, 0]]);
+	await phone.waitForResponse(savePut);
+	const given = (await savedGame(phone))!;
+
+	// "New puzzle" asks before it throws the game away; the new one goes to the server at once.
+	const pushed = phone.waitForResponse(savePut);
+	await phone.getByRole('button', { name: 'New puzzle' }).click();
+	const dialog = phone.getByRole('alertdialog');
+	await expect(dialog).toContainText('unfinished game');
+	await dialog.getByRole('button').last().click();
+	await pushed;
+	const fresh = (await savedGame(phone))!;
+	expect(fresh.ticket).not.toBe(given.ticket);
+
+	// Back on the page, the new puzzle stays.
+	const pulled = phone.waitForResponse(savePull);
+	await phone.reload();
+	await pulled;
+	await phone.waitForTimeout(500);
+	await expect(phone.getByText('Continued your game from another device.')).toHaveCount(0);
+	expect(await savedGame(phone)).toMatchObject({ ticket: fresh.ticket });
+	expect(await shadedCells(phone)).toEqual([]);
+
+	// Nor does the other device continue the given-up game.
+	const lpulled = laptop.waitForResponse(savePull);
+	await laptop.goto('/tetroid?v=6n');
+	await lpulled;
+	await laptop.waitForTimeout(500);
+	await expect(laptop.getByText('Continued your game from another device.')).toHaveCount(0);
+	expect((await savedGame(laptop))?.ticket).not.toBe(given.ticket);
+	expect(await shadedCells(laptop)).toEqual([]);
+});
+
+test('a game a link replaced does not come back', async ({ browser }) => {
+	const [phone] = await pair(browser, 'Link');
+	await phone.goto('/tetroid?v=6n');
+	await shade(phone, [[0, 0]]);
+	await phone.waitForResponse(savePut);
+
+	// A link to another 6x6 puzzle asks before it replaces the game, then asks the server.
+	const other = 496678848;
+	const pulled = phone.waitForResponse(savePull);
+	await phone.goto(`/tetroid?id=${other}`);
+	const dialog = phone.getByRole('alertdialog');
+	await expect(dialog).toContainText('replaces your unfinished game', { timeout: 30_000 });
+	await dialog.getByRole('button').last().click();
+	await pulled;
+	await phone.waitForTimeout(500);
+	await expect(phone.getByText('Continued your game from another device.')).toHaveCount(0);
+	expect(await savedGame(phone)).toMatchObject({ puzzleId: other });
+	expect(await shadedCells(phone)).toEqual([]);
 });

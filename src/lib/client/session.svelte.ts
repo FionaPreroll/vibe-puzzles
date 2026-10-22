@@ -270,6 +270,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			return;
 		}
 		if (token !== this.openToken) return;
+		// A started game in the slot is given up ("New puzzle", or a link to another puzzle).
+		const given = this.saves.playable(this.variant);
+		const replaces = !!given && !given.solved && hasProgress(this.game, given);
 		const sharedState = shared ? this.game.decodeState(found.puzzle, shared) : null;
 		this.show({
 			...found,
@@ -279,8 +282,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			playMs: 0
 		});
 		this.finishLoading(token);
-		// The new game takes the slot, whatever another tab saved in it meanwhile.
-		this.saves.claim();
+		// The new game takes the slot, whatever another tab saved in it meanwhile, and the server
+		// does not give a given-up game back.
+		this.saves.claim(replaces);
 		this.persist();
 		if (!found.ticket) this.puzzles.prefetch(this.variantIndex);
 	}

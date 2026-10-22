@@ -30,6 +30,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **Your last moves** before leaving a game, closing the page or switching to another app reach your other devices. They used to stay on this device until you played there again.
 - **Recent solves** of puzzles from the server show their puzzle ID once the server tells it, and solving such a puzzle again after starting over no longer counts as a new solve or best time. A solve whose ID never came no longer links to a puzzle that does not exist.
 - **Moving on right after a solve**: when the server's answer to a solve comes only after the next puzzle has opened, it no longer gives that puzzle the solved one's ID or shows its rank there.
+- **A game you gave up**, with "New puzzle" or for a puzzle from a link, no longer comes back from the server when you return to the page, sync or reload, and your other devices no longer pick it up.
 
 ## [0.8.0] - 2026-10-11
 
