@@ -1194,12 +1194,13 @@ describe('syncing with other devices', () => {
 		expect(s.message?.text).toBe('Continued your game from another device.');
 	});
 
-	it('keeps a newer local game and ignores empty or solved remote games', async () => {
+	it('keeps a newer local game and ignores new or solved remote games', async () => {
 		const s = await opened({ autoSubmit: false });
 		s.move(shaded(1), []);
 		for (const r of [
 			remote(shaded(7), Date.now() - 1000),
-			remote(game.emptyState(puzzle), Date.now() + 1000),
+			// Another puzzle, untouched.
+			remote(game.emptyState(puzzle), Date.now() + 1000, { puzzleId: encodePuzzleId(0, 7) }),
 			remote(shaded(7), Date.now() + 1000, { solved: true })
 		]) {
 			vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
@@ -1300,6 +1301,31 @@ describe('syncing with other devices', () => {
 			await pulled();
 			expect(other.puzzle).not.toEqual(puzzle);
 			expect(other.message).toBeNull();
+		});
+
+		it('takes the moves back on the other devices too when all are undone', async () => {
+			const saves = serve();
+			const s = await started();
+			const here = localStorage;
+			// The game continues on another device.
+			const there = new MemoryStorage();
+			vi.stubGlobal('localStorage', there);
+			vi.mocked(api.serverPuzzles).mockResolvedValueOnce(false);
+			const other = session({ autoSubmit: false });
+			await other.open('6n');
+			await pulled();
+			expect(other.state).toEqual(shaded(1));
+			// Back here, the move is undone.
+			vi.stubGlobal('localStorage', here);
+			s.undo();
+			vi.advanceTimersByTime(1500);
+			expect(saves.get(KEY)?.data).toMatchObject({ state: game.emptyState(puzzle) });
+			// The other device takes it back too once it asks the server again.
+			vi.stubGlobal('localStorage', there);
+			await other.refreshFromServer();
+			expect(other.state).toEqual(game.emptyState(puzzle));
+			expect(other.puzzle).toEqual(puzzle);
+			expect(other.message?.text).toBe('Your moves were taken back on another device.');
 		});
 
 		it('does not come back from the server when a puzzle from a link took its place', async () => {

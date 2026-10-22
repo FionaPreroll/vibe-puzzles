@@ -38,6 +38,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **Tetroid with the keyboard**: pressing Shift or Ctrl alone no longer changes the cell at the keyboard cursor, for example when you hold Shift to see the group under the mouse. With the arrow keys, Ctrl or Shift still mark the cells the cursor passes (Shift like a right click), from the cell it leaves on.
 - **Export backup** in Safari: the app keeps the file ready until the browser has saved it. Letting go of it at once can break the download there.
 - **Switching right after a move or a solve**, to another puzzle type or to a new puzzle, no longer keeps that move or solve from your other devices. A daily puzzle solved and left at once used to stay unsolved there.
+- **Taking back every move** of a game, with Undo or Start over, reaches your other devices too. The moves used to come back there, since a game without moves was not uploaded.
 
 ## [0.8.0] - 2026-10-11
 

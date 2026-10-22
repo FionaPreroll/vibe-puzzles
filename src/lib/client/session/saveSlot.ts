@@ -37,6 +37,11 @@ export class SaveSlot<P extends BasePuzzle, S> {
 	private changedAt = 0;
 	/** The next save replaces a game the player gave up, also on the server (see `claim`). */
 	private replacing = false;
+	/**
+	 * The save of the game on the board that this tab last wrote or read had progress: if the next
+	 * one has none, every move was taken back (undone, or the game started over).
+	 */
+	private progress = false;
 	/** The upload that waits for the pause after the last change, and how to send it at once. */
 	private waiting: { timer: ReturnType<typeof setTimeout>; send: () => void } | null = null;
 
@@ -67,6 +72,7 @@ export class SaveSlot<P extends BasePuzzle, S> {
 	adopt(save: SavedGame<S>) {
 		this.storedAt = save.updatedAt;
 		this.changedAt = save.updatedAt;
+		this.progress = hasProgress(this.game, save);
 	}
 
 	/**
@@ -79,6 +85,7 @@ export class SaveSlot<P extends BasePuzzle, S> {
 		this.sendWaiting();
 		this.storedAt = this.storedUpdatedAt();
 		this.replacing = replaces;
+		this.progress = false;
 		if (replaces && this.storedAt) this.changedAt = Math.max(this.changedAt, this.storedAt);
 	}
 
@@ -105,12 +112,17 @@ export class SaveSlot<P extends BasePuzzle, S> {
 		if (changed || !this.changedAt) this.changedAt = Math.max(Date.now(), this.changedAt + 1);
 		const data: SavedGame<S> = { version: SAVE_VERSION, ...record, updatedAt: this.changedAt };
 		if (save(this.key, data)) this.storedAt = data.updatedAt;
-		this.cancelPush();
+		const waited = this.cancelPush();
 		const replacing = this.replacing;
 		this.replacing = false;
+		const progress = hasProgress(this.game, data);
+		// An untouched game that had progress goes up, or the other devices keep its moves: so does
+		// a save in place of such a one that still waited to go up.
+		const takesBack = !progress && (this.progress || waited);
+		this.progress = progress;
 		// An untouched new puzzle is not uploaded, so it cannot replace a game on another device,
 		// unless it takes the place of one the player gave up here (`claim`).
-		if (!replacing && !hasProgress(this.game, data)) return;
+		if (!progress && !replacing && !takesBack) return;
 		const key = this.key;
 		// The upload waits in the outbox as soon as it starts, so it also survives the page.
 		const send = () => void pushSave(key, data, data.updatedAt);
@@ -122,10 +134,15 @@ export class SaveSlot<P extends BasePuzzle, S> {
 		this.waiting = { timer, send };
 	}
 
-	/** Drop the upload that waits, e.g. when another tab's or device's save takes over. */
-	cancelPush() {
-		if (this.waiting) clearTimeout(this.waiting.timer);
+	/**
+	 * Drop the upload that waits, e.g. when another tab's or device's save takes over. Returns
+	 * whether one waited.
+	 */
+	cancelPush(): boolean {
+		if (!this.waiting) return false;
+		clearTimeout(this.waiting.timer);
 		this.waiting = null;
+		return true;
 	}
 
 	/**

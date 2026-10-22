@@ -284,6 +284,32 @@ test('a move made right before leaving the game reaches the other device', async
 	expect(await shadedCells(laptop)).toEqual(cells);
 });
 
+test('moves taken back on one device are taken back on the other', async ({ browser }) => {
+	const [phone, laptop] = await pair(browser, 'Undo');
+	await phone.goto('/tetroid?v=6n');
+	await shade(phone, [[0, 0]]);
+	await phone.waitForResponse(savePut);
+	await laptop.goto('/tetroid?v=6n');
+	await expect(laptop.getByRole('status')).toHaveText('Continued your game from another device.', {
+		timeout: 15_000
+	});
+	expect(await shadedCells(laptop)).toHaveLength(1);
+
+	// The phone takes the move back: the untouched game goes to the server too.
+	const pushed = phone.waitForResponse(savePut);
+	await phone.getByRole('button', { name: 'Undo' }).first().click();
+	await pushed;
+	expect(await shadedCells(phone)).toEqual([]);
+
+	// Back on the page, the laptop takes it back as well.
+	await laptop.reload();
+	await expect(laptop.getByRole('status')).toHaveText(
+		'Your moves were taken back on another device.',
+		{ timeout: 15_000 }
+	);
+	expect(await shadedCells(laptop)).toEqual([]);
+});
+
 const savePull = (r: { url(): string; request(): { method(): string } }) =>
 	r.url().includes('/api/saves/save') && r.request().method() === 'GET';
 

@@ -233,6 +233,7 @@ const en = {
 		serverFailed:
 			'The server could not create a puzzle, so this one is played offline and not ranked.',
 		continued: 'Continued your game from another device.',
+		takenBack: 'Your moves were taken back on another device.',
 		otherTab: 'Continued your game from another tab.',
 		notSolved: 'Not solved yet. Keep going!',
 		solved: 'Solved in {time}!',
