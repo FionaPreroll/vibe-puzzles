@@ -53,9 +53,18 @@
 		const puzzleId = v.special
 			? encodePuzzleId(index, specialSeed(g.id, v.special, periodKey(v.special)))
 			: undefined;
+		// Another game or type chosen meanwhile: its answer is the one to show, not this late one.
+		let current = true;
 		leaderboard(g.id, v.key, puzzleId)
-			.then((b) => (board = b))
-			.catch((e) => (boardError = String(e.message ?? e)));
+			.then((b) => {
+				if (current) board = b;
+			})
+			.catch((e) => {
+				if (current) boardError = String(e.message ?? e);
+			});
+		return () => {
+			current = false;
+		};
 	});
 
 	const average = $derived(stats && stats.solved ? stats.totalMs / stats.solved : null);

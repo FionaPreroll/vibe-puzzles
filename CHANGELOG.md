@@ -33,6 +33,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **A game you gave up**, with "New puzzle" or for a puzzle from a link, no longer comes back from the server when you return to the page, sync or reload, and your other devices no longer pick it up.
 - **A touch the system breaks off**, for example by a swipe in from the edge of the screen or an incoming call, no longer leaves the start of a move on the board, and in Pinwheel no longer locks or unlocks a galaxy a moment later.
 - **Streaks across devices** after 400 solved daily puzzles of one type: a day solved on another device counts on this one too. It used to be left out, so the streak on this device broke.
+- **Leaderboards** on the Scores page belong to the game and puzzle type chosen, also after a quick switch. A late answer for the one chosen before could take their place.
 
 ## [0.8.0] - 2026-10-11
 
