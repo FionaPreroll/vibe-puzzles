@@ -23,6 +23,13 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **"More" menu** in the widescreen layout: it lies over the board instead of partly hiding behind it.
 - **"Creating puzzle…"** no longer gets selected like text when you drag across the board while a new puzzle is being made.
 - **Menu ticks**: a solved daily, weekly or monthly puzzle gets its ✓ in the puzzle type menu right away, and a type solved 100 times in a row its ★, instead of only after reloading the page. A solve in another tab shows too, and the ✓ goes when a new period begins.
+- **Loop hints** that try out an edge name the right step at the end. They asked for a line where the edge gets a cross, and the other way round.
+- **Playing on two devices**: coming back to a game left open on one device continues what you played on the other one meanwhile, also once you had made moves on the first. It used to keep the older game there, and its next move overwrote the newer one.
+- **Games and solves waiting to be uploaded** are no longer thrown away when the server turns the app away for a moment (too many requests, a blocked or timed-out request). The app asks again a little later and sends them then. It used to take the server for missing until the page was reloaded.
+- **Sudoku auto notes** no longer count as a move. Opening a puzzle with "Fill in notes automatically" on leaves it untouched: "New puzzle" neither asks about it nor breaks your streak, it does not replace your game on another device, and undoing back to the start keeps your moves to redo. The notes still show right away.
+- **Your last moves** before leaving a game, closing the page or switching to another app reach your other devices. They used to stay on this device until you played there again.
+- **Recent solves** of puzzles from the server show their puzzle ID once the server tells it, and solving such a puzzle again after starting over no longer counts as a new solve or best time. A solve whose ID never came no longer links to a puzzle that does not exist.
+- **Moving on right after a solve**: when the server's answer to a solve comes only after the next puzzle has opened, it no longer gives that puzzle the solved one's ID or shows its rank there.
 
 ## [0.8.0] - 2026-10-11
 

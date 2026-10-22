@@ -349,6 +349,41 @@ describe('loop hint texts', () => {
 		}
 	});
 
+	it('ends a tried edge with the mark it leads to', () => {
+		// A line on v:3:1 breaks a rule, so the hint asks for a cross there.
+		const p: LoopPuzzle = { width: 4, height: 4, clues: '.............1..' };
+		const tried = loop.hint!(p, marks(p, ['h:1:1', 'v:1:1', 'h:2:1']))!;
+		expect(tried.spotlight).toEqual(['v:3:1']);
+		expect(tried.text[0]).toBe('games.loop.hints.assumeLine');
+		expect(lookup(en, tried.text.at(-1)!)).toBe('So no line goes there: cross it.');
+		expect(lookup(de, tried.text.at(-1)!)).toBe('Also verläuft dort keine Linie: Setz ein Kreuz.');
+		// Following the hints of hard puzzles: every tried edge ends with what the solution has there.
+		const marked = new Set<string>();
+		for (const seed of [3, 5, 13, 15, 19]) {
+			const { puzzle, solution } = generateLoop(5, 5, 'hard', seed);
+			const right = edgeValues(solution);
+			let state = emptyLoopState(puzzle);
+			for (let k = 0; k < 500; k++) {
+				const hint = loop.hint!(puzzle, state);
+				if (!hint) break;
+				const v = edgeValues(state);
+				const edges = hint.spotlight.map((key) =>
+					v.findIndex((_, e) => edgeKey(puzzle, e) === key)
+				);
+				if (hint.text[0].startsWith('games.loop.hints.assume')) {
+					const line = right[edges[0]] === LINE;
+					marked.add(line ? 'line' : 'cross');
+					expect(hint.text.at(-1)).toBe(`games.loop.hints.${line ? 'thenLine' : 'thenCross'}`);
+				}
+				for (const e of edges) v[e] = right[e] === LINE ? LINE : CROSS;
+				state = stateFromEdges(puzzle, v);
+			}
+		}
+		expect(marked.size).toBeGreaterThan(0);
+		expect(lookup(en, 'games.loop.hints.thenLine')).toMatch(/draw the line/);
+		expect(lookup(de, 'games.loop.hints.thenLine')).toMatch(/Zieh die Linie/);
+	});
+
 	it('names the crosses a line rests on before the line, and tints them', () => {
 		const p: LoopPuzzle = { width: 3, height: 3, clues: '.0..3....' };
 		const hint = loop.hint!(p, emptyLoopState(p))!;

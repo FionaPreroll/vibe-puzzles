@@ -85,7 +85,8 @@ export class SaveSlot<P extends BasePuzzle, S> {
 
 	/**
 	 * Save the game locally and, after a short pause, to the server. `changed` is false for a
-	 * plain flush (e.g. of the play time), which keeps the time of the last change.
+	 * plain flush (e.g. of the play time), which keeps the time of the last change and uploads at
+	 * once: it comes when the page is hidden or left, and a timer may never fire after that.
 	 */
 	write(record: GameRecord<S>, changed: boolean) {
 		// Each change gets a time of its own, which tells the tabs' saves apart (`storedAt`).
@@ -96,7 +97,9 @@ export class SaveSlot<P extends BasePuzzle, S> {
 		// An untouched new puzzle is not uploaded, so it cannot replace a game on another device.
 		if (!hasProgress(this.game, data)) return;
 		const key = this.key;
-		this.pushTimer = setTimeout(() => pushSave(key, data, data.updatedAt), PUSH_DELAY_MS);
+		// The upload waits in the outbox as soon as it starts, so it also survives the page.
+		if (!changed) void pushSave(key, data, data.updatedAt);
+		else this.pushTimer = setTimeout(() => pushSave(key, data, data.updatedAt), PUSH_DELAY_MS);
 	}
 
 	/** Drop the upload that waits, e.g. when another tab's or device's save takes over. */

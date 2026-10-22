@@ -62,7 +62,7 @@ export const loop: GameModule<LoopPuzzle, LoopState, LoopSettingKey> = {
 		const empty = [...new Set(support.map((s) => key(EMPTY[s.reason]!)))];
 		const params = hint.clue === undefined ? undefined : { clue: hint.clue };
 		if (hint.technique === 'assumption') {
-			// Suppose the opposite, say what breaks, then what follows.
+			// Suppose the opposite of the step's mark, say what breaks, then ask for the mark.
 			const breaks = `breaks${hint.breaks![0].toUpperCase()}${hint.breaks!.slice(1)}`;
 			const then = hint.mark === 'line' ? 'thenLine' : 'thenCross';
 			return {

@@ -20,7 +20,7 @@ import { SaveSlot } from './session/saveSlot';
 import { hasProgress, playableSave, remoteWins, type PlayableSave } from './session/saves';
 import type { GameSettings } from './settings.svelte';
 import { syncPeriods } from './periodSync';
-import { breakStreak, notePeriodSolved, recordSolve } from './stats';
+import { breakStreak, notePeriodSolved, notePuzzleId, recordSolve } from './stats';
 import { load } from './storage';
 import { saveKey } from './storageKeys';
 
@@ -85,8 +85,11 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	private lastOpen: [string, OpenOptions] = ['', {}];
 	/** Counts `open` and `newPuzzle` calls: a load that finishes after a newer one started is dropped. */
 	private openToken = 0;
-	/** The player changed the game since it was shown: a save from another device no longer replaces it. */
-	private touched = false;
+	/**
+	 * Counts the player's changes to the game. A save from another device that arrives after a
+	 * change made while it was being fetched does not replace that change.
+	 */
+	private changeCount = 0;
 	/** When the game on the board was solved (epoch ms), 0 while it is not. */
 	private solvedAt = 0;
 
@@ -333,7 +336,6 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		this.solved = false;
 		this.solvedAt = 0;
 		this.clock.reset(g?.startedAt ?? 0, g?.playMs ?? 0);
-		this.touched = false;
 	}
 
 	/** The restored game `s` was solved: when, and in what time (older saves: their last change). */
@@ -356,8 +358,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 
 	/** Pick up a newer save of the same slot from another device. */
 	private async syncFromServer(token: number) {
+		const changes = this.changeCount;
 		const remote = await pullSave<unknown>(this.saves.key);
-		if (!remote || token !== this.openToken || this.touched) return;
+		if (!remote || token !== this.openToken || this.changeCount !== changes) return;
 		const data = playableSave(this.game, this.variant, remote.data);
 		if (!data) return;
 		// The current special puzzle, solved on another device: solved here too, and its period
@@ -463,7 +466,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 	private changed(changed: string[] = []) {
 		this.lastChange = new Set(changed);
 		this.followHint();
-		this.touched = true;
+		this.changeCount++;
 	}
 
 	/**
@@ -497,7 +500,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		// The server measures ranked time from when it issued the puzzle.
 		this.clock.reset(this.ticket ? this.clock.startedAt : Date.now());
 		this.message = null;
-		this.touched = true;
+		this.changeCount++;
 		this.clock.resume();
 		this.persist();
 	}
@@ -690,7 +693,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		const competitive = !this.settings.values.personalTimer;
 		const shown = competitive ? finalMs : finalPlayMs;
 		const variant = this.variant;
-		recordSolve(
+		const { recent } = recordSolve(
 			this.game.id,
 			variant.key,
 			this.puzzleId,
@@ -699,6 +702,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			variant.special,
 			this.hinted
 		);
+		// A server puzzle has no ID (0) until the server answers: then its solve gets it.
+		const recordedAt = this.puzzleId ? null : recent[0].at;
 		// The period counts for the streak on the player's other devices too.
 		if (this.period) void syncPeriods(this.game.id, variant);
 		this.persist();
@@ -706,6 +711,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			t('session.solved', { time: formatDuration(shown, true) })
 		);
 
+		// The answer is about this game: a game opened meanwhile gets neither its ID nor its message.
+		const token = this.openToken;
 		this.submitting = true;
 		try {
 			const res = await submitScore({
@@ -720,6 +727,11 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 				hinted: this.hinted,
 				ticket: this.ticket ?? undefined
 			});
+			// The statistics still take the ID of a server puzzle.
+			if (res && res !== 'queued' && res.puzzleId && recordedAt !== null) {
+				notePuzzleId(this.game.id, variant.key, recordedAt, res.puzzleId);
+			}
+			if (token !== this.openToken) return;
 			if (res === 'queued') {
 				this.message = message('info', () =>
 					t('session.queued', { time: formatDuration(shown, true) })
@@ -732,6 +744,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			}
 			if (res) this.message = scoreMessage(res, shown, variant);
 		} catch (e) {
+			if (token !== this.openToken) return;
 			const error = (e as Error).message;
 			this.message = message('info', () =>
 				t('session.uploadFailed', { time: formatDuration(shown, true), error })
@@ -743,7 +756,10 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 
 	// ---- Persistence ------------------------------------------------------------------------
 
-	/** Save locally and, after a short pause, to the server. `changed` is false for a plain flush. */
+	/**
+	 * Save locally and, after a short pause, to the server. `changed` is false for a plain flush,
+	 * which uploads at once.
+	 */
 	persist(changed = true) {
 		const { puzzle, state } = this;
 		// Never save the previous puzzle into the slot of one that is still loading.
@@ -771,7 +787,10 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		);
 	}
 
-	/** Flush the play time into the save (page hide / unload). */
+	/**
+	 * Flush the play time into the save and upload it at once (page hidden or left), so that the
+	 * last moves reach the player's other devices.
+	 */
 	flush() {
 		this.persist(false);
 	}

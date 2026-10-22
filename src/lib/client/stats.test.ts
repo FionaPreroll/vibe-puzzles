@@ -5,6 +5,7 @@ import {
 	getStats,
 	mergePeriods,
 	notePeriodSolved,
+	notePuzzleId,
 	solvedPeriods,
 	previousPeriod,
 	recordSolve,
@@ -117,6 +118,21 @@ describe('stats', () => {
 		expect(recordSolve('tetroid', '8n', 1, 1000).solved).toBe(1);
 		recordSolve('tetroid', '6n', 0, 1000);
 		expect(recordSolve('tetroid', '6n', 0, 1000).solved).toBe(3);
+	});
+
+	it('gives the solve of a server puzzle its ID once the server tells it', () => {
+		vi.useFakeTimers({ now: 1000 });
+		const first = recordSolve('tetroid', '6n', 0, 5000).recent[0].at;
+		vi.advanceTimersByTime(1);
+		recordSolve('tetroid', '6n', 0, 4000);
+		notePuzzleId('tetroid', '6n', first, 42);
+		expect(getStats('tetroid', '6n').recent.map((r) => r.puzzleId)).toEqual([0, 42]);
+		// Solving it again, after starting over, is no new solve.
+		expect(recordSolve('tetroid', '6n', 42, 1000)).toMatchObject({ solved: 2, bestMs: 4000 });
+		// Told again: nothing changes.
+		const before = getStats('tetroid', '6n');
+		notePuzzleId('tetroid', '6n', first, 42);
+		expect(getStats('tetroid', '6n')).toEqual(before);
 	});
 
 	it('keeps the best streak after a break', () => {

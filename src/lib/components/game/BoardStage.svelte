@@ -57,10 +57,12 @@
 		session.hint && session.hintFull ? new Set(session.hint.spotlight) : undefined
 	);
 	const area = $derived(session.hint?.area ? new Set(session.hint.area) : undefined);
+	/** A position as the board shows it, with the game's auto notes (`shown`). */
+	const shown = (state: unknown) => game.shown?.(session.puzzle!, state, settings) ?? state;
 	/** What changed since a running trial began, drawn in the trial colour. */
 	const trialMarks = $derived(
 		session.trial && session.puzzle && session.state
-			? new Set(game.changes(session.puzzle, session.trial, session.state))
+			? new Set(game.changes(session.puzzle, shown(session.trial), shown(session.state)))
 			: undefined
 	);
 
@@ -133,7 +135,7 @@
 				>
 					<Board
 						puzzle={session.puzzle}
-						state={session.state}
+						state={shown(session.state)}
 						{settings}
 						tool={tools.tool}
 						toolOption={tools.option}

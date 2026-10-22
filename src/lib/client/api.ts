@@ -51,13 +51,16 @@ const api = () => `${resolve('/').replace(/\/$/, '')}/api`;
 interface Health {
 	ok: boolean;
 	serverPuzzles: boolean;
-	/** No answer (offline, or a server error), so asking again later may give a different one. */
+	/**
+	 * No answer, a server error, or a refusal for now (403, 429, …), so asking again later may give
+	 * a different one.
+	 */
 	retry: boolean;
 }
 const UNREACHABLE: Health = { ok: false, serverPuzzles: false, retry: true };
 /** Offline mode: the server is not asked. */
 const OFF: Health = { ok: false, serverPuzzles: false, retry: true };
-/** A build without a server. */
+/** A build without a server, or a host without one (static hosting). */
 const NONE: Health = { ok: false, serverPuzzles: false, retry: false };
 
 /**
@@ -97,16 +100,32 @@ function setResult(h: Health) {
 	if (h.ok) void flushOutbox();
 }
 
+/**
+ * Ask the server how it is. Only static hosting counts as no server: it has no such path, or
+ * answers it with a page. Any other failure may pass, so what waits in the outbox stays.
+ */
 async function fetchHealth(): Promise<Health> {
 	const start = performance.now();
 	try {
 		const r = await fetch(`${api()}/health`);
-		if (r.status >= 500) return UNREACHABLE;
-		const body = r.ok ? await r.json().catch(() => null) : null;
-		if (body?.ok === true) contact(start);
-		return { ok: body?.ok === true, serverPuzzles: body?.serverPuzzles === true, retry: false };
+		if (r.status === 404) return NONE;
+		if (!r.ok) return UNREACHABLE;
+		// A body that cannot be read counts like no answer, one that is no JSON is a page.
+		const body = parseJson(await r.text()) as { ok?: unknown; serverPuzzles?: unknown } | null;
+		if (body?.ok !== true) return NONE;
+		contact(start);
+		return { ok: true, serverPuzzles: body.serverPuzzles === true, retry: false };
 	} catch {
 		return UNREACHABLE;
+	}
+}
+
+/** `text` read as JSON, or null if it is none. */
+function parseJson(text: string): unknown {
+	try {
+		return JSON.parse(text);
+	} catch {
+		return null;
 	}
 }
 

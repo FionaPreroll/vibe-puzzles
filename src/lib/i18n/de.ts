@@ -910,8 +910,8 @@ const de: Dictionary = {
 					'Keine Möglichkeit für die Seiten der hinterlegten Zahlen, die zu ihren Zahlen und Punkten passt, legt eine Linie auf die hinterlegten Kanten daneben.',
 				emptySides:
 					'Die Felder an der hinterlegten Kante liegen auf derselben Seite der Schleife: Sie bleibt leer.',
-				thenLine: 'Also verläuft dort keine Linie: Setz ein Kreuz.',
-				thenCross: 'Also muss die Schleife dort entlang: Zieh die Linie.',
+				thenLine: 'Also muss die Schleife dort entlang: Zieh die Linie.',
+				thenCross: 'Also verläuft dort keine Linie: Setz ein Kreuz.',
 				stuck:
 					'Hier legt keine Regel eine weitere Kante fest. Probier im Kopf eine Linie auf der markierten Kante aus und spiel sie durch, bis eine Regel verletzt wird.'
 			},
