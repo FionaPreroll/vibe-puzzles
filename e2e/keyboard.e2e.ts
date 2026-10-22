@@ -62,3 +62,34 @@ test('Shift+0 on a German keyboard erases a Sudoku cell and nothing else', async
 	await expect(page.getByRole('dialog')).toBeHidden();
 	await expect(id).toHaveText(before!);
 });
+
+test('Ctrl or Shift alone leaves the Tetroid cell at the cursor as it is', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
+	await page.goto('/tetroid?v=6n');
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('Space');
+	await expect.poll(async () => (await marks(page, '6n'))[0]).toBe(1);
+	// Shift held to see the group under the mouse, or Ctrl held for a click: no move at the cursor.
+	await page.keyboard.press('Shift');
+	await page.keyboard.press('ArrowDown');
+	await page.keyboard.press('Control');
+	// A move further down saves the board.
+	await page.keyboard.press('ArrowDown');
+	await page.keyboard.press('Space');
+	await expect.poll(async () => (await marks(page, '6n'))[12]).toBe(1);
+	expect((await marks(page, '6n')).slice(0, 7)).toEqual([1, 0, 0, 0, 0, 0, 0]);
+
+	// With the arrows, Shift sets crosses and Ctrl shades, from the cell the cursor leaves.
+	await page.keyboard.down('Shift');
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.up('Shift');
+	await expect.poll(async () => (await marks(page, '6n')).slice(12, 14)).toEqual([2, 2]);
+	await page.keyboard.down('Control');
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.up('Control');
+	await expect.poll(async () => (await marks(page, '6n')).slice(12, 16)).toEqual([2, 1, 1, 1]);
+});
