@@ -261,6 +261,16 @@ export class BoardGesture {
 		this.handlers.end();
 	}
 
+	/**
+	 * The system took the touch away, e.g. for a swipe from the screen edge or a call: no end
+	 * follows, so the move is dropped, and a waiting draw or hold must not start it later.
+	 */
+	touchcancel() {
+		if (!this.#touch) return;
+		this.#dropTouch();
+		this.handlers.cancel();
+	}
+
 	/** The board goes away. */
 	dispose() {
 		this.#dropTouch();
@@ -303,6 +313,7 @@ export function boardInput(
 			// Not passive, so that drawing can keep the page from scrolling.
 			[el, 'touchmove', (e: TouchEvent) => gesture.touchmove(e), { passive: false }],
 			[el, 'touchend', (e: TouchEvent) => gesture.touchend(e), { passive: false }],
+			[el, 'touchcancel', () => gesture.touchcancel(), { passive: true }],
 			[win, 'scroll', () => gesture.scroll(), { capture: true }]
 		];
 		for (const [target, type, fn, opts] of listeners) {
