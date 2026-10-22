@@ -151,10 +151,8 @@ export function recordSolve(
 export function notePuzzleId(game: string, variant: string, at: number, puzzleId: number) {
 	const s = read(game, variant);
 	const solve = s.recent.find((r) => r.at === at && !r.puzzleId);
-	const known = !!s.solvedIds?.includes(puzzleId);
-	if (!solve && known) return;
 	if (solve) solve.puzzleId = puzzleId;
-	if (!known) rememberId(s, puzzleId);
+	if (!s.solvedIds?.includes(puzzleId)) rememberId(s, puzzleId);
 	write(game, variant, s);
 }
 
