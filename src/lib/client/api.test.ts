@@ -397,6 +397,29 @@ describe('outbox and offline mode', () => {
 		expect(puts()).toEqual([expect.objectContaining({ body: { data: { v: 1 }, updatedAt: 1 } })]);
 	});
 
+	it('sends what waits in the outbox before it pulls, so that the answer takes it in', async () => {
+		let stored = { key: 'save:a', data: { v: 1 }, updatedAt: 1 };
+		let answer = () => {};
+		const { api } = await browser((url, init) => {
+			if (url.pathname.endsWith('/health')) return Response.json({ ok: true });
+			if (init.method !== 'PUT') return Response.json(stored);
+			// The server takes its time with the upload.
+			return new Promise((resolve) => {
+				answer = () => {
+					stored = { key: 'save:a', ...JSON.parse(String(init.body)) };
+					resolve(Response.json({ stored: true }));
+				};
+			});
+		});
+		const pushed = api.pushSave('save:a', { v: 2 }, 2);
+		const pulled = api.pullSave('save:a');
+		await vi.waitFor(() => expect(puts()).toHaveLength(1));
+		expect(requests().filter((r) => r.method === 'GET' && r.url.includes('/saves/'))).toEqual([]);
+		answer();
+		expect(await pulled).toEqual({ key: 'save:a', data: { v: 2 }, updatedAt: 2 });
+		await pushed;
+	});
+
 	it('keeps what got no answer and drops what the server refuses', async () => {
 		let status = 503;
 		const { api, outbox } = await browser((url) =>

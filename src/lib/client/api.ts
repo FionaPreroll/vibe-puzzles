@@ -367,6 +367,8 @@ export interface RemoteSave<T = unknown> {
 
 export async function pullSave<T>(key: string): Promise<RemoteSave<T> | null> {
 	if (!currentPlayer() || !(await serverAvailable())) return null;
+	// What waits in the outbox goes first, so that the answer takes this device's changes in.
+	await flushOutbox();
 	try {
 		const save = await call<RemoteSave<T>>(`/saves/${encodeURIComponent(key)}`);
 		return save.data == null ? null : save;

@@ -1231,6 +1231,93 @@ describe('syncing with other devices', () => {
 		expect(s.state).toEqual(shaded(1));
 		vi.mocked(api.currentPlayer).mockReturnValue(null);
 	});
+
+	describe('a game the player gave up', () => {
+		const KEY = 'save:tetroid:6n';
+		const OTHER = encodePuzzleId(0, SEED + 1);
+
+		/** The server keeps the newest save of each slot, as the worker does. Signs the player in. */
+		function serve() {
+			const saves = new Map<string, { data: unknown; updatedAt: number }>();
+			vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
+			vi.mocked(api.pushSave).mockImplementation(async (key, data, updatedAt) => {
+				const old = saves.get(key);
+				if (!old || old.updatedAt < updatedAt) saves.set(key, { data, updatedAt });
+			});
+			vi.mocked(api.pullSave).mockImplementation(async (key) => {
+				const s = saves.get(key);
+				return s ? { key, ...s } : null;
+			});
+			return saves;
+		}
+
+		/** The last request for a save, once the session has taken in its answer. */
+		const pulled = () => vi.mocked(api.pullSave).mock.results.at(-1)?.value;
+
+		/** A game with a shaded cell, uploaded. */
+		async function started() {
+			const s = await opened({ autoSubmit: false });
+			s.move(shaded(1), []);
+			vi.advanceTimersByTime(1500);
+			return s;
+		}
+
+		afterEach(() => {
+			vi.mocked(api.currentPlayer).mockReset();
+			vi.mocked(api.pushSave).mockReset();
+			vi.mocked(api.pullSave).mockReset();
+		});
+
+		it('does not come back from the server after "New puzzle"', async () => {
+			const saves = serve();
+			const s = await started();
+			expect(saves.get(KEY)?.data).toMatchObject({ state: shaded(1) });
+			// New puzzles are made here, on both devices.
+			vi.mocked(api.serverPuzzles).mockResolvedValueOnce(false).mockResolvedValueOnce(false);
+			await s.newPuzzle();
+			const fresh = s.puzzle!;
+			expect(fresh).not.toEqual(puzzle);
+			// The page is shown again, or "Sync now".
+			await s.refreshFromServer();
+			expect(s.puzzle).toEqual(fresh);
+			expect(s.state).toEqual(game.emptyState(fresh));
+			expect(s.message).toBeNull();
+			// Nor does a device without a game of its own continue it.
+			vi.stubGlobal('localStorage', new MemoryStorage());
+			const other = session();
+			await other.open('6n');
+			await pulled();
+			expect(other.puzzle).not.toEqual(puzzle);
+			expect(other.message).toBeNull();
+		});
+
+		it('does not come back from the server when a puzzle from a link took its place', async () => {
+			serve();
+			const s = await started();
+			await s.open('6n', { puzzleId: OTHER });
+			await pulled();
+			expect(s.puzzleId).toBe(OTHER);
+			expect(s.message).toBeNull();
+		});
+
+		it('gives way on the server also when a clock ahead of this one saved it', async () => {
+			const saves = serve();
+			// Saved by another device, whose clock runs a minute ahead, and continued here.
+			const ahead = Date.now() + 60_000;
+			saves.set(KEY, { data: remote(shaded(7), ahead).data, updatedAt: ahead });
+			vi.mocked(api.serverPuzzles).mockResolvedValueOnce(false);
+			const s = session();
+			await s.open('6n');
+			await pulled();
+			expect(s.state).toEqual(shaded(7));
+			// After a reload, a link opens another puzzle in its place.
+			const reloaded = session();
+			await reloaded.open('6n', { puzzleId: OTHER });
+			await pulled();
+			expect(reloaded.puzzleId).toBe(OTHER);
+			expect(saves.get(KEY)?.updatedAt).toBeGreaterThan(ahead);
+		});
+	});
 });
 
 describe('other tabs', () => {
