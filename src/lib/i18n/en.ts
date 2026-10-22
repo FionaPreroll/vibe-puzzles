@@ -540,6 +540,8 @@ const en = {
 				'Click a cell to shade it, right click to place a cross. Drag to paint several cells. Keys 1–4 pick a tool.',
 			controlsTouch:
 				'Tap a cell to cycle through shaded, cross and empty. Hold a moment, then drag to paint several cells.',
+			controlsKeys:
+				"Arrow keys or W, A, S, D move a cursor over the cells; Space acts on the cell under it like a click. Hold {mod} and press the arrows to mark every cell on the way, or hold Shift for the right button's mark; letting go sets it. Esc hides the cursor.",
 			settingHelp: {
 				highlightErrors:
 					'Shaded cells turn red when they break a rule: a full 2×2 block, identical tetrominoes side by side, more than four cells in a region, or a group that can no longer join the rest.'
@@ -614,6 +616,8 @@ const en = {
 				'Click between dots to draw a line, right click to set a cross, Shift+click to colour a cell. Right click a circle to lock a finished region.',
 			controlsTouch:
 				'Tap between dots to draw a line. Pick the Colour tool to colour cells. Hold a circle to lock a finished region.',
+			controlsKeys:
+				'Arrow keys or W, A, S, D move a cursor over the dots. Hold {mod} and press the arrows to draw lines along the way, as with the mouse; letting go sets them. Esc hides the cursor.',
 			settingHelp: {
 				autoSubmit:
 					'The puzzle counts as solved as soon as every region is right, drawn with lines or filled in with colours. Off: you press Done yourself, and only the lines count.',
@@ -840,6 +844,8 @@ const en = {
 				'Click between two dots to draw a line, or drag along the dots to draw several. Right click sets a cross.',
 			controlsTouch:
 				'Tap between two dots to draw a line, or hold and drag along the dots to draw several. Pick the Cross tool to mark edges the loop avoids.',
+			controlsKeys:
+				'Arrow keys or W, A, S, D move a cursor over the dots. Hold {mod} and press the arrows to draw lines along the way, as with the mouse; letting go sets them. Esc hides the cursor.',
 			settingHelp: {
 				highlightErrors:
 					'A dot turns red where the line branches or gets stuck, a number when it has too many lines or crosses. Once the loop is closed, numbers still missing lines turn red too.'

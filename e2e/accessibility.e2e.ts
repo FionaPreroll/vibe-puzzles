@@ -69,6 +69,10 @@ test('"?" lists the keyboard shortcuts', async ({ page }) => {
 	await expect(dialog.getByText('New puzzle')).toBeVisible();
 	// The tools with their keys.
 	await expect(dialog.getByText('Cycle')).toBeVisible();
+	// The board's keys, with the Ctrl key of this device.
+	await expect(
+		dialog.getByText(/^Arrow keys or W, A, S, D move a cursor over the cells/)
+	).toContainText('Hold Ctrl and press the arrows');
 	await page.keyboard.press('Escape');
 	await expect(dialog).toBeHidden();
 	// Also from the rules.

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AnyGame } from '../games';
-	import { t, tList, toolLabel } from '../i18n/index.svelte';
+	import { controlsKeys, t, tList, toolLabel } from '../i18n/index.svelte';
 	import Dialog from './Dialog.svelte';
 	import { modifierName, shortcutList } from './game/shortcuts';
 
@@ -22,6 +22,8 @@
 	/** The page's shortcuts, from the same table as the page's key handler. */
 	const general = $derived(shortcutList(mod, { hint, colourTool: !!game.toolOptions && tools }));
 	const swatchNames = $derived(tList('swatch'));
+	/** The board's own keys: the cursor and drawing with the arrows. */
+	const boardKeys = $derived(controlsKeys(game.id, mod));
 	const switchLabel = $derived.by(() => {
 		if (!game.spaceSwitches) return '';
 		const [a, b] = game.spaceSwitches.map((id) => game.tools.find((x) => x.id === id)!);
@@ -76,4 +78,5 @@
 	{/if}
 	<h3 class="section-title mt-4">{t('shortcuts.board')}</h3>
 	<p class="mt-1 text-sm">{t(`games.${game.id}.controlsMouse`)}</p>
+	{#if boardKeys}<p class="mt-2 text-sm">{boardKeys}</p>{/if}
 </Dialog>
