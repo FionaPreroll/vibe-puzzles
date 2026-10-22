@@ -692,6 +692,34 @@ describe('solving', () => {
 		expect(load<{ puzzleId: number } | null>('save:tetroid:6n', null)?.puzzleId).toBe(ID);
 	});
 
+	it('gives the solve of a server puzzle its ID, so that solving it again does not count', async () => {
+		vi.mocked(api.serverPuzzles).mockResolvedValueOnce(true);
+		vi.mocked(api.issuePuzzle).mockResolvedValueOnce({
+			ticket: 't1',
+			puzzle,
+			issuedAt: Date.now(),
+			puzzleId: null
+		});
+		vi.mocked(api.submitScore).mockResolvedValueOnce({ ok: true, message: '', puzzleId: ID });
+		const s = session();
+		await s.open('6n');
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.puzzleId).toBe(ID));
+		expect(getStats('tetroid', '6n')).toMatchObject({ solved: 1, recent: [{ puzzleId: ID }] });
+		// Start over and solve it again: the server knows it, and so do the statistics now.
+		vi.mocked(api.submitScore).mockResolvedValueOnce({
+			ok: true,
+			code: 'repeat',
+			message: '',
+			puzzleId: ID
+		});
+		s.startOver();
+		s.move(solvedState(), []);
+		await vi.waitFor(() => expect(s.submitting).toBe(false));
+		expect(s.solved).toBe(true);
+		expect(getStats('tetroid', '6n')).toMatchObject({ solved: 1, streak: 1 });
+	});
+
 	it('keeps the solve when the upload fails', async () => {
 		vi.mocked(api.submitScore).mockRejectedValueOnce(new Error('offline'));
 		const s = await opened();

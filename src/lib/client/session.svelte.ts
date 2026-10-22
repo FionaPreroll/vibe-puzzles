@@ -20,7 +20,7 @@ import { SaveSlot } from './session/saveSlot';
 import { hasProgress, playableSave, remoteWins, type PlayableSave } from './session/saves';
 import type { GameSettings } from './settings.svelte';
 import { syncPeriods } from './periodSync';
-import { breakStreak, notePeriodSolved, recordSolve } from './stats';
+import { breakStreak, notePeriodSolved, notePuzzleId, recordSolve } from './stats';
 import { load } from './storage';
 import { saveKey } from './storageKeys';
 
@@ -693,7 +693,7 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 		const competitive = !this.settings.values.personalTimer;
 		const shown = competitive ? finalMs : finalPlayMs;
 		const variant = this.variant;
-		recordSolve(
+		const { recent } = recordSolve(
 			this.game.id,
 			variant.key,
 			this.puzzleId,
@@ -702,6 +702,8 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 			variant.special,
 			this.hinted
 		);
+		// A server puzzle has no ID (0) until the server answers: then its solve gets it.
+		const recordedAt = this.puzzleId ? null : recent[0].at;
 		// The period counts for the streak on the player's other devices too.
 		if (this.period) void syncPeriods(this.game.id, variant);
 		this.persist();
@@ -728,6 +730,9 @@ export class GameSession<P extends BasePuzzle = BasePuzzle, S = unknown, K exten
 					t('session.queued', { time: formatDuration(shown, true) })
 				);
 				return;
+			}
+			if (res?.puzzleId && recordedAt !== null) {
+				notePuzzleId(this.game.id, variant.key, recordedAt, res.puzzleId);
 			}
 			if (res?.puzzleId && !this.puzzleId) {
 				this.puzzleId = res.puzzleId;

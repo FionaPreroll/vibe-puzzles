@@ -28,6 +28,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **Games and solves waiting to be uploaded** are no longer thrown away when the server turns the app away for a moment (too many requests, a blocked or timed-out request). The app asks again a little later and sends them then. It used to take the server for missing until the page was reloaded.
 - **Sudoku auto notes** no longer count as a move. Opening a puzzle with "Fill in notes automatically" on leaves it untouched: "New puzzle" neither asks about it nor breaks your streak, it does not replace your game on another device, and undoing back to the start keeps your moves to redo. The notes still show right away.
 - **Your last moves** before leaving a game, closing the page or switching to another app reach your other devices. They used to stay on this device until you played there again.
+- **Recent solves** of puzzles from the server show their puzzle ID once the server tells it, and solving such a puzzle again after starting over no longer counts as a new solve or best time. A solve whose ID never came no longer links to a puzzle that does not exist.
 
 ## [0.8.0] - 2026-10-11
 
