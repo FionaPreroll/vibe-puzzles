@@ -1194,6 +1194,14 @@ describe('syncing with other devices', () => {
 		expect(s.message?.text).toBe('Continued your game from another device.');
 	});
 
+	it('goes on with a puzzle from a link that another device played before it opened here', async () => {
+		vi.mocked(api.pullSave).mockResolvedValueOnce(remote(shaded(7), Date.now() - 60_000));
+		const s = session();
+		await s.open('6n', { puzzleId: ID });
+		await vi.waitFor(() => expect(s.state).toEqual(shaded(7)));
+		expect(s.message?.text).toBe('Continued your game from another device.');
+	});
+
 	it('keeps a newer local game and ignores new or solved remote games', async () => {
 		const s = await opened({ autoSubmit: false });
 		s.move(shaded(1), []);
@@ -1326,6 +1334,16 @@ describe('syncing with other devices', () => {
 			expect(other.state).toEqual(game.emptyState(puzzle));
 			expect(other.puzzle).toEqual(puzzle);
 			expect(other.message?.text).toBe('Your moves were taken back on another device.');
+		});
+
+		it('keeps moves taken back here from coming back while the server still has them', async () => {
+			serve();
+			const s = await started();
+			s.undo();
+			// "Sync now" before the untouched game went up.
+			await s.refreshFromServer();
+			expect(s.state).toEqual(game.emptyState(puzzle));
+			expect(s.message).toBeNull();
 		});
 
 		it('does not come back from the server when a puzzle from a link took its place', async () => {

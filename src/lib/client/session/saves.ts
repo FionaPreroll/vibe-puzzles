@@ -43,6 +43,11 @@ export interface SavedGame<S = unknown> {
 	trial?: S;
 	/** When it was solved (epoch ms); a later save (a checkpoint, leaving the page) keeps it. */
 	solvedAt?: number;
+	/**
+	 * Every move was taken back (undone, or the game started over), and none made since: an older
+	 * save of the game from another device does not bring the moves back.
+	 */
+	takenBack?: boolean;
 }
 
 /** A save of a game this app can show: its puzzle and position are valid for the type. */
@@ -73,6 +78,7 @@ export function migrateSave<S = unknown>(raw: unknown): SavedGame<S> | null {
 		...(typeof s.ticket === 'string' ? { ticket: s.ticket } : { ticket: undefined }),
 		...(hints ? { hinted: true, hints } : { hinted: undefined, hints: undefined }),
 		assisted: s.assisted ? true : undefined,
+		takenBack: s.takenBack ? true : undefined,
 		solvedAt: s.solved && Number.isFinite(s.solvedAt) ? s.solvedAt : undefined
 	};
 }
@@ -112,9 +118,10 @@ export function hasProgress<P extends BasePuzzle, S>(
 /**
  * Whether a save from another device replaces the game in this slot (`local`, null if there is
  * none or it cannot be played), given which of the two have progress. A newer local game wins,
- * unless nobody has played it yet: then the other device's game continues here. A solved remote
- * game never replaces anything, nor does an older save of the same game. An untouched one only
- * replaces an older save of the same game with progress: every move of it was taken back there.
+ * unless nobody has played it yet: then the other device's game continues here, also an older
+ * save of the same game, unless its moves were taken back here. A solved remote game never
+ * replaces anything. An untouched one only replaces an older save of the same game with
+ * progress: every move of it was taken back there.
  */
 export function remoteWins<S>(
 	local: SavedGame<S> | null,
@@ -130,7 +137,7 @@ export function remoteWins<S>(
 	const newer = !local || remote.updatedAt > local.updatedAt;
 	if (!progress(remote)) return same && newer && progress(local!);
 	if (local && !newer && progress(local)) return false;
-	return !(same && !newer);
+	return !(same && !newer && local!.takenBack);
 }
 
 // The housekeeping below reads saves as they are: it must not take a save from a newer version,

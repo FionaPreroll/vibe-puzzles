@@ -13,8 +13,11 @@ import {
 /** How long after the last change a game is uploaded, so that quick moves upload once. */
 export const PUSH_DELAY_MS = 1500;
 
-/** What the session saves of its game; the slot adds the format version and the time. */
-export type GameRecord<S> = Omit<SavedGame<S>, 'version' | 'updatedAt'>;
+/**
+ * What the session saves of its game; the slot adds the format version, the time and whether its
+ * moves were taken back.
+ */
+export type GameRecord<S> = Omit<SavedGame<S>, 'version' | 'updatedAt' | 'takenBack'>;
 
 /**
  * The storage slot of the game being played (`saveKey`): writing it locally and, after a short
@@ -42,6 +45,8 @@ export class SaveSlot<P extends BasePuzzle, S> {
 	 * one has none, every move was taken back (undone, or the game started over).
 	 */
 	private progress = false;
+	/** Every move of the game on the board was taken back, and none made since. */
+	private takenBack = false;
 	/** The upload that waits for the pause after the last change, and how to send it at once. */
 	private waiting: { timer: ReturnType<typeof setTimeout>; send: () => void } | null = null;
 
@@ -73,6 +78,7 @@ export class SaveSlot<P extends BasePuzzle, S> {
 		this.storedAt = save.updatedAt;
 		this.changedAt = save.updatedAt;
 		this.progress = hasProgress(this.game, save);
+		this.takenBack = !this.progress && !!save.takenBack;
 	}
 
 	/**
@@ -86,6 +92,7 @@ export class SaveSlot<P extends BasePuzzle, S> {
 		this.storedAt = this.storedUpdatedAt();
 		this.replacing = replaces;
 		this.progress = false;
+		this.takenBack = false;
 		if (replaces && this.storedAt) this.changedAt = Math.max(this.changedAt, this.storedAt);
 	}
 
@@ -110,16 +117,22 @@ export class SaveSlot<P extends BasePuzzle, S> {
 	write(record: GameRecord<S>, changed: boolean) {
 		// Each change gets a time of its own, which tells the tabs' saves apart (`storedAt`).
 		if (changed || !this.changedAt) this.changedAt = Math.max(Date.now(), this.changedAt + 1);
-		const data: SavedGame<S> = { version: SAVE_VERSION, ...record, updatedAt: this.changedAt };
-		if (save(this.key, data)) this.storedAt = data.updatedAt;
 		const waited = this.cancelPush();
 		const replacing = this.replacing;
 		this.replacing = false;
-		const progress = hasProgress(this.game, data);
+		const progress = hasProgress(this.game, record);
 		// An untouched game that had progress goes up, or the other devices keep its moves: so does
 		// a save in place of such a one that still waited to go up.
 		const takesBack = !progress && (this.progress || waited);
 		this.progress = progress;
+		this.takenBack = !progress && (takesBack || this.takenBack);
+		const data: SavedGame<S> = {
+			version: SAVE_VERSION,
+			...record,
+			...(this.takenBack ? { takenBack: true } : {}),
+			updatedAt: this.changedAt
+		};
+		if (save(this.key, data)) this.storedAt = data.updatedAt;
 		// An untouched new puzzle is not uploaded, so it cannot replace a game on another device,
 		// unless it takes the place of one the player gave up here (`claim`).
 		if (!progress && !replacing && !takesBack) return;
