@@ -8,7 +8,7 @@ import { expect, test, type Page } from '@playwright/test';
 const PUZZLE = '/tetroid?v=6n&id=496678832';
 const SLOT = 'vp:save:tetroid:6n';
 
-const board = (page: Page) => page.getByRole('grid', { name: 'Puzzle board' });
+const board = (page: Page) => page.getByRole('application', { name: 'Puzzle board' });
 const puzzleId = (page: Page) => page.locator('.font-mono.select-all');
 
 /** Shaded cells of the saved game. */

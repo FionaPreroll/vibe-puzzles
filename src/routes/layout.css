@@ -47,6 +47,14 @@
 	.menu-item {
 		@apply rounded-md px-3 py-2 text-left text-sm hover:bg-stone-100 disabled:opacity-50 dark:hover:bg-stone-800;
 	}
+	/* A board the keys play: a ring when the keyboard brings the focus to it, none for a click. */
+	.board-focus {
+		outline: none;
+		&:focus-visible {
+			outline: 2px solid var(--color-indigo-500);
+			outline-offset: 2px;
+		}
+	}
 	/* The board sits on its own surface, the one thing on the page that stands out. */
 	.board-stage {
 		@apply relative isolate mx-auto w-fit rounded-2xl bg-white p-2 shadow-[0_1px_2px_rgb(28_25_23/0.05),0_14px_32px_-14px_rgb(28_25_23/0.22)] ring-1 ring-stone-200/80 lg:p-3 dark:bg-stone-900 dark:shadow-[0_14px_32px_-14px_rgb(0_0_0/0.6)] dark:ring-stone-800;

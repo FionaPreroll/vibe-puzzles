@@ -10,7 +10,7 @@ test('a new puzzle right after solving ends the celebration', async ({ page }) =
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 

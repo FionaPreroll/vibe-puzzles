@@ -15,7 +15,7 @@ async function openPuzzle(page: Page) {
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	return board;
 }
@@ -160,7 +160,7 @@ test.describe('by default', () => {
 
 	/** The panel is on the left of the board. */
 	async function expectPanelLeft(page: Page) {
-		const board = page.locator('.overflow-x-auto svg[role="grid"]');
+		const board = page.locator('.overflow-x-auto svg[role="application"]');
 		await expect(page.getByRole('button', { name: 'Collapse controls' })).toBeVisible();
 		await expect
 			.poll(async () => {

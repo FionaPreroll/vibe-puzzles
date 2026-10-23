@@ -10,14 +10,14 @@ for (const game of ['tetroid', 'pinwheel', 'loop']) {
 	test(`${game} generates and renders a board`, async ({ page }) => {
 		await page.goto(`/${game}?v=${game === 'tetroid' ? '6n' : '5n'}`);
 		await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-		await expect(page.getByRole('grid', { name: 'Puzzle board' }).first()).toBeVisible();
+		await expect(page.getByRole('application', { name: 'Puzzle board' }).first()).toBeVisible();
 	});
 }
 
 test('the first visit opens the tutorial, which can be solved', async ({ page }) => {
 	await page.goto('/tetroid');
 	await expect(page).toHaveURL(/\/tetroid\/tutorial$/);
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	const box = (await board.boundingBox())!;
 	const cell = box.width / 5;
 	// The remaining tetrominoes: L top right, S on the right, I at the bottom.
@@ -52,7 +52,7 @@ test('switches to German', async ({ page }) => {
 
 test('a Pinwheel line dragged from a clicked edge keeps that edge', async ({ page }) => {
 	await page.goto('/pinwheel/tutorial');
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	// The tutorial's board is prerendered: a drag before the page has hydrated goes unnoticed.
 	await page.waitForLoadState('networkidle');
 	const box = (await board.boundingBox())!;
@@ -78,7 +78,7 @@ test('works offline after the first visit', async ({ page, context }) => {
 	await context.setOffline(true);
 	await page.goto('/tetroid?v=6n');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible();
+	await expect(page.getByRole('application', { name: 'Puzzle board' })).toBeVisible();
 	await context.setOffline(false);
 });
 
@@ -145,7 +145,7 @@ test('plays a puzzle from the collection when chosen', async ({ page }) => {
 	await page.evaluate(() => localStorage.setItem('vp:puzzleSource', '"bank"'));
 	await page.goto('/tetroid?v=20h');
 	await expect(page.getByText('(from the puzzle collection)')).toBeVisible({ timeout: 10_000 });
-	await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible();
+	await expect(page.getByRole('application', { name: 'Puzzle board' })).toBeVisible();
 });
 
 test('the zoom popover closes on a press outside it or on Escape', async ({ page }) => {

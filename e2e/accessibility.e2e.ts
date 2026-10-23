@@ -46,7 +46,7 @@ test('deleting a checkpoint asks first, with the × and with a right click', asy
 
 test('a question asked right after an answer stays open', async ({ page }) => {
 	await openPuzzle(page);
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	const box = (await board.boundingBox())!;
 	await page.mouse.click(box.x + box.width / 12, box.y + box.height / 12);
 	await page.getByRole('button', { name: 'New puzzle' }).click();
@@ -78,6 +78,29 @@ test('"?" lists the keyboard shortcuts', async ({ page }) => {
 	// Also from the rules.
 	await page.getByRole('button', { name: 'Keyboard shortcuts (?)' }).click();
 	await expect(dialog).toBeVisible();
+});
+
+test('a screen reader hears where the keyboard cursor is and what lies there', async ({ page }) => {
+	await openPuzzle(page);
+	const board = page.getByRole('application', { name: 'Puzzle board' });
+	await expect(board).toHaveAccessibleDescription(
+		/^Arrow keys or W, A, S, D move a cursor over the cells/
+	);
+	// Tab brings the focus to the board, like to the buttons around it.
+	const focused = () => board.evaluate((el) => el === document.activeElement);
+	for (let k = 0; k < 50 && !(await focused()); k++) await page.keyboard.press('Tab');
+	await expect(board).toBeFocused();
+
+	const speech = page.getByTestId('board-speech');
+	await expect(speech).toHaveText('');
+	await page.keyboard.press('ArrowRight');
+	await expect(speech).toHaveText(/^Row 1, column 1, region \d+: empty$/);
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('Space');
+	await expect(speech).toHaveText(/^Row 1, column 2, region \d+: shaded$/);
+	// Escape hides the cursor, and there is nothing more to say.
+	await page.keyboard.press('Escape');
+	await expect(speech).toHaveText('');
 });
 
 test('the home page shows when the next daily puzzle comes', async ({ page }) => {

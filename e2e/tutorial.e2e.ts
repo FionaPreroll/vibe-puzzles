@@ -5,7 +5,7 @@ import { LOOP_TUTORIAL } from '../src/lib/games/loop/tutorial';
 
 /** Clicks the middle of an edge of the 5×5 tutorial board (padding: a fifth of a cell). */
 async function clickEdge(page: Page, kind: 'h' | 'v', i: number, j: number) {
-	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
+	const box = (await page.getByRole('application', { name: 'Puzzle board' }).boundingBox())!;
 	const cell = box.width / 5.4;
 	const [r, c] = kind === 'h' ? [i, j + 0.5] : [i + 0.5, j];
 	await page.mouse.click(box.x + (0.2 + c) * cell, box.y + (0.2 + r) * cell);
@@ -63,7 +63,7 @@ test('the Pinwheel tutorial separates reading from tasks on the board', async ({
 test('the Tetroid tutorial teaches one rule per step', async ({ page }) => {
 	await page.goto('/tetroid/tutorial');
 	const next = page.getByRole('button', { name: 'Next' });
-	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
+	const box = (await page.getByRole('application', { name: 'Puzzle board' }).boundingBox())!;
 	// 3 px padding around a 5×5 grid.
 	const cell = (box.width - 6) / 5;
 	const click = (i: number) =>
@@ -107,7 +107,7 @@ test('the Tetroid tutorial teaches one rule per step', async ({ page }) => {
 	await expect(page.getByText('Step 6 of 6')).toBeVisible();
 	// The last step has the game's hint: first where to look, then the cell below the one from
 	// step 4, which every tetromino left on the right covers.
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	const spotlight = board.locator('g.spotlight > *');
 	const hint = page.getByRole('button', { name: 'Hint' });
 	await hint.click();
@@ -128,7 +128,7 @@ test('the home page links both Sudoku tutorials, and Calcudoku has its own', asy
 	await expect(page.getByRole('heading', { name: 'Calcudoku tutorial' })).toBeVisible();
 	const next = page.getByRole('button', { name: 'Next' });
 	const pad = page.getByRole('toolbar', { name: 'Number pad' });
-	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
+	const box = (await page.getByRole('application', { name: 'Puzzle board' }).boundingBox())!;
 	const cell = (box.width - 6) / 4;
 	const enter = async (i: number, d: number) => {
 		await page.mouse.click(
@@ -186,7 +186,7 @@ test('the Sudoku tutorial finds the missing digit of a row and a box, then where
 	await page.goto('/sudoku/tutorial');
 	const next = page.getByRole('button', { name: 'Next' });
 	const pad = page.getByRole('toolbar', { name: 'Number pad' });
-	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
+	const box = (await page.getByRole('application', { name: 'Puzzle board' }).boundingBox())!;
 	const cell = (box.width - 6) / 4;
 	const enter = async (i: number, d: number) => {
 		await page.mouse.click(
@@ -230,7 +230,7 @@ test('Space switches between digits and notes in the Sudoku tutorial, as its tex
 	const note = page.getByRole('button', { name: 'Note' });
 	await expect(digit).toHaveAttribute('aria-pressed', 'true');
 	// With a cell selected, as a player would have one while entering digits.
-	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
+	const box = (await page.getByRole('application', { name: 'Puzzle board' }).boundingBox())!;
 	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 	await page.keyboard.press('Space');
 	await expect(note).toHaveAttribute('aria-pressed', 'true');
@@ -245,7 +245,7 @@ test('the Loop tutorial goes from the 0 to the 3s, the dots and the early loop',
 	await page.getByRole('link', { name: 'Learn Loop', exact: true }).click();
 	await expect(page).toHaveURL(/\/loop\/tutorial$/);
 	const next = page.getByRole('button', { name: 'Next' });
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	const spotlight = board.locator('g.spotlight > *');
 	const edge = (key: string) => {
 		const [kind, i, j] = key.split(':');

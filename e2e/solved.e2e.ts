@@ -8,7 +8,7 @@ const SOLUTION = '101111111000100101111111100001100000';
 function measure(page: Page) {
 	return page.evaluate(() => {
 		const area = document.querySelector('.overflow-x-auto')!;
-		const svg = area.querySelector('svg[role="grid"]')!;
+		const svg = area.querySelector('svg[role="application"]')!;
 		const box = svg.getBoundingClientRect();
 		return {
 			board: { x: box.x, y: box.y, width: box.width, height: box.height },
@@ -37,7 +37,7 @@ for (const [width, height, locale] of [
 					localStorage.setItem('vp:puzzleSource', '"bank"');
 				});
 				await page.goto(path);
-				await expect(page.locator('.overflow-x-auto svg[role="grid"]')).toBeVisible({
+				await expect(page.locator('.overflow-x-auto svg[role="application"]')).toBeVisible({
 					timeout: 30_000
 				});
 				expect((await measure(page)).areaScrolls).toBe(false);
@@ -50,7 +50,7 @@ for (const [width, height, locale] of [
 				localStorage.setItem('vp:puzzleSource', '"bank"');
 			});
 			await page.goto(PUZZLE);
-			const board = page.locator('.overflow-x-auto svg[role="grid"]');
+			const board = page.locator('.overflow-x-auto svg[role="application"]');
 			await expect(board).toBeVisible({ timeout: 30_000 });
 			await page.waitForLoadState('networkidle');
 
@@ -101,7 +101,7 @@ async function watchBoard(page: Page) {
 			return [r.x, r.y, r.width, r.height].map((n) => n.toFixed(1)).join(',');
 		};
 		const tick = () => {
-			const board = document.querySelector('svg[role="grid"]')!;
+			const board = document.querySelector('svg[role="application"]')!;
 			const stage = document.querySelector('.board-stage')!;
 			w.boardBoxes.push(`board ${box(board)} stage ${box(stage)} scroll ${window.scrollY}`);
 			if (w.watching) requestAnimationFrame(tick);
@@ -152,7 +152,7 @@ for (const [label, viewport, locale] of [
 					[look, night] as const
 				);
 				await page.goto(PINWHEEL);
-				const board = page.locator('.overflow-x-auto svg[role="grid"]');
+				const board = page.locator('.overflow-x-auto svg[role="application"]');
 				await expect(board).toBeVisible({ timeout: 30_000 });
 				await page.waitForLoadState('networkidle');
 				const grid = (await board.locator('rect').first().boundingBox())!;
@@ -209,7 +209,7 @@ test.describe('the message after sharing the solve on a wide screen', () => {
 				[look, night, locale] as const
 			);
 			await page.goto(PUZZLE);
-			const board = page.locator('.overflow-x-auto svg[role="grid"]');
+			const board = page.locator('.overflow-x-auto svg[role="application"]');
 			await expect(board).toBeVisible({ timeout: 30_000 });
 			await page.waitForLoadState('networkidle');
 			const grid = (await board.locator('rect').first().boundingBox())!;
@@ -292,7 +292,7 @@ test('a solve that cannot be copied shows in a dialog, selected, ready to copy b
 		navigator.clipboard.writeText = () => Promise.reject(new DOMException('denied'));
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const grid = (await board.locator('rect').first().boundingBox())!;
@@ -349,7 +349,7 @@ for (const [label, viewport] of [
 			Object.defineProperty(navigator, 'share', { value: undefined });
 		});
 		await page.goto(PUZZLE);
-		const board = page.locator('.overflow-x-auto svg[role="grid"]');
+		const board = page.locator('.overflow-x-auto svg[role="application"]');
 		await expect(board).toBeVisible({ timeout: 30_000 });
 		await page.waitForLoadState('networkidle');
 		const grid = (await board.locator('rect').first().boundingBox())!;
@@ -389,7 +389,7 @@ test.describe('the solved message', () => {
 			localStorage.setItem('vp:puzzleSource', '"bank"');
 		});
 		await page.goto(PUZZLE);
-		const board = page.locator('.overflow-x-auto svg[role="grid"]');
+		const board = page.locator('.overflow-x-auto svg[role="application"]');
 		await expect(board).toBeVisible({ timeout: 30_000 });
 		await page.waitForLoadState('networkidle');
 		const grid = (await board.locator('rect').first().boundingBox())!;

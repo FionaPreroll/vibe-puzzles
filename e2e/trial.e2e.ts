@@ -10,7 +10,7 @@ const { id } = JSON.parse(readFileSync('static/puzzles/loop/5n/0000.json', 'utf8
 
 async function open(page: Page) {
 	await page.goto(`/loop?v=5n&id=${id}`);
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const grid = (await board.locator('rect').first().boundingBox())!;

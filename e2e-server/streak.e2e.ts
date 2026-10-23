@@ -26,7 +26,7 @@ async function link(phone: Page, laptop: Page) {
 /** Solve today's Tetroid daily puzzle on the board, as a player would. */
 async function solveDaily(page: Page) {
 	await page.goto('/tetroid?v=daily');
-	const board = page.getByRole('grid', { name: 'Puzzle board' }).first();
+	const board = page.getByRole('application', { name: 'Puzzle board' }).first();
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const puzzle = await page.evaluate(() => {

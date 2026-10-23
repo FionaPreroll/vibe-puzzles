@@ -77,7 +77,7 @@ test('a backup exported on the About page brings a game in progress back', async
 	await expect(page.locator('.font-mono.select-all')).toHaveText('496,678,832', {
 		timeout: 30_000
 	});
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	const box = (await board.boundingBox())!;
 	for (const c of [0, 1]) {
 		await page.mouse.click(box.x + ((c + 0.5) * box.width) / 6, box.y + box.height / 12);

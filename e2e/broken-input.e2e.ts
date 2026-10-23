@@ -23,7 +23,7 @@ for (const id of ['9007199254740991', '-5', '1.5', '1e30']) {
 	}) => {
 		await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
 		await page.goto(`/tetroid?v=6n&id=${id}`);
-		await expect(page.getByRole('grid', { name: 'Puzzle board' }).first()).toBeVisible({
+		await expect(page.getByRole('application', { name: 'Puzzle board' }).first()).toBeVisible({
 			timeout: 30_000
 		});
 		await expect(page.getByRole('status')).toHaveText('No puzzle has this ID.');
@@ -34,7 +34,7 @@ for (const id of ['9007199254740991', '-5', '1.5', '1e30']) {
 test('an unknown puzzle ID typed in is refused', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
 	await page.goto('/tetroid?v=6n');
-	const board = page.getByRole('grid', { name: 'Puzzle board' }).first();
+	const board = page.getByRole('application', { name: 'Puzzle board' }).first();
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const before = await page.evaluate(() => localStorage.getItem('vp:save:tetroid:6n'));
 	await page.getByRole('textbox', { name: 'Open puzzle by ID' }).fill('15');

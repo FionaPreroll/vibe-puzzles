@@ -9,6 +9,8 @@
 	import { nextMark } from '../../client/marks';
 	import { t } from '../../i18n/index.svelte';
 	import type { LoopSettingKey } from './settings';
+	import { sayDot } from './speech';
+	import BoardSpeech from '../../components/game/BoardSpeech.svelte';
 	import {
 		analyze,
 		clueAt,
@@ -134,6 +136,16 @@
 		cancel: () => (pending = null)
 	});
 	const cursor = $derived(keyCursor.at);
+	/** For screen readers: the dot under the cursor. */
+	const speech = $derived(
+		keys && cursor && !blank
+			? sayDot(puzzle, shown, a, cursor, {
+					errors: !!settings.highlightErrors,
+					dimSatisfied: !!settings.dimSatisfiedClues
+				})
+			: ''
+	);
+	const speechId = $props.id();
 
 	$effect(() =>
 		keys?.({
@@ -205,16 +217,20 @@
 </script>
 
 <!-- Only the svg itself is hit: a touch keeps its target even when the shape under the finger
-     is redrawn mid-drag (a removed target would swallow the rest of the gesture). -->
+     is redrawn mid-drag (a removed target would swallow the rest of the gesture). The board the
+     keys play is an application to screen readers, which then hand it the arrow keys; Tab brings
+     the focus to it. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <svg
 	{width}
 	{height}
 	viewBox="0 0 {width} {height}"
-	class="block outline-none select-none [&_*]:pointer-events-none"
+	class="board-focus block select-none [&_*]:pointer-events-none"
 	style:touch-action={touchAction(touchMode)}
-	role="grid"
-	tabindex="-1"
+	role="application"
+	tabindex={keys ? 0 : -1}
 	aria-label={t('game.board')}
+	aria-describedby={keys ? speechId : undefined}
 	{@attach input}
 >
 	<rect x={px(0)} y={py(0)} width={w * cellSize} height={h * cellSize} fill={colours.paper} />
@@ -386,3 +402,6 @@
 		</g>
 	{/if}
 </svg>
+{#if keys}
+	<BoardSpeech id={speechId} game="loop" text={speech} />
+{/if}

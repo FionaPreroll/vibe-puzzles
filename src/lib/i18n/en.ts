@@ -225,6 +225,28 @@ const en = {
 		board: 'On the board',
 		or: 'or'
 	},
+	/**
+	 * What a screen reader says about the cell or dot under the keyboard cursor, e.g. "Row 3,
+	 * column 4: empty". The games add their own words under `games.<game>.speech`.
+	 */
+	speech: {
+		cell: 'Row {row}, column {col}',
+		dot: 'Dot in row {row}, column {col}',
+		empty: 'empty',
+		error: 'error',
+		complete: 'complete',
+		lines: 'Lines: {list}',
+		crosses: 'Crosses: {list}',
+		upLeft: 'up left',
+		up: 'up',
+		upRight: 'up right',
+		left: 'left',
+		here: 'here',
+		right: 'right',
+		downLeft: 'down left',
+		down: 'down',
+		downRight: 'down right'
+	},
 	daily: {
 		next: 'New daily puzzle in {time}, at {at}'
 	},
@@ -543,6 +565,12 @@ const en = {
 				'Tap a cell to cycle through shaded, cross and empty. Hold a moment, then drag to paint several cells.',
 			controlsKeys:
 				"Arrow keys or W, A, S, D move a cursor over the cells; Space acts on the cell under it like a click. Hold {mod} and press the arrows to mark every cell on the way, or hold Shift for the right button's mark; letting go sets it. Esc hides the cursor.",
+			speech: {
+				place: '{place}, region {region}',
+				shaded: 'shaded',
+				cross: 'cross',
+				shape: '{shape} tetromino'
+			},
 			settingHelp: {
 				highlightErrors:
 					'Shaded cells turn red when they break a rule: a full 2×2 block, identical tetrominoes side by side, more than four cells in a region, or a group that can no longer join the rest.'
@@ -619,6 +647,11 @@ const en = {
 				'Tap between dots to draw a line. Pick the Colour tool to colour cells. Hold a circle to lock a finished region.',
 			controlsKeys:
 				'Arrow keys or W, A, S, D move a cursor over the dots. Hold {mod} and press the arrows to draw lines along the way, as with the mouse; letting go sets them. Esc hides the cursor.',
+			speech: {
+				border: 'Border: {list}',
+				circles: 'Circles: {list}',
+				locked: 'locked'
+			},
 			settingHelp: {
 				autoSubmit:
 					'The puzzle counts as solved as soon as every region is right, drawn with lines or filled in with colours. Off: you press Done yourself, and only the lines count.',
@@ -689,6 +722,12 @@ const en = {
 				'Click a cell, then type a digit or use the number pad. Shift+digit adds or removes a note, Space switches between digits and notes. Backspace or 0 erases. Arrow keys move. Prefer to pick the digit first? Turn on "Pick the digit first" in the settings.',
 			controlsTouch:
 				'Tap a cell, then a digit on the number pad. Pick the Note tool to add or remove small notes instead. ⌫ erases.',
+			speech: {
+				given: 'given',
+				notes: 'notes {list}',
+				cage: 'Cage {label}, {count} cells',
+				cageOne: 'Cage {label}, one cell'
+			},
 			settingHelp: {
 				hideControls:
 					'Hides the Digit and Note buttons; the number pad stays. The tool you used last stays active. Applies to this device only.',
@@ -847,6 +886,9 @@ const en = {
 				'Tap between two dots to draw a line, or hold and drag along the dots to draw several. Pick the Cross tool to mark edges the loop avoids.',
 			controlsKeys:
 				'Arrow keys or W, A, S, D move a cursor over the dots. Hold {mod} and press the arrows to draw lines along the way, as with the mouse; letting go sets them. Esc hides the cursor.',
+			speech: {
+				numbers: 'Numbers: {list}'
+			},
 			settingHelp: {
 				highlightErrors:
 					'A dot turns red where the line branches or gets stuck, a number when it has too many lines or crosses. Once the loop is closed, numbers still missing lines turn red too.'
