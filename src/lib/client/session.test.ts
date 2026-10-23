@@ -49,6 +49,10 @@ vi.mock('./generate', () => ({
 	})
 }));
 
+// Many tests here make real puzzles (a 10×10 daily, then the next day's or a regular one), which
+// on a busy CI runner with coverage can take longer than the default 5 s.
+vi.setConfig({ testTimeout: 20_000 });
+
 type Session = GameSession<TetroidPuzzle, TetroidState, string>;
 
 const game = GAME_LOGIC.tetroid as unknown as GameModule<TetroidPuzzle, TetroidState>;
