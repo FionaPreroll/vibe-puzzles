@@ -60,11 +60,14 @@ const importInput = (page: Page) => page.getByLabel('Import backup');
 
 /**
  * Pick a file to import. A pick before the page has hydrated goes unnoticed, so the file is picked
- * again until the page answers with its question or its error.
+ * again until the page answers with its question or its error. The unnoticed pick stays in the
+ * input, and picking the same file again is no change to the browser, so the input is emptied
+ * before each pick.
  */
 async function importFile(page: Page, file: Parameters<Locator['setInputFiles']>[0]) {
 	const answer = page.getByRole('alertdialog').or(page.getByRole('alert')).first();
 	await expect(async () => {
+		await importInput(page).setInputFiles([]);
 		await importInput(page).setInputFiles(file);
 		await expect(answer).toBeVisible({ timeout: 1000 });
 	}).toPass();
