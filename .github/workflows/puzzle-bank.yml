@@ -38,7 +38,7 @@ jobs:
       GH_TOKEN: ${{ secrets.BANK_PR_TOKEN || github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           token: ${{ secrets.BANK_PR_TOKEN || github.token }}
@@ -55,7 +55,7 @@ jobs:
           fi
       # Installs the pnpm version from the packageManager field in package.json.
       - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
