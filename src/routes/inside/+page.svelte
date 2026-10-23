@@ -92,5 +92,7 @@
 	{:else}
 		{@render player()}
 	{/if}
-	<p class="mt-4 hidden text-center text-xs text-stone-500 sm:block">{ti('player.keys')}</p>
+	<p class="mt-4 hidden text-center text-xs text-stone-500 sm:block dark:text-stone-400">
+		{ti('player.keys')}
+	</p>
 </section>

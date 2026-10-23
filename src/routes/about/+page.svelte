@@ -68,7 +68,9 @@
 		<p class="mt-1">{@render inline(note)}</p>
 	{/each}
 	{#each r.sections as section (section.title)}
-		<h4 class="mt-3 text-xs font-semibold tracking-wide text-stone-500 uppercase">
+		<h4
+			class="mt-3 text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400"
+		>
 			{t(`about.changeKind.${section.title.toLowerCase()}`)}
 		</h4>
 		<ul class="mt-1 list-disc space-y-1 pl-5">
@@ -86,19 +88,19 @@
 <h1 class="font-display text-3xl font-bold tracking-tight">{t('about.title')}</h1>
 <p class="mt-2 text-stone-600 dark:text-stone-400">{t('about.intro')}</p>
 <p class="mt-1 text-stone-600 dark:text-stone-400">
-	{t('about.contact')} <a class="link" href="mailto:{CONTACT}">{CONTACT}</a>
+	{t('about.contact')} <a class="link in-text" href="mailto:{CONTACT}">{CONTACT}</a>
 </p>
 <p class="mt-1 text-stone-600 dark:text-stone-400">
-	{t('about.inside')} <a class="link" href={resolve('/inside')}>{t('about.insideLink')}</a>
+	{t('about.inside')} <a class="link in-text" href={resolve('/inside')}>{t('about.insideLink')}</a>
 </p>
 
 <div class="mt-6 grid max-w-3xl gap-6">
 	<section class="panel">
 		<h2 class="section-title">{t('about.build')}</h2>
 		<dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-			<dt class="text-stone-500">{t('about.version')}</dt>
+			<dt class="text-stone-500 dark:text-stone-400">{t('about.version')}</dt>
 			<dd>{build.version}</dd>
-			<dt class="text-stone-500">{t('about.commit')}</dt>
+			<dt class="text-stone-500 dark:text-stone-400">{t('about.commit')}</dt>
 			<dd class="font-mono">
 				{#if /^[0-9a-f]{7,}$/.test(build.commit)}
 					<a class="link" href="{REPO}/commit/{build.commit}">{build.commit.slice(0, 7)}</a>
@@ -106,9 +108,9 @@
 					{build.commit}
 				{/if}
 			</dd>
-			<dt class="text-stone-500">{t('about.built')}</dt>
+			<dt class="text-stone-500 dark:text-stone-400">{t('about.built')}</dt>
 			<dd>{new Date(build.date).toLocaleString(i18n.locale)}</dd>
-			<dt class="text-stone-500">{t('about.source')}</dt>
+			<dt class="text-stone-500 dark:text-stone-400">{t('about.source')}</dt>
 			<dd><a class="link" href={REPO}>GitHub</a></dd>
 		</dl>
 	</section>
@@ -171,7 +173,7 @@
 		<ul class="mt-2 space-y-2">
 			{#each __LICENSES__ as l (l.name)}
 				<li>
-					<a class="link" href={l.url}>{l.name}</a>
+					<a class="link in-text" href={l.url}>{l.name}</a>
 					{l.version} · {l.license}
 					<details class="mt-1">
 						<summary class="cursor-pointer text-stone-600 dark:text-stone-400">

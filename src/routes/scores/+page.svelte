@@ -94,12 +94,12 @@
 <div class="mt-6 grid gap-6 lg:grid-cols-2">
 	<section class="panel">
 		<h2 class="text-lg font-semibold">{t('scores.yourStats')}</h2>
-		<p class="text-xs text-stone-500">{t('scores.keptLocally')}</p>
+		<p class="text-xs text-stone-500 dark:text-stone-400">{t('scores.keptLocally')}</p>
 		{#if stats}
 			<dl class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
 				{#each [[t('scores.solved'), String(stats.solved)], [t('scores.streak'), String(stats.streak)], [t('scores.bestStreak'), String(stats.bestStreak)], [t('scores.bestTime'), stats.bestMs != null ? formatDuration(stats.bestMs) : '–'], [t('scores.average'), average != null ? formatDuration(average) : '–']] as [label, value] (label)}
 					<div class="rounded-lg bg-stone-100 p-3 dark:bg-stone-800">
-						<dt class="text-xs text-stone-500 dark:text-stone-400">{label}</dt>
+						<dt class="text-xs text-stone-600 dark:text-stone-400">{label}</dt>
 						<dd class="mt-1 font-mono text-xl tabular-nums">{value}</dd>
 					</div>
 				{/each}
@@ -143,11 +143,11 @@
 		{:else if boardError}
 			<p class="mt-3 text-sm text-rose-600">{boardError}</p>
 		{:else if !board}
-			<p class="mt-3 text-sm text-stone-500">{t('scores.loading')}</p>
+			<p class="mt-3 text-sm text-stone-500 dark:text-stone-400">{t('scores.loading')}</p>
 		{:else if board.entries.length === 0}
 			<p class="mt-3 text-sm text-stone-600 dark:text-stone-400">{t('scores.empty')}</p>
 		{:else}
-			<p class="text-xs text-stone-500">
+			<p class="text-xs text-stone-500 dark:text-stone-400">
 				{board.players === 1 ? t('scores.player') : t('scores.players', { count: board.players })}
 			</p>
 			<ol class="mt-3 divide-y divide-stone-200 text-sm dark:divide-stone-800">
@@ -171,7 +171,9 @@
 		{/if}
 		{#if hasServer && !currentPlayer()}
 			<p class="mt-4 text-sm">
-				<a class="link" href={resolve('/player')}>{t('scores.pickName')}</a>{t('scores.toAppear')}
+				<a class="link in-text" href={resolve('/player')}>{t('scores.pickName')}</a>{t(
+					'scores.toAppear'
+				)}
 			</p>
 		{/if}
 	</section>

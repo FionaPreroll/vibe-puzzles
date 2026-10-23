@@ -19,6 +19,18 @@
 
 	let dialog: HTMLDialogElement | undefined = $state();
 
+	/** A body that scrolls is a tab stop, so the keys can scroll it in every browser. */
+	function scrollStop(body: HTMLElement) {
+		const update = () => {
+			if (body.scrollHeight > body.clientHeight) body.tabIndex = 0;
+			else body.removeAttribute('tabindex');
+		};
+		const observer = new ResizeObserver(update);
+		observer.observe(body);
+		for (const child of body.children) observer.observe(child);
+		return () => observer.disconnect();
+	}
+
 	$effect(() => {
 		if (!dialog) return;
 		if (open && !dialog.open) dialog.showModal();
@@ -44,7 +56,7 @@
 		<h2 id="{id}-title" class="text-lg font-semibold">{title}</h2>
 		<button class="btn-icon" aria-label={t('app.close')} onclick={() => (open = false)}>✕</button>
 	</div>
-	<div class="max-h-[70vh] overflow-y-auto px-5 py-4">
+	<div class="max-h-[70vh] overflow-y-auto px-5 py-4" {@attach scrollStop}>
 		{@render children()}
 	</div>
 </dialog>
