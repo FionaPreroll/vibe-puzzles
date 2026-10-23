@@ -111,7 +111,7 @@
 		<div class="mx-auto w-fit {solved ? 'solved-glow' : ''}">
 			<Board
 				puzzle={tutorial.puzzle}
-				state={current}
+				state={game.shown?.(tutorial.puzzle, current, settings.values) ?? current}
 				settings={settings.values}
 				{tool}
 				toolOption={game.toolOptions?.default ?? 0}

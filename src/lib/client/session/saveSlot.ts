@@ -35,6 +35,8 @@ export class SaveSlot<P extends BasePuzzle, S> {
 	private storedAt: number | null = null;
 	/** When the game last changed. */
 	private changedAt = 0;
+	/** The next save replaces a game the player gave up, also on the server (see `claim`). */
+	private replacing = false;
 	private pushTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(private readonly game: GameLogic<P, S>) {}
@@ -65,9 +67,15 @@ export class SaveSlot<P extends BasePuzzle, S> {
 		this.changedAt = save.updatedAt;
 	}
 
-	/** A new game takes the slot, whatever another tab saved in it meanwhile. */
-	claim() {
+	/**
+	 * A new game takes the slot, whatever another tab saved in it meanwhile. If it takes the place
+	 * of a game the player had started (`replaces`), the server must not give that game back: the
+	 * new game's first save is uploaded at once, untouched or not, and is newer than the old one.
+	 */
+	claim(replaces = false) {
 		this.storedAt = this.storedUpdatedAt();
+		this.replacing = replaces;
+		if (replaces && this.storedAt) this.changedAt = Math.max(this.changedAt, this.storedAt);
 	}
 
 	/** A playable save another tab wrote since this tab last wrote or read the slot. */
@@ -85,7 +93,8 @@ export class SaveSlot<P extends BasePuzzle, S> {
 
 	/**
 	 * Save the game locally and, after a short pause, to the server. `changed` is false for a
-	 * plain flush (e.g. of the play time), which keeps the time of the last change.
+	 * plain flush (e.g. of the play time), which keeps the time of the last change and uploads at
+	 * once: it comes when the page is hidden or left, and a timer may never fire after that.
 	 */
 	write(record: GameRecord<S>, changed: boolean) {
 		// Each change gets a time of its own, which tells the tabs' saves apart (`storedAt`).
@@ -93,10 +102,15 @@ export class SaveSlot<P extends BasePuzzle, S> {
 		const data: SavedGame<S> = { version: SAVE_VERSION, ...record, updatedAt: this.changedAt };
 		if (save(this.key, data)) this.storedAt = data.updatedAt;
 		this.cancelPush();
-		// An untouched new puzzle is not uploaded, so it cannot replace a game on another device.
-		if (!hasProgress(this.game, data)) return;
+		const replacing = this.replacing;
+		this.replacing = false;
+		// An untouched new puzzle is not uploaded, so it cannot replace a game on another device,
+		// unless it takes the place of one the player gave up here (`claim`).
+		if (!replacing && !hasProgress(this.game, data)) return;
 		const key = this.key;
-		this.pushTimer = setTimeout(() => pushSave(key, data, data.updatedAt), PUSH_DELAY_MS);
+		// The upload waits in the outbox as soon as it starts, so it also survives the page.
+		if (!changed || replacing) void pushSave(key, data, data.updatedAt);
+		else this.pushTimer = setTimeout(() => pushSave(key, data, data.updatedAt), PUSH_DELAY_MS);
 	}
 
 	/** Drop the upload that waits, e.g. when another tab's or device's save takes over. */

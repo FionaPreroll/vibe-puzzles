@@ -9,7 +9,14 @@ const de: InsideDictionary = {
 		label: 'Filme',
 		sudoku: 'So entsteht ein Sudoku',
 		pinwheel: 'So entsteht ein Pinwheel',
-		tetroid: 'So entsteht ein Tetroid'
+		tetroid: 'So entsteht ein Tetroid',
+		loop: 'So entsteht ein Loop'
+	},
+	puzzle: {
+		made: 'So entstand Rätsel {id} ({type}).',
+		type: 'Von Rätsel {id} ({type}) gibt es keinen Film: Die Filme zeigen nur kleine Rätsel, manche nur einer Schwierigkeit. Hier siehst du, wie ein {game} ({example}) entsteht.',
+		version:
+			'Von Rätsel {id} gibt es keinen Film: Es stammt aus der Rätselsammlung und wurde von einer früheren Version des Generators gemacht. Hier siehst du, wie ein {game} ({example}) entsteht.'
 	},
 	player: {
 		play: 'Abspielen',
@@ -50,6 +57,8 @@ const de: InsideDictionary = {
 			keep: 'Ja, also bleiben sie draußen. Noch {givens} Ziffern.',
 			restore: 'Nein, man käme nicht weiter. Sie kommen zurück.',
 			done: 'Alle Paare sind probiert. {givens} Ziffern bleiben: Das ist das Rätsel.',
+			doneEasy:
+				'Ein leichtes Rätsel behält mindestens {least} Ziffern, also bleiben Paare drin, die darunter führen würden. {givens} Ziffern bleiben: Das ist das Rätsel.',
 			detail:
 				'Nach jedem Herausnehmen läuft der Bewertungs-Solver, nur mit nackten und versteckten Singles. Füllt er das Gitter, war jede Ziffer erzwungen. Das beweist auch, dass die Lösung eindeutig ist: Eine Suche nach einer zweiten Lösung braucht es nicht. Weil immer Paare herausgehen, bleiben die Vorgaben punktsymmetrisch.'
 		},
@@ -69,8 +78,10 @@ const de: InsideDictionary = {
 			hiddenDetail:
 				'Ein versteckter Single: Kein anderes Feld der Zeile, der Spalte oder des Blocks kann die Ziffer nehmen.',
 			done: 'Gelöst mit {singles} Singles und ohne Raten: ein normales Sudoku.',
+			doneEasy:
+				'Gelöst mit {singles} Singles und ohne Raten, aus vielen Ziffern: ein leichtes Sudoku.',
 			doneDetail:
-				'Die Schwierigkeit ist die schwächste Gruppe von Techniken, die das Rätsel löst. Normal braucht nur Singles. Schwer braucht dazu gesperrte Kandidaten oder nackte und versteckte Paare und Dreier.'
+				'Die Schwierigkeit ist die schwächste Gruppe von Techniken, die das Rätsel löst. Leicht und Normal brauchen nur Singles, und Leicht behält mehr Ziffern. Schwer braucht dazu gesperrte Kandidaten oder nackte und versteckte Paare und Dreier.'
 		}
 	},
 	pinwheel: {
@@ -81,7 +92,7 @@ const de: InsideDictionary = {
 		},
 		grow: {
 			start:
-				'Ein Pinwheel-Spielfeld ist in Galaxien aufgeteilt. Jede sieht nach einer halben Drehung um ihr Zentrum gleich aus. Der Computer beginnt mit einem leeren 7×7-Feld.',
+				'Ein Pinwheel-Spielfeld ist in Galaxien aufgeteilt. Jede sieht nach einer halben Drehung um ihr Zentrum gleich aus. Der Computer beginnt mit einem leeren {size}×{size}-Feld.',
 			centre:
 				'Eine neue Galaxie beginnt an einem freien Feld mit wenigen freien Nachbarn. Ihr Zentrum liegt auf einem Feld, einer Kante oder einer Ecke.',
 			grow: 'Sie wächst um ein Feld und sein Spiegelbild durch das Zentrum, so bleibt sie symmetrisch.',
@@ -112,9 +123,13 @@ const de: InsideDictionary = {
 			levels:
 				'Die Propagation wiederholt zwei Regeln, bis sich nichts mehr ändert: Ein Feld kann nur zu einem Zentrum gehören, solange sein Spiegelbild das auch kann, und nur, wenn Felder, die ebenfalls dazugehören können, es mit dem Zentrum verbinden. Normale Rätsel lösen sich so; schwere brauchen Fallunterscheidungen.',
 			attempts:
-				'Das war Versuch {attempt}. Davor: {easy} zu leicht für Schwer, {dropped} aufgegeben.',
+				'Das war Versuch {attempt}. Davor: {rated} zu leicht für Schwer, {dropped} aufgegeben.',
 			attemptsDetail:
 				'Schwere Aufteilungen sind auf kleinen Feldern selten, aber ein Versuch dauert nur Bruchteile einer Millisekunde. Also probiert der Generator mit demselben Zufallsgenerator einfach weiter, bis zu 10.000 Mal.',
+			attemptsNormal:
+				'Das war Versuch {attempt}. Davor: {rated} zu schwer für Normal, {dropped} aufgegeben.',
+			attemptsNormalDetail:
+				'Die meisten Aufteilungen eines kleinen Felds lassen sich allein durch Schließen festlegen. Wenn eine es nicht tut, probiert der Generator mit demselben Zufallsgenerator einfach weiter.',
 			solution: 'Die Lösung, die der Spieler allein aus den Zentren finden muss.'
 		}
 	},
@@ -127,7 +142,7 @@ const de: InsideDictionary = {
 		},
 		plant: {
 			start:
-				'Eine Tetroid-Lösung ist eine Kette aus Tetrominos in L-, I-, T- und S-Form, eines in jeder Region. Alle hängen zusammen, bilden nie einen 2×2-Block, und dieselbe Form berührt sich nie über eine Regionsgrenze. Der Computer beginnt mit einem leeren 6×6-Feld.',
+				'Eine Tetroid-Lösung ist eine Kette aus Tetrominos in L-, I-, T- und S-Form, eines in jeder Region. Alle hängen zusammen, bilden nie einen 2×2-Block, und dieselbe Form berührt sich nie über eine Regionsgrenze. Der Computer beginnt mit einem leeren {size}×{size}-Feld.',
 			plant:
 				'Er pflanzt ein Tetromino dort, wo es die bisherigen berührt, keinen 2×2-Block bildet und kein Tetromino seiner eigenen Form berührt.',
 			done: 'Es passt kein Tetromino mehr. Jedes wird der Kern einer Region; die Farben zeigen die Formen.',
@@ -179,6 +194,78 @@ const de: InsideDictionary = {
 			lookAheadDetail:
 				'Für jede übrige Lage prüft der Solver, ob alle festen Felder mit ihr noch zusammenhängen könnten. Das ist der teure Teil, darum läuft er nur, wenn die günstigeren Regeln nicht weiterkommen.',
 			done: 'Jede Region steht fest, ohne Raten: Das ist die Lösung.'
+		}
+	},
+	loop: {
+		chapters: {
+			grow: 'Eine Region wächst',
+			numbers: 'Zahlen rein, Zahlen raus',
+			solve: 'Lösen mit Regeln'
+		},
+		grow: {
+			start:
+				'Eine Loop-Lösung ist eine geschlossene Linie entlang des Gitters, ohne Abzweigungen und Kreuzungen. So eine Schleife ist immer der Rand einer Region aus Feldern. Statt eine Linie zu zeichnen, lässt der Computer darum auf einem leeren {size}×{size}-Feld eine Region wachsen.',
+			first:
+				'Sie beginnt mit einem zufälligen Feld. Sein Rand ist die kleinste Schleife, die es gibt.',
+			grow: 'Ein zufälliges Feld neben der Region kommt dazu, und die Schleife läuft um es herum.',
+			touch:
+				'Mit diesem Feld würde die Schleife sich am markierten Punkt selbst berühren: Vier Linien träfen sich dort. Also bleibt das Feld vorerst draußen.',
+			hole: 'Mit diesem Feld wären die markierten Felder vom Rand abgeschnitten: ein Loch in der Region, mit einer zweiten Schleife darum. Also bleibt das Feld vorerst draußen.',
+			done: 'Die Region hat {cells} Felder, etwa die Hälfte des Gitters. Ihr Rand ist die Schleife des Rätsels.',
+			detail:
+				'Die Region wächst auf eine zufällige Größe zwischen 40 und 60 % des Gitters. Felder, die sie nur an einer Seite berühren, kommen dreimal so oft dran; das gibt der Schleife mehr Kurven. Ein Feld bleibt draußen, wenn ein Punkt auf einer Diagonale Felder innen und auf der anderen Felder außen hätte, oder wenn die Felder außen nicht mehr alle den Rand erreichten (geprüft mit einer Flutfüllung). Felder, die draußen bleiben, bekommen eine neue Chance, sobald die Region gewachsen ist.'
+		},
+		numbers: {
+			all: 'Jedes Feld bekommt eine Zahl: wie viele seiner vier Kanten zur Schleife gehören.',
+			example:
+				'Hier gehören {clue} der vier Kanten zur Schleife, also bekommt das Feld eine {clue}.',
+			hide: 'Jetzt wird die Schleife versteckt. Mit allen Zahlen finden die Regeln aus Kapitel 3 sie wieder, und keine andere Schleife.',
+			detail:
+				'Eine Zahl ist 0 bis 3: Eine 4 wäre eine Schleife um dieses eine Feld. Bevor es weitergeht, muss der Bewertungs-Solver das Rätsel mit allen Zahlen lösen, mit den Regeln des Schwierigkeitsgrads; sonst beginnt der Computer mit einer neuen Schleife von vorn.'
+		},
+		dig: {
+			start:
+				'Jetzt kommen Zahlen heraus, eine nach der anderen in zufälliger Reihenfolge. Nach jeder müssen die Regeln die Schleife noch finden.',
+			try: 'Diese Zahl kommt heraus.',
+			keep: 'Die Regeln finden die Schleife noch: {count} Zahlen übrig.',
+			stuck:
+				'Ohne sie kommen die Regeln nicht weiter: Die offenen Kanten können sie nicht entscheiden. Also kommt die Zahl zurück.',
+			done: '{count} Zahlen sind übrig. Ohne eine davon kämen die Regeln nicht weiter: Das ist das Rätsel.',
+			detail:
+				'Die Reihenfolge ist eine zufällige Mischung aller Felder. Nach jedem Herausnehmen versucht der Bewertungs-Solver, jede Kante mit den Regeln des Schwierigkeitsgrads zu entscheiden (Normal: die Regeln aus Kapitel 3; Schwer: auch innen und außen). Ein Rätsel, das die Regeln lösen, hat genau eine Lösung; die Eindeutigkeit braucht also keine eigene Prüfung.'
+		},
+		solve: {
+			start:
+				'Lösen wie ein Mensch, mit Regeln über jeweils ein Feld oder einen Punkt. Jede Regel entscheidet Kanten: Eine Linie gehört zur Schleife, ein Kreuz nicht.',
+			startDetail:
+				'Der Bewertungs-Solver führt eine Warteschlange von Feldern und Punkten, die er ansieht. Entscheidet eine Regel eine Kante, kommen die Felder und Punkte daneben wieder in die Schlange, bis sich nichts mehr ändert.',
+			zero: 'Um eine 0 läuft keine Linie: Ihre Kanten bekommen Kreuze.',
+			full: 'Diese {clue} hat alle ihre Linien: Ihre übrigen Kanten bekommen Kreuze.',
+			needs: 'Diese {clue} braucht jede Kante, die ihr bleibt: Sie werden Linien.',
+			clueCorner:
+				'Von allen Arten, die Linien dieser {clue} zu zeichnen, passen nur manche zu dem, was ihre Ecken schon wissen. Sie stimmen alle in den markierten Kanten überein.',
+			cellCorner:
+				'Dieses Feld hat keine Zahl, aber was seine Ecken wissen, über ihre Punkte weitergegeben, entscheidet die markierten Kanten.',
+			dotFull:
+				'An diesem Punkt treffen sich schon zwei Linien, und eine dritte darf nicht: Seine übrigen Kanten bekommen Kreuze.',
+			dotOn:
+				'Eine Linie kann an einem Punkt nicht enden, und hier bleibt nur ein Weg: Dort geht die Linie weiter.',
+			dotEnd:
+				'An diesem Punkt könnte nur noch eine Kante eine Linie sein, aber hier kann keine Linie enden: Sie bekommt ein Kreuz.',
+			dotCorner:
+				'Was die Ecken der Felder um diesen Punkt wissen, entscheidet die markierten Kanten.',
+			loop: 'Eine Linie auf der markierten Kante würde den hinterlegten Weg zu einer Schleife schließen und andere Linien draußen lassen: Sie bekommt ein Kreuz.',
+			closed:
+				'Die Schleife ist geschlossen, und jede Zahl hat ihre Linien: Alle übrigen Kanten bekommen Kreuze.',
+			cellDetail:
+				'Die Feldregel probiert alle 16 Arten, die vier Kanten eines Felds zu zeichnen, und behält die, die zu seiner Zahl passen, zu den schon entschiedenen Kanten und zu dem, was über seine Ecken bekannt ist (mindestens eine Linie, höchstens eine Linie). Worin alle übereinstimmen, ist entschieden: Kanten und Wissen über Ecken.',
+			dotDetail:
+				'Die Punktregel macht dasselbe mit den Kanten eines Punkts: zwei Linien oder keine, und die Ecken der Felder um ihn herum. So gibt eine Ecke ihr Wissen an das Feld diagonal gegenüber weiter, zum Beispiel von einer 3 zur nächsten.',
+			loopDetail:
+				'Die bisherigen Linien bilden Wege. Eine offene Kante, die beide Enden eines Wegs verbindet, würde eine Schleife schließen. Sie bekommt ein Kreuz, außer diese Schleife wäre die ganze Lösung: alle Linien darin und jede Zahl erfüllt.',
+			done: 'Nach {steps} Schritten ist jede Kante entschieden, ohne Raten: eine Schleife, die zu jeder Zahl passt.',
+			doneDetail:
+				'Das sind die Grundregeln, und ein normales Rätsel braucht nichts weiter. Ein schweres Rätsel braucht auch innen und außen: Jedes Feld liegt innerhalb oder außerhalb der Schleife, eine Linie trennt die beiden, ein Kreuz verbindet sie, und der Rand des Gitters ist außen.'
 		}
 	}
 };

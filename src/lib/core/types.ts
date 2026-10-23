@@ -227,4 +227,10 @@ export interface GameModule<
 	hint?(puzzle: P, state: S): Hint | null;
 	/** Elements that differ between two states, in the board's `lastChange` keys. */
 	changes(puzzle: P, from: S, to: S): string[];
+	/**
+	 * The player's position as the board shows it, when the game adds to it by itself before the
+	 * next move does (`afterMove`): Sudoku's auto notes show as soon as a game is shown, but only
+	 * a move of the player's makes them part of the game.
+	 */
+	shown?(puzzle: P, state: S, settings: Settings<K>): S;
 }

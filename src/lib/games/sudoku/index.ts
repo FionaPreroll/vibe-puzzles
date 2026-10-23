@@ -6,7 +6,7 @@ import { calcHint } from './calc/hint';
 import { cageLabel } from './calc/rules';
 import { sudokuHint, unitCells, type Unit } from './hint';
 import { sudokuLogic } from './logic';
-import { emptySudokuState, type SudokuPuzzle, type SudokuState } from './rules';
+import { emptySudokuState, fillMissingNotes, type SudokuPuzzle, type SudokuState } from './rules';
 import { CALC_TUTORIAL, CALC_TUTORIAL_STEPS } from './calcTutorial';
 import { SUDOKU_TUTORIAL, SUDOKU_TUTORIAL_STEPS } from './tutorial';
 
@@ -29,6 +29,8 @@ export const sudoku: GameModule<SudokuPuzzle, SudokuState, SudokuSettingKey> = {
 	changes: (_, from, to) => [
 		...new Set([...changedCells(from.values, to.values), ...changedCells(from.notes, to.notes)])
 	],
+	shown: (puzzle, state, settings) =>
+		settings.autoNotes ? fillMissingNotes(puzzle, state) : state,
 	padRows: 1.2,
 	hint(puzzle, state) {
 		const { width: size, height, cages } = puzzle;

@@ -160,6 +160,7 @@ const en = {
 		done: 'Done',
 		startOver: 'Start over',
 		print: 'Print…',
+		howMade: 'How was this puzzle made?',
 		more: 'More actions',
 		share: 'Share board',
 		newPuzzle: 'New puzzle',
@@ -902,8 +903,9 @@ const en = {
 					'No way to draw the sides of the tinted numbers that fits their counts and dots puts a line on the tinted edges by them.',
 				emptySides:
 					'The cells by the tinted edge lie on the same side of the loop: it stays empty.',
-				thenLine: 'So no line goes there: cross it.',
-				thenCross: 'So the loop must run there: draw the line.',
+				/** What a tried edge leads to, by its mark: the opposite of what was supposed. */
+				thenLine: 'So the loop must run there: draw the line.',
+				thenCross: 'So no line goes there: cross it.',
 				stuck:
 					'No rule decides an edge here. Try a line on the highlighted edge in your head and follow it until a rule breaks.'
 			},

@@ -82,6 +82,29 @@ describe('server availability', () => {
 		}
 	});
 
+	it('asks again a while after a refusal or a broken answer, unlike static hosting', async () => {
+		vi.useFakeTimers();
+		try {
+			const broken = new ReadableStream({ start: (c) => c.error(new TypeError('network error')) });
+			for (const answer of [
+				new Response('Forbidden', { status: 403 }),
+				Response.json({ error: 'Too many requests' }, { status: 429 }),
+				new Response('Request Timeout', { status: 408 }),
+				new Response(broken)
+			]) {
+				let up: Handler = () => answer;
+				const api = await setup((url, init) => up(url, init));
+				expect(await api.serverAvailable()).toBe(false);
+				up = server();
+				vi.advanceTimersByTime(api.HEALTH_RETRY_MS);
+				expect(await api.serverAvailable()).toBe(true);
+				expect(fetchMock).toHaveBeenCalledTimes(2);
+			}
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it('asks again a while after no answer or a server error', async () => {
 		vi.useFakeTimers();
 		try {
@@ -365,6 +388,38 @@ describe('outbox and offline mode', () => {
 		expect(net.latencyMs).toEqual(expect.any(Number));
 	});
 
+	it('puts an upload in the outbox before sending it, so that it outlives the page', async () => {
+		const { api, outbox } = await browser(server(routes));
+		const sent = api.pushSave('save:a', { v: 1 }, 1);
+		expect(outbox.pending().saves).toEqual([['save:a', { data: { v: 1 }, updatedAt: 1 }]]);
+		await sent;
+		expect(outbox.pendingCount()).toBe(0);
+		expect(puts()).toEqual([expect.objectContaining({ body: { data: { v: 1 }, updatedAt: 1 } })]);
+	});
+
+	it('sends what waits in the outbox before it pulls, so that the answer takes it in', async () => {
+		let stored = { key: 'save:a', data: { v: 1 }, updatedAt: 1 };
+		let answer = () => {};
+		const { api } = await browser((url, init) => {
+			if (url.pathname.endsWith('/health')) return Response.json({ ok: true });
+			if (init.method !== 'PUT') return Response.json(stored);
+			// The server takes its time with the upload.
+			return new Promise((resolve) => {
+				answer = () => {
+					stored = { key: 'save:a', ...JSON.parse(String(init.body)) };
+					resolve(Response.json({ stored: true }));
+				};
+			});
+		});
+		const pushed = api.pushSave('save:a', { v: 2 }, 2);
+		const pulled = api.pullSave('save:a');
+		await vi.waitFor(() => expect(puts()).toHaveLength(1));
+		expect(requests().filter((r) => r.method === 'GET' && r.url.includes('/saves/'))).toEqual([]);
+		answer();
+		expect(await pulled).toEqual({ key: 'save:a', data: { v: 2 }, updatedAt: 2 });
+		await pushed;
+	});
+
 	it('keeps what got no answer and drops what the server refuses', async () => {
 		let status = 503;
 		const { api, outbox } = await browser((url) =>
@@ -394,6 +449,20 @@ describe('outbox and offline mode', () => {
 		doc.dispatchEvent(new Event('visibilitychange'));
 		await vi.waitFor(() => expect(seen).toEqual([true, false, true]));
 		await vi.waitFor(() => expect(net.pending).toBe(0));
+	});
+
+	it('keeps what waits while the server refuses for now, and sends it later', async () => {
+		let up: Handler = () => new Response('Forbidden', { status: 403 });
+		const { api, net, outbox } = await browser((url, init) => up(url, init));
+		await api.pushSave('save:a', { v: 1 }, 1);
+		expect(await api.submitScore(solve)).toBe('queued');
+		expect(net).toMatchObject({ status: 'unreachable', pending: 2 });
+		expect(outbox.pendingCount()).toBe(2);
+		up = server(routes);
+		doc.dispatchEvent(new Event('visibilitychange'));
+		await vi.waitFor(() => expect(outbox.pendingCount()).toBe(0));
+		expect(puts()).toEqual([expect.objectContaining({ body: { data: { v: 1 }, updatedAt: 1 } })]);
+		expect(posts()).toEqual([expect.objectContaining({ body: solve })]);
 	});
 
 	it('keeps solves timed on the device for later, but not ranked ones', async () => {

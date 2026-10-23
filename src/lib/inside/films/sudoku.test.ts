@@ -4,12 +4,13 @@ import { candidates, currentGrid, isSolvedGrid } from '../../games/sudoku/rules'
 import { Timeline } from '../film';
 import { i18n } from '../../i18n/index.svelte';
 import { ti } from '../i18n';
-import { SUDOKU_SEED, sudokuFilm } from './sudoku';
+import { SUDOKU_SEED, SUDOKU_TYPE, sudokuFilm } from './sudoku';
 
 const film = sudokuFilm();
 const [fill, dig, solve] = film.chapters;
 const { puzzle, solution } = generateSudoku(9, 'normal', SUDOKU_SEED);
 const keys = (chapter: typeof fill) => chapter.frames.map((f) => f.caption.key);
+const easy = sudokuFilm(SUDOKU_SEED, { ...SUDOKU_TYPE, difficulty: 'easy' });
 
 describe('the Sudoku film', () => {
 	it('has three chapters on the Sudoku board', () => {
@@ -78,13 +79,24 @@ describe('the Sudoku film', () => {
 		}
 	});
 
+	it('makes an easy puzzle the same way, keeping enough digits', () => {
+		const made = generateSudoku(9, 'easy', SUDOKU_SEED).puzzle;
+		const [, digging, solving] = easy.chapters;
+		const end = digging.frames.at(-1)!;
+		expect(end.puzzle.givens).toEqual(made.givens);
+		expect(end.caption.key).toBe('sudoku.dig.doneEasy');
+		expect(end.caption.params!.givens).toBeGreaterThanOrEqual(Number(end.caption.params!.least));
+		expect(solving.frames.at(-1)!.caption.key).toBe('sudoku.solve.doneEasy');
+		expect(keys(dig).at(-1)).toBe('sudoku.dig.done');
+	});
+
 	it('is the same for the same seed, and another for another', () => {
 		expect(sudokuFilm(SUDOKU_SEED)).toEqual(film);
 		expect(sudokuFilm(SUDOKU_SEED + 1).chapters[1].frames.at(-1)!.puzzle).not.toEqual(puzzle);
 	});
 
 	it('has every text it says in both languages, with its values', () => {
-		const frames = new Timeline(sudokuFilm(7)).frames;
+		const frames = [sudokuFilm(7), easy].flatMap((f) => new Timeline(f).frames);
 		const captions = frames.flatMap((f) => [f.caption, ...(f.detail ? [f.detail] : [])]);
 		try {
 			for (const locale of ['en', 'de'] as const) {

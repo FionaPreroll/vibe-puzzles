@@ -145,6 +145,18 @@ export function recordSolve(
 }
 
 /**
+ * The ID of a server puzzle, which the server tells once it is solved. The solve recorded at `at`
+ * without an ID gets it, and solving the puzzle again (after starting over) does not count twice.
+ */
+export function notePuzzleId(game: string, variant: string, at: number, puzzleId: number) {
+	const s = read(game, variant);
+	const solve = s.recent.find((r) => r.at === at && !r.puzzleId);
+	if (solve) solve.puzzleId = puzzleId;
+	if (!s.solvedIds?.includes(puzzleId)) rememberId(s, puzzleId);
+	write(game, variant, s);
+}
+
+/**
  * A special puzzle solved on another device: its period counts for the streak here, but its
  * solve and time belong to that device's statistics.
  */

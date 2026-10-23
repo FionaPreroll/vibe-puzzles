@@ -1,8 +1,13 @@
+import type { Variant } from '../core/variants';
+
 /**
  * The films of the Inside page: how a generator or solver works, shown on the game's own board,
  * frame by frame. A film is computed in full before it plays (from the algorithm's trace), so the
  * player can jump to any frame at once.
  */
+
+/** The type of puzzle a film makes: its size and difficulty, as the game's types have them. */
+export type FilmType = Pick<Variant, 'width' | 'height' | 'difficulty'>;
 
 /** A text of the Inside page: a key of its dictionaries and the values for its placeholders. */
 export interface Caption {

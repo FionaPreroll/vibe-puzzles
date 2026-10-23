@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import { puzzleCheck } from '../src/lib/core/filmLink';
+import { encodePuzzleId } from '../src/lib/core/variants';
+import { LOOP_VARIANTS } from '../src/lib/games/loop/logic';
 
 /** The Inside page: the Sudoku film and its player (issue #170). */
 
@@ -194,6 +197,116 @@ test('the Tetroid film: tetrominoes planted, regions grown and reshaped, then so
 	);
 	await page.keyboard.press('ArrowLeft');
 	await expect(p.caption).toHaveText(/^Looking ahead/);
+});
+
+test('the Loop film: a region grows, numbers come in and out, then the rules solve it', async ({
+	page
+}) => {
+	const p = await open(page);
+	await page.getByRole('group', { name: 'Films' }).getByRole('button', { name: 'Loop' }).click();
+	await expect(page.getByRole('heading', { name: 'How a Loop is made' })).toBeVisible();
+	await expect(p.caption).toHaveText(/^A Loop solution is one closed line/);
+	const board = page.locator('[data-testid="film"] .board-stage svg');
+	await page.keyboard.press('ArrowRight');
+	await expect(p.caption).toHaveText(/^It starts with one random cell/);
+	await expect(board.locator('[data-line]')).toHaveCount(4);
+	// The first cell turned away: the loop it would make, its new lines in teal.
+	for (let k = 0; k < 7; k++) await page.keyboard.press('ArrowRight');
+	await expect(p.caption).toHaveText(/^With this cell, the loop would touch itself/);
+	await expect(board.locator('[data-trial]')).not.toHaveCount(0);
+
+	await page.keyboard.press('PageDown');
+	await expect(
+		p.chapters.getByRole('button', { name: /^2\. Numbers in, numbers out/ })
+	).toHaveAttribute('aria-current', 'step');
+	await expect(p.caption).toHaveText(/^Every cell gets a number/);
+	await expect(board.locator('[data-clue]')).toHaveCount(49);
+	await page.getByRole('button', { name: 'More detail' }).click();
+	await expect(page.getByTestId('detail')).toContainText(
+		'a 4 would be a loop around that one cell'
+	);
+
+	await page.keyboard.press('PageDown');
+	await expect(p.caption).toHaveText(/^Solving it the way a person would/);
+	await page.keyboard.press('End');
+	await expect(p.caption).toHaveText(/^Every edge is decided after \d+ steps, without guessing/);
+	await page.keyboard.press('ArrowLeft');
+	await expect(p.caption).toHaveText(/^The loop is closed/);
+});
+
+test('a solved puzzle links to the film of how it was made', async ({ page }) => {
+	// Pinwheel 7×7 Normal #1027244002 from the bundled collection, and its solution lines.
+	const H = '00000001111110000011100101110000011110111100000010000000';
+	const V = '00001110001111100011110000101100001011000111011001110110';
+	await page.addInitScript(() => {
+		localStorage.setItem('vp:tutorialSeen:pinwheel', 'true');
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+	});
+	await page.goto('/pinwheel?v=7n&id=1027244002');
+	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	await expect(board).toBeVisible({ timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+	const more = page.getByRole('button', { name: 'More actions' });
+	const howMade = page.getByRole('link', { name: 'How was this puzzle made?' });
+	// Not before it is solved: the film shows the solution.
+	await more.click();
+	await expect(page.getByRole('button', { name: 'Print…' })).toBeVisible();
+	await expect(howMade).toHaveCount(0);
+	await page.keyboard.press('Escape');
+
+	const grid = (await board.locator('rect').first().boundingBox())!;
+	const cell = grid.width / 7;
+	for (const [x, y] of [
+		...[...H].flatMap((c, k) => (c === '1' ? [[(k % 7) + 0.5, Math.floor(k / 7)]] : [])),
+		...[...V].flatMap((c, k) => (c === '1' ? [[k % 8, Math.floor(k / 8) + 0.5]] : []))
+	]) {
+		await page.mouse.click(grid.x + x * cell, grid.y + y * cell);
+	}
+	await expect(page.getByRole('button', { name: 'Share success' })).toBeVisible();
+	await more.click();
+	await expect(howMade).toHaveAttribute('href', /\/inside\?game=pinwheel&id=1027244002&p=\w+$/);
+	await howMade.click();
+
+	await expect(page.getByRole('heading', { name: 'How a Pinwheel is made' })).toBeVisible();
+	await expect(page.getByTestId('asked')).toHaveText(
+		'The making of puzzle 1,027,244,002 (7×7 Normal).'
+	);
+	const p = page.getByTestId('caption');
+	await expect(p).toHaveText(/an empty 7×7 board\.$/);
+	await page.keyboard.press('End');
+	await expect(p).toHaveText('The solution, which the player has to find from the centres alone.');
+	// Another example is another puzzle of the type: the address no longer names this one.
+	await page.getByRole('button', { name: 'Another example' }).click();
+	await expect(page.getByTestId('asked')).toHaveCount(0);
+	await expect(p).toHaveText(/an empty 7×7 board\.$/);
+	expect(new URL(page.url()).search).toBe('');
+});
+
+test('a puzzle without a film shows the example, and says why', async ({ page }) => {
+	const index = LOOP_VARIANTS.findIndex((v) => v.key === '25x30n');
+	await page.goto(`/inside?game=loop&id=${encodePuzzleId(index, 7)}`);
+	await page.waitForLoadState('networkidle');
+	await expect(page.getByRole('heading', { name: 'How a Loop is made' })).toBeVisible();
+	await expect(page.getByTestId('asked')).toHaveText(
+		/^There is no film of puzzle [\d,]+ \(25×30 Normal\).*Here is how a 7×7 Normal Loop is made\.$/
+	);
+	await expect(page.getByTestId('caption')).toHaveText(/an empty 7×7 board\.$/);
+
+	// Tetroid 6×6 Normal #496678832 in the collection, which an earlier generator made.
+	const regions = [
+		0, 0, 2, 2, 2, 2, 0, 0, 0, 1, 1, 1, 3, 3, 3, 1, 4, 4, 3, 1, 1, 1, 4, 4, 3, 3, 3, 3, 3, 4, 3, 3,
+		3, 3, 3, 3
+	];
+	const p = puzzleCheck({ width: 6, height: 6, regions });
+	await page.goto(`/inside?game=tetroid&id=496678832&p=${p}`);
+	await page.waitForLoadState('networkidle');
+	await expect(page.getByTestId('asked')).toHaveText(
+		/^There is no film of puzzle 496,678,832: it comes from the puzzle collection/
+	);
+	// Picking a film of one's own leaves the puzzle behind.
+	await page.getByRole('group', { name: 'Films' }).getByRole('button', { name: 'Sudoku' }).click();
+	await expect(page.getByTestId('asked')).toHaveCount(0);
+	expect(new URL(page.url()).search).toBe('');
 });
 
 test('the page speaks German, and the footer and About page lead to it', async ({ page }) => {

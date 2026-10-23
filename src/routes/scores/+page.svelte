@@ -100,10 +100,15 @@
 				<ul class="mt-2 divide-y divide-stone-200 text-sm dark:divide-stone-800">
 					{#each stats.recent as r (r.at)}
 						<li class="flex justify-between py-1.5">
-							<a
-								class="link font-mono"
-								href="{resolve('/[game]', { game: game.id })}?id={r.puzzleId}">#{r.puzzleId}</a
-							>
+							{#if r.puzzleId}
+								<a
+									class="link font-mono"
+									href="{resolve('/[game]', { game: game.id })}?id={r.puzzleId}">#{r.puzzleId}</a
+								>
+							{:else}
+								<!-- A server puzzle whose ID never came: nothing to open -->
+								<span class="font-mono text-stone-500 dark:text-stone-400">–</span>
+							{/if}
 							<span class="font-mono tabular-nums">{formatDuration(r.timeMs)}</span>
 						</li>
 					{/each}
