@@ -233,7 +233,10 @@
 				shiftHeld = e.shiftKey;
 				keyCursor.keyup(e);
 			},
-			blur: () => (shiftHeld = false)
+			blur() {
+				shiftHeld = false;
+				keyCursor.blur();
+			}
 		})
 	);
 

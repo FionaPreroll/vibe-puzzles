@@ -462,7 +462,10 @@
 				if (e.key === 'Shift') shiftHeld = false;
 				keyCursor.keyup(e);
 			},
-			blur: () => (shiftHeld = false)
+			blur() {
+				shiftHeld = false;
+				keyCursor.blur();
+			}
 		})
 	);
 

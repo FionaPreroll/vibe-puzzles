@@ -219,6 +219,43 @@ describe('KeyCursor', () => {
 		expect(left.prevented).toBe(false);
 	});
 
+	it('drops the move when the window loses the focus, so that pressing Ctrl again applies none', () => {
+		const { cursor, calls } = cursorOn();
+		cursor.keydown(key('ArrowRight'));
+		cursor.blur();
+		cursor.keydown(key('ArrowRight', { ctrlKey: true }));
+		cursor.blur();
+		expect(cursor.drawing).toBe(false);
+		// Ctrl went up in another window; back here, it goes down and up again.
+		cursor.keydown(key('Control', { ctrlKey: true }));
+		cursor.keyup(key('Control'));
+		expect(calls).toEqual(['begin 0 ctrl', 'extend 0 1', 'cancel']);
+		expect(cursor.at).toBe(1);
+	});
+
+	it('drops a move whose key went up unseen at the next arrow, which may start another', () => {
+		const { cursor, calls } = cursorOn({ shiftDraws: true });
+		cursor.keydown(key('ArrowRight'));
+		cursor.keydown(key('ArrowRight', { ctrlKey: true }));
+		cursor.keydown(key('ArrowRight'));
+		expect(cursor.at).toBe(2);
+		cursor.keydown(key('ArrowDown', { shiftKey: true }));
+		cursor.keydown(key('a'));
+		expect(calls).toEqual([
+			'begin 0 ctrl',
+			'extend 0 1',
+			'cancel',
+			'begin 2 shift',
+			'extend 2 5',
+			'cancel'
+		]);
+		// W, A, S and D with the key still down move on and keep the move.
+		cursor.keydown(key('ArrowRight', { shiftKey: true }));
+		cursor.keydown(key('D', { shiftKey: true }));
+		cursor.keyup(key('Shift'));
+		expect(calls.slice(6)).toEqual(['begin 4 shift', 'extend 4 5', 'commit']);
+	});
+
 	it('hides for a mouse or pen, whose move takes the place of its own', () => {
 		const { cursor, calls } = cursorOn();
 		cursor.keydown(key('ArrowRight'));
