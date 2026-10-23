@@ -117,7 +117,7 @@
 		>
 			<img src={favicon} alt="" class="classic-only size-6" />
 			<HalloweenLogo class="halloween-only size-6" />
-			<span class="font-display hidden sm:inline">{t('app.name')}</span>
+			<span class="font-display max-sm:sr-only">{t('app.name')}</span>
 		</a>
 		<nav class="flex min-w-0 text-sm sm:gap-1" aria-label="Main">
 			{#each nav as item (item.href)}

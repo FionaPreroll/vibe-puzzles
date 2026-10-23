@@ -69,7 +69,7 @@
 	<button
 		class="-ml-1 flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1.5 text-left hover:bg-stone-100 lg:hidden dark:hover:bg-stone-800"
 		onclick={onmenu}
-		aria-label={t('game.openMenu')}
+		aria-label="{game.name} {label}, {t('game.openMenu')}"
 		aria-expanded={menuOpen}
 	>
 		<svg viewBox="0 0 24 24" class="size-5 shrink-0 text-stone-500" aria-hidden="true">

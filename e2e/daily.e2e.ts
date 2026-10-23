@@ -69,7 +69,7 @@ for (const [kind, size] of [
 		const label = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' }[kind];
 		const button = page
 			.getByRole('navigation', { name: 'Puzzle type' })
-			.getByRole('button', { name: label, exact: true });
+			.getByRole('button', { name: new RegExp(`^${label} ${size}×${size}`) });
 		await expect(button).toHaveAttribute('aria-current', 'true', { timeout: 30_000 });
 		await expect(button).not.toContainText('✓');
 		await solveSpecial(page, kind, size);

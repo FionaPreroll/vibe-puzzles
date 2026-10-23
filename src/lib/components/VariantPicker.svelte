@@ -99,9 +99,9 @@
 				{#if v.comingSoon}
 					{@render soon(v, t(`specialShort.${v.special}`))}
 				{:else}
+					<!-- Named by what it shows, the size and tick included; the long name is its tooltip. -->
 					<button
 						class="{cell} {v.key === current ? active : ''}"
-						aria-label={variantLabel(v)}
 						title={variantLabel(v)}
 						aria-current={v.key === current ? 'true' : undefined}
 						onclick={() => onpick(v.key)}
