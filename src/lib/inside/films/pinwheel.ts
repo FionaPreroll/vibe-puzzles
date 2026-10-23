@@ -189,6 +189,7 @@ export function pinwheelFilm(
 	new PinwheelSolver(puzzle).solve({ branch: false, trace: (e) => solving.push(e) });
 	return {
 		game: 'pinwheel',
+		puzzle,
 		settings: { highlightErrors: false, autoColor: false, blackHoles: false },
 		chapters: [
 			grow(only(last, 'centre', 'grow', 'absorb'), sky, colours),

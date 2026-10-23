@@ -55,6 +55,7 @@ export function sudokuFilm(
 	ratePuzzle(puzzle, Level.Singles, (e) => rated.push(e));
 	return {
 		game: 'sudoku',
+		puzzle,
 		chapters: [
 			fill(only(made, 'place', 'unplace')),
 			dig(only(made, 'try', 'keep', 'restore'), solution, easy),

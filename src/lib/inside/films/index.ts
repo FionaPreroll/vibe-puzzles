@@ -78,7 +78,7 @@ export interface Showing {
  * puzzle `id` of `game` where it has one and `p` (if given) checks out, or else the game's
  * example. Null for an address without a game that has a film.
  */
-export function filmFor(query: URLSearchParams): Showing | null {
+export function filmFor(query: Pick<URLSearchParams, 'get'>): Showing | null {
 	const entry = FILMS.find((f) => f.id === query.get('game'));
 	if (!entry) return null;
 	const logic = GAME_LOGIC[entry.id];
@@ -93,9 +93,11 @@ export function filmFor(query: URLSearchParams): Showing | null {
 	const { variantIndex, seed } = decodePuzzleId(id);
 	const variant = logic.variants[variantIndex];
 	if (!entry.replays(variant)) return example({ id, variant, missing: 'type' });
+	// The film makes the puzzle, so it is made once: a check that differs throws the film away.
+	const film = entry.make(seed, variant);
 	const check = query.get('p');
-	if (check && check !== puzzleCheck(logic.generate(variant, seed))) {
+	if (check && check !== puzzleCheck(film.puzzle)) {
 		return example({ id, variant, missing: 'version' });
 	}
-	return { entry, type: variant, film: entry.make(seed, variant), asked: { id, variant } };
+	return { entry, type: variant, film, asked: { id, variant } };
 }
