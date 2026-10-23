@@ -110,6 +110,27 @@ describe('save slot', () => {
 		expect(api.pushSave).toHaveBeenCalledTimes(2);
 	});
 
+	it('marks a game as taken back until the next move or another game', () => {
+		const s = slot();
+		s.write(record(0), true);
+		expect(stored()?.takenBack).toBeUndefined();
+		s.write(record(), true);
+		expect(stored()?.takenBack).toBe(true);
+		s.write(record(), false);
+		expect(stored()?.takenBack).toBe(true);
+		s.write(record(1), true);
+		expect(stored()?.takenBack).toBeUndefined();
+		s.write(record(), true);
+		expect(stored()?.takenBack).toBe(true);
+		// Read from another tab or device, it stays taken back.
+		s.adopt({ ...record(), version: 1, updatedAt: 70_000, takenBack: true });
+		s.write(record(), false);
+		expect(stored()).toMatchObject({ updatedAt: 70_000, takenBack: true });
+		s.claim();
+		s.write(record(), true);
+		expect(stored()?.takenBack).toBeUndefined();
+	});
+
 	it('uploads a game it read with progress once all of that is taken back', () => {
 		const s = slot();
 		// From another device, whose clock runs ahead.

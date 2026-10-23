@@ -73,7 +73,8 @@ describe('migrating saves', () => {
 				playMs: -5,
 				ticket: 7,
 				hints: -1,
-				assisted: 'yes'
+				assisted: 'yes',
+				takenBack: 1
 			};
 			expect(migrateSave(broken)).toMatchObject({
 				puzzleId: 0,
@@ -84,7 +85,8 @@ describe('migrating saves', () => {
 				playMs: 0,
 				ticket: undefined,
 				hints: undefined,
-				assisted: true
+				assisted: true,
+				takenBack: true
 			});
 		} finally {
 			vi.useRealTimers();
@@ -149,8 +151,11 @@ describe('which save wins between devices', () => {
 		['nothing', saved(), true],
 		['nothing', saved({ state: empty }), false],
 		['nothing', saved({ solved: true }), false],
-		// The same puzzle, saved there before it was opened here.
-		['an untouched game', saved({ updatedAt: 1 }), false],
+		// The same puzzle, played there before it was opened here: it goes on here.
+		['an untouched game', saved({ updatedAt: 1 }), true],
+		// Moves taken back here do not come back, unless played there since.
+		['a game taken back', saved({ updatedAt: 1000 }), false],
+		['a game taken back', saved({ updatedAt: 3000 }), true],
 		['an older game', saved({ ...other, updatedAt: 3000 }), true],
 		['an older game', saved({ updatedAt: 3000 }), true],
 		['a newer game', saved({ ...other, updatedAt: 1000 }), false],
@@ -166,6 +171,7 @@ describe('which save wins between devices', () => {
 		const local = {
 			nothing: null,
 			'an untouched game': saved({ state: empty }),
+			'a game taken back': saved({ state: empty, takenBack: true }),
 			'an older game': saved({ updatedAt: 2000 }),
 			'a newer game': saved({ updatedAt: 2000 }),
 			'a game of the same time': saved({ updatedAt: 2000 })
@@ -173,18 +179,26 @@ describe('which save wins between devices', () => {
 		expect(remoteWins(local, remote, progress)).toBe(wins);
 	});
 
-	it('never takes an older save of the same untouched game', () => {
-		const local = saved({ state: empty, updatedAt: 2000 });
+	it('goes by the progress it is told, also for a game taken back', () => {
+		const local = saved({ state: empty, updatedAt: 2000, takenBack: true });
 		expect(remoteWins(local, saved({ updatedAt: 1000 }), () => true)).toBe(false);
 		expect(remoteWins(local, saved({ updatedAt: 1000 }), (s) => s !== local)).toBe(false);
+		const untouched = saved({ state: empty, updatedAt: 2000 });
+		expect(remoteWins(untouched, saved({ updatedAt: 1000 }), (s) => s !== untouched)).toBe(true);
 	});
 
 	it('tells server puzzles apart by their ticket while their ID is secret', () => {
-		const local = saved({ puzzleId: 0, ticket: 'a', state: empty, updatedAt: 2000 });
+		// Moves taken back here: an older save of another puzzle goes on here, not of this one.
+		const local = saved({
+			puzzleId: 0,
+			ticket: 'a',
+			state: empty,
+			updatedAt: 2000,
+			takenBack: true
+		});
 		const remote = saved({ puzzleId: 0, ticket: 'b', updatedAt: 1000 });
 		expect(remoteWins(local, remote, progress)).toBe(true);
-		const same = { ...remote, ticket: 'a' };
-		expect(remoteWins(local, same, (s) => s === same)).toBe(false);
+		expect(remoteWins(local, { ...remote, ticket: 'a' }, progress)).toBe(false);
 	});
 });
 

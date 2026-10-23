@@ -168,12 +168,12 @@ async function pair(browser: Browser, name: string): Promise<[Page, Page]> {
 	return [a, b];
 }
 
-/** Shade the given cells of the 6x6 board. */
-async function shade(page: Page, cells: [number, number][]) {
+/** Shade the given cells of the board, 6x6 unless `size` says otherwise. */
+async function shade(page: Page, cells: [number, number][], size = 6) {
 	const board = page.getByRole('grid', { name: 'Puzzle board' }).first();
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const box = (await board.boundingBox())!;
-	const cell = box.width / 6;
+	const cell = box.width / size;
 	for (const [r, c] of cells) {
 		await page.mouse.click(box.x + (c + 0.5) * cell, box.y + (r + 0.5) * cell);
 	}
@@ -308,6 +308,24 @@ test('moves taken back on one device are taken back on the other', async ({ brow
 		{ timeout: 15_000 }
 	);
 	expect(await shadedCells(laptop)).toEqual([]);
+});
+
+test('a puzzle from a link goes on where the other device left it', async ({ browser }) => {
+	const [phone, laptop] = await pair(browser, 'Shared');
+	const id = 496678848;
+	await phone.goto(`/tetroid?id=${id}`);
+	await shade(phone, [[0, 0]]);
+	await phone.waitForResponse(savePut);
+	const cells = await shadedCells(phone);
+	expect(cells).toHaveLength(1);
+
+	// The laptop opens the same link for the first time: the game goes on there.
+	await laptop.goto(`/tetroid?id=${id}`);
+	await expect(laptop.getByRole('status')).toHaveText('Continued your game from another device.', {
+		timeout: 15_000
+	});
+	expect(await savedGame(laptop)).toMatchObject({ puzzleId: id });
+	expect(await shadedCells(laptop)).toEqual(cells);
 });
 
 const savePull = (r: { url(): string; request(): { method(): string } }) =>
