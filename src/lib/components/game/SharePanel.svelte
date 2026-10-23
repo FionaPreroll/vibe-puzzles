@@ -21,7 +21,7 @@
 		<div class="min-w-0 space-y-2">
 			<p>
 				{t('game.shareLink')}
-				<a class="link break-all" href={link}>{link}</a>
+				<a class="link in-text break-all" href={link}>{link}</a>
 			</p>
 			{#if image}
 				<p>

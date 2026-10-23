@@ -54,7 +54,7 @@
 
 <div class="mt-6 max-w-xl space-y-6">
 	{#if hasServer === null}
-		<p class="text-stone-500">{t('player.checking')}</p>
+		<p class="text-stone-500 dark:text-stone-400">{t('player.checking')}</p>
 	{:else if !hasServer}
 		<section class="panel text-sm text-stone-700 dark:text-stone-300">
 			<p>

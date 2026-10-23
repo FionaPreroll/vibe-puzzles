@@ -43,6 +43,10 @@
 	}
 	.link {
 		@apply text-indigo-600 underline-offset-2 hover:underline dark:text-indigo-400;
+		/* In running text the colour alone does not set a link apart from the words around it. */
+		&.in-text {
+			@apply underline decoration-indigo-600/40 hover:decoration-current dark:decoration-indigo-400/50;
+		}
 	}
 	.menu-item {
 		@apply rounded-md px-3 py-2 text-left text-sm hover:bg-stone-100 disabled:opacity-50 dark:hover:bg-stone-800;

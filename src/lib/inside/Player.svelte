@@ -116,7 +116,7 @@
 					<span
 						class="truncate {player.chapter === k
 							? 'font-semibold'
-							: 'text-stone-500 group-hover:text-stone-800 dark:group-hover:text-stone-200'}"
+							: 'text-stone-500 group-hover:text-stone-800 dark:text-stone-400 dark:group-hover:text-stone-200'}"
 						>{k + 1}. {ti(chapter.title)}</span
 					>
 				</button>
@@ -190,14 +190,14 @@
 					<path d="M16 5h2v14h-2zM4 5v14l10-7z" />
 				</svg>
 			</button>
-			<span class="ml-2 text-xs text-stone-500 tabular-nums" data-testid="step">
+			<span class="ml-2 text-xs text-stone-500 tabular-nums dark:text-stone-400" data-testid="step">
 				{ti('player.step', { n: player.index + 1, count })}
 			</span>
 		</div>
 
 		<div class="flex flex-wrap items-center justify-center gap-2 text-sm">
 			<div class="flex items-center gap-1" role="group" aria-label={ti('player.speed')}>
-				<span class="text-xs text-stone-500">{ti('player.speed')}</span>
+				<span class="text-xs text-stone-500 dark:text-stone-400">{ti('player.speed')}</span>
 				{#each SPEEDS as speed (speed)}
 					<button
 						class="btn-sm {player.speed === speed ? 'btn-active' : ''}"
