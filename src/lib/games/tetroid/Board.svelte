@@ -5,6 +5,7 @@
 	import type { TetroidSettingKey } from './settings';
 	import { boardInput, interpolate, touchAction, type BoardPoint } from '../../client/boardInput';
 	import { KeyCursor } from '../../client/keyCursor.svelte';
+	import { nextMark } from '../../client/marks';
 	import { analyze, CROSS, EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from './rules';
 	import { t } from '../../i18n/index.svelte';
 
@@ -107,22 +108,9 @@
 
 	// ---- Input --------------------------------------------------------------------------------
 
-	function nextStatus(cur: number, inverse: boolean): number {
-		switch (tool) {
-			case 'rotate':
-				return inverse ? [CROSS, EMPTY, SHADED][cur] : [SHADED, CROSS, EMPTY][cur];
-			case 'cross':
-				return inverse ? (cur === SHADED ? EMPTY : SHADED) : cur === CROSS ? EMPTY : CROSS;
-			case 'blank':
-				return EMPTY;
-			default:
-				return inverse ? (cur === CROSS ? EMPTY : CROSS) : cur === SHADED ? EMPTY : SHADED;
-		}
-	}
-
 	function begin(cell: number, inverse: boolean) {
 		if (readonly || cell < 0) return;
-		pending = { cells: [cell], status: nextStatus(board.marks[cell], inverse) };
+		pending = { cells: [cell], status: nextMark(tool, board.marks[cell], inverse) };
 		current = cell;
 	}
 
