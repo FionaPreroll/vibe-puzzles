@@ -4,7 +4,7 @@
 	import { extendPath, type Dot } from '../../core/path';
 	import type { BoardProps, KeyPress } from '../../core/types';
 	import { boardInput, interpolate, touchAction, type BoardPoint } from '../../client/boardInput';
-	import { direction } from '../../client/keys';
+	import { KeyCursor } from '../../client/keyCursor.svelte';
 	import { t } from '../../i18n/index.svelte';
 	import type { LoopSettingKey } from './settings';
 	import {
@@ -60,7 +60,6 @@
 	const mistakeColour = $derived(settings.blueErrors ? colours.blueError : colours.error);
 
 	let pending = $state<Pending | null>(null);
-	let cursor = $state<Dot | null>(null);
 
 	const edgeKey = (e: Edge) => `${e.kind}:${e.i}:${e.j}`;
 	const parseEdge = (key: string): Edge => {
@@ -215,7 +214,7 @@
 	const input = boardInput(
 		{
 			start(p, how) {
-				if (!how.touch) cursor = null;
+				if (!how.touch) keyCursor.hide();
 				begin(p.x, p.y, how.inverse);
 			},
 			drag: dragTo,
@@ -231,66 +230,44 @@
 
 	// ---- Keyboard: cursor on dots ---------------------------------------------------------------
 
-	let keyMove = false;
-
-	function onkeydown(e: KeyPress): boolean {
-		if (blank) return false;
-		const dir = direction(e.key);
-		const isArrow = e.key.startsWith('Arrow');
-		if (dir && (isArrow || (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey))) {
-			e.preventDefault();
-			const prev = cursor;
-			cursor = prev
-				? {
-						i: Math.min(h, Math.max(0, prev.i + dir[0])),
-						j: Math.min(w, Math.max(0, prev.j + dir[1]))
-					}
-				: { i: 0, j: 0 };
-			if (isArrow && (e.ctrlKey || e.metaKey) && prev) {
-				if (!pending) {
-					begin(prev.j, prev.i, false, true);
-					keyMove = true;
-				}
-				if (pending) {
-					const p = structuredClone($state.snapshot(pending)) as Pending;
-					const step: Edge =
-						prev.i === cursor.i
-							? { kind: 'h', i: prev.i, j: Math.min(prev.j, cursor.j) }
-							: { kind: 'v', i: Math.min(prev.i, cursor.i), j: prev.j };
-					if (p.status == null && onBoard(step)) {
-						p.status = edgeStatus(getEdge(board, step), false);
-						if (p.status !== LINE) p.path = null;
-					}
-					if (p.path) p.path = extendPath(p.path, cursor);
-					else if (!p.edges.includes(edgeKey(step))) p.edges.push(edgeKey(step));
-					pending = p;
-				}
+	const keyCursor = new KeyCursor<Dot>({
+		first: () => ({ i: 0, j: 0 }),
+		step(at, rows, cols) {
+			const dot = { i: at.i + rows, j: at.j + cols };
+			return dot.i < 0 || dot.i > h || dot.j < 0 || dot.j > w ? null : dot;
+		},
+		begin(from) {
+			if (pending) return false;
+			begin(from.j, from.i, false, true);
+			return !!pending;
+		},
+		extend(from, to) {
+			if (!pending) return;
+			const p = structuredClone($state.snapshot(pending)) as Pending;
+			const step: Edge =
+				from.i === to.i
+					? { kind: 'h', i: from.i, j: Math.min(from.j, to.j) }
+					: { kind: 'v', i: Math.min(from.i, to.i), j: from.j };
+			// Started on a dot: the first edge decides the status.
+			if (p.status == null) {
+				p.status = edgeStatus(getEdge(board, step), false);
+				if (p.status !== LINE) p.path = null;
 			}
-			return true;
-		}
-		if (!cursor) return false;
-		if (e.key === 'Escape') {
-			pending = null;
-			cursor = null;
-			keyMove = false;
-		} else if ((e.key === 'Control' || e.key === 'Meta') && !e.repeat && !pending) {
-			keyMove = true;
-			begin(cursor.j, cursor.i, false, true);
-		} else if (keyMove && !['Control', 'Meta'].includes(e.key) && !isArrow) {
-			pending = null;
-			keyMove = false;
-		}
-		return false;
-	}
+			if (p.path) p.path = extendPath(p.path, to);
+			else if (!p.edges.includes(edgeKey(step))) p.edges.push(edgeKey(step));
+			pending = p;
+		},
+		commit,
+		cancel: () => (pending = null)
+	});
+	const cursor = $derived(keyCursor.at);
 
-	function onkeyup(e: KeyPress) {
-		if (keyMove && (e.key === 'Control' || e.key === 'Meta')) {
-			keyMove = false;
-			commit();
-		}
-	}
-
-	$effect(() => keys?.({ keydown: onkeydown, keyup: onkeyup }));
+	$effect(() =>
+		keys?.({
+			keydown: (e: KeyPress) => !blank && keyCursor.keydown(e),
+			keyup: (e: KeyPress) => keyCursor.keyup(e)
+		})
+	);
 
 	// ---- Drawing helpers ------------------------------------------------------------------------
 

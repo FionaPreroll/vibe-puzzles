@@ -27,7 +27,7 @@
 	import type { BoardProps, KeyPress } from '../../core/types';
 	import type { PinwheelSettingKey } from './settings';
 	import { boardInput, interpolate, touchAction, type BoardPoint } from '../../client/boardInput';
-	import { direction } from '../../client/keys';
+	import { KeyCursor } from '../../client/keyCursor.svelte';
 	import {
 		analyze,
 		CROSS,
@@ -90,7 +90,6 @@
 	const mistakeColour = $derived(settings.blueErrors ? colours.blueError : colours.error);
 
 	let pending = $state<Pending | null>(null);
-	let cursor = $state<Dot | null>(null);
 	let shiftHeld = $state(false);
 	const activeTool = $derived(shiftHeld ? (tool === 'color' ? 'black' : 'color') : tool);
 
@@ -397,7 +396,7 @@
 			start(p, how) {
 				if (!how.touch) {
 					shiftHeld = how.shift;
-					cursor = null;
+					keyCursor.hide();
 				}
 				begin(p.x, p.y, how.inverse);
 			},
@@ -421,68 +420,51 @@
 
 	// ---- Keyboard: cursor on dots ---------------------------------------------------------------
 
-	let keyMove = false;
-
-	function onkeydown(e: KeyPress): boolean {
-		if (e.key === 'Shift') shiftHeld = true;
-		if (blank) return false;
-		const dir = direction(e.key);
-		const isArrow = e.key.startsWith('Arrow');
-		if (dir && (isArrow || (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey))) {
-			e.preventDefault();
-			const prev = cursor;
-			cursor = prev
-				? {
-						i: Math.min(h, Math.max(0, prev.i + dir[0])),
-						j: Math.min(w, Math.max(0, prev.j + dir[1]))
-					}
-				: { i: 0, j: 0 };
-			if (isArrow && (e.ctrlKey || e.metaKey) && prev) {
-				if (!pending) {
-					begin(prev.j, prev.i, false, true);
-					keyMove = true;
-				}
-				if (pending && pending.kind === 'edges') {
-					const p = structuredClone($state.snapshot(pending)) as typeof pending;
-					const e2: Edge =
-						prev.i === cursor.i
-							? { kind: 'h', i: prev.i, j: Math.min(prev.j, cursor.j) }
-							: { kind: 'v', i: Math.min(prev.i, cursor.i), j: prev.j };
-					if (p.status == null && editable(e2)) {
-						p.status = edgeStatus(getEdge(board, e2), false);
-						if (p.status !== LINE) p.path = null;
-					}
-					if (p.path) p.path = extendPath(p.path, cursor);
-					else if (!p.edges.includes(edgeKey(e2))) p.edges.push(edgeKey(e2));
-					pending = p;
-				}
+	const keyCursor = new KeyCursor<Dot>({
+		first: () => ({ i: 0, j: 0 }),
+		step(at, rows, cols) {
+			const dot = { i: at.i + rows, j: at.j + cols };
+			return dot.i < 0 || dot.i > h || dot.j < 0 || dot.j > w ? null : dot;
+		},
+		begin(from) {
+			if (pending) return false;
+			begin(from.j, from.i, false, true);
+			return !!pending;
+		},
+		extend(from, to) {
+			if (pending?.kind !== 'edges') return;
+			const p = structuredClone($state.snapshot(pending)) as typeof pending;
+			const step: Edge =
+				from.i === to.i
+					? { kind: 'h', i: from.i, j: Math.min(from.j, to.j) }
+					: { kind: 'v', i: Math.min(from.i, to.i), j: from.j };
+			// Started on a dot: the first edge that can change decides the status.
+			if (p.status == null && editable(step)) {
+				p.status = edgeStatus(getEdge(board, step), false);
+				if (p.status !== LINE) p.path = null;
 			}
-			return true;
-		}
-		if (!cursor) return false;
-		if (e.key === 'Escape') {
-			pending = null;
-			cursor = null;
-			keyMove = false;
-		} else if ((e.key === 'Control' || e.key === 'Meta') && !e.repeat && !pending) {
-			keyMove = true;
-			begin(cursor.j, cursor.i, false, true);
-		} else if (keyMove && !['Control', 'Meta'].includes(e.key) && !e.key.startsWith('Arrow')) {
-			pending = null;
-			keyMove = false;
-		}
-		return false;
-	}
+			if (p.path) p.path = extendPath(p.path, to);
+			else if (!p.edges.includes(edgeKey(step))) p.edges.push(edgeKey(step));
+			pending = p;
+		},
+		commit,
+		cancel: () => (pending = null)
+	});
+	const cursor = $derived(keyCursor.at);
 
-	function onkeyup(e: KeyPress) {
-		if (e.key === 'Shift') shiftHeld = false;
-		if (keyMove && (e.key === 'Control' || e.key === 'Meta')) {
-			keyMove = false;
-			commit();
-		}
-	}
-
-	$effect(() => keys?.({ keydown: onkeydown, keyup: onkeyup, blur: () => (shiftHeld = false) }));
+	$effect(() =>
+		keys?.({
+			keydown(e: KeyPress) {
+				if (e.key === 'Shift') shiftHeld = true;
+				return !blank && keyCursor.keydown(e);
+			},
+			keyup(e: KeyPress) {
+				if (e.key === 'Shift') shiftHeld = false;
+				keyCursor.keyup(e);
+			},
+			blur: () => (shiftHeld = false)
+		})
+	);
 
 	// ---- Drawing helpers ------------------------------------------------------------------------
 
