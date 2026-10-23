@@ -78,7 +78,15 @@ test(
 	{ tag: '@webkit' },
 	async ({ page }) => {
 		await page.goto('/');
-		await page.evaluate(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
+		// The service worker in charge first: in WebKit, a page opened while it installs (caching the
+		// whole app) and takes over can fail to load ("WebKit encountered an internal error").
+		await page.evaluate(async () => {
+			localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
+			await navigator.serviceWorker.ready;
+			if (!navigator.serviceWorker.controller) {
+				await new Promise((r) => navigator.serviceWorker.addEventListener('controllerchange', r));
+			}
+		});
 		await page.goto(PUZZLE);
 		await expect(page.locator('.font-mono.select-all')).toHaveText('496,678,832', {
 			timeout: 30_000
