@@ -32,7 +32,7 @@ test('every size is playable: a link to 10×10 opens it', async ({ page }) => {
 	await expect(page.getByRole('button', { name: /coming soon/ })).toHaveCount(0);
 });
 
-test('a collection puzzle is solved by drawing its loop', async ({ page }) => {
+test('a collection puzzle is solved by drawing its loop', { tag: '@webkit' }, async ({ page }) => {
 	await page.goto(`/loop?v=5n&id=${id}`);
 	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board).toBeVisible({ timeout: 30_000 });

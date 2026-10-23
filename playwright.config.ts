@@ -19,8 +19,23 @@ export default defineConfig({
 					]
 				}
 			]
+		}
+	},
+	projects: [
+		{
+			name: 'chromium',
+			use: {
+				browserName: 'chromium',
+				// Optional: use a preinstalled Chromium instead of the one Playwright downloads.
+				launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined }
+			}
 		},
-		// Optional: use a preinstalled Chromium instead of the one Playwright downloads.
-		launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined }
-	}
+		{
+			// Safari's engine, for the tests tagged @webkit: the home page, a move in each game, taps
+			// on a phone and the backup. `--project chromium` leaves it out.
+			name: 'webkit',
+			use: { browserName: 'webkit' },
+			grep: /@webkit/
+		}
+	]
 });

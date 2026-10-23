@@ -44,7 +44,9 @@ for (const [width, height, locale] of [
 			}
 		});
 
-		test('solving keeps the board and the page as they were', async ({ page }) => {
+		// Tapped in Safari's engine too, on the size of an iPhone.
+		const tag = locale === 'en-US' ? '@webkit' : [];
+		test('solving keeps the board and the page as they were', { tag }, async ({ page }) => {
 			await page.addInitScript(() => {
 				localStorage.setItem('vp:tutorialSeen:tetroid', 'true');
 				localStorage.setItem('vp:puzzleSource', '"bank"');

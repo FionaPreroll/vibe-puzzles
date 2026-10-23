@@ -70,53 +70,57 @@ async function importFile(page: Page, file: Parameters<Locator['setInputFiles']>
 	}).toPass();
 }
 
-test('a backup exported on the About page brings a game in progress back', async ({ page }) => {
-	await page.goto('/');
-	await page.evaluate(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
-	await page.goto(PUZZLE);
-	await expect(page.locator('.font-mono.select-all')).toHaveText('496,678,832', {
-		timeout: 30_000
-	});
-	const board = page.getByRole('application', { name: 'Puzzle board' });
-	const box = (await board.boundingBox())!;
-	for (const c of [0, 1]) {
-		await page.mouse.click(box.x + ((c + 0.5) * box.width) / 6, box.y + box.height / 12);
+test(
+	'a backup exported on the About page brings a game in progress back',
+	{ tag: '@webkit' },
+	async ({ page }) => {
+		await page.goto('/');
+		await page.evaluate(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
+		await page.goto(PUZZLE);
+		await expect(page.locator('.font-mono.select-all')).toHaveText('496,678,832', {
+			timeout: 30_000
+		});
+		const board = page.getByRole('application', { name: 'Puzzle board' });
+		const box = (await board.boundingBox())!;
+		for (const c of [0, 1]) {
+			await page.mouse.click(box.x + ((c + 0.5) * box.width) / 6, box.y + box.height / 12);
+		}
+		await expect.poll(async () => (await savedMarks(page))?.filter((m) => m !== 0).length).toBe(2);
+		const marks = await savedMarks(page);
+
+		await page.goto('/about');
+		const before = await stored(page);
+		const downloading = page.waitForEvent('download');
+		await page.getByRole('button', { name: 'Export backup' }).click();
+		const download = await downloading;
+		expect(download.suggestedFilename()).toMatch(/^vibe-puzzles-backup-\d{4}-\d{2}-\d{2}\.json$/);
+		const file = await download.path();
+		const backup = JSON.parse(readFileSync(file, 'utf8'));
+		expect(Object.keys(backup.data)).toContain('save:tetroid:6n');
+
+		// A new device: nothing stored. The import asks first, then restores and reloads.
+		await page.evaluate(() => localStorage.clear());
+		await page.reload();
+		await importFile(page, file);
+		const asked = page.getByRole('alertdialog');
+		await expect(asked).toContainText(`Restore ${Object.keys(before).length} entries`);
+		const reloaded = page.waitForEvent('load');
+		await asked.getByRole('button', { name: 'Restore' }).click();
+		await expect(page.getByRole('status')).toHaveText(
+			`Restored ${Object.keys(before).length} entries. Reloading…`
+		);
+		await reloaded;
+		expect(await stored(page)).toEqual(before);
+
+		// The game goes on where it was.
+		await page.goto('/tetroid?v=6n');
+		await expect(page.locator('.font-mono.select-all')).toHaveText('496,678,832', {
+			timeout: 30_000
+		});
+		expect(await savedMarks(page)).toEqual(marks);
+		await expect(board.locator(`rect[fill="${palette.shaded}"]`)).toHaveCount(2);
 	}
-	await expect.poll(async () => (await savedMarks(page))?.filter((m) => m !== 0).length).toBe(2);
-	const marks = await savedMarks(page);
-
-	await page.goto('/about');
-	const before = await stored(page);
-	const downloading = page.waitForEvent('download');
-	await page.getByRole('button', { name: 'Export backup' }).click();
-	const download = await downloading;
-	expect(download.suggestedFilename()).toMatch(/^vibe-puzzles-backup-\d{4}-\d{2}-\d{2}\.json$/);
-	const file = await download.path();
-	const backup = JSON.parse(readFileSync(file, 'utf8'));
-	expect(Object.keys(backup.data)).toContain('save:tetroid:6n');
-
-	// A new device: nothing stored. The import asks first, then restores and reloads.
-	await page.evaluate(() => localStorage.clear());
-	await page.reload();
-	await importFile(page, file);
-	const asked = page.getByRole('alertdialog');
-	await expect(asked).toContainText(`Restore ${Object.keys(before).length} entries`);
-	const reloaded = page.waitForEvent('load');
-	await asked.getByRole('button', { name: 'Restore' }).click();
-	await expect(page.getByRole('status')).toHaveText(
-		`Restored ${Object.keys(before).length} entries. Reloading…`
-	);
-	await reloaded;
-	expect(await stored(page)).toEqual(before);
-
-	// The game goes on where it was.
-	await page.goto('/tetroid?v=6n');
-	await expect(page.locator('.font-mono.select-all')).toHaveText('496,678,832', {
-		timeout: 30_000
-	});
-	expect(await savedMarks(page)).toEqual(marks);
-	await expect(board.locator(`rect[fill="${palette.shaded}"]`)).toHaveCount(2);
-});
+);
 
 test('the About page refuses a file that is not a backup and keeps everything', async ({
 	page

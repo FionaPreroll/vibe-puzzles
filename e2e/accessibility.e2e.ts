@@ -111,7 +111,7 @@ test('the home page shows when the next daily puzzle comes', async ({ page }) =>
 test.describe('on a phone', () => {
 	test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
-	test('an error stays until it is tapped away', async ({ page }) => {
+	test('an error stays until it is tapped away', { tag: '@webkit' }, async ({ page }) => {
 		await openPuzzle(page);
 		// The live region is there before any message.
 		const live = page.getByRole('status');

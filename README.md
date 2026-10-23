@@ -55,7 +55,7 @@ pnpm cf:dev         # build and run with the API and a local D1 database
 pnpm lint           # prettier and eslint (pnpm format fixes the formatting)
 pnpm check          # svelte-check and type checks of the worker and service worker
 pnpm test           # unit tests (pnpm test:unit watches, pnpm test:coverage measures coverage); *.fuzz.test.ts feed the API, game logic and storage random input (FUZZ_RUNS, FUZZ_SEED)
-pnpm test:e2e       # browser tests
+pnpm test:e2e       # browser tests in Chromium, and those tagged @webkit in WebKit (Safari's engine)
 pnpm test:server    # browser tests against the server: a ranked solve and the leaderboard, sync between devices, settings, streaks, offline start
 pnpm test:soak      # long play sessions (desktop, phone): nothing leaks (SOAK_ACTIONS=600, SOAK_SEED)
 pnpm test:perf      # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
@@ -63,7 +63,7 @@ pnpm bank:grow      # add puzzles to the collection (--per-variant N --max-minut
 pnpm bank:regrade   # replace collection puzzles that miss their type's difficulty
 ```
 
-The browser tests need Chromium: run `pnpm exec playwright install chromium` once, or point `CHROMIUM_PATH` at an installed Chromium.
+The browser tests need Chromium and WebKit: run `pnpm exec playwright install chromium webkit` once, or point `CHROMIUM_PATH` at an installed Chromium. `pnpm test:e2e --project chromium` leaves WebKit out. WebKit runs a selection, the tests tagged `@webkit` (`test('…', { tag: '@webkit' }, …)`): the home page, a move in each game, taps on a phone and the backup. It cannot drag with a finger (Playwright only taps there), so the touch drags stay in Chromium.
 
 pnpm settings live in `pnpm-workspace.yaml`. pnpm runs the install scripts of dependencies only when they are listed under `allowBuilds` there, and fails the install for any other dependency that has one; decide for each new one whether it needs its script.
 
