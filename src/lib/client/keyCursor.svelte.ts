@@ -7,6 +7,9 @@ export type HeldKey = 'ctrl' | 'shift';
 /** Keys that come along with a held one, so they never end a keyboard move. */
 const MODIFIERS = new Set(['Control', 'Meta', 'Shift']);
 
+/** Whether `key` is down as `e` comes. */
+const holds = (e: KeyPress, key: HeldKey) => (key === 'ctrl' ? e.ctrlKey || e.metaKey : e.shiftKey);
+
 /**
  * What a board does with its keyboard cursor. The cursor stands on a place `C` of the board, a
  * cell or a dot: the board knows the places and the moves, `KeyCursor` the keys.
@@ -41,7 +44,7 @@ export interface CursorBoard<C> {
  * as dragging does, and letting go of the key applies it. The key alone starts nothing: Shift
  * also shows what is under the mouse, and Ctrl comes with a click. Escape drops the move and
  * hides the cursor; any other key while drawing drops the move, as it starts a shortcut
- * (Shift+Z, say).
+ * (Shift+Z, say), and so does a switch to another window.
  */
 export class KeyCursor<C> {
 	/** Where the cursor is; null while it is hidden. */
@@ -63,6 +66,8 @@ export class KeyCursor<C> {
 		// W, A, S and D with Ctrl, ⌘ or Alt belong to the page or the browser.
 		if (dir && (arrow || (!e.ctrlKey && !e.metaKey && !e.altKey))) {
 			e.preventDefault();
+			// The held key is up, though its release went unseen: drop the move it held.
+			if (this.#held && !holds(e, this.#held)) this.#drop();
 			this.#move(dir[0], dir[1], arrow ? this.#heldWith(e) : null);
 			return true;
 		}
@@ -99,10 +104,18 @@ export class KeyCursor<C> {
 		this.at = null;
 	}
 
+	/**
+	 * The window lost the focus, and the release of a held key may go to another one: the move
+	 * is dropped, so that a later press and release of the key does not apply it.
+	 */
+	blur() {
+		this.#drop();
+	}
+
 	/** The key an arrow comes with that draws on this board. */
 	#heldWith(e: KeyPress): HeldKey | null {
-		if (e.ctrlKey || e.metaKey) return 'ctrl';
-		return e.shiftKey && this.board.shiftDraws ? 'shift' : null;
+		if (holds(e, 'ctrl')) return 'ctrl';
+		return this.board.shiftDraws && holds(e, 'shift') ? 'shift' : null;
 	}
 
 	#move(rows: number, cols: number, key: HeldKey | null) {

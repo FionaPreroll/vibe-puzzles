@@ -132,3 +132,30 @@ test('Ctrl with the arrows draws Loop and Pinwheel lines from the dot the cursor
 		await expect(line('h:1:1')).toHaveCount(1);
 	}
 });
+
+test('switching to another window while drawing with the keys drops the move', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:loop', 'true'));
+	await page.goto('/loop?v=5n');
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+	const lines = page.getByRole('grid', { name: 'Puzzle board' }).locator('[data-line]');
+
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.down('Control');
+	await page.keyboard.press('ArrowRight');
+	await expect(lines).toHaveCount(1);
+	// Another window takes the focus while Ctrl is down: the line goes.
+	await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+	await expect(lines).toHaveCount(0);
+	// Neither letting go of Ctrl nor pressing it again draws it.
+	await page.keyboard.up('Control');
+	await page.keyboard.press('Control');
+	await expect(lines).toHaveCount(0);
+
+	// The cursor stays, and draws again.
+	await page.keyboard.down('Control');
+	await page.keyboard.press('ArrowDown');
+	await page.keyboard.up('Control');
+	await expect(lines).toHaveCount(1);
+	await expect(lines).toHaveAttribute('data-line', 'v:0:1');
+});

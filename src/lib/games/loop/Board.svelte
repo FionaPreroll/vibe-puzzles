@@ -265,7 +265,8 @@
 	$effect(() =>
 		keys?.({
 			keydown: (e: KeyPress) => !blank && keyCursor.keydown(e),
-			keyup: (e: KeyPress) => keyCursor.keyup(e)
+			keyup: (e: KeyPress) => keyCursor.keyup(e),
+			blur: () => keyCursor.blur()
 		})
 	);
 

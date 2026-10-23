@@ -40,6 +40,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **Switching right after a move or a solve**, to another puzzle type or to a new puzzle, no longer keeps that move or solve from your other devices. A daily puzzle solved and left at once used to stay unsolved there.
 - **Taking back every move** of a game, with Undo or Start over, reaches your other devices too. The moves used to come back there, since a game without moves was not uploaded.
 - **A puzzle opened by link or ID** on a second device goes on where you left it on the first. It used to start afresh there, and its first move replaced your game on the other device.
+- **Drawing with the keyboard**: a move drawn with Ctrl (⌘ on a Mac) or Shift and the arrow keys is dropped when you switch to another window before letting go. It used to stay on the board as a preview, and the next press of the key applied it.
 
 ## [0.8.0] - 2026-10-11
 
