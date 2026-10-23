@@ -222,6 +222,24 @@ const de: Dictionary = {
 		board: 'Auf dem Spielfeld',
 		or: 'oder'
 	},
+	speech: {
+		cell: 'Zeile {row}, Spalte {col}',
+		dot: 'Punkt in Zeile {row}, Spalte {col}',
+		empty: 'leer',
+		error: 'Fehler',
+		complete: 'fertig',
+		lines: 'Linien: {list}',
+		crosses: 'Kreuze: {list}',
+		upLeft: 'oben links',
+		up: 'oben',
+		upRight: 'oben rechts',
+		left: 'links',
+		here: 'hier',
+		right: 'rechts',
+		downLeft: 'unten links',
+		down: 'unten',
+		downRight: 'unten rechts'
+	},
 	daily: {
 		next: 'Neues Tagesrätsel in {time}, um {at} Uhr'
 	},
@@ -540,6 +558,12 @@ const de: Dictionary = {
 				'Tippe ein Feld an, um zwischen schattiert, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Felder.',
 			controlsKeys:
 				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Felder, die Leertaste wirkt auf das Feld darunter wie ein Klick. Halte {mod} und drücke die Pfeile, um jedes Feld auf dem Weg zu markieren, oder halte Shift für die Markierung der rechten Maustaste; beim Loslassen wird sie gesetzt. Esc blendet den Cursor aus.',
+			speech: {
+				place: '{place}, Bereich {region}',
+				shaded: 'schattiert',
+				cross: 'Kreuz',
+				shape: '{shape}-Tetromino'
+			},
 			settingHelp: {
 				highlightErrors:
 					'Schattierte Felder werden rot, wenn sie gegen eine Regel verstoßen: ein voller 2×2-Block, gleiche Tetrominos nebeneinander, mehr als vier Felder in einem Bereich oder eine Gruppe, die nicht mehr zum Rest finden kann.'
@@ -618,6 +642,11 @@ const de: Dictionary = {
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen. Mit dem Farbwerkzeug färbst du Felder. Einen Kreis halten sperrt einen fertigen Bereich.',
 			controlsKeys:
 				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Punkte. Halte {mod} und drücke die Pfeile, um Linien entlang des Wegs zu ziehen, wie mit der Maus; beim Loslassen werden sie gesetzt. Esc blendet den Cursor aus.',
+			speech: {
+				border: 'Rand: {list}',
+				circles: 'Kreise: {list}',
+				locked: 'gesperrt'
+			},
 			settingHelp: {
 				autoSubmit:
 					'Das Rätsel gilt als gelöst, sobald alle Bereiche stimmen, ob mit Linien gezogen oder mit Farben ausgemalt. Aus: Du drückst selbst auf „Fertig“, und nur die Linien zählen.',
@@ -689,6 +718,12 @@ const de: Dictionary = {
 				'Klicke ein Feld an und tippe eine Ziffer oder nutze den Ziffernblock. Umschalt+Ziffer setzt oder entfernt eine Notiz, die Leertaste wechselt zwischen Ziffern und Notizen. Rücktaste oder 0 löscht. Mit den Pfeiltasten wechselst du das Feld. Lieber erst die Ziffer wählen? Schalte „Erst die Ziffer wählen“ in den Einstellungen ein.',
 			controlsTouch:
 				'Tippe ein Feld an, dann eine Ziffer im Ziffernblock. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
+			speech: {
+				given: 'vorgegeben',
+				notes: 'Notizen {list}',
+				cage: 'Käfig {label}, {count} Felder',
+				cageOne: 'Käfig {label}, ein Feld'
+			},
 			settingHelp: {
 				hideControls:
 					'Blendet die Buttons „Ziffer“ und „Notiz“ aus, der Ziffernblock bleibt. Das zuletzt gewählte Werkzeug bleibt aktiv. Gilt nur auf diesem Gerät.',
@@ -848,6 +883,9 @@ const de: Dictionary = {
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen, oder halte und zieh über die Punkte, um mehrere zu zeichnen. Mit dem Kreuz-Werkzeug markierst du Kanten, die die Schleife meidet.',
 			controlsKeys:
 				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Punkte. Halte {mod} und drücke die Pfeile, um Linien entlang des Wegs zu ziehen, wie mit der Maus; beim Loslassen werden sie gesetzt. Esc blendet den Cursor aus.',
+			speech: {
+				numbers: 'Zahlen: {list}'
+			},
 			settingHelp: {
 				highlightErrors:
 					'Ein Punkt wird rot, wo sich die Linie verzweigt oder nicht weiterkommt, eine Zahl, wenn sie zu viele Linien oder Kreuze hat. Ist die Schleife geschlossen, werden auch Zahlen rot, denen noch Linien fehlen.'

@@ -5,7 +5,9 @@ test('"New puzzle" on the daily puzzle continues with the regular type of its si
 }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:pinwheel', 'true'));
 	await page.goto('/pinwheel?v=daily');
-	await expect(page.locator('.overflow-x-auto svg[role="grid"]')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.overflow-x-auto svg[role="application"]')).toBeVisible({
+		timeout: 30_000
+	});
 	await page.waitForLoadState('networkidle');
 
 	await page.getByRole('button', { name: 'New puzzle' }).click();

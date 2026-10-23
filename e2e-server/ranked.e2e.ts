@@ -24,7 +24,7 @@ test('a ranked solve of a server puzzle lands on the leaderboard', async ({ page
 	);
 	await page.goto('/tetroid?v=6n');
 	expect((await issued).status()).toBe(201);
-	const board = page.getByRole('grid', { name: 'Puzzle board' }).first();
+	const board = page.getByRole('application', { name: 'Puzzle board' }).first();
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const read = () =>
 		page.evaluate(() => JSON.parse(localStorage.getItem('vp:save:tetroid:6n') ?? 'null') as Saved);

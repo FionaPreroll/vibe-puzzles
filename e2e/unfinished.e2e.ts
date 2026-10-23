@@ -15,7 +15,7 @@ const savedProgress = (page: Page) =>
 	});
 
 async function shadeFirstCell(page: Page) {
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	const box = (await board.boundingBox())!;
 	await page.mouse.click(box.x + box.width / 12, box.y + box.height / 12);
 	await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
@@ -90,7 +90,7 @@ test('Shift+0 on a German keyboard ("=") erases in Sudoku and keeps the game', a
 	const id = await puzzleId(page).textContent();
 
 	// Put a digit into the first empty cell.
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	const text = async () => (await board.locator('text').allTextContents()).join('');
 	await expect(board.locator('text').first()).toBeVisible();
 	const before = await text();

@@ -32,7 +32,7 @@ async function shadedCells(page: Page): Promise<number[]> {
  * page has hydrated does nothing: wait for the board, which only shows once the app runs.
  */
 async function openSettings(page: Page) {
-	await expect(page.getByRole('grid', { name: 'Puzzle board' }).first()).toBeVisible({
+	await expect(page.getByRole('application', { name: 'Puzzle board' }).first()).toBeVisible({
 		timeout: 30_000
 	});
 	await page.getByRole('button', { name: 'Settings' }).click();
@@ -59,7 +59,7 @@ test('a game continues on a second device linked with the sync code', async ({ b
 
 	// Phone: start a puzzle and shade three cells.
 	await phone.goto('/tetroid?v=6n');
-	const board = phone.getByRole('grid', { name: 'Puzzle board' }).first();
+	const board = phone.getByRole('application', { name: 'Puzzle board' }).first();
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const box = (await board.boundingBox())!;
 	const cell = box.width / 6;
@@ -92,7 +92,10 @@ test('a game continues on a second device linked with the sync code', async ({ b
 	expect(await shadedCells(laptop)).toEqual(phoneCells);
 
 	// Laptop: one more move, then the phone picks it up when it comes back to the page.
-	const lbox = (await laptop.getByRole('grid', { name: 'Puzzle board' }).first().boundingBox())!;
+	const lbox = (await laptop
+		.getByRole('application', { name: 'Puzzle board' })
+		.first()
+		.boundingBox())!;
 	const lcell = lbox.width / 6;
 	await laptop.mouse.click(lbox.x + 3.5 * lcell, lbox.y + 0.5 * lcell);
 	await laptop.waitForResponse(
@@ -170,7 +173,7 @@ async function pair(browser: Browser, name: string): Promise<[Page, Page]> {
 
 /** Shade the given cells of the board, 6x6 unless `size` says otherwise. */
 async function shade(page: Page, cells: [number, number][], size = 6) {
-	const board = page.getByRole('grid', { name: 'Puzzle board' }).first();
+	const board = page.getByRole('application', { name: 'Puzzle board' }).first();
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const box = (await board.boundingBox())!;
 	const cell = box.width / size;
@@ -237,7 +240,7 @@ test('offline mode sends nothing until "Sync now"', async ({ browser }) => {
 	// Longer than the pause before an upload; a reload keeps offline mode.
 	await phone.waitForTimeout(2500);
 	await phone.reload();
-	await expect(phone.getByRole('grid', { name: 'Puzzle board' }).first()).toBeVisible({
+	await expect(phone.getByRole('application', { name: 'Puzzle board' }).first()).toBeVisible({
 		timeout: 30_000
 	});
 	await shade(phone, [[5, 5]]);

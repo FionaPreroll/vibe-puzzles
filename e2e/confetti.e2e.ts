@@ -10,7 +10,7 @@ test('the win animation colours the regions and throws confetti, then clears', a
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 

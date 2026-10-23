@@ -19,7 +19,7 @@ for (const [width, height, locale, mobile] of [
 					localStorage.setItem('vp:puzzleSource', '"bank"');
 				});
 				await page.goto(path);
-				await expect(page.locator('.overflow-x-auto svg[role="grid"]')).toBeVisible({
+				await expect(page.locator('.overflow-x-auto svg[role="application"]')).toBeVisible({
 					timeout: 30_000
 				});
 				await page.waitForLoadState('networkidle');

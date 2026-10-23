@@ -42,7 +42,7 @@ test('Shift+0 on a German keyboard erases a Sudoku cell and nothing else', async
 	await expect(id).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const before = await id.textContent();
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 
 	// A note in the first empty cell, found with the arrow keys.
 	await page.keyboard.press('ArrowRight');
@@ -52,6 +52,7 @@ test('Shift+0 on a German keyboard erases a Sudoku cell and nothing else', async
 		if (!(await notes.count())) await page.keyboard.press('ArrowRight');
 	}
 	await expect(notes).toHaveCount(1);
+	await expect(page.getByTestId('board-speech')).toHaveText(/^Row 1, column \d: notes 1$/);
 
 	// Shift+0 is "=" there, which is also the new puzzle shortcut.
 	await page.evaluate(() => {
@@ -106,7 +107,7 @@ test('Ctrl with the arrows draws Loop and Pinwheel lines from the dot the cursor
 		await page.goto(path);
 		await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 		await page.waitForLoadState('networkidle');
-		const board = page.getByRole('grid', { name: 'Puzzle board' });
+		const board = page.getByRole('application', { name: 'Puzzle board' });
 		const line = (key: string) => board.locator(`[data-line="${key}"]`);
 
 		// The cursor shows on the top-left dot and goes down one; with Ctrl held, right along the
@@ -120,6 +121,10 @@ test('Ctrl with the arrows draws Loop and Pinwheel lines from the dot the cursor
 		await page.keyboard.up('Control');
 		await expect(line('h:1:0')).toHaveCount(1);
 		await expect(line('h:1:1')).toHaveCount(1);
+		// A screen reader says where the cursor is, and the lines there.
+		await expect(page.getByTestId('board-speech')).toHaveText(
+			/^Dot in row 2, column 3\. Lines: left(\. |$)/
+		);
 
 		// Escape drops the move under way.
 		await page.keyboard.down('Control');
@@ -138,7 +143,7 @@ test('switching to another window while drawing with the keys drops the move', a
 	await page.goto('/loop?v=5n');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
-	const lines = page.getByRole('grid', { name: 'Puzzle board' }).locator('[data-line]');
+	const lines = page.getByRole('application', { name: 'Puzzle board' }).locator('[data-line]');
 
 	await page.keyboard.press('ArrowRight');
 	await page.keyboard.down('Control');

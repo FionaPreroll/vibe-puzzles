@@ -7,6 +7,8 @@
 	import { KeyCursor } from '../../client/keyCursor.svelte';
 	import { nextMark } from '../../client/marks';
 	import { analyze, CROSS, EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from './rules';
+	import { sayCell } from './speech';
+	import BoardSpeech from '../../components/game/BoardSpeech.svelte';
 	import { t } from '../../i18n/index.svelte';
 
 	let {
@@ -210,6 +212,16 @@
 		moved: (at) => (current = at)
 	});
 	const cursor = $derived(keyCursor.at);
+	/** For screen readers: the cell under the cursor. */
+	const speech = $derived(
+		keys && cursor != null && !blank
+			? sayCell(puzzle, marks, a, cursor, {
+					errors: !!settings.highlightErrors,
+					shapes: !!settings.colorTetrominoes
+				})
+			: ''
+	);
+	const speechId = $props.id();
 
 	$effect(() =>
 		keys?.({
@@ -235,16 +247,20 @@
 </script>
 
 <!-- Only the svg itself is hit: a touch keeps its target even when the shape under the finger
-     is redrawn mid-drag (a removed target would swallow the rest of the gesture). -->
+     is redrawn mid-drag (a removed target would swallow the rest of the gesture). The board the
+     keys play is an application to screen readers, which then hand it the arrow keys; Tab brings
+     the focus to it. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <svg
 	{width}
 	{height}
 	viewBox="0 0 {width} {height}"
-	class="block touch-manipulation outline-none select-none [&_*]:pointer-events-none"
+	class="board-focus block touch-manipulation select-none [&_*]:pointer-events-none"
 	style:touch-action={touchAction(touchMode)}
-	role="grid"
-	tabindex="-1"
+	role="application"
+	tabindex={keys ? 0 : -1}
 	aria-label={t('game.board')}
+	aria-describedby={keys ? speechId : undefined}
 	{@attach input}
 >
 	<rect x={pad} y={pad} width={w * cellSize} height={h * cellSize} fill={colours.surface} />
@@ -406,3 +422,6 @@
 		</g>
 	{/if}
 </svg>
+{#if keys}
+	<BoardSpeech id={speechId} game="tetroid" text={speech} />
+{/if}

@@ -67,7 +67,9 @@ test('the connection menu opens above a message in the top bar', async ({ page }
 	});
 	// A link with an unknown puzzle ID opens a puzzle and says so in the top bar.
 	await page.goto('/tetroid?v=6n&id=-5');
-	await expect(page.locator('.overflow-x-auto svg[role="grid"]')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.overflow-x-auto svg[role="application"]')).toBeVisible({
+		timeout: 30_000
+	});
 	const message = page
 		.locator('p', { hasText: 'No puzzle has this ID.' })
 		.and(page.locator(':not(.sr-only)'));

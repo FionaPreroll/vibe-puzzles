@@ -28,7 +28,7 @@ for (const [game, variant, id, row, prep, mark] of [
 			localStorage.setItem('vp:puzzleSource', '"bank"');
 		}, game);
 		await page.goto(`/${game}?v=${variant}&id=${id}`);
-		const board = page.getByRole('grid', { name: 'Puzzle board' });
+		const board = page.getByRole('application', { name: 'Puzzle board' });
 		await expect(board).toBeVisible({ timeout: 30_000 });
 		// Touch handlers are attached once the page has hydrated.
 		await page.waitForLoadState('networkidle');
@@ -57,7 +57,7 @@ test('holding a circle of an open region, then sliding, shows the symmetry helpe
 	page
 }) => {
 	await page.goto('/pinwheel/tutorial');
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await page.waitForLoadState('networkidle');
 	const box = (await board.boundingBox())!;
 	const cell = box.width / 5.4;
@@ -102,7 +102,7 @@ test('two fingers scroll a board zoomed past the screen, and pinch to zoom it', 
 		localStorage.setItem('vp:boardZoom:pinwheel:5n', '2');
 	});
 	await page.goto('/pinwheel?v=5n&id=612979536');
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const area = board.locator('xpath=ancestor::div[contains(@class, "overflow-x-auto")]');

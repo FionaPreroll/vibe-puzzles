@@ -161,7 +161,7 @@
 	}
 
 	/** The board itself, not a decoration around it. */
-	const boardSvg = () => fit.boardArea?.querySelector<SVGSVGElement>('svg[role="grid"]');
+	const boardSvg = () => fit.boardArea?.querySelector<SVGSVGElement>('svg[role="application"]');
 
 	async function startOver() {
 		if (await ask(question('startOver', true))) session.startOver();

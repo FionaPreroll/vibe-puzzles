@@ -13,7 +13,7 @@ test('solving hides the dots inside the galaxies', async ({ page }) => {
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const dots = board.locator(`g[fill="${palette.dot}"] circle`);

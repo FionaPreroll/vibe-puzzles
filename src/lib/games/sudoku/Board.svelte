@@ -22,6 +22,8 @@
 	import { brokenCages, cageIndex, cageLabel, labelCell, type CalcPuzzle } from './calc/rules';
 	import { solveCalc } from './calc/solver';
 	import { solveSudoku } from './solver';
+	import { sayCell } from './speech';
+	import BoardSpeech from '../../components/game/BoardSpeech.svelte';
 
 	let {
 		puzzle,
@@ -239,6 +241,17 @@
 
 	$effect(() => keys?.({ keydown: onkeydown }));
 
+	/** For screen readers: the selected cell. */
+	const speech = $derived(
+		keys && selected >= 0 && !blank
+			? sayCell(puzzle, board, selected, {
+					digit: !!((settings.highlightErrors && clashes[selected]) || wrong?.[selected]),
+					cage: !!(cageOf && broken?.[cageOf[selected]])
+				})
+			: ''
+	);
+	const speechId = $props.id();
+
 	/** Win animation: every box in its own colour for a moment. */
 	const celebrationFill = $derived(
 		celebrate && !blank ? celebrationFills(cageOf ?? geometry(size).box, size, size) : null
@@ -269,16 +282,20 @@
 </script>
 
 <div class="flex flex-col items-center" style:width="{width}px">
-	<!-- Only the svg itself is hit, like the other boards. -->
+	<!-- Only the svg itself is hit, like the other boards. The board the keys play is an
+	     application to screen readers, which then hand it the arrow keys; Tab brings the focus
+	     to it. -->
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 	<svg
 		bind:this={svg}
 		{width}
 		{height}
 		viewBox="0 0 {width} {height}"
-		class="block touch-manipulation outline-none select-none [&_*]:pointer-events-none"
-		role="grid"
-		tabindex="-1"
+		class="board-focus block touch-manipulation select-none [&_*]:pointer-events-none"
+		role="application"
+		tabindex={keys ? 0 : -1}
 		aria-label={t('game.board')}
+		aria-describedby={keys ? speechId : undefined}
 		{onpointerdown}
 		oncontextmenu={(e) => e.preventDefault()}
 	>
@@ -456,6 +473,9 @@
 			</g>
 		{/if}
 	</svg>
+	{#if keys}
+		<BoardSpeech id={speechId} game="sudoku" text={speech} />
+	{/if}
 
 	{#if !blank && !readonly}
 		<!-- Number pad: enters into the selected cell with the current tool, or arms a digit -->

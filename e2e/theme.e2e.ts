@@ -36,7 +36,7 @@ test('the board follows night mode; screenshots and prints stay light', async ({
 	await page.evaluate(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
 	await page.goto('/tetroid?v=6n');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 
 	// No choice made yet: the system's dark scheme applies, to the page and the board.
 	await expect(page.locator('html')).toHaveClass(/\bdark\b/);
