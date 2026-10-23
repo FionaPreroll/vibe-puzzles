@@ -23,6 +23,10 @@ import { LoopLevel, loopLayout, LoopSolver, rateLoop, solveLoop, type LoopLayout
  * - `block`: a 2×2 block of cells with its numbers and dots, when no pair decides an edge.
  * - `sides`: inside and outside. A line switches sides, a cross does not, and beyond the grid is
  *   outside; cells known to be on the same side, or on different sides, decide the edge between.
+ * - `split`: inside and outside around a number, which counts its neighbours on the other side
+ *   (a 2 has two neighbours inside and two outside): with the cells joined to them, that puts
+ *   cells on known sides of each other.
+ * - `splitPair`: the same around two numbers together.
  * - `assumption`: none of those applies, but trying a line or a cross on an edge leads to a
  *   contradiction.
  */
@@ -34,6 +38,8 @@ export const TECHNIQUES = [
 	'pair',
 	'sides',
 	'block',
+	'split',
+	'splitPair',
 	'assumption'
 ] as const;
 export type Technique = (typeof TECHNIQUES)[number];
@@ -55,6 +61,10 @@ export type Reason =
 	| 'blockCross'
 	| 'sidesSame'
 	| 'sidesOther'
+	| 'splitLine'
+	| 'splitCross'
+	| 'splitPairLine'
+	| 'splitPairCross'
 	| 'assumeLine'
 	| 'assumeCross';
 
@@ -180,7 +190,9 @@ class Deduction {
 			(want) => this.cornerSteps(want),
 			(want) => this.pairSteps(want),
 			(want) => this.sidesSteps(want),
-			(want) => this.blockSteps(want)
+			(want) => this.blockSteps(want),
+			(want) => this.splitSteps(want, false),
+			(want) => this.splitSteps(want, true)
 		];
 	}
 
@@ -553,6 +565,220 @@ class Deduction {
 		yield this.step('sides', reason, [best.e], want, best.path, { cells: best.cells.reverse() });
 	}
 
+	/**
+	 * Cells joined by decided edges: per cell (outside last) the first cell of its group and its
+	 * side relative to that one (1: across an odd number of lines).
+	 */
+	private sideGroups(): { group: Int32Array; side: Uint8Array } {
+		const out = this.n;
+		const group = new Int32Array(out + 1).fill(-1);
+		const side = new Uint8Array(out + 1);
+		const { cellSide } = this.l;
+		const { cellEdges } = this.l.g;
+		const queue = new Int32Array(out + 1);
+		for (let s = 0; s <= out; s++) {
+			if (group[s] >= 0) continue;
+			group[s] = s;
+			queue[0] = s;
+			for (let head = 0, tail = 1; head < tail; head++) {
+				const x = queue[head];
+				const visit = (y: number, edge: number) => {
+					if (this.v[edge] === OPEN || group[y] >= 0) return;
+					group[y] = s;
+					side[y] = side[x] ^ (this.v[edge] === LINE ? 1 : 0);
+					queue[tail++] = y;
+				};
+				if (x === out) for (const [y, edge] of this.borderSteps()) visit(y, edge);
+				else for (let k = 0; k < 4; k++) visit(cellSide[4 * x + k], cellEdges[4 * x + k]);
+			}
+		}
+		return { group, side };
+	}
+
+	/**
+	 * Inside and outside around numbers: a number counts its neighbours on the other side of the
+	 * loop. Cells joined by decided edges keep their sides to each other, so only some ways to put
+	 * a number and its neighbours inside or outside fit its count. Where two of them lie the same
+	 * way to each other in every way that fits, an open edge between cells joined to them
+	 * follows: a line when its cells lie on different sides, a cross when on the same side. One
+	 * number at a time, or (`two`) two numbers whose neighbours are joined, with the ways that fit
+	 * both. The step with the shortest walks is named.
+	 */
+	private *splitSteps(want: number, two: boolean): Generator<Step> {
+		const { edgeSide } = this.l;
+		const out = this.n;
+		const { group, side } = this.sideGroups();
+		// Open edges by the groups of their two cells.
+		const between = new Map<number, number[]>();
+		const pair = (a: number, b: number) => (a < b ? a * (out + 1) + b : b * (out + 1) + a);
+		for (const e of this.open()) {
+			const [ga, gb] = [group[edgeSide[2 * e]], group[edgeSide[2 * e + 1]]];
+			if (ga === gb) continue;
+			const known = between.get(pair(ga, gb));
+			if (known) known.push(e);
+			else between.set(pair(ga, gb), [e]);
+		}
+		// The numbers by an open edge: their neighbours lie in two groups or more.
+		const numbers = this.clue.flatMap((clue, c) =>
+			clue >= 0 && new Set(this.around(c).map((x) => group[x])).size > 1 ? [c] : []
+		);
+		const sets = two ? this.splitPairs(numbers, group, side) : numbers.map((c) => [c]);
+		let best: {
+			cost: number;
+			set: number[];
+			e: number;
+			joins: (Walk | null)[];
+			walks: Map<number, Walk>;
+		} | null = null;
+		for (const set of sets) {
+			const items = set.flatMap((c) => this.around(c));
+			const groups = [...new Set(items.map((x) => group[x]))];
+			const count = groups.length;
+			const index = items.map((x) => groups.indexOf(group[x]));
+			const clues = set.map((c) => this.clue[c]);
+			const diff = splitDiffs(clues, items, index, count, side);
+			if (!diff) continue;
+			// Made once an edge follows: the walks that join the numbers and their neighbours within
+			// a group, and per group the walks from them to every cell of it.
+			const members = groups.map((g) => [...new Set(items.filter((x) => group[x] === g))]);
+			let joins: (Walk | null)[] | null = null;
+			let joined = 0;
+			const walks = new Map<number, Walk>();
+			for (let i = 0; i < count; i++) {
+				for (let j = i + 1; j < count; j++) {
+					const d = diff[i * count + j];
+					if (d < 0) continue;
+					for (const e of between.get(pair(groups[i], groups[j])) ?? []) {
+						const ends = [edgeSide[2 * e], edgeSide[2 * e + 1]];
+						if ((side[ends[0]] ^ side[ends[1]] ^ d ? LINE : CROSS) !== want) continue;
+						if (!joins) {
+							joins = members.map((m) => (m.length > 1 ? this.walk(m.slice(0, 1)) : null));
+							joined = members.reduce(
+								(sum, m, k) =>
+									sum + m.reduce((steps, x) => steps + (joins![k]?.get(x)!.steps ?? 0), 0),
+								0
+							);
+						}
+						let cost = joined;
+						for (const x of ends) {
+							const g = groups.indexOf(group[x]);
+							if (!walks.has(g)) walks.set(g, this.walk(members[g]));
+							cost += walks.get(g)!.get(x)!.steps;
+						}
+						if (!best || cost < best.cost) best = { cost, set, e, joins, walks };
+					}
+				}
+			}
+		}
+		if (!best) return;
+		const { set, e, joins, walks } = best;
+		const groups = [...new Set(set.flatMap((c) => this.around(c)).map((x) => group[x]))];
+		const path = new Set<number>();
+		const cells = new Set<number>(set);
+		/** Back from `x` to where `walk` starts, with the cells and edges on the way. */
+		const back = (walk: Walk, x: number) => {
+			for (let at = x; ;) {
+				if (at !== out) cells.add(at);
+				const { from, edge } = walk.get(at)!;
+				if (from < 0) return;
+				path.add(edge);
+				at = from;
+			}
+		};
+		// The numbers and their neighbours joined within each group, then the edge's cells to them.
+		for (const x of set.flatMap((c) => this.around(c))) {
+			const walk = joins[groups.indexOf(group[x])];
+			if (walk && walk.get(x)!.from >= 0) back(walk, x);
+		}
+		for (const x of [edgeSide[2 * e], edgeSide[2 * e + 1]]) {
+			back(walks.get(groups.indexOf(group[x]))!, x);
+		}
+		const technique = two ? 'splitPair' : 'split';
+		const reason = two
+			? want === LINE
+				? 'splitPairLine'
+				: 'splitPairCross'
+			: want === LINE
+				? 'splitLine'
+				: 'splitCross';
+		yield this.step(technique, reason, [e], want, [...path], {
+			cells: [...cells],
+			path: [...path],
+			...(!two && { clue: this.clue[set[0]] })
+		});
+	}
+
+	/**
+	 * Pairs of these numbers that may decide more together than each alone: their neighbours lie
+	 * in two of the same groups, or in one that each of them puts on a known side of another.
+	 */
+	private splitPairs(numbers: number[], group: Int32Array, side: Uint8Array): number[][] {
+		const known = numbers.map((c) => {
+			const items = this.around(c);
+			const groups = [...new Set(items.map((x) => group[x]))];
+			const index = items.map((x) => groups.indexOf(group[x]));
+			const diff = splitDiffs([this.clue[c]], items, index, groups.length, side);
+			const linked = new Set<number>();
+			for (let i = 0; diff && i < groups.length; i++) {
+				for (let j = i + 1; j < groups.length; j++) {
+					if (diff[i * groups.length + j] < 0) continue;
+					linked.add(groups[i]);
+					linked.add(groups[j]);
+				}
+			}
+			return { c, groups, linked };
+		});
+		const byGroup = new Map<number, number[]>();
+		known.forEach(({ groups }, k) => {
+			for (const g of groups) byGroup.set(g, [...(byGroup.get(g) ?? []), k]);
+		});
+		const seen = new Set<number>();
+		const pairs: number[][] = [];
+		for (const list of byGroup.values()) {
+			for (let i = 0; i < list.length; i++) {
+				for (let j = i + 1; j < list.length; j++) {
+					const key = list[i] * known.length + list[j];
+					if (seen.has(key)) continue;
+					seen.add(key);
+					const [a, b] = [known[list[i]], known[list[j]]];
+					const shared = a.groups.filter((g) => b.groups.includes(g));
+					if (shared.length < 2 && !(a.linked.has(shared[0]) && b.linked.has(shared[0]))) continue;
+					pairs.push([a.c, b.c]);
+				}
+			}
+		}
+		return pairs;
+	}
+
+	/** A number's cell and its four neighbours, above, below, left and right (`n` beyond the grid). */
+	private around(c: number): number[] {
+		return [c, ...this.l.cellSide.subarray(4 * c, 4 * c + 4)];
+	}
+
+	/**
+	 * Breadth-first from `from` over decided edges (beyond the grid counts as one more cell): per
+	 * cell reached, the cell it was reached from (-1 for a start), the edge between and the steps.
+	 */
+	private walk(from: number[]): Walk {
+		const { cellSide } = this.l;
+		const { cellEdges } = this.l.g;
+		const out = this.n;
+		const walk: Walk = new Map(from.map((x) => [x, { from: -1, edge: -1, steps: 0 }]));
+		const queue = [...from];
+		for (let head = 0; head < queue.length; head++) {
+			const x = queue[head];
+			const steps = walk.get(x)!.steps + 1;
+			const visit = (y: number, edge: number) => {
+				if (this.v[edge] === OPEN || walk.has(y)) return;
+				walk.set(y, { from: x, edge, steps });
+				queue.push(y);
+			};
+			if (x === out) for (const [y, edge] of this.borderSteps()) visit(y, edge);
+			else for (let k = 0; k < 4; k++) visit(cellSide[4 * x + k], cellEdges[4 * x + k]);
+		}
+		return walk;
+	}
+
 	/** The cells along the border, with the edge between each and the outside. */
 	private borderSteps(): [number, number][] {
 		if (this.border) return this.border;
@@ -612,6 +838,47 @@ class Deduction {
 		}
 		return null;
 	}
+}
+
+/** Cells reached by `walk`: where each was reached from, over which edge, in how many steps. */
+type Walk = Map<number, { from: number; edge: number; steps: number }>;
+
+/**
+ * The ways to put groups of cells inside or outside: `items` holds a number's cell and its four
+ * neighbours per clue of `clues`, `index` the group of each item (of `count`) and `side` its side
+ * to its group. Per pair of groups (i * count + j): the difference every way that fits all the
+ * clues agrees on, or -1. Null when no way fits.
+ */
+function splitDiffs(
+	clues: number[],
+	items: number[],
+	index: number[],
+	count: number,
+	side: Uint8Array
+): Int8Array | null {
+	const diff = new Int8Array(count * count).fill(-2);
+	let fits = false;
+	// The first group is inside: only differences matter.
+	for (let a = 0; a < 1 << (count - 1); a++) {
+		const bits = a << 1;
+		const colour = (k: number) => ((bits >> index[k]) & 1) ^ side[items[k]];
+		let ok = true;
+		for (let m = 0; ok && m < clues.length; m++) {
+			let other = 0;
+			for (let k = 5 * m + 1; k < 5 * m + 5; k++) other += colour(k) ^ colour(5 * m);
+			ok = other === clues[m];
+		}
+		if (!ok) continue;
+		fits = true;
+		for (let i = 0; i < count; i++) {
+			for (let j = i + 1; j < count; j++) {
+				const d = ((bits >> i) ^ (bits >> j)) & 1;
+				const k = i * count + j;
+				diff[k] = diff[k] === -2 || diff[k] === d ? d : -1;
+			}
+		}
+	}
+	return fits ? diff : null;
 }
 
 /** The number of bits set in `m`. */

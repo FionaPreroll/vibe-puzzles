@@ -932,6 +932,20 @@ const de: Dictionary = {
 					'Probier die Möglichkeiten für die Kanten des Blocks durch: In jeder, die passt, haben die markierten Kanten eine Linie. Zieh sie.',
 				blockCross:
 					'Probier die Möglichkeiten für die Kanten des Blocks durch: In jeder, die passt, bleiben die markierten Kanten leer. Setz Kreuze.',
+				splitLook:
+					'Denk an innen und außen rund um die hinterlegte {clue}: Eine Zahl zählt ihre Nachbarfelder auf der anderen Seite der Schleife, und jenseits des Spielfelds ist außen.',
+				splitTwoLook:
+					'Denk an innen und außen rund um die hinterlegte 2: Sie zählt ihre Nachbarfelder auf der anderen Seite der Schleife, also liegen zwei davon innen und zwei außen. Jenseits des Spielfelds ist außen.',
+				splitLine:
+					'Geh über deine Linien und Kreuze an den hinterlegten Feldern entlang: Über eine Linie wechselst du die Seite, über ein Kreuz nicht. Probier dann die Möglichkeiten durch, die {clue} und ihre Nachbarn nach innen oder außen zu legen: In jeder, die zu ihrer Zahl und diesen Wegen passt, liegen die beiden Felder an der markierten Kante auf verschiedenen Seiten. Zwischen ihnen verläuft eine Linie.',
+				splitCross:
+					'Geh über deine Linien und Kreuze an den hinterlegten Feldern entlang: Über eine Linie wechselst du die Seite, über ein Kreuz nicht. Probier dann die Möglichkeiten durch, die {clue} und ihre Nachbarn nach innen oder außen zu legen: In jeder, die zu ihrer Zahl und diesen Wegen passt, liegen die beiden Felder an der markierten Kante auf derselben Seite. Zwischen ihnen verläuft keine Linie.',
+				splitPairLook:
+					'Denk an innen und außen rund um die beiden hinterlegten Zahlen: Eine Zahl zählt ihre Nachbarfelder auf der anderen Seite der Schleife (eine 2 hat also zwei Nachbarn innen und zwei außen), und jenseits des Spielfelds ist außen.',
+				splitPairLine:
+					'Geh über deine Linien und Kreuze an den hinterlegten Feldern entlang: Über eine Linie wechselst du die Seite, über ein Kreuz nicht. Probier dann die Möglichkeiten durch, beide Zahlen und ihre Nachbarn nach innen oder außen zu legen: In jeder, die zu beiden Zahlen und diesen Wegen passt, liegen die beiden Felder an der markierten Kante auf verschiedenen Seiten. Zwischen ihnen verläuft eine Linie.',
+				splitPairCross:
+					'Geh über deine Linien und Kreuze an den hinterlegten Feldern entlang: Über eine Linie wechselst du die Seite, über ein Kreuz nicht. Probier dann die Möglichkeiten durch, beide Zahlen und ihre Nachbarn nach innen oder außen zu legen: In jeder, die zu beiden Zahlen und diesen Wegen passt, liegen die beiden Felder an der markierten Kante auf derselben Seite. Zwischen ihnen verläuft keine Linie.',
 				assumeLook:
 					'Hier hilft keine einfache Regel weiter: Probier im Kopf eine Kante an den hinterlegten Feldern aus.',
 				assumeLine:
@@ -955,6 +969,8 @@ const de: Dictionary = {
 					'Keine Möglichkeit für die Seiten der hinterlegten Zahlen, die zu ihren Zahlen und Punkten passt, legt eine Linie auf die hinterlegten Kanten daneben.',
 				emptySides:
 					'Die Felder an der hinterlegten Kante liegen auf derselben Seite der Schleife: Sie bleibt leer.',
+				emptySplit:
+					'Innen und außen rund um die hinterlegten Zahlen legen die Felder an der hinterlegten Kante auf dieselbe Seite: Sie bleibt leer.',
 				thenLine: 'Also muss die Schleife dort entlang: Zieh die Linie.',
 				thenCross: 'Also verläuft dort keine Linie: Setz ein Kreuz.',
 				stuck:

@@ -932,6 +932,20 @@ const en = {
 					'Try the ways to draw the edges of the block: in every way that fits, the highlighted edges have a line. Draw them.',
 				blockCross:
 					'Try the ways to draw the edges of the block: in every way that fits, the highlighted edges stay empty. Cross them.',
+				splitLook:
+					'Think inside and outside around the tinted {clue}: a number counts its neighbours on the other side of the loop, and beyond the grid is outside.',
+				splitTwoLook:
+					'Think inside and outside around the tinted 2: it counts its neighbours on the other side of the loop, so two of them lie inside and two outside. Beyond the grid is outside.',
+				splitLine:
+					'Walk along the tinted cells over your lines and crosses: over a line you switch sides, over a cross you do not. Then try the ways to put the {clue} and its neighbours inside or outside: in every way that fits its number and those walks, the two cells by the highlighted edge lie on different sides. A line goes between them.',
+				splitCross:
+					'Walk along the tinted cells over your lines and crosses: over a line you switch sides, over a cross you do not. Then try the ways to put the {clue} and its neighbours inside or outside: in every way that fits its number and those walks, the two cells by the highlighted edge lie on the same side. No line goes between them.',
+				splitPairLook:
+					'Think inside and outside around the two tinted numbers: a number counts its neighbours on the other side of the loop (so a 2 has two neighbours inside and two outside), and beyond the grid is outside.',
+				splitPairLine:
+					'Walk along the tinted cells over your lines and crosses: over a line you switch sides, over a cross you do not. Then try the ways to put both numbers and their neighbours inside or outside: in every way that fits both numbers and those walks, the two cells by the highlighted edge lie on different sides. A line goes between them.',
+				splitPairCross:
+					'Walk along the tinted cells over your lines and crosses: over a line you switch sides, over a cross you do not. Then try the ways to put both numbers and their neighbours inside or outside: in every way that fits both numbers and those walks, the two cells by the highlighted edge lie on the same side. No line goes between them.',
 				assumeLook: 'No simple rule helps here: try out an edge by the tinted cells in your head.',
 				assumeLine:
 					'No simple rule helps here, so try it out: suppose the highlighted edge had a line, and follow the rules from there.',
@@ -952,6 +966,8 @@ const en = {
 					'No way to draw the sides of the tinted numbers that fits their counts and dots puts a line on the tinted edges by them.',
 				emptySides:
 					'The cells by the tinted edge lie on the same side of the loop: it stays empty.',
+				emptySplit:
+					'Inside and outside around the tinted numbers put the cells by the tinted edge on the same side: it stays empty.',
 				/** What a tried edge leads to, by its mark: the opposite of what was supposed. */
 				thenLine: 'So the loop must run there: draw the line.',
 				thenCross: 'So no line goes there: cross it.',
