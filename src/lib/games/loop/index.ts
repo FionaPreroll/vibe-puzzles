@@ -17,7 +17,9 @@ export const EMPTY: Partial<Record<Reason, string>> = {
 	cornerCross: 'emptyWindow',
 	pairCross: 'emptyWindow',
 	blockCross: 'emptyWindow',
-	sidesSame: 'emptySides'
+	sidesSame: 'emptySides',
+	splitCross: 'emptySplit',
+	splitPairCross: 'emptySplit'
 };
 
 /** Loop: a board, hints and a tutorial, from 5×5 to 25×30. */
@@ -73,7 +75,10 @@ export const loop: GameModule<LoopPuzzle, LoopState, LoopSettingKey> = {
 				text: [key(hint.reason), key(breaks), key(then)]
 			};
 		}
-		const look = [key(`${hint.technique}Look`)];
+		// A 2 has two neighbours on each side of the loop, whichever side it lies on.
+		const look = [
+			key(hint.technique === 'split' && hint.clue === 2 ? 'splitTwoLook' : `${hint.technique}Look`)
+		];
 		return {
 			kind: 'step',
 			spotlight,

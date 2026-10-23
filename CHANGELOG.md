@@ -19,6 +19,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **Two fingers** scroll a board that is larger than the screen, and pinch to zoom it, with the touch input "Always draw" (the default). One finger still draws.
 - **Keyboard on the board**: the list of keyboard shortcuts ("?") says how to play Tetroid, Pinwheel and Loop with the keys. The arrow keys move a cursor, and Ctrl (⌘ on a Mac) with the arrows marks cells or draws lines as dragging does.
 - **Screen readers**: Tab brings the focus to the board, with a ring around it, and a screen reader says how to play it with the keys. As the cursor moves it says where it is and what lies there: "Row 3, column 4, region 2: shaded" in Tetroid, the digit or notes of a Sudoku cell (and its cage in Calcudoku), the lines and crosses at a Loop or Pinwheel dot with the numbers or circles around it, and what is marked as an error.
+- **Inside and outside in Loop hints**: a number counts its neighbours on the other side of the loop, so a 2 always has two neighbours inside and two outside. Hints now use this, around one number or two together, where they used to try out an edge. On Hard boards from 15×15 up, hints that try out an edge are a half to five sixths rarer.
 
 ### Fixed
 
