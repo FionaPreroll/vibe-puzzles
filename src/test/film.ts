@@ -10,6 +10,7 @@ const frame = (key: string, hold?: number) => ({
 /** A film for the player's tests: three chapters of 3, 1 and 4 frames. */
 export const FILM: Film<null, null> = {
 	game: 'sudoku',
+	puzzle: null,
 	chapters: [
 		{ title: 'a', frames: [frame('a0', 2), frame('a1'), frame('a2')] },
 		{ title: 'b', frames: [frame('b0')] },
