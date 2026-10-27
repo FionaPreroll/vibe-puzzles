@@ -11,7 +11,8 @@ describe('tutorial page', () => {
 			{ game: 'tetroid' },
 			{ game: 'pinwheel' },
 			{ game: 'sudoku' },
-			{ game: 'loop' }
+			{ game: 'loop' },
+			{ game: 'pipes' }
 		]);
 	});
 
@@ -26,7 +27,12 @@ describe('tutorial page', () => {
 		const { tutorial } = pinwheel;
 		pinwheel.tutorial = undefined;
 		try {
-			expect(await entries()).toEqual([{ game: 'tetroid' }, { game: 'sudoku' }, { game: 'loop' }]);
+			expect(await entries()).toEqual([
+				{ game: 'tetroid' },
+				{ game: 'sudoku' },
+				{ game: 'loop' },
+				{ game: 'pipes' }
+			]);
 			expect(() => loadFor('pinwheel')).toThrow(expect.objectContaining({ status: 404 }));
 		} finally {
 			pinwheel.tutorial = tutorial;

@@ -6,7 +6,7 @@ test('home lists the games', { tag: '@webkit' }, async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'Pinwheel' })).toBeVisible();
 });
 
-for (const game of ['tetroid', 'pinwheel', 'loop']) {
+for (const game of ['tetroid', 'pinwheel', 'loop', 'pipes']) {
 	test(`${game} generates and renders a board`, { tag: '@webkit' }, async ({ page }) => {
 		await page.goto(`/${game}?v=${game === 'tetroid' ? '6n' : '5n'}`);
 		await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });

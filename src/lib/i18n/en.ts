@@ -284,6 +284,8 @@ const en = {
 	mode: {
 		calc: 'Calcudoku'
 	},
+	/** Puzzle types whose opposite edges touch (Pipes): named so in place of their difficulty. */
+	wrap: 'Wrap',
 	/** Short names for the narrow specials row of the puzzle type picker. */
 	specialShort: {
 		daily: 'Daily',
@@ -297,7 +299,9 @@ const en = {
 		blank: 'Blank',
 		color: 'Colour',
 		digit: 'Digit',
-		note: 'Note'
+		note: 'Note',
+		turn: 'Turn',
+		lock: 'Lock'
 	},
 	swatch: ['', 'Violet', 'Red', 'Yellow', 'Green', 'Blue'],
 	setting: {
@@ -331,7 +335,9 @@ const en = {
 		highlightLines: 'Highlight row, column and box',
 		highlightSame: 'Highlight the same digit',
 		showRemaining: 'Show how many of each digit are left',
-		digitFirst: 'Pick the digit first, then the cells (left click: digit, right click: note)'
+		digitFirst: 'Pick the digit first, then the cells (left click: digit, right click: note)',
+		showWater: 'Show the water',
+		animateRotation: 'Animate turning tiles'
 	},
 	/** What each setting does, shown below it. Games and modes can word it their own way. */
 	settingHelp: {
@@ -388,7 +394,10 @@ const en = {
 		showRemaining:
 			'The number pad shows how often each digit is still missing and greys out the complete ones.',
 		digitFirst:
-			'Pick a digit on the pad first, then click every cell that gets it. Handy for placing one digit all over the board.'
+			'Pick a digit on the pad first, then click every cell that gets it. Handy for placing one digit all over the board.',
+		showWater:
+			'Fills every pipe joined to the source with blue water, so you see at a glance which tiles already belong to the network.',
+		animateRotation: 'Tiles turn smoothly instead of in one jump. Quick clicks still count at once.'
 	},
 	source: {
 		title: 'Where new puzzles come from',
@@ -1001,6 +1010,96 @@ const en = {
 				{
 					text: 'The rest is yours, with the same three ideas: count the lines at each number, give every dot two lines or none, and close the loop only at the very end. A dot turns red where the line branches or gets stuck.',
 					task: 'Finish the loop on your own.'
+				}
+			]
+		},
+		pipes: {
+			tagline: 'Turn the tiles until all pipes form one network.',
+			rules: [
+				'Turn the tiles until all pipes join into one network. Tiles only turn, they never move.',
+				'No pipe ends loose: each one meets a pipe of the tile next to it, and none leads off the board.',
+				'The network has no loops.',
+				'On a board with wrap, opposite edges touch: a pipe that leaves on one side comes back in on the other.'
+			],
+			notes: [
+				'Water fills every pipe joined to the source in the middle. Lock a tile once you are sure of it: it stays put, and hints build on it.'
+			],
+			toolHint: {
+				turn: 'Click a tile to turn it a quarter clockwise, Shift+click to turn it back. Right click locks it.',
+				lock: 'Click a tile to lock it, so that it cannot turn by accident, and again to unlock it. Drag to lock several.'
+			},
+			controlsMouse:
+				'Click a tile to turn it clockwise, Shift+click to turn it back. Right click locks or unlocks a tile; drag with the right button to lock several.',
+			controlsTouch:
+				'Tap a tile to turn it clockwise. Hold a tile to lock or unlock it, or pick the Lock tool and tap or drag.',
+			controlsKeys:
+				'Arrow keys or W, A, S, D move a cursor over the tiles. Space turns the tile under it clockwise (with the Lock tool: locks it), Shift+Space turns it back, L locks or unlocks it. Hold {mod} and press the arrows to lock every tile on the way; letting go sets them. Esc hides the cursor.',
+			speech: {
+				tile: '{kind}, open {list}',
+				end: 'end',
+				straight: 'straight',
+				corner: 'corner',
+				tee: 'T piece',
+				source: 'source',
+				water: 'water',
+				locked: 'locked'
+			},
+			settingHelp: {
+				highlightErrors:
+					'Pipes turn red where they surely break a rule: a pipe that leads off the board, a loop, a group of joined tiles without a loose end, or a pipe between two locked tiles that meets a closed side.'
+			},
+			/** What the hint button says: where to look and which rule applies, then the turn. */
+			hints: {
+				mistake:
+					'The highlighted locked tiles lie wrong. They stay highlighted until you unlock or turn them.',
+				edgeLook: 'Look at the tinted tile at the edge of the board: no pipe may lead off it.',
+				edge: 'Only one way of turning it keeps all its pipes on the board.',
+				fitLook:
+					'Look at the tinted tiles: a pipe needs a pipe on the other side, and a closed side takes none.',
+				fit: 'The locked tiles around the highlighted tile, and the edge of the board, leave it only one way to lie.',
+				loopLook: 'Look at the tinted pipes: they already join up through the locked tiles.',
+				loop: 'Any other way of turning the highlighted tile would join them a second time and close a loop.',
+				closedLook:
+					'Look at the tinted pipes and count their loose ends: every group of joined tiles needs a way out to the rest.',
+				closed:
+					'Any other way of turning the highlighted tile would close off a group without a loose end, cut off from the rest of the network.',
+				chainLook:
+					'Look at the tinted tiles: even before they are locked, the edge, the locked tiles and the rules settle some of their sides.',
+				chain: 'Taken together, they leave the highlighted tile only one way to lie.',
+				turn0: 'It already lies right: lock it.',
+				turn1: 'Turn it a quarter clockwise and lock it.',
+				turn2: 'Turn it half round and lock it.',
+				turn3: 'Turn it a quarter anticlockwise and lock it.',
+				stuck:
+					'No rule decides a tile here. Try a way for the highlighted tile in your head and follow it until a rule breaks.'
+			},
+			tutorial: [
+				{
+					text: 'Pipes is about one network of pipes. Each tile holds a piece of pipe: an end, a straight, a corner or a T. Tiles cannot move, they only turn. The red dot in the middle is the source: water fills every pipe joined to it. Just look for now: you start turning in step 2.'
+				},
+				{
+					text: 'No pipe may lead off the board. The corner piece at the top left points off it on two sides, shown in red. In a corner of the board, a corner piece fits only one way: leading right and down.',
+					task: 'Turn the marked tile until its pipe leads right and down: click or tap it. Each click turns it a quarter clockwise.',
+					done: 'Done: it joins the pipe next to it, and the water flows in.'
+				},
+				{
+					text: 'Once you are sure how a tile lies, lock it: it cannot turn by accident any more, and its grey background shows that it is settled.',
+					task: 'Lock the corner tile: right click it, hold it on a touch screen, or pick the Lock tool (▣) and click it.',
+					done: 'Locked. A locked tile only shakes when you click it. Unlock it the way you locked it.'
+				},
+				{
+					text: 'Pipes join where two tiles open towards each other. The locked corner leads a pipe down into the marked tile, so that tile has to open up to meet it. Otherwise the pipe would end loose.',
+					task: 'Turn the marked tile so that its pipe leads up into the corner.',
+					done: 'Right: a pipe always needs a pipe on the other side.'
+				},
+				{
+					text: 'The end in the top right corner can point left or down. Pointing left, it would meet the end next to it. If that one pointed back, the two would form a tiny network of their own, cut off from the rest; if not, the pipe would end loose.',
+					task: 'Turn the marked end so that it points down.',
+					done: 'Exactly: two ends never face each other.'
+				},
+				{
+					text: 'The rest is yours. All tiles form one network: no loose ends, and no loops either. The water shows which tiles are already joined to the source.',
+					task: 'Turn the remaining tiles until water fills every pipe.'
 				}
 			]
 		}

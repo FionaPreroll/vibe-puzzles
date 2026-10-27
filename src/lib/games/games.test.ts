@@ -155,6 +155,12 @@ describe('changes since a trial began', () => {
 		marks.marks[2] = 1;
 		marks.auto[4] = 1;
 		expect(tet.g.changes(tet.puzzle, tet.empty, marks)).toEqual(['2']);
+
+		const pipes = first('pipes');
+		const tiles = structuredClone(pipes.empty as { tiles: number[]; locks: number[] });
+		tiles.tiles[2] = 0;
+		tiles.locks[5] = 1;
+		expect(pipes.g.changes(pipes.puzzle, pipes.empty, tiles)).toEqual(['2', '5']);
 	});
 });
 

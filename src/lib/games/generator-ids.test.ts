@@ -9,9 +9,9 @@ import { GAME_LOGIC } from './logic';
  * generated ID: shared links show another puzzle, and a device without the collection gets
  * another daily puzzle than everyone else.
  *
- * This test pins the puzzle behind a few IDs of every distinct generator setting (rule set, size
- * and difficulty; special types share the setting of a regular type except Pinwheel's monthly
- * 20×20). Types that are only announced (`comingSoon`) have no IDs yet, so they are left out. If
+ * This test pins the puzzle behind a few IDs of every distinct generator setting (rule set, size,
+ * difficulty and wrap; special types share the setting of a regular type except Pinwheel's
+ * monthly 20×20). Types that are only announced (`comingSoon`) have no IDs yet, so they are left out. If
  * it fails, the generator changed what an ID means. When that is deliberate, treat it
  * as a migration (see docs/generators.md) and replace the hashes with the new ones.
  *
@@ -91,7 +91,25 @@ const PINNED: Record<string, string> = {
 	'loop 20n 1': '798a98678dc67d86',
 	'loop 20h 1': 'ab970a6a53efa8c6',
 	'loop 25x30n 1': 'fce977fc4e2bf2ad',
-	'loop 25x30h 1': '57425beb8e018673'
+	'loop 25x30h 1': '57425beb8e018673',
+	'pipes 5n 1': '751505be14a8ae70',
+	'pipes 5n 2': '24ceed6f5ace93ba',
+	'pipes 5w 1': '9978ad2242b1bba1',
+	'pipes 5w 2': 'fb0d2af1c7744b06',
+	'pipes 7n 1': '2a0560631045c622',
+	'pipes 7n 2': 'a3eac0d8fb661394',
+	'pipes 7w 1': '2a14a43a14386945',
+	'pipes 7w 2': 'b3b3ce27eebff623',
+	'pipes 10n 1': 'e6716963f872863c',
+	'pipes 10n 2': 'b60eaf6922aa5f70',
+	'pipes 10w 1': '68b72c41853a04a5',
+	'pipes 10w 2': '9d53d2bf43f53585',
+	'pipes 15n 1': '43a7be745cfff5a3',
+	'pipes 15w 1': '0bd7a31e0d23273e',
+	'pipes 20n 1': '362d70fd848b439e',
+	'pipes 20w 1': '326161e35edbb3d1',
+	'pipes 25n 1': '91bb8fd041a9e9aa',
+	'pipes 25w 1': 'a51d5c592856728b'
 };
 
 const fingerprint = (puzzle: unknown) =>
@@ -103,7 +121,7 @@ describe('generated puzzle IDs', () => {
 		for (const logic of Object.values(GAME_LOGIC)) {
 			const settings = new Map<string, string>();
 			for (const v of logic.variants.filter(isPlayable)) {
-				const setting = `${v.mode ?? ''} ${v.width}x${v.height} ${v.difficulty}`;
+				const setting = `${v.mode ?? ''} ${v.width}x${v.height} ${v.difficulty} ${!!v.wrap}`;
 				if (pinned.has(`${logic.id} ${v.key}`)) settings.set(setting, v.key);
 				else if (!settings.has(setting)) settings.set(setting, '');
 			}

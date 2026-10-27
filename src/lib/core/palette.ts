@@ -72,6 +72,10 @@ const LIGHT = {
 	note7: '#d4d4d4',
 	note8: '#b4ebda',
 	note9: '#f9d1a8',
+	/** Pipes: the water in pipes joined to the source, a locked tile, and the source. */
+	water: '#4f8fe8',
+	locked: '#e4e2df',
+	source: '#c62828',
 	/** Pinwheel's centres in the Halloween look: pumpkins, lit by a candle once complete. */
 	pumpkin: '#f97316',
 	pumpkinShade: '#ea580c',
@@ -127,6 +131,9 @@ const DARK: Palette = {
 	note7: '#4a4a4a',
 	note8: '#22614f',
 	note9: '#7a4a1f',
+	water: '#2563eb',
+	locked: '#3a3532',
+	source: '#ef4444',
 	pumpkin: '#ea580c',
 	pumpkinShade: '#c2410c',
 	stem: '#65a30d',

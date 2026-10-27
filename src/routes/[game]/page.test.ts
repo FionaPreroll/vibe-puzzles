@@ -10,7 +10,8 @@ describe('game page', () => {
 			{ game: 'tetroid' },
 			{ game: 'pinwheel' },
 			{ game: 'sudoku' },
-			{ game: 'loop' }
+			{ game: 'loop' },
+			{ game: 'pipes' }
 		]);
 	});
 
