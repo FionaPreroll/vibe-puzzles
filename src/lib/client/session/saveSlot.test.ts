@@ -89,17 +89,100 @@ describe('save slot', () => {
 		expect(api.pushSave).toHaveBeenCalledWith(KEY, stored(), stored()?.updatedAt);
 	});
 
-	it('still uploads the last game when another slot is selected, unless cancelled', () => {
+	it('uploads a game whose moves were all taken back, once', () => {
 		const s = slot();
 		s.write(record(0), true);
-		s.select('save:tetroid:8n');
-		vi.advanceTimersByTime(PUSH_DELAY_MS);
-		expect(api.pushSave).toHaveBeenCalledWith(KEY, expect.anything(), expect.any(Number));
-		s.select(KEY);
-		s.write(record(0, 1), true);
-		s.cancelPush();
 		vi.advanceTimersByTime(PUSH_DELAY_MS);
 		expect(api.pushSave).toHaveBeenCalledTimes(1);
+		// Undone, or started over: the other devices must not keep the move.
+		s.write(record(), true);
+		// Saved again before it went up (leaving the page, say): it still goes.
+		s.write(record(), false);
+		expect(api.pushSave).toHaveBeenCalledTimes(2);
+		expect(api.pushSave).toHaveBeenLastCalledWith(
+			KEY,
+			expect.objectContaining({ state: record().state }),
+			stored()?.updatedAt
+		);
+		// After that, an untouched game stays here again.
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		s.write(record(), false);
+		expect(api.pushSave).toHaveBeenCalledTimes(2);
+	});
+
+	it('marks a game as taken back until the next move or another game', () => {
+		const s = slot();
+		s.write(record(0), true);
+		expect(stored()?.takenBack).toBeUndefined();
+		s.write(record(), true);
+		expect(stored()?.takenBack).toBe(true);
+		s.write(record(), false);
+		expect(stored()?.takenBack).toBe(true);
+		s.write(record(1), true);
+		expect(stored()?.takenBack).toBeUndefined();
+		s.write(record(), true);
+		expect(stored()?.takenBack).toBe(true);
+		// Read from another tab or device, it stays taken back.
+		s.adopt({ ...record(), version: 1, updatedAt: 70_000, takenBack: true });
+		s.write(record(), false);
+		expect(stored()).toMatchObject({ updatedAt: 70_000, takenBack: true });
+		s.claim();
+		s.write(record(), true);
+		expect(stored()?.takenBack).toBeUndefined();
+	});
+
+	it('uploads a game it read with progress once all of that is taken back', () => {
+		const s = slot();
+		// From another device, whose clock runs ahead.
+		s.adopt({ ...record(3), version: 1, updatedAt: 50_000 });
+		s.write(record(), true);
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		expect(api.pushSave).toHaveBeenCalledWith(KEY, stored(), 50_001);
+		// A new puzzle starts untouched, and stays here.
+		s.adopt({ ...record(3), version: 1, updatedAt: 60_000 });
+		s.claim();
+		s.write(record(), true);
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		expect(api.pushSave).toHaveBeenCalledTimes(1);
+	});
+
+	it("sends the last game's waiting upload at once when another game takes the slot", () => {
+		const s = slot();
+		s.write(record(0), true);
+		// Another type opens: the saves of its game must not drop the last change of this one.
+		s.select('save:tetroid:8n');
+		expect(api.pushSave).toHaveBeenCalledTimes(1);
+		expect(api.pushSave).toHaveBeenLastCalledWith(
+			KEY,
+			expect.objectContaining({ state: record(0).state }),
+			expect.any(Number)
+		);
+		s.attachBoard();
+		s.claim();
+		s.write(record(5), true);
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		expect(api.pushSave).toHaveBeenCalledTimes(2);
+		// A new puzzle right after a solve: the solve goes up first.
+		s.write({ ...record(5, 6), solved: true }, true);
+		s.claim();
+		expect(api.pushSave).toHaveBeenCalledTimes(3);
+		expect(api.pushSave).toHaveBeenLastCalledWith(
+			'save:tetroid:8n',
+			expect.objectContaining({ solved: true }),
+			expect.any(Number)
+		);
+		s.write(record(), true);
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		expect(api.pushSave).toHaveBeenCalledTimes(3);
+	});
+
+	it('drops the waiting upload when a newer save takes over', () => {
+		const s = slot();
+		s.write(record(0), true);
+		s.cancelPush();
+		s.select('save:tetroid:8n');
+		vi.advanceTimersByTime(PUSH_DELAY_MS);
+		expect(api.pushSave).not.toHaveBeenCalled();
 	});
 
 	it('notices a save another tab wrote since', () => {

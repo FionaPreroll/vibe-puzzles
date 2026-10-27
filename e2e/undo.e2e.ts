@@ -13,7 +13,7 @@ for (const [label, viewport] of [
 			localStorage.setItem('vp:puzzleSource', '"bank"');
 		});
 		await page.goto('/tetroid?v=6n&id=496678832');
-		const board = page.getByRole('grid', { name: 'Puzzle board' });
+		const board = page.getByRole('application', { name: 'Puzzle board' });
 		await expect(board).toBeVisible({ timeout: 30_000 });
 		await page.waitForLoadState('networkidle');
 		const grid = (await board.locator('rect').first().boundingBox())!;

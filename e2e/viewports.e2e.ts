@@ -39,7 +39,7 @@ async function prepare(page: Page) {
 async function openGame(page: Page, path: string) {
 	await page.goto(path);
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	return page.getByRole('grid', { name: 'Puzzle board' }).first();
+	return page.getByRole('application', { name: 'Puzzle board' }).first();
 }
 
 /** The page never scrolls sideways. */
@@ -56,7 +56,7 @@ async function expectNoSideScroll(page: Page) {
  * keep a usable cell size, so there the board may need scrolling into view but still fits.
  */
 async function expectBoardOnScreen(page: Page, screen: Screen) {
-	const board = page.getByRole('grid', { name: 'Puzzle board' }).first();
+	const board = page.getByRole('application', { name: 'Puzzle board' }).first();
 	const bar = page.getByRole('toolbar', { name: 'Tools' }).last();
 	if (screen.height < SHORT) {
 		// Scroll the board's bottom edge just above the tool bar.
@@ -150,7 +150,10 @@ for (const screen of SCREENS) {
 			const tools = page.getByRole('toolbar', { name: 'Tools' }).filter({ visible: true });
 			await expect(tools).toHaveCount(1);
 			await expect(tools.getByRole('button')).toHaveCount(4);
-			const board = (await page.getByRole('grid', { name: 'Puzzle board' }).first().boundingBox())!;
+			const board = (await page
+				.getByRole('application', { name: 'Puzzle board' })
+				.first()
+				.boundingBox())!;
 			const bar = (await tools.boundingBox())!;
 			// Undo, redo and the hint share the play bar with the tools.
 			for (const name of ['Undo', 'Redo', 'Hint']) {

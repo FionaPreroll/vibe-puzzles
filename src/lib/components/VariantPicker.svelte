@@ -2,11 +2,11 @@
 	import { getStats } from '../client/stats';
 	import type { AnyGame } from '../games';
 	import { periodKey, type Variant } from '../core/variants';
-	import { nextDailyText, t, variantLabel } from '../i18n/index.svelte';
+	import { columnLabel, nextDailyText, t, variantColumn, variantLabel } from '../i18n/index.svelte';
 
 	/**
-	 * Puzzle types as a size × difficulty table (one per rule set, e.g. Calcudoku in Sudoku) plus
-	 * the specials with their status.
+	 * Puzzle types as a size × difficulty table (one per rule set, e.g. Calcudoku in Sudoku; types
+	 * with wrap get a column of their own) plus the specials with their status.
 	 */
 	let { game, current, onpick }: { game: AnyGame; current: string; onpick: (key: string) => void } =
 		$props();
@@ -14,15 +14,15 @@
 	const regular = $derived(game.variants.filter((v) => !v.special));
 	const specials = $derived(game.variants.filter((v) => v.special));
 	const modes = $derived([...new Set(regular.map((v) => v.mode ?? ''))]);
-	const difficulties = $derived([...new Set(regular.map((v) => v.difficulty))]);
+	const columns = $derived([...new Set(regular.map(variantColumn))]);
 	const sizesOf = (mode: string) => [
 		...new Set(regular.filter((v) => (v.mode ?? '') === mode).map((v) => `${v.width}×${v.height}`))
 	];
 
-	function find(mode: string, size: string, difficulty: string) {
+	function find(mode: string, size: string, column: string) {
 		return regular.find(
 			(v) =>
-				(v.mode ?? '') === mode && `${v.width}×${v.height}` === size && v.difficulty === difficulty
+				(v.mode ?? '') === mode && `${v.width}×${v.height}` === size && variantColumn(v) === column
 		);
 	}
 
@@ -67,11 +67,11 @@
 			{#each sizesOf(mode) as size (size)}
 				<tr>
 					<th class="py-0.5 text-left text-sm font-medium tabular-nums">{size}</th>
-					{#each difficulties as d (d)}
+					{#each columns as d (d)}
 						{@const v = find(mode, size, d)}
 						<td class="p-0.5">
 							{#if v?.comingSoon}
-								{@render soon(v, t(`difficulty.${d}`))}
+								{@render soon(v, columnLabel(d))}
 							{:else if v}
 								<button
 									class="{cell} {v.key === current ? active : ''}"
@@ -79,7 +79,7 @@
 									aria-current={v.key === current ? 'true' : undefined}
 									onclick={() => onpick(v.key)}
 								>
-									{t(`difficulty.${d}`)}<span class="ml-1 text-amber-500">{marker(v)}</span>
+									{columnLabel(d)}<span class="ml-1 text-amber-500">{marker(v)}</span>
 								</button>
 							{/if}
 						</td>
@@ -99,16 +99,16 @@
 				{#if v.comingSoon}
 					{@render soon(v, t(`specialShort.${v.special}`))}
 				{:else}
+					<!-- Named by what it shows, the size and tick included; the long name is its tooltip. -->
 					<button
 						class="{cell} {v.key === current ? active : ''}"
-						aria-label={variantLabel(v)}
 						title={variantLabel(v)}
 						aria-current={v.key === current ? 'true' : undefined}
 						onclick={() => onpick(v.key)}
 					>
 						{t(`specialShort.${v.special}`)}
 						<span class="block text-xs text-stone-500 dark:text-stone-400"
-							>{v.width}×{v.height}
+							>{v.width}×{v.height}{v.wrap ? ` ${t('wrap')}` : ''}
 							{#if done}<span class="text-emerald-600 dark:text-emerald-400">{done}</span
 								>{/if}</span
 						>

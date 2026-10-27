@@ -1,0 +1,12 @@
+{
+	"version": 2,
+	"game": "pipes",
+	"variant": "daily",
+	"puzzles": [
+		{"id":519212972,"period":"2026-10-27","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"255c2789744aad5e27814641adae2a9e35618ebb3b24b97b8a47b7ded7b881251738d1bdc86be9e92173e44aa54a39d58242"}},
+		{"id":787654876,"period":"2026-10-28","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"42c49ea612dcd2a86baa35b11815dc15be7b4978caa6999aec14478d7a761bedeb3ca2ddadded1d3aa28aa36244125698c54"}},
+		{"id":1056096780,"period":"2026-10-29","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"15a64a71988573437ad48a78ada1388ebe7da47c89174879b423877be2e22656acb7e2bda7d9e83e8445eadd6a15aac14244"}},
+		{"id":253124588,"period":"2026-10-30","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"279882c1ac1cd9a1beaccdb7c2bd518446e3eaac2cb6457a91a18a2db173769eeedc4ea1357d554cbee2aaade41423618168"}},
+		{"id":1058424492,"period":"2026-10-31","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"68c34bc146b5eeac5de9c4151d73c281213683e89da4b975694ba2d2bd448bde74db3195bbea9b59a275a8cb6288c289c4ec"}}
+	]
+}

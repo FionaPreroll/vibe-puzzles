@@ -1,6 +1,7 @@
 import type { GameLogic } from '../core/types';
 import { loopLogic } from './loop/logic';
 import { pinwheelLogic } from './pinwheel/logic';
+import { pipesLogic } from './pipes/logic';
 import { sudokuLogic } from './sudoku/logic';
 import { tetroidLogic } from './tetroid/logic';
 
@@ -9,7 +10,8 @@ export const GAME_LOGIC: Record<string, GameLogic> = {
 	tetroid: tetroidLogic,
 	pinwheel: pinwheelLogic,
 	sudoku: sudokuLogic,
-	loop: loopLogic
+	loop: loopLogic,
+	pipes: pipesLogic
 };
 
 /** The logic of a game ID from outside the app (a request, a stored key); never `Object`'s own. */

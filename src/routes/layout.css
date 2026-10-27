@@ -43,9 +43,21 @@
 	}
 	.link {
 		@apply text-indigo-600 underline-offset-2 hover:underline dark:text-indigo-400;
+		/* In running text the colour alone does not set a link apart from the words around it. */
+		&.in-text {
+			@apply underline decoration-indigo-600/40 hover:decoration-current dark:decoration-indigo-400/50;
+		}
 	}
 	.menu-item {
 		@apply rounded-md px-3 py-2 text-left text-sm hover:bg-stone-100 disabled:opacity-50 dark:hover:bg-stone-800;
+	}
+	/* A board the keys play: a ring when the keyboard brings the focus to it, none for a click. */
+	.board-focus {
+		outline: none;
+		&:focus-visible {
+			outline: 2px solid var(--color-indigo-500);
+			outline-offset: 2px;
+		}
 	}
 	/* The board sits on its own surface, the one thing on the page that stands out. */
 	.board-stage {

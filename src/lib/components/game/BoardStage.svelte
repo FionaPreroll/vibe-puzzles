@@ -159,7 +159,9 @@
 			</div>
 		{:else if !session.loading}
 			<!-- Creating the puzzle failed; the message says why -->
-			<div class="grid min-h-48 place-items-center content-center gap-3 text-stone-500">
+			<div
+				class="grid min-h-48 place-items-center content-center gap-3 text-stone-500 dark:text-stone-400"
+			>
 				<p>{t('game.notCreated')}</p>
 				<button class="btn" onclick={() => session.retry()}>{t('game.retry')}</button>
 			</div>
@@ -175,7 +177,9 @@
 	/>
 	{#if session.loading}
 		<!-- Not selectable: a drag on the board while the puzzle is made would select the text -->
-		<div class="absolute inset-0 grid min-h-48 place-items-center text-stone-500 select-none">
+		<div
+			class="absolute inset-0 grid min-h-48 place-items-center text-stone-500 select-none dark:text-stone-400"
+		>
 			{t('game.creating')}
 		</div>
 	{:else if session.paused}

@@ -222,6 +222,24 @@ const de: Dictionary = {
 		board: 'Auf dem Spielfeld',
 		or: 'oder'
 	},
+	speech: {
+		cell: 'Zeile {row}, Spalte {col}',
+		dot: 'Punkt in Zeile {row}, Spalte {col}',
+		empty: 'leer',
+		error: 'Fehler',
+		complete: 'fertig',
+		lines: 'Linien: {list}',
+		crosses: 'Kreuze: {list}',
+		upLeft: 'oben links',
+		up: 'oben',
+		upRight: 'oben rechts',
+		left: 'links',
+		here: 'hier',
+		right: 'rechts',
+		downLeft: 'unten links',
+		down: 'unten',
+		downRight: 'unten rechts'
+	},
 	daily: {
 		next: 'Neues Tagesrätsel in {time}, um {at} Uhr'
 	},
@@ -230,6 +248,7 @@ const de: Dictionary = {
 		serverFailed:
 			'Der Server konnte kein Rätsel erstellen. Dieses wird offline gespielt und nicht gewertet.',
 		continued: 'Spielstand von deinem anderen Gerät übernommen.',
+		takenBack: 'Deine Züge wurden auf deinem anderen Gerät zurückgenommen.',
 		otherTab: 'Spielstand aus einem anderen Tab übernommen.',
 		notSolved: 'Noch nicht gelöst. Bleib dran!',
 		solved: 'In {time} gelöst!',
@@ -257,6 +276,7 @@ const de: Dictionary = {
 	mode: {
 		calc: 'Calcudoku'
 	},
+	wrap: 'Ohne Rand',
 	specialShort: {
 		daily: 'Tag',
 		weekly: 'Woche',
@@ -269,7 +289,9 @@ const de: Dictionary = {
 		blank: 'Leeren',
 		color: 'Farbe',
 		digit: 'Ziffer',
-		note: 'Notiz'
+		note: 'Notiz',
+		turn: 'Drehen',
+		lock: 'Sperren'
 	},
 	swatch: ['', 'Violett', 'Rot', 'Gelb', 'Grün', 'Blau'],
 	setting: {
@@ -303,7 +325,9 @@ const de: Dictionary = {
 		highlightLines: 'Zeile, Spalte und Block hervorheben',
 		highlightSame: 'Gleiche Ziffer hervorheben',
 		showRemaining: 'Anzeigen, wie oft jede Ziffer noch fehlt',
-		digitFirst: 'Erst die Ziffer wählen, dann die Felder (Linksklick: Ziffer, Rechtsklick: Notiz)'
+		digitFirst: 'Erst die Ziffer wählen, dann die Felder (Linksklick: Ziffer, Rechtsklick: Notiz)',
+		showWater: 'Wasser zeigen',
+		animateRotation: 'Kacheln sanft drehen'
 	},
 	/** Was jede Einstellung bewirkt, unter ihr angezeigt. Spiele und Modi können es eigens formulieren. */
 	settingHelp: {
@@ -365,7 +389,11 @@ const de: Dictionary = {
 		showRemaining:
 			'Der Ziffernblock zeigt, wie oft jede Ziffer noch fehlt, und graut vollständige Ziffern aus.',
 		digitFirst:
-			'Wähl zuerst eine Ziffer im Ziffernblock und klick dann alle Felder an, die sie bekommen. Praktisch, um eine Ziffer überall auf dem Spielfeld einzutragen.'
+			'Wähl zuerst eine Ziffer im Ziffernblock und klick dann alle Felder an, die sie bekommen. Praktisch, um eine Ziffer überall auf dem Spielfeld einzutragen.',
+		showWater:
+			'Füllt jedes Rohr, das mit der Quelle verbunden ist, mit blauem Wasser. So siehst du auf einen Blick, welche Kacheln schon zum Netz gehören.',
+		animateRotation:
+			'Kacheln drehen sich sanft statt mit einem Sprung. Schnelle Klicks zählen trotzdem sofort.'
 	},
 	source: {
 		title: 'Woher neue Rätsel kommen',
@@ -537,6 +565,14 @@ const de: Dictionary = {
 				'Klicke auf ein Feld, um es zu schattieren, Rechtsklick setzt ein Kreuz. Ziehen markiert mehrere Felder. Die Tasten 1–4 wählen ein Werkzeug.',
 			controlsTouch:
 				'Tippe ein Feld an, um zwischen schattiert, Kreuz und leer zu wechseln. Kurz halten und ziehen markiert mehrere Felder.',
+			controlsKeys:
+				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Felder, die Leertaste wirkt auf das Feld darunter wie ein Klick. Halte {mod} und drücke die Pfeile, um jedes Feld auf dem Weg zu markieren, oder halte Shift für die Markierung der rechten Maustaste; beim Loslassen wird sie gesetzt. Esc blendet den Cursor aus.',
+			speech: {
+				place: '{place}, Bereich {region}',
+				shaded: 'schattiert',
+				cross: 'Kreuz',
+				shape: '{shape}-Tetromino'
+			},
 			settingHelp: {
 				highlightErrors:
 					'Schattierte Felder werden rot, wenn sie gegen eine Regel verstoßen: ein voller 2×2-Block, gleiche Tetrominos nebeneinander, mehr als vier Felder in einem Bereich oder eine Gruppe, die nicht mehr zum Rest finden kann.'
@@ -613,6 +649,13 @@ const de: Dictionary = {
 				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen. Rechtsklick setzt ein Kreuz, Shift+Klick färbt ein Feld. Rechtsklick auf einen Kreis sperrt einen fertigen Bereich.',
 			controlsTouch:
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen. Mit dem Farbwerkzeug färbst du Felder. Einen Kreis halten sperrt einen fertigen Bereich.',
+			controlsKeys:
+				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Punkte. Halte {mod} und drücke die Pfeile, um Linien entlang des Wegs zu ziehen, wie mit der Maus; beim Loslassen werden sie gesetzt. Esc blendet den Cursor aus.',
+			speech: {
+				border: 'Rand: {list}',
+				circles: 'Kreise: {list}',
+				locked: 'gesperrt'
+			},
 			settingHelp: {
 				autoSubmit:
 					'Das Rätsel gilt als gelöst, sobald alle Bereiche stimmen, ob mit Linien gezogen oder mit Farben ausgemalt. Aus: Du drückst selbst auf „Fertig“, und nur die Linien zählen.',
@@ -684,6 +727,12 @@ const de: Dictionary = {
 				'Klicke ein Feld an und tippe eine Ziffer oder nutze den Ziffernblock. Umschalt+Ziffer setzt oder entfernt eine Notiz, die Leertaste wechselt zwischen Ziffern und Notizen. Rücktaste oder 0 löscht. Mit den Pfeiltasten wechselst du das Feld. Lieber erst die Ziffer wählen? Schalte „Erst die Ziffer wählen“ in den Einstellungen ein.',
 			controlsTouch:
 				'Tippe ein Feld an, dann eine Ziffer im Ziffernblock. Mit dem Notiz-Werkzeug setzt oder entfernst du stattdessen kleine Notizen. ⌫ löscht.',
+			speech: {
+				given: 'vorgegeben',
+				notes: 'Notizen {list}',
+				cage: 'Käfig {label}, {count} Felder',
+				cageOne: 'Käfig {label}, ein Feld'
+			},
 			settingHelp: {
 				hideControls:
 					'Blendet die Buttons „Ziffer“ und „Notiz“ aus, der Ziffernblock bleibt. Das zuletzt gewählte Werkzeug bleibt aktiv. Gilt nur auf diesem Gerät.',
@@ -841,6 +890,11 @@ const de: Dictionary = {
 				'Klicke zwischen zwei Punkte, um eine Linie zu ziehen, oder zieh über die Punkte, um mehrere zu zeichnen. Rechtsklick setzt ein Kreuz.',
 			controlsTouch:
 				'Tippe zwischen zwei Punkte, um eine Linie zu ziehen, oder halte und zieh über die Punkte, um mehrere zu zeichnen. Mit dem Kreuz-Werkzeug markierst du Kanten, die die Schleife meidet.',
+			controlsKeys:
+				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Punkte. Halte {mod} und drücke die Pfeile, um Linien entlang des Wegs zu ziehen, wie mit der Maus; beim Loslassen werden sie gesetzt. Esc blendet den Cursor aus.',
+			speech: {
+				numbers: 'Zahlen: {list}'
+			},
 			settingHelp: {
 				highlightErrors:
 					'Ein Punkt wird rot, wo sich die Linie verzweigt oder nicht weiterkommt, eine Zahl, wenn sie zu viele Linien oder Kreuze hat. Ist die Schleife geschlossen, werden auch Zahlen rot, denen noch Linien fehlen.'
@@ -887,6 +941,20 @@ const de: Dictionary = {
 					'Probier die Möglichkeiten für die Kanten des Blocks durch: In jeder, die passt, haben die markierten Kanten eine Linie. Zieh sie.',
 				blockCross:
 					'Probier die Möglichkeiten für die Kanten des Blocks durch: In jeder, die passt, bleiben die markierten Kanten leer. Setz Kreuze.',
+				splitLook:
+					'Denk an innen und außen rund um die hinterlegte {clue}: Eine Zahl zählt ihre Nachbarfelder auf der anderen Seite der Schleife, und jenseits des Spielfelds ist außen.',
+				splitTwoLook:
+					'Denk an innen und außen rund um die hinterlegte 2: Sie zählt ihre Nachbarfelder auf der anderen Seite der Schleife, also liegen zwei davon innen und zwei außen. Jenseits des Spielfelds ist außen.',
+				splitLine:
+					'Geh über deine Linien und Kreuze an den hinterlegten Feldern entlang: Über eine Linie wechselst du die Seite, über ein Kreuz nicht. Probier dann die Möglichkeiten durch, die {clue} und ihre Nachbarn nach innen oder außen zu legen: In jeder, die zu ihrer Zahl und diesen Wegen passt, liegen die beiden Felder an der markierten Kante auf verschiedenen Seiten. Zwischen ihnen verläuft eine Linie.',
+				splitCross:
+					'Geh über deine Linien und Kreuze an den hinterlegten Feldern entlang: Über eine Linie wechselst du die Seite, über ein Kreuz nicht. Probier dann die Möglichkeiten durch, die {clue} und ihre Nachbarn nach innen oder außen zu legen: In jeder, die zu ihrer Zahl und diesen Wegen passt, liegen die beiden Felder an der markierten Kante auf derselben Seite. Zwischen ihnen verläuft keine Linie.',
+				splitPairLook:
+					'Denk an innen und außen rund um die beiden hinterlegten Zahlen: Eine Zahl zählt ihre Nachbarfelder auf der anderen Seite der Schleife (eine 2 hat also zwei Nachbarn innen und zwei außen), und jenseits des Spielfelds ist außen.',
+				splitPairLine:
+					'Geh über deine Linien und Kreuze an den hinterlegten Feldern entlang: Über eine Linie wechselst du die Seite, über ein Kreuz nicht. Probier dann die Möglichkeiten durch, beide Zahlen und ihre Nachbarn nach innen oder außen zu legen: In jeder, die zu beiden Zahlen und diesen Wegen passt, liegen die beiden Felder an der markierten Kante auf verschiedenen Seiten. Zwischen ihnen verläuft eine Linie.',
+				splitPairCross:
+					'Geh über deine Linien und Kreuze an den hinterlegten Feldern entlang: Über eine Linie wechselst du die Seite, über ein Kreuz nicht. Probier dann die Möglichkeiten durch, beide Zahlen und ihre Nachbarn nach innen oder außen zu legen: In jeder, die zu beiden Zahlen und diesen Wegen passt, liegen die beiden Felder an der markierten Kante auf derselben Seite. Zwischen ihnen verläuft keine Linie.',
 				assumeLook:
 					'Hier hilft keine einfache Regel weiter: Probier im Kopf eine Kante an den hinterlegten Feldern aus.',
 				assumeLine:
@@ -910,6 +978,8 @@ const de: Dictionary = {
 					'Keine Möglichkeit für die Seiten der hinterlegten Zahlen, die zu ihren Zahlen und Punkten passt, legt eine Linie auf die hinterlegten Kanten daneben.',
 				emptySides:
 					'Die Felder an der hinterlegten Kante liegen auf derselben Seite der Schleife: Sie bleibt leer.',
+				emptySplit:
+					'Innen und außen rund um die hinterlegten Zahlen legen die Felder an der hinterlegten Kante auf dieselbe Seite: Sie bleibt leer.',
 				thenLine: 'Also muss die Schleife dort entlang: Zieh die Linie.',
 				thenCross: 'Also verläuft dort keine Linie: Setz ein Kreuz.',
 				stuck:
@@ -942,6 +1012,98 @@ const de: Dictionary = {
 				{
 					text: 'Der Rest gehört dir, mit denselben drei Ideen: Zähl die Linien an jeder Zahl, gib jedem Punkt zwei Linien oder keine, und schließ die Schleife erst ganz am Ende. Ein Punkt wird rot, wo sich die Linie verzweigt oder nicht weiterkommt.',
 					task: 'Vervollständige die Schleife selbst.'
+				}
+			]
+		},
+		pipes: {
+			tagline: 'Drehe die Kacheln, bis alle Rohre ein einziges Netz bilden.',
+			rules: [
+				'Drehe die Kacheln, bis alle Rohre ein einziges zusammenhängendes Netz bilden. Kacheln lassen sich nur drehen, nicht verschieben.',
+				'Kein Rohr endet offen: Jedes trifft auf ein Rohr der Nachbarkachel, und keines führt aus dem Spielfeld hinaus.',
+				'Das Netz hat keine Schleifen.',
+				'Auf einem Spielfeld ohne Rand berühren sich gegenüberliegende Kanten: Ein Rohr, das auf einer Seite hinausführt, kommt auf der anderen wieder herein.'
+			],
+			notes: [
+				'Wasser füllt jedes Rohr, das mit der Quelle in der Mitte verbunden ist. Sperre eine Kachel, sobald du dir sicher bist: Dann bleibt sie, wie sie ist, und Tipps bauen auf ihr auf.'
+			],
+			toolHint: {
+				turn: 'Ein Klick dreht eine Kachel um eine Vierteldrehung im Uhrzeigersinn, Shift+Klick dreht sie zurück. Rechtsklick sperrt sie.',
+				lock: 'Ein Klick sperrt eine Kachel, damit sie sich nicht versehentlich dreht, ein zweiter gibt sie wieder frei. Ziehen sperrt mehrere.'
+			},
+			controlsMouse:
+				'Ein Klick dreht eine Kachel im Uhrzeigersinn, Shift+Klick dreht sie zurück. Rechtsklick sperrt eine Kachel oder gibt sie frei; mit gedrückter rechter Taste ziehen sperrt mehrere.',
+			controlsTouch:
+				'Tippe eine Kachel an, um sie im Uhrzeigersinn zu drehen. Halte eine Kachel, um sie zu sperren oder freizugeben, oder wähle das Werkzeug Sperren und tippe oder zieh.',
+			controlsKeys:
+				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Kacheln. Die Leertaste dreht die Kachel darunter im Uhrzeigersinn (mit dem Werkzeug Sperren: sperrt sie), Shift+Leertaste dreht sie zurück, L sperrt sie oder gibt sie frei. Halte {mod} und drücke die Pfeile, um jede Kachel auf dem Weg zu sperren; beim Loslassen wird das übernommen. Esc blendet den Cursor aus.',
+			speech: {
+				tile: '{kind}, offen nach {list}',
+				end: 'Endstück',
+				straight: 'Gerade',
+				corner: 'Ecke',
+				tee: 'T-Stück',
+				source: 'Quelle',
+				water: 'Wasser',
+				locked: 'gesperrt'
+			},
+			settingHelp: {
+				highlightErrors:
+					'Rohre werden rot, wo sie sicher gegen eine Regel verstoßen: ein Rohr, das aus dem Spielfeld führt, eine Schleife, eine Gruppe verbundener Kacheln ohne offenes Ende oder ein Rohr zwischen zwei gesperrten Kacheln, das auf eine geschlossene Seite trifft.'
+			},
+			/** Was der Tipp sagt: wo man hinschaut und welche Regel gilt, dann die Drehung. */
+			hints: {
+				mistake:
+					'Die markierten gesperrten Kacheln liegen falsch. Sie bleiben markiert, bis du sie freigibst oder drehst.',
+				edgeLook:
+					'Schau dir die hinterlegte Kachel am Rand an: Kein Rohr darf aus dem Spielfeld führen.',
+				edge: 'Nur in einer Lage bleiben alle ihre Rohre im Spielfeld.',
+				fitLook:
+					'Schau dir die hinterlegten Kacheln an: Ein Rohr braucht auf der anderen Seite ein Rohr, und eine geschlossene Seite nimmt keins auf.',
+				fit: 'Die gesperrten Kacheln rund um die markierte Kachel und der Rand des Spielfelds lassen ihr nur eine Lage.',
+				loopLook:
+					'Schau dir die hinterlegten Rohre an: Über die gesperrten Kacheln sind sie schon verbunden.',
+				loop: 'In jeder anderen Lage würde die markierte Kachel sie ein zweites Mal verbinden und eine Schleife schließen.',
+				closedLook:
+					'Schau dir die hinterlegten Rohre an und zähl ihre offenen Enden: Jede Gruppe verbundener Kacheln braucht einen Weg hinaus zum Rest.',
+				closed:
+					'In jeder anderen Lage würde die markierte Kachel eine Gruppe ohne offenes Ende abschließen, abgeschnitten vom übrigen Netz.',
+				chainLook:
+					'Schau dir die hinterlegten Kacheln an: Auch ungesperrt legen der Rand, die gesperrten Kacheln und die Regeln schon einige ihrer Seiten fest.',
+				chain: 'Zusammen lassen sie der markierten Kachel nur eine Lage.',
+				turn0: 'Sie liegt schon richtig: Sperr sie.',
+				turn1: 'Dreh sie eine Vierteldrehung im Uhrzeigersinn und sperr sie.',
+				turn2: 'Dreh sie halb herum und sperr sie.',
+				turn3: 'Dreh sie eine Vierteldrehung gegen den Uhrzeigersinn und sperr sie.',
+				stuck:
+					'Keine Regel legt hier eine Kachel fest. Probier im Kopf eine Lage für die markierte Kachel aus und verfolge sie, bis eine Regel verletzt ist.'
+			},
+			tutorial: [
+				{
+					text: 'Bei Pipes geht es um ein einziges Netz aus Rohren. Jede Kachel trägt ein Rohrstück: ein Endstück, eine Gerade, eine Ecke oder ein T-Stück. Kacheln lassen sich nicht verschieben, nur drehen. Der rote Punkt in der Mitte ist die Quelle: Wasser füllt jedes Rohr, das mit ihr verbunden ist. Schau erst mal nur: Ab Schritt 2 drehst du.'
+				},
+				{
+					text: 'Kein Rohr darf aus dem Spielfeld führen. Die Ecke oben links zeigt auf zwei Seiten hinaus, rot markiert. In einer Ecke des Spielfelds passt eine Ecke nur auf eine Art: nach rechts und nach unten.',
+					task: 'Dreh die markierte Kachel, bis ihr Rohr nach rechts und nach unten führt: Klick oder tippe sie an. Jeder Klick dreht sie eine Vierteldrehung im Uhrzeigersinn.',
+					done: 'Geschafft: Sie schließt an das Rohr daneben an, und das Wasser fließt hinein.'
+				},
+				{
+					text: 'Sobald du sicher weißt, wie eine Kachel liegt, sperr sie: Dann dreht sie sich nicht mehr versehentlich, und ihr grauer Hintergrund zeigt, dass sie feststeht.',
+					task: 'Sperr die Ecke: per Rechtsklick, auf einem Touchscreen durch Halten, oder wähle das Werkzeug Sperren (▣) und klick sie an.',
+					done: 'Gesperrt. Eine gesperrte Kachel wackelt nur, wenn du sie anklickst. Freigeben geht genauso wie Sperren.'
+				},
+				{
+					text: 'Rohre verbinden sich, wo zwei Kacheln sich zueinander öffnen. Die gesperrte Ecke führt ein Rohr nach unten in die markierte Kachel, also muss diese sich nach oben öffnen. Sonst würde das Rohr offen enden.',
+					task: 'Dreh die markierte Kachel so, dass ihr Rohr nach oben in die Ecke führt.',
+					done: 'Richtig: Ein Rohr braucht immer ein Rohr auf der anderen Seite.'
+				},
+				{
+					text: 'Das Endstück in der Ecke oben rechts kann nach links oder nach unten zeigen. Nach links träfe es auf das Endstück daneben. Zeigte das zurück, bildeten die beiden ein winziges eigenes Netz, abgeschnitten vom Rest; sonst endete das Rohr offen.',
+					task: 'Dreh das markierte Endstück so, dass es nach unten zeigt.',
+					done: 'Genau: Zwei Endstücke zeigen nie aufeinander.'
+				},
+				{
+					text: 'Der Rest gehört dir. Alle Kacheln bilden ein Netz: keine offenen Enden und auch keine Schleifen. Das Wasser zeigt, welche Kacheln schon mit der Quelle verbunden sind.',
+					task: 'Dreh die übrigen Kacheln, bis Wasser jedes Rohr füllt.'
 				}
 			]
 		}

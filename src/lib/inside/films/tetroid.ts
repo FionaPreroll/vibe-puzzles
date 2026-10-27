@@ -93,6 +93,7 @@ export function tetroidFilm(
 	const garden = new Garden(size);
 	return {
 		game: 'tetroid',
+		puzzle,
 		settings: { highlightErrors: false, colorTetrominoes: true },
 		chapters: [
 			plant(only(last, 'plant'), garden),

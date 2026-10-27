@@ -187,7 +187,9 @@ export function mergePeriods(
 	const s = read(game, variant);
 	const local = solvedPeriods(s, kind);
 	const merged = periodList([...local, ...remote.filter((key) => periodStart(kind, key))]);
-	if (merged.length !== local.length || s.periods === undefined) {
+	// At the limit, a new period pushes the oldest out: the length alone stays the same.
+	const changed = merged.length !== local.length || merged.some((key, i) => key !== local[i]);
+	if (changed || s.periods === undefined) {
 		setPeriods(s, merged);
 		write(game, variant, s);
 	}

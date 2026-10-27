@@ -25,7 +25,7 @@ for (const path of ['/tetroid?v=20h', '/pinwheel?v=15h']) {
 			() =>
 				new Promise<number>((resolve) => {
 					const poll = () =>
-						document.querySelector('.overflow-x-auto svg[role="grid"]')
+						document.querySelector('.overflow-x-auto svg[role="application"]')
 							? resolve(performance.now())
 							: requestAnimationFrame(poll);
 					poll();
@@ -39,7 +39,7 @@ for (const path of ['/tetroid?v=20h', '/pinwheel?v=15h']) {
 			const w = window as unknown as { lat: number[]; tasks: number[] };
 			w.lat = [];
 			w.tasks = [];
-			const svg = document.querySelector('.overflow-x-auto svg[role="grid"]')!;
+			const svg = document.querySelector('.overflow-x-auto svg[role="application"]')!;
 			let start = 0;
 			window.addEventListener('pointerdown', () => (start = performance.now()), true);
 			new MutationObserver(() => {

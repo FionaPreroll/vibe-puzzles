@@ -11,7 +11,7 @@ for (const [label, viewport] of [
 		await page.clock.install({ time: new Date('2026-10-12T23:59:30Z') });
 		await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
 		await page.goto('/tetroid?v=daily');
-		await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible({
+		await expect(page.getByRole('application', { name: 'Puzzle board' })).toBeVisible({
 			timeout: 30_000
 		});
 		const id = page.locator('.font-mono.select-all');

@@ -9,7 +9,7 @@ export async function prepare(page: Page) {
 }
 
 /** The game board on a game page (not the small boards in rules or dialogs). */
-export const board = (page: Page) => page.locator('.overflow-x-auto svg[role="grid"]');
+export const board = (page: Page) => page.locator('.overflow-x-auto svg[role="application"]');
 
 /** A small seeded random generator, so a failing run can be repeated exactly. */
 export function random(seed: number) {

@@ -25,16 +25,16 @@ test('every size is playable: a link to 10×10 opens it', async ({ page }) => {
 	await page.goto('/loop?v=10n');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 	await expect(page).toHaveURL(/v=10n/);
-	await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible();
+	await expect(page.getByRole('application', { name: 'Puzzle board' })).toBeVisible();
 	for (const name of ['10×10 Normal', '15×15 Hard', '20×20 Normal', '25×30 Hard']) {
 		await expect(page.getByRole('button', { name, exact: true })).toBeEnabled();
 	}
 	await expect(page.getByRole('button', { name: /coming soon/ })).toHaveCount(0);
 });
 
-test('a collection puzzle is solved by drawing its loop', async ({ page }) => {
+test('a collection puzzle is solved by drawing its loop', { tag: '@webkit' }, async ({ page }) => {
 	await page.goto(`/loop?v=5n&id=${id}`);
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	// The first rect is the 5×5 grid itself, inside the board's padding.
@@ -53,7 +53,7 @@ test('the hint tints where to look first, then highlights the edges that follow'
 	page
 }) => {
 	await page.goto(`/loop?v=5n&id=${id}`);
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const spotlight = board.locator('g.spotlight > *');
 	const area = board.locator('g.area > *');

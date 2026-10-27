@@ -27,7 +27,9 @@
 	import type { BoardProps, KeyPress } from '../../core/types';
 	import type { PinwheelSettingKey } from './settings';
 	import { boardInput, interpolate, touchAction, type BoardPoint } from '../../client/boardInput';
-	import { direction } from '../../client/keys';
+	import { EdgeInput, edgeKey, parseEdge, type Edge, type EdgeMove } from '../../client/edgeInput';
+	import { KeyCursor } from '../../client/keyCursor.svelte';
+	import { nextMark } from '../../client/marks';
 	import {
 		analyze,
 		CROSS,
@@ -42,9 +44,11 @@
 		type PinwheelPuzzle,
 		type PinwheelState
 	} from './rules';
-	import { extendPath, type Dot } from '../../core/path';
+	import type { Dot } from '../../core/path';
 	import { theme } from '../../client/settings.svelte';
 	import { t } from '../../i18n/index.svelte';
+	import { sayDot } from './speech';
+	import BoardSpeech from '../../components/game/BoardSpeech.svelte';
 
 	let {
 		puzzle,
@@ -66,17 +70,9 @@
 		trial
 	}: BoardProps<PinwheelPuzzle, PinwheelState, PinwheelSettingKey> = $props();
 
-	type Edge = { kind: 'h' | 'v'; i: number; j: number };
+	/** A move under way: lines or crosses on the edges, colour on cells, or a hold on a centre. */
 	type Pending =
-		| {
-				kind: 'edges';
-				status: number | null;
-				inverse: boolean;
-				edges: string[];
-				path: Dot[] | null;
-				/** The path started on an edge, which stays drawn whichever way the pointer goes. */
-				anchored?: boolean;
-		  }
+		| (EdgeMove & { kind: 'edges' })
 		| { kind: 'cells'; colour: number; cells: number[] }
 		| { kind: 'centre'; k: number; cell: number };
 
@@ -89,16 +85,10 @@
 	/** Wrong marks a hint points at. */
 	const mistakeColour = $derived(settings.blueErrors ? colours.blueError : colours.error);
 
-	let pending = $state<Pending | null>(null);
-	let cursor = $state<Dot | null>(null);
+	let pending = $state.raw<Pending | null>(null);
 	let shiftHeld = $state(false);
 	const activeTool = $derived(shiftHeld ? (tool === 'color' ? 'black' : 'color') : tool);
 
-	const edgeKey = (e: Edge) => `${e.kind}:${e.i}:${e.j}`;
-	const parseEdge = (key: string): Edge => {
-		const [kind, i, j] = key.split(':');
-		return { kind: kind as 'h' | 'v', i: Number(i), j: Number(j) };
-	};
 	const getEdge = (s: PinwheelState, e: Edge) =>
 		e.kind === 'h' ? s.h[hIndex(puzzle, e.i, e.j)] : s.v[vIndex(puzzle, e.i, e.j)];
 
@@ -138,6 +128,14 @@
 				: e.j > 0 && e.j < w && e.i >= 0 && e.i < h;
 		return interior && !blocked.has(edgeKey(e)) && !frozen.has(edgeKey(e));
 	}
+
+	const edges = new EdgeInput({
+		size: () => ({ width: w, height: h }),
+		continuous: () => settings.continuousLine,
+		// Edges through a centre, and those of a locked galaxy, stay as they are.
+		statusOf: (e, inverse) =>
+			editable(e) ? nextMark(activeTool, getEdge(board, e), inverse) : null
+	});
 
 	// Auto colours for complete galaxies, stable while a galaxy stays complete.
 	const memory = new Map<number, number>();
@@ -183,34 +181,6 @@
 
 	// ---- Applying moves -------------------------------------------------------------------------
 
-	function edgeStatus(cur: number, inverse: boolean): number {
-		switch (activeTool) {
-			case 'rotate':
-				return inverse ? [CROSS, OPEN, LINE][cur] : [LINE, CROSS, OPEN][cur];
-			case 'cross':
-				return inverse ? (cur === LINE ? OPEN : LINE) : cur === CROSS ? OPEN : CROSS;
-			case 'blank':
-				return OPEN;
-			default:
-				return inverse ? (cur === CROSS ? OPEN : CROSS) : cur === LINE ? OPEN : LINE;
-		}
-	}
-
-	function pendingEdges(p: Extract<Pending, { kind: 'edges' }>): string[] {
-		if (!p.path) return p.edges;
-		const out: string[] = [];
-		for (let k = 1; k < p.path.length; k++) {
-			const a = p.path[k - 1];
-			const b = p.path[k];
-			const e: Edge =
-				a.i === b.i
-					? { kind: 'h', i: a.i, j: Math.min(a.j, b.j) }
-					: { kind: 'v', i: Math.min(a.i, b.i), j: a.j };
-			out.push(edgeKey(e));
-		}
-		return out;
-	}
-
 	function applyPending(s: PinwheelState, p: Pending): { state: PinwheelState; changed: string[] } {
 		const next: PinwheelState = {
 			h: s.h.slice(),
@@ -221,7 +191,7 @@
 		const changed: string[] = [];
 		if (p.kind === 'edges') {
 			if (p.status == null) return { state: s, changed };
-			for (const key of pendingEdges(p)) {
+			for (const key of edges.edgesOf(p)) {
 				const e = parseEdge(key);
 				if (!editable(e)) continue;
 				const arr = e.kind === 'h' ? next.h : next.v;
@@ -273,24 +243,6 @@
 		return Math.floor(y) * w + Math.floor(x);
 	}
 
-	function nearestDot(x: number, y: number): Dot {
-		return {
-			i: Math.min(h, Math.max(0, Math.round(y))),
-			j: Math.min(w, Math.max(0, Math.round(x)))
-		};
-	}
-
-	/** Nearest edge: inside a cell the closest of its four sides; null near a dot. */
-	function edgeAt(x: number, y: number, allowNearDot = false): Edge | null {
-		const cx = Math.min(w - 0.001, Math.max(0, x));
-		const cy = Math.min(h - 0.001, Math.max(0, y));
-		const dx = Math.abs(cx - Math.round(cx));
-		const dy = Math.abs(cy - Math.round(cy));
-		if (!allowNearDot && Math.hypot(dx, dy) < 0.2) return null;
-		if (dy <= dx) return { kind: 'h', i: Math.round(cy), j: Math.floor(cx) };
-		return { kind: 'v', i: Math.floor(cy), j: Math.round(cx) };
-	}
-
 	// ---- Pointer --------------------------------------------------------------------------------
 
 	function begin(x: number, y: number, inverse: boolean, fromKeyboard = false) {
@@ -310,82 +262,27 @@
 			pending = { kind: 'cells', colour, cells: [cell] };
 			return;
 		}
-		const dot = nearestDot(x, y);
-		const nearDot = fromKeyboard || Math.hypot(x - dot.j, y - dot.i) < 0.2;
-		const continuous = settings.continuousLine;
-		if (nearDot) {
-			pending = {
-				kind: 'edges',
-				status: null,
-				inverse,
-				edges: [],
-				path: continuous ? [dot] : null
-			};
-			return;
-		}
-		const e = edgeAt(x, y, true);
-		if (!e || !editable(e)) {
-			// A move started on a blocked or fixed edge changes nothing.
-			pending = null;
-			return;
-		}
-		const status = edgeStatus(getEdge(board, e), inverse);
-		const usePath = continuous && status === LINE;
-		let path: Dot[] | null = null;
-		if (usePath) {
-			const [p1, p2]: Dot[] =
-				e.kind === 'h'
-					? [
-							{ i: e.i, j: e.j },
-							{ i: e.i, j: e.j + 1 }
-						]
-					: [
-							{ i: e.i, j: e.j },
-							{ i: e.i + 1, j: e.j }
-						];
-			const d1 = Math.hypot(x - p1.j, y - p1.i);
-			const d2 = Math.hypot(x - p2.j, y - p2.i);
-			path = d1 < d2 ? [p2, p1] : [p1, p2];
-		}
-		pending = { kind: 'edges', status, inverse, edges: [edgeKey(e)], path, anchored: !!path };
+		// A move begun on a blocked or fixed edge changes nothing.
+		const move = fromKeyboard
+			? edges.beginAt(edges.nearestDot(x, y), inverse)
+			: edges.begin(x, y, inverse);
+		pending = move && { ...move, kind: 'edges' };
 	}
 
 	function dragTo(to: BoardPoint, from: BoardPoint) {
 		const p = pending;
-		if (!p) return;
-		if (p.kind === 'centre') {
+		if (p?.kind === 'centre') {
 			pending = { ...p, cell: cellAt(to.x, to.y) };
-			return;
+		} else if (p?.kind === 'cells') {
+			let cells = p.cells;
+			for (const { x, y } of interpolate(from, to, 5)) {
+				const cell = cellAt(x, y);
+				if (cell >= 0 && !cells.includes(cell)) cells = [...cells, cell];
+			}
+			pending = { ...p, cells };
+		} else if (p) {
+			pending = edges.drag(p, from, to);
 		}
-		const copy = structuredClone($state.snapshot(p)) as typeof p;
-		for (const { x: px, y: py } of interpolate(from, to, 5)) {
-			if (copy.kind === 'cells') {
-				const cell = cellAt(px, py);
-				if (cell >= 0 && !copy.cells.includes(cell)) copy.cells.push(cell);
-				continue;
-			}
-			if (copy.status == null) {
-				// Started on a dot: the first edge reached decides the status.
-				const e = edgeAt(px, py);
-				if (!e || !editable(e)) continue;
-				copy.status = edgeStatus(getEdge(board, e), copy.inverse);
-				if (copy.status !== LINE || !copy.path) {
-					copy.path = null;
-					copy.edges = [edgeKey(e)];
-					continue;
-				}
-			}
-			if (copy.path) {
-				const d = nearestDot(px, py);
-				if (Math.hypot(px - d.j, py - d.i) < 0.45) {
-					copy.path = extendPath(copy.path, d, copy.anchored);
-				}
-			} else {
-				const e = edgeAt(px, py);
-				if (e && !copy.edges.includes(edgeKey(e))) copy.edges.push(edgeKey(e));
-			}
-		}
-		pending = copy;
 	}
 
 	/**
@@ -397,7 +294,7 @@
 			start(p, how) {
 				if (!how.touch) {
 					shiftHeld = how.shift;
-					cursor = null;
+					keyCursor.hide();
 				}
 				begin(p.x, p.y, how.inverse);
 			},
@@ -421,68 +318,47 @@
 
 	// ---- Keyboard: cursor on dots ---------------------------------------------------------------
 
-	let keyMove = false;
+	const keyCursor = new KeyCursor<Dot>({
+		...edges.dots,
+		begin(from) {
+			if (pending) return false;
+			begin(from.j, from.i, false, true);
+			return !!pending;
+		},
+		extend(from, to) {
+			if (pending?.kind === 'edges') pending = edges.step(pending, from, to);
+		},
+		commit,
+		cancel: () => (pending = null)
+	});
+	const cursor = $derived(keyCursor.at);
+	/** For screen readers: the dot under the cursor. */
+	const speech = $derived(
+		keys && cursor && !blank
+			? sayDot(puzzle, shown, a, cursor, {
+					errors: !!settings.highlightErrors,
+					blackHoles: !!settings.blackHoles
+				})
+			: ''
+	);
+	const speechId = $props.id();
 
-	function onkeydown(e: KeyPress): boolean {
-		if (e.key === 'Shift') shiftHeld = true;
-		if (blank) return false;
-		const dir = direction(e.key);
-		const isArrow = e.key.startsWith('Arrow');
-		if (dir && (isArrow || (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey))) {
-			e.preventDefault();
-			const prev = cursor;
-			cursor = prev
-				? {
-						i: Math.min(h, Math.max(0, prev.i + dir[0])),
-						j: Math.min(w, Math.max(0, prev.j + dir[1]))
-					}
-				: { i: 0, j: 0 };
-			if (isArrow && (e.ctrlKey || e.metaKey) && prev) {
-				if (!pending) {
-					begin(prev.j, prev.i, false, true);
-					keyMove = true;
-				}
-				if (pending && pending.kind === 'edges') {
-					const p = structuredClone($state.snapshot(pending)) as typeof pending;
-					const e2: Edge =
-						prev.i === cursor.i
-							? { kind: 'h', i: prev.i, j: Math.min(prev.j, cursor.j) }
-							: { kind: 'v', i: Math.min(prev.i, cursor.i), j: prev.j };
-					if (p.status == null && editable(e2)) {
-						p.status = edgeStatus(getEdge(board, e2), false);
-						if (p.status !== LINE) p.path = null;
-					}
-					if (p.path) p.path = extendPath(p.path, cursor);
-					else if (!p.edges.includes(edgeKey(e2))) p.edges.push(edgeKey(e2));
-					pending = p;
-				}
+	$effect(() =>
+		keys?.({
+			keydown(e: KeyPress) {
+				if (e.key === 'Shift') shiftHeld = true;
+				return !blank && keyCursor.keydown(e);
+			},
+			keyup(e: KeyPress) {
+				if (e.key === 'Shift') shiftHeld = false;
+				keyCursor.keyup(e);
+			},
+			blur() {
+				shiftHeld = false;
+				keyCursor.blur();
 			}
-			return true;
-		}
-		if (!cursor) return false;
-		if (e.key === 'Escape') {
-			pending = null;
-			cursor = null;
-			keyMove = false;
-		} else if ((e.key === 'Control' || e.key === 'Meta') && !e.repeat && !pending) {
-			keyMove = true;
-			begin(cursor.j, cursor.i, false, true);
-		} else if (keyMove && !['Control', 'Meta'].includes(e.key) && !e.key.startsWith('Arrow')) {
-			pending = null;
-			keyMove = false;
-		}
-		return false;
-	}
-
-	function onkeyup(e: KeyPress) {
-		if (e.key === 'Shift') shiftHeld = false;
-		if (keyMove && (e.key === 'Control' || e.key === 'Meta')) {
-			keyMove = false;
-			commit();
-		}
-	}
-
-	$effect(() => keys?.({ keydown: onkeydown, keyup: onkeyup, blur: () => (shiftHeld = false) }));
+		})
+	);
 
 	// ---- Drawing helpers ------------------------------------------------------------------------
 
@@ -554,16 +430,20 @@
 </script>
 
 <!-- Only the svg itself is hit: a touch keeps its target even when the shape under the finger
-     is redrawn mid-drag (a removed target would swallow the rest of the gesture). -->
+     is redrawn mid-drag (a removed target would swallow the rest of the gesture). The board the
+     keys play is an application to screen readers, which then hand it the arrow keys; Tab brings
+     the focus to it. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <svg
 	{width}
 	{height}
 	viewBox="0 0 {width} {height}"
-	class="block outline-none select-none [&_*]:pointer-events-none"
+	class="board-focus block select-none [&_*]:pointer-events-none"
 	style:touch-action={touchAction(touchMode)}
-	role="grid"
-	tabindex="-1"
+	role="application"
+	tabindex={keys ? 0 : -1}
 	aria-label={t('game.board')}
+	aria-describedby={keys ? speechId : undefined}
 	{@attach input}
 >
 	<rect x={px(0)} y={py(0)} width={w * cellSize} height={h * cellSize} fill={colours.paper} />
@@ -815,3 +695,6 @@
 		</g>
 	{/if}
 </svg>
+{#if keys}
+	<BoardSpeech id={speechId} game="pinwheel" text={speech} />
+{/if}

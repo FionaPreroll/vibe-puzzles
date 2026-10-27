@@ -5,6 +5,7 @@ import { generateLoop } from './generator';
 import { loopHint, TECHNIQUES, type LoopHint, type Technique } from './hint';
 import { EMPTY, loop } from './index';
 import {
+	clueAt,
 	CROSS,
 	edgeKey,
 	OPEN,
@@ -238,6 +239,39 @@ describe('loop hints', () => {
 		}
 	});
 
+	it('puts the neighbours of numbers inside and outside, one number or two together', () => {
+		// 10×10 hard puzzles whose hints need one number (seed 4) or two together (seeds 8 and 12).
+		const { edgeSide } = loopLayout(10, 10);
+		const seen = new Set<Technique>();
+		for (const seed of [4, 8, 12]) {
+			const { puzzle, solution } = generateLoop(10, 10, 'hard', seed);
+			let state = emptyLoopState(puzzle);
+			for (const step of follow(puzzle, solution)) {
+				const v = edgeValues(state);
+				for (const e of step.edges) v[e] = step.mark === 'line' ? LINE : CROSS;
+				if (step.technique === 'split' || step.technique === 'splitPair') {
+					seen.add(step.technique);
+					expect(step.edges).toHaveLength(1);
+					expect(step.reason).toBe(`${step.technique}${step.mark === 'line' ? 'Line' : 'Cross'}`);
+					// The numbers come first, then the cells of the walks, the edge's cells among them.
+					const numbers = step.cells.slice(0, step.technique === 'split' ? 1 : 2);
+					for (const c of numbers) expect(clueAt(puzzle, c)).toBeGreaterThan(0);
+					if (step.technique === 'split') expect(step.clue).toBe(clueAt(puzzle, numbers[0]));
+					const ends = [edgeSide[2 * step.edges[0]], edgeSide[2 * step.edges[0] + 1]];
+					for (const x of ends.filter((x) => x < 100)) expect(step.cells).toContain(x);
+					// The walks go over the player's marks and the crosses the step names.
+					const support = new Set((step.support ?? []).flatMap((s) => s.edges));
+					expect(step.path.length).toBeGreaterThan(0);
+					for (const e of step.path) {
+						expect(edgeValues(state)[e] !== OPEN || support.has(e), edgeKey(puzzle, e)).toBe(true);
+					}
+				}
+				state = stateFromEdges(puzzle, v);
+			}
+		}
+		expect([...seen].sort()).toEqual(['split', 'splitPair']);
+	});
+
 	it('points at wrong marks before anything else', () => {
 		const { puzzle, solution } = generateLoop(5, 5, 'normal', 1);
 		const v = edgeValues(solution).map((x): number => (x === LINE ? LINE : 0));
@@ -253,9 +287,9 @@ describe('loop hints', () => {
 	});
 
 	it('names what breaks when an edge is tried', () => {
-		// Rated hard puzzles that the local rules alone do not finish.
+		// Rated hard puzzles that the rules the hints name do not finish.
 		const seen = new Set<string>();
-		for (const seed of [3, 5, 13, 15, 19]) {
+		for (const seed of [27, 135, 178, 312, 346]) {
 			const { puzzle, solution } = generateLoop(5, 5, 'hard', seed);
 			for (const step of follow(puzzle, solution)) {
 				if (step.technique !== 'assumption') continue;
@@ -268,7 +302,7 @@ describe('loop hints', () => {
 	});
 
 	// Following the hints solves every puzzle. Assumptions stay rare: only where no rule on a
-	// number, a pair or a 2×2 block decides an edge.
+	// number, a pair or a 2×2 block decides an edge, and neither does inside and outside.
 	it.each([
 		[5, 5, 'normal'],
 		[5, 5, 'hard'],
@@ -315,7 +349,10 @@ describe('loop hint texts', () => {
 		for (const [size, difficulty, seed] of [
 			[5, 'hard', 13],
 			[7, 'hard', 8],
-			[5, 'normal', 1]
+			[5, 'normal', 1],
+			// Inside and outside around one number, a 2 among them, and around two.
+			[10, 'hard', 4],
+			[10, 'hard', 8]
 		] as const) {
 			const { puzzle, solution } = generateLoop(size, size, difficulty, seed);
 			const right = edgeValues(solution);
@@ -359,7 +396,7 @@ describe('loop hint texts', () => {
 		expect(lookup(de, tried.text.at(-1)!)).toBe('Also verläuft dort keine Linie: Setz ein Kreuz.');
 		// Following the hints of hard puzzles: every tried edge ends with what the solution has there.
 		const marked = new Set<string>();
-		for (const seed of [3, 5, 13, 15, 19]) {
+		for (const seed of [27, 135, 178, 312, 346]) {
 			const { puzzle, solution } = generateLoop(5, 5, 'hard', seed);
 			const right = edgeValues(solution);
 			let state = emptyLoopState(puzzle);

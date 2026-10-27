@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { boardPad, celebrationFills, coordinateLabels, labelFontSize } from '../../core/grid';
 	import { colours } from '../../core/palette';
-	import { extendPath, type Dot } from '../../core/path';
+	import type { Dot } from '../../core/path';
 	import type { BoardProps, KeyPress } from '../../core/types';
-	import { boardInput, interpolate, touchAction, type BoardPoint } from '../../client/boardInput';
-	import { direction } from '../../client/keys';
+	import { boardInput, touchAction } from '../../client/boardInput';
+	import { EdgeInput, parseEdge, type Edge, type EdgeMove } from '../../client/edgeInput';
+	import { KeyCursor } from '../../client/keyCursor.svelte';
+	import { nextMark } from '../../client/marks';
 	import { t } from '../../i18n/index.svelte';
 	import type { LoopSettingKey } from './settings';
+	import { sayDot } from './speech';
+	import BoardSpeech from '../../components/game/BoardSpeech.svelte';
 	import {
 		analyze,
 		clueAt,
@@ -15,7 +19,6 @@
 		LINE,
 		OPEN,
 		vIndex,
-		type EdgeRef,
 		type LoopPuzzle,
 		type LoopState
 	} from './rules';
@@ -39,17 +42,6 @@
 		trial
 	}: BoardProps<LoopPuzzle, LoopState, LoopSettingKey> = $props();
 
-	type Edge = EdgeRef;
-	/** A move in progress: the edges it sets, or a line drawn along a path of dots. */
-	interface Pending {
-		status: number | null;
-		inverse: boolean;
-		edges: string[];
-		path: Dot[] | null;
-		/** The path started on an edge, which stays drawn whichever way the pointer goes. */
-		anchored?: boolean;
-	}
-
 	const w = $derived(puzzle.width);
 	const h = $derived(puzzle.height);
 	const pad = $derived(boardPad(cellSize, settings.showCoordinates && !blank, cellSize * 0.2));
@@ -59,20 +51,21 @@
 	/** Wrong marks a hint points at. */
 	const mistakeColour = $derived(settings.blueErrors ? colours.blueError : colours.error);
 
-	let pending = $state<Pending | null>(null);
-	let cursor = $state<Dot | null>(null);
+	/** The move under way, from the pointer or the keys. */
+	let pending = $state.raw<EdgeMove | null>(null);
 
-	const edgeKey = (e: Edge) => `${e.kind}:${e.i}:${e.j}`;
-	const parseEdge = (key: string): Edge => {
-		const [kind, i, j] = key.split(':');
-		return { kind: kind as 'h' | 'v', i: Number(i), j: Number(j) };
-	};
 	const getEdge = (s: LoopState, e: Edge) =>
 		e.kind === 'h' ? s.h[hIndex(puzzle, e.i, e.j)] : s.v[vIndex(puzzle, e.i, e.j)];
 	const onBoard = (e: Edge) =>
 		e.kind === 'h'
 			? e.i >= 0 && e.i <= h && e.j >= 0 && e.j < w
 			: e.i >= 0 && e.i < h && e.j >= 0 && e.j <= w;
+
+	const edges = new EdgeInput({
+		size: () => ({ width: w, height: h }),
+		continuous: () => settings.continuousLine,
+		statusOf: (e, inverse) => nextMark(tool, getEdge(board, e), inverse)
+	});
 
 	/** The board with the pending move applied, as a preview. */
 	const shown = $derived.by((): LoopState => {
@@ -83,40 +76,11 @@
 
 	// ---- Applying moves -------------------------------------------------------------------------
 
-	function edgeStatus(cur: number, inverse: boolean): number {
-		switch (tool) {
-			case 'rotate':
-				return inverse ? [CROSS, OPEN, LINE][cur] : [LINE, CROSS, OPEN][cur];
-			case 'cross':
-				return inverse ? (cur === LINE ? OPEN : LINE) : cur === CROSS ? OPEN : CROSS;
-			case 'blank':
-				return OPEN;
-			default:
-				return inverse ? (cur === CROSS ? OPEN : CROSS) : cur === LINE ? OPEN : LINE;
-		}
-	}
-
-	function pendingEdges(p: Pending): string[] {
-		if (!p.path) return p.edges;
-		const out: string[] = [];
-		for (let k = 1; k < p.path.length; k++) {
-			const [from, to] = [p.path[k - 1], p.path[k]];
-			out.push(
-				edgeKey(
-					from.i === to.i
-						? { kind: 'h', i: from.i, j: Math.min(from.j, to.j) }
-						: { kind: 'v', i: Math.min(from.i, to.i), j: from.j }
-				)
-			);
-		}
-		return out;
-	}
-
-	function applyPending(s: LoopState, p: Pending): { state: LoopState; changed: string[] } {
+	function applyPending(s: LoopState, p: EdgeMove): { state: LoopState; changed: string[] } {
 		const changed: string[] = [];
 		if (p.status == null) return { state: s, changed };
 		const next: LoopState = { h: s.h.slice(), v: s.v.slice() };
-		for (const key of pendingEdges(p)) {
+		for (const key of edges.edgesOf(p)) {
 			const e = parseEdge(key);
 			if (!onBoard(e)) continue;
 			const values = e.kind === 'h' ? next.h : next.v;
@@ -135,90 +99,17 @@
 		if (changed.length) onmove(next, changed);
 	}
 
-	// ---- Targeting ------------------------------------------------------------------------------
-
-	function nearestDot(x: number, y: number): Dot {
-		return {
-			i: Math.min(h, Math.max(0, Math.round(y))),
-			j: Math.min(w, Math.max(0, Math.round(x)))
-		};
-	}
-
-	/** Nearest edge: inside a cell the closest of its four sides; null near a dot. */
-	function edgeAt(x: number, y: number, allowNearDot = false): Edge | null {
-		const cx = Math.min(w, Math.max(0, x));
-		const cy = Math.min(h, Math.max(0, y));
-		const dx = Math.abs(cx - Math.round(cx));
-		const dy = Math.abs(cy - Math.round(cy));
-		if (!allowNearDot && Math.hypot(dx, dy) < 0.2) return null;
-		if (dy <= dx) return { kind: 'h', i: Math.round(cy), j: Math.min(w - 1, Math.floor(cx)) };
-		return { kind: 'v', i: Math.min(h - 1, Math.floor(cy)), j: Math.round(cx) };
-	}
-
 	// ---- Pointer --------------------------------------------------------------------------------
-
-	function begin(x: number, y: number, inverse: boolean, fromKeyboard = false) {
-		if (readonly) return;
-		const dot = nearestDot(x, y);
-		const continuous = settings.continuousLine;
-		if (fromKeyboard || Math.hypot(x - dot.j, y - dot.i) < 0.2) {
-			pending = { status: null, inverse, edges: [], path: continuous ? [dot] : null };
-			return;
-		}
-		const e = edgeAt(x, y, true);
-		if (!e) return;
-		const status = edgeStatus(getEdge(board, e), inverse);
-		let path: Dot[] | null = null;
-		if (continuous && status === LINE) {
-			const [p1, p2]: Dot[] =
-				e.kind === 'h'
-					? [
-							{ i: e.i, j: e.j },
-							{ i: e.i, j: e.j + 1 }
-						]
-					: [
-							{ i: e.i, j: e.j },
-							{ i: e.i + 1, j: e.j }
-						];
-			path = Math.hypot(x - p1.j, y - p1.i) < Math.hypot(x - p2.j, y - p2.i) ? [p2, p1] : [p1, p2];
-		}
-		pending = { status, inverse, edges: [edgeKey(e)], path, anchored: !!path };
-	}
-
-	function dragTo(to: BoardPoint, from: BoardPoint) {
-		if (!pending) return;
-		const copy = structuredClone($state.snapshot(pending)) as Pending;
-		for (const { x, y } of interpolate(from, to, 5)) {
-			if (copy.status == null) {
-				// Started on a dot: the first edge reached decides the status.
-				const e = edgeAt(x, y);
-				if (!e) continue;
-				copy.status = edgeStatus(getEdge(board, e), copy.inverse);
-				if (copy.status !== LINE || !copy.path) {
-					copy.path = null;
-					copy.edges = [edgeKey(e)];
-					continue;
-				}
-			}
-			if (copy.path) {
-				const d = nearestDot(x, y);
-				if (Math.hypot(x - d.j, y - d.i) < 0.45)
-					copy.path = extendPath(copy.path, d, copy.anchored);
-			} else {
-				const e = edgeAt(x, y);
-				if (e && !copy.edges.includes(edgeKey(e))) copy.edges.push(edgeKey(e));
-			}
-		}
-		pending = copy;
-	}
 
 	const input = boardInput(
 		{
 			start(p, how) {
-				if (!how.touch) cursor = null;
-				begin(p.x, p.y, how.inverse);
+				if (!how.touch) keyCursor.hide();
+				if (!readonly) pending = edges.begin(p.x, p.y, how.inverse);
 			},
-			drag: dragTo,
+			drag(to, from) {
+				if (pending) pending = edges.drag(pending, from, to);
+			},
 			end: commit,
 			cancel: () => (pending = null)
 		},
@@ -231,66 +122,38 @@
 
 	// ---- Keyboard: cursor on dots ---------------------------------------------------------------
 
-	let keyMove = false;
-
-	function onkeydown(e: KeyPress): boolean {
-		if (blank) return false;
-		const dir = direction(e.key);
-		const isArrow = e.key.startsWith('Arrow');
-		if (dir && (isArrow || (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey))) {
-			e.preventDefault();
-			const prev = cursor;
-			cursor = prev
-				? {
-						i: Math.min(h, Math.max(0, prev.i + dir[0])),
-						j: Math.min(w, Math.max(0, prev.j + dir[1]))
-					}
-				: { i: 0, j: 0 };
-			if (isArrow && (e.ctrlKey || e.metaKey) && prev) {
-				if (!pending) {
-					begin(prev.j, prev.i, false, true);
-					keyMove = true;
-				}
-				if (pending) {
-					const p = structuredClone($state.snapshot(pending)) as Pending;
-					const step: Edge =
-						prev.i === cursor.i
-							? { kind: 'h', i: prev.i, j: Math.min(prev.j, cursor.j) }
-							: { kind: 'v', i: Math.min(prev.i, cursor.i), j: prev.j };
-					if (p.status == null && onBoard(step)) {
-						p.status = edgeStatus(getEdge(board, step), false);
-						if (p.status !== LINE) p.path = null;
-					}
-					if (p.path) p.path = extendPath(p.path, cursor);
-					else if (!p.edges.includes(edgeKey(step))) p.edges.push(edgeKey(step));
-					pending = p;
-				}
-			}
+	const keyCursor = new KeyCursor<Dot>({
+		...edges.dots,
+		begin(from) {
+			if (pending || readonly) return false;
+			pending = edges.beginAt(from, false);
 			return true;
-		}
-		if (!cursor) return false;
-		if (e.key === 'Escape') {
-			pending = null;
-			cursor = null;
-			keyMove = false;
-		} else if ((e.key === 'Control' || e.key === 'Meta') && !e.repeat && !pending) {
-			keyMove = true;
-			begin(cursor.j, cursor.i, false, true);
-		} else if (keyMove && !['Control', 'Meta'].includes(e.key) && !isArrow) {
-			pending = null;
-			keyMove = false;
-		}
-		return false;
-	}
+		},
+		extend(from, to) {
+			if (pending) pending = edges.step(pending, from, to);
+		},
+		commit,
+		cancel: () => (pending = null)
+	});
+	const cursor = $derived(keyCursor.at);
+	/** For screen readers: the dot under the cursor. */
+	const speech = $derived(
+		keys && cursor && !blank
+			? sayDot(puzzle, shown, a, cursor, {
+					errors: !!settings.highlightErrors,
+					dimSatisfied: !!settings.dimSatisfiedClues
+				})
+			: ''
+	);
+	const speechId = $props.id();
 
-	function onkeyup(e: KeyPress) {
-		if (keyMove && (e.key === 'Control' || e.key === 'Meta')) {
-			keyMove = false;
-			commit();
-		}
-	}
-
-	$effect(() => keys?.({ keydown: onkeydown, keyup: onkeyup }));
+	$effect(() =>
+		keys?.({
+			keydown: (e: KeyPress) => !blank && keyCursor.keydown(e),
+			keyup: (e: KeyPress) => keyCursor.keyup(e),
+			blur: () => keyCursor.blur()
+		})
+	);
 
 	// ---- Drawing helpers ------------------------------------------------------------------------
 
@@ -354,16 +217,20 @@
 </script>
 
 <!-- Only the svg itself is hit: a touch keeps its target even when the shape under the finger
-     is redrawn mid-drag (a removed target would swallow the rest of the gesture). -->
+     is redrawn mid-drag (a removed target would swallow the rest of the gesture). The board the
+     keys play is an application to screen readers, which then hand it the arrow keys; Tab brings
+     the focus to it. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <svg
 	{width}
 	{height}
 	viewBox="0 0 {width} {height}"
-	class="block outline-none select-none [&_*]:pointer-events-none"
+	class="board-focus block select-none [&_*]:pointer-events-none"
 	style:touch-action={touchAction(touchMode)}
-	role="grid"
-	tabindex="-1"
+	role="application"
+	tabindex={keys ? 0 : -1}
 	aria-label={t('game.board')}
+	aria-describedby={keys ? speechId : undefined}
 	{@attach input}
 >
 	<rect x={px(0)} y={py(0)} width={w * cellSize} height={h * cellSize} fill={colours.paper} />
@@ -535,3 +402,6 @@
 		</g>
 	{/if}
 </svg>
+{#if keys}
+	<BoardSpeech id={speechId} game="loop" text={speech} />
+{/if}

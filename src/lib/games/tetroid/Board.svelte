@@ -4,8 +4,11 @@
 	import type { BoardProps, KeyPress } from '../../core/types';
 	import type { TetroidSettingKey } from './settings';
 	import { boardInput, interpolate, touchAction, type BoardPoint } from '../../client/boardInput';
-	import { direction } from '../../client/keys';
+	import { KeyCursor } from '../../client/keyCursor.svelte';
+	import { nextMark } from '../../client/marks';
 	import { analyze, CROSS, EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from './rules';
+	import { sayCell } from './speech';
+	import BoardSpeech from '../../components/game/BoardSpeech.svelte';
 	import { t } from '../../i18n/index.svelte';
 
 	let {
@@ -43,7 +46,6 @@
 	// Pending move (previewed until release).
 	let pending = $state<{ cells: number[]; status: number } | null>(null);
 	let current = $state(-1);
-	let cursor = $state<number | null>(null);
 	let hover = $state(-1);
 	let shiftHeld = $state(false);
 
@@ -108,22 +110,9 @@
 
 	// ---- Input --------------------------------------------------------------------------------
 
-	function nextStatus(cur: number, inverse: boolean): number {
-		switch (tool) {
-			case 'rotate':
-				return inverse ? [CROSS, EMPTY, SHADED][cur] : [SHADED, CROSS, EMPTY][cur];
-			case 'cross':
-				return inverse ? (cur === SHADED ? EMPTY : SHADED) : cur === CROSS ? EMPTY : CROSS;
-			case 'blank':
-				return EMPTY;
-			default:
-				return inverse ? (cur === CROSS ? EMPTY : CROSS) : cur === SHADED ? EMPTY : SHADED;
-		}
-	}
-
 	function begin(cell: number, inverse: boolean) {
 		if (readonly || cell < 0) return;
-		pending = { cells: [cell], status: nextStatus(board.marks[cell], inverse) };
+		pending = { cells: [cell], status: nextMark(tool, board.marks[cell], inverse) };
 		current = cell;
 	}
 
@@ -180,7 +169,7 @@
 	const input = boardInput(
 		{
 			start(p, how) {
-				if (!how.touch) cursor = null;
+				if (!how.touch) keyCursor.hide();
 				begin(cellAt(p.x, p.y), how.inverse);
 			},
 			drag: dragTo,
@@ -198,71 +187,58 @@
 		}
 	);
 
-	// Keyboard: cursor between cells; Ctrl/Shift hold a move at the cursor.
-	let keyMove: 'ctrl' | 'shift' | null = null;
-
-	function moveCursor(dr: number, dc: number, extendMove: boolean) {
-		if (cursor == null) {
-			cursor = 0;
-		} else {
-			const r = Math.min(h - 1, Math.max(0, Math.floor(cursor / w) + dr));
-			const c = Math.min(w - 1, Math.max(0, (cursor % w) + dc));
-			cursor = r * w + c;
-		}
-		current = cursor;
-		if (extendMove) {
-			if (!pending) begin(cursor, keyMove === 'shift');
-			else extend(cursor);
-		}
-	}
-
-	function onkeydown(e: KeyPress): boolean {
-		if (e.key === 'Shift') shiftHeld = true;
-		if (blank) return false;
-		const dir = direction(e.key);
-		const isArrow = e.key.startsWith('Arrow');
-		if (dir && (isArrow || (!e.ctrlKey && !e.metaKey && !e.altKey))) {
-			e.preventDefault();
-			moveCursor(dir[0], dir[1], isArrow && (e.ctrlKey || e.metaKey || e.shiftKey));
-			return true;
-		}
-		if (cursor == null) return false;
-		if (e.key === ' ') {
-			e.preventDefault();
-			begin(cursor, false);
+	// Keyboard: a cursor on the cells. Ctrl/Cmd or Shift with the arrows marks the cells on the way,
+	// from the one the cursor leaves (Shift the opposite mark), when the key goes up.
+	const keyCursor = new KeyCursor<number>({
+		first: () => 0,
+		step(at, rows, cols) {
+			const r = Math.floor(at / w) + rows;
+			const c = (at % w) + cols;
+			return r < 0 || r >= h || c < 0 || c >= w ? null : r * w + c;
+		},
+		shiftDraws: true,
+		begin(from, key) {
+			if (pending) return false;
+			begin(from, key === 'shift');
+			return !!pending;
+		},
+		extend: (_, to) => extend(to),
+		commit,
+		cancel,
+		press(at) {
+			begin(at, false);
 			commit();
-			return true;
-		} else if (e.key === 'Escape') {
-			cancel();
-			cursor = null;
-			keyMove = null;
-		} else if ((e.key === 'Control' || e.key === 'Meta') && !e.repeat && !pending) {
-			keyMove = 'ctrl';
-			begin(cursor, false);
-		} else if (e.key === 'Shift' && !e.repeat && !pending) {
-			keyMove = 'shift';
-			begin(cursor, true);
-		} else if (keyMove && !['Control', 'Meta', 'Shift'].includes(e.key)) {
-			// Another shortcut while holding the modifier (e.g. Shift+Z): drop the held move.
-			cancel();
-			keyMove = null;
-		}
-		return false;
-	}
+		},
+		moved: (at) => (current = at)
+	});
+	const cursor = $derived(keyCursor.at);
+	/** For screen readers: the cell under the cursor. */
+	const speech = $derived(
+		keys && cursor != null && !blank
+			? sayCell(puzzle, marks, a, cursor, {
+					errors: !!settings.highlightErrors,
+					shapes: !!settings.colorTetrominoes
+				})
+			: ''
+	);
+	const speechId = $props.id();
 
-	function onkeyup(e: KeyPress) {
-		shiftHeld = e.shiftKey;
-		if (!keyMove) return;
-		if (
-			(keyMove === 'ctrl' && (e.key === 'Control' || e.key === 'Meta')) ||
-			(keyMove === 'shift' && e.key === 'Shift')
-		) {
-			keyMove = null;
-			commit();
-		}
-	}
-
-	$effect(() => keys?.({ keydown: onkeydown, keyup: onkeyup, blur: () => (shiftHeld = false) }));
+	$effect(() =>
+		keys?.({
+			keydown(e: KeyPress) {
+				if (e.key === 'Shift') shiftHeld = true;
+				return !blank && keyCursor.keydown(e);
+			},
+			keyup(e: KeyPress) {
+				shiftHeld = e.shiftKey;
+				keyCursor.keyup(e);
+			},
+			blur() {
+				shiftHeld = false;
+				keyCursor.blur();
+			}
+		})
+	);
 
 	/** Win animation: every region in its own colour for a moment. */
 	const celebrationFill = $derived(
@@ -271,16 +247,20 @@
 </script>
 
 <!-- Only the svg itself is hit: a touch keeps its target even when the shape under the finger
-     is redrawn mid-drag (a removed target would swallow the rest of the gesture). -->
+     is redrawn mid-drag (a removed target would swallow the rest of the gesture). The board the
+     keys play is an application to screen readers, which then hand it the arrow keys; Tab brings
+     the focus to it. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <svg
 	{width}
 	{height}
 	viewBox="0 0 {width} {height}"
-	class="block touch-manipulation outline-none select-none [&_*]:pointer-events-none"
+	class="board-focus block touch-manipulation select-none [&_*]:pointer-events-none"
 	style:touch-action={touchAction(touchMode)}
-	role="grid"
-	tabindex="-1"
+	role="application"
+	tabindex={keys ? 0 : -1}
 	aria-label={t('game.board')}
+	aria-describedby={keys ? speechId : undefined}
 	{@attach input}
 >
 	<rect x={pad} y={pad} width={w * cellSize} height={h * cellSize} fill={colours.surface} />
@@ -442,3 +422,6 @@
 		</g>
 	{/if}
 </svg>
+{#if keys}
+	<BoardSpeech id={speechId} game="tetroid" text={speech} />
+{/if}

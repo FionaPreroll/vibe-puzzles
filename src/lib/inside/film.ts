@@ -43,6 +43,8 @@ export interface Chapter<P, S> {
 export interface Film<P, S> {
 	/** The game whose board shows the film. */
 	game: string;
+	/** The puzzle the film makes, as the game's generator gives it. */
+	puzzle: P;
 	/** Board settings that differ from the game's defaults while the film plays. */
 	settings?: Record<string, boolean>;
 	chapters: Chapter<P, S>[];

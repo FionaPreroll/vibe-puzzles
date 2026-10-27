@@ -34,6 +34,11 @@ const MARKS: [ColourName, ColourName[]][] = [
 	['trial', ['paper', ...NOTES]],
 	['trialShade', ['surface']],
 	['cursor', ['surface', 'paper']],
+	// Pipes: a pipe stands out from a locked tile, water from an empty pipe, the source from both.
+	['line', ['locked']],
+	['label', ['locked']],
+	['water', ['surface']],
+	['source', ['surface', 'locked']],
 	// Wrong marks a hint points at.
 	['error', ['surface', 'paper']],
 	['blueError', ['surface', 'paper']]

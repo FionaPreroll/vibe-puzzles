@@ -49,6 +49,10 @@ vi.mock('./generate', () => ({
 	})
 }));
 
+// Many tests here make real puzzles (a 10×10 daily, then the next day's or a regular one), which
+// on a busy CI runner with coverage can take longer than the default 5 s.
+vi.setConfig({ testTimeout: 20_000 });
+
 type Session = GameSession<TetroidPuzzle, TetroidState, string>;
 
 const game = GAME_LOGIC.tetroid as unknown as GameModule<TetroidPuzzle, TetroidState>;
@@ -1174,6 +1178,17 @@ describe('syncing with other devices', () => {
 		expect(api.pushSave).toHaveBeenCalledTimes(1);
 	});
 
+	it('uploads the last move at once when another type opens right after it', async () => {
+		const s = await opened({ autoSubmit: false });
+		s.move(shaded(0), []);
+		await s.open('8n');
+		expect(api.pushSave).toHaveBeenCalledWith(
+			'save:tetroid:6n',
+			expect.objectContaining({ state: shaded(0) }),
+			expect.any(Number)
+		);
+	});
+
 	it('continues a newer game from another device', async () => {
 		vi.mocked(api.pullSave).mockResolvedValueOnce(remote(shaded(7), Date.now() + 1000));
 		const s = session();
@@ -1183,12 +1198,21 @@ describe('syncing with other devices', () => {
 		expect(s.message?.text).toBe('Continued your game from another device.');
 	});
 
-	it('keeps a newer local game and ignores empty or solved remote games', async () => {
+	it('goes on with a puzzle from a link that another device played before it opened here', async () => {
+		vi.mocked(api.pullSave).mockResolvedValueOnce(remote(shaded(7), Date.now() - 60_000));
+		const s = session();
+		await s.open('6n', { puzzleId: ID });
+		await vi.waitFor(() => expect(s.state).toEqual(shaded(7)));
+		expect(s.message?.text).toBe('Continued your game from another device.');
+	});
+
+	it('keeps a newer local game and ignores new or solved remote games', async () => {
 		const s = await opened({ autoSubmit: false });
 		s.move(shaded(1), []);
 		for (const r of [
 			remote(shaded(7), Date.now() - 1000),
-			remote(game.emptyState(puzzle), Date.now() + 1000),
+			// Another puzzle, untouched.
+			remote(game.emptyState(puzzle), Date.now() + 1000, { puzzleId: encodePuzzleId(0, 7) }),
 			remote(shaded(7), Date.now() + 1000, { solved: true })
 		]) {
 			vi.mocked(api.currentPlayer).mockReturnValue({ id: 'p', name: 'P', token: 't' });
@@ -1289,6 +1313,41 @@ describe('syncing with other devices', () => {
 			await pulled();
 			expect(other.puzzle).not.toEqual(puzzle);
 			expect(other.message).toBeNull();
+		});
+
+		it('takes the moves back on the other devices too when all are undone', async () => {
+			const saves = serve();
+			const s = await started();
+			const here = localStorage;
+			// The game continues on another device.
+			const there = new MemoryStorage();
+			vi.stubGlobal('localStorage', there);
+			vi.mocked(api.serverPuzzles).mockResolvedValueOnce(false);
+			const other = session({ autoSubmit: false });
+			await other.open('6n');
+			await pulled();
+			expect(other.state).toEqual(shaded(1));
+			// Back here, the move is undone.
+			vi.stubGlobal('localStorage', here);
+			s.undo();
+			vi.advanceTimersByTime(1500);
+			expect(saves.get(KEY)?.data).toMatchObject({ state: game.emptyState(puzzle) });
+			// The other device takes it back too once it asks the server again.
+			vi.stubGlobal('localStorage', there);
+			await other.refreshFromServer();
+			expect(other.state).toEqual(game.emptyState(puzzle));
+			expect(other.puzzle).toEqual(puzzle);
+			expect(other.message?.text).toBe('Your moves were taken back on another device.');
+		});
+
+		it('keeps moves taken back here from coming back while the server still has them', async () => {
+			serve();
+			const s = await started();
+			s.undo();
+			// "Sync now" before the untouched game went up.
+			await s.refreshFromServer();
+			expect(s.state).toEqual(game.emptyState(puzzle));
+			expect(s.message).toBeNull();
 		});
 
 		it('does not come back from the server when a puzzle from a link took its place', async () => {
@@ -1754,6 +1813,19 @@ describe('the current special puzzle', () => {
 		const again = session();
 		await again.open('daily');
 		expect(again.solved).toBe(true);
+	});
+
+	it('solved and left right away, it goes to the other devices solved', async () => {
+		const s = session();
+		await s.open('daily');
+		s.move(dailySolved(), []);
+		// On to a regular puzzle at once, before the pause after which a change goes up.
+		await s.open('6n');
+		expect(api.pushSave).toHaveBeenCalledWith(
+			`save:tetroid:daily:${PERIOD}`,
+			expect.objectContaining({ solved: true }),
+			expect.any(Number)
+		);
 	});
 
 	it('when storage is full, its solved save is not the first to go', () => {

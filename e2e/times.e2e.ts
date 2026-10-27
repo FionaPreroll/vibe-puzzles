@@ -17,7 +17,7 @@ test('a quick solve shows milliseconds only once it is done', async ({ page }) =
 		});
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const timer = page.locator('span[aria-label="Timer"]');

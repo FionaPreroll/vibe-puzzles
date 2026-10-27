@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { FILM_GAMES, insideQuery } from '../../core/filmLink';
 import { encodePuzzleId, isPlayable } from '../../core/variants';
 import { GAME_LOGIC } from '../../games/logic';
@@ -40,7 +40,7 @@ describe('the films of the Inside page', () => {
 		for (const f of FILMS) expect(f.replays({ key: '', label: '', ...f.type })).toBe(true);
 	});
 
-	it('play the puzzle a game links to', () => {
+	it('play the puzzle a game links to, made once', () => {
 		for (const [game, key, seed] of [
 			['sudoku', '9e', 5],
 			['pinwheel', '5h', 2],
@@ -48,11 +48,17 @@ describe('the films of the Inside page', () => {
 			['loop', '5n', 4]
 		] as const) {
 			const { id, variant, query } = linked(game, key, seed);
+			const made = GAME_LOGIC[game].generate(variant, seed);
+			// The film makes the puzzle; the game's generator does not make it again for the check.
+			const generate = vi.spyOn(GAME_LOGIC[game], 'generate');
 			const showing = filmFor(query)!;
+			expect(generate).not.toHaveBeenCalled();
+			generate.mockRestore();
 			expect(showing.entry.id).toBe(game);
 			expect(showing.asked).toEqual({ id, variant });
 			expect(showing.type).toBe(variant);
-			expect(lastPuzzle(showing.film)).toEqual(GAME_LOGIC[game].generate(variant, seed));
+			expect(showing.film.puzzle).toEqual(made);
+			expect(lastPuzzle(showing.film)).toEqual(made);
 		}
 	});
 

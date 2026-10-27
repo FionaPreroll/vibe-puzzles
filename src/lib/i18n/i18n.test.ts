@@ -2,11 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryStorage } from '../../test/memory-storage';
 import { LOOP_SETTINGS } from '../games/loop/settings';
 import { PINWHEEL_SETTINGS } from '../games/pinwheel/settings';
+import { PIPES_SETTINGS } from '../games/pipes/settings';
 import { SUDOKU_SETTINGS } from '../games/sudoku/settings';
 import { TETROID_SETTINGS } from '../games/tetroid/settings';
 import de from './de';
 import en from './en';
 import {
+	controlsKeys,
 	i18n,
 	initLocale,
 	nextDailyText,
@@ -124,6 +126,8 @@ describe('labels', () => {
 		const base = { key: '6n', label: '', width: 6, height: 6 } as const;
 		expect(variantLabel({ ...base, difficulty: 'hard' })).toBe('6×6 Hard');
 		expect(variantLabel({ ...base, difficulty: 'easy', mode: 'calc' })).toBe('Calcudoku 6×6 Easy');
+		// Wrap takes the place of the difficulty.
+		expect(variantLabel({ ...base, difficulty: 'normal', wrap: true })).toBe('6×6 Wrap');
 		expect(variantLabel({ ...base, difficulty: 'normal', special: 'daily' })).toBe(
 			t('special.daily')
 		);
@@ -145,7 +149,8 @@ describe('labels', () => {
 			tetroid: TETROID_SETTINGS,
 			pinwheel: PINWHEEL_SETTINGS,
 			sudoku: SUDOKU_SETTINGS,
-			loop: LOOP_SETTINGS
+			loop: LOOP_SETTINGS,
+			pipes: PIPES_SETTINGS
 		};
 		for (const [game, list] of Object.entries(lists)) {
 			for (const mode of game === 'sudoku' ? [undefined, 'calc'] : [undefined]) {
@@ -190,6 +195,20 @@ describe('labels', () => {
 		stubBrowser([]);
 		setLocale('de');
 		expect(toolHint('tetroid', 'rotate')).toBe(de.games.tetroid.toolHint.rotate);
+	});
+
+	it("says how to play the board with the keys, naming the device's Ctrl key", () => {
+		expect(controlsKeys('tetroid', 'Ctrl')).toBe(
+			en.games.tetroid.controlsKeys.replace('{mod}', 'Ctrl')
+		);
+		expect(controlsKeys('loop', '⌘')).toContain('Hold ⌘ and press the arrows');
+		// Sudoku's mouse text names its keys already.
+		expect(controlsKeys('sudoku', 'Ctrl')).toBe('');
+		stubBrowser([]);
+		setLocale('de');
+		expect(controlsKeys('pinwheel', 'Ctrl')).toBe(
+			de.games.pinwheel.controlsKeys.replace('{mod}', 'Ctrl')
+		);
 	});
 });
 

@@ -92,8 +92,15 @@ export function tSteps(key: string): TutorialText[] {
 export function variantLabel(v: Variant): string {
 	if (v.special) return t(`special.${v.special}`);
 	const mode = v.mode ? `${t(`mode.${v.mode}`)} ` : '';
-	return `${mode}${v.width}×${v.height} ${t(`difficulty.${v.difficulty}`)}`;
+	return `${mode}${v.width}×${v.height} ${columnLabel(variantColumn(v))}`;
 }
+
+/** The picker's column of a regular puzzle type: its difficulty, or `wrap` for one with wrap. */
+export const variantColumn = (v: Variant): string => (v.wrap ? 'wrap' : v.difficulty);
+
+/** The name of a column of the picker, e.g. "Hard" or "Wrap". */
+export const columnLabel = (column: string): string =>
+	column === 'wrap' ? t('wrap') : t(`difficulty.${column}`);
 
 /**
  * When the next daily puzzle comes, e.g. "New daily puzzle in 5 h 07 min, at 02:00": it changes
@@ -119,6 +126,15 @@ export function toolLabel(gameId: string, tool: { id: string; label: string }): 
 export function toolHint(gameId: string, toolId: string): string {
 	const key = `games.${gameId}.toolHint.${toolId}`;
 	return typeof lookup(en, key) === 'string' ? t(key) : '';
+}
+
+/**
+ * How to play a game's board with the keyboard, with `mod` the name of the Ctrl key on this
+ * device; empty for a game whose mouse text (`controlsMouse`) names its keys already.
+ */
+export function controlsKeys(gameId: string, mod: string): string {
+	const key = `games.${gameId}.controlsKeys`;
+	return typeof lookup(en, key) === 'string' ? t(key, { mod }) : '';
 }
 
 /** Keys of a setting text (`setting` or `settingHelp`): the mode's own, the game's, the shared. */

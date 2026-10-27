@@ -109,7 +109,7 @@ const V = '00001110001111100011110000101100001011000111011001110110';
 /** Draws all solution lines but the last; returns a function that draws that one. */
 async function almostSolve(page: Page) {
 	await page.goto(PINWHEEL);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const grid = (await board.locator('rect').first().boundingBox())!;
@@ -184,7 +184,7 @@ for (const night of [false, true]) {
 			localStorage.setItem('vp:puzzleSource', '"bank"');
 		}, night);
 		await page.goto('/tetroid?v=6n&id=496678832');
-		await expect(page.getByRole('grid', { name: 'Puzzle board' }).first()).toBeVisible({
+		await expect(page.getByRole('application', { name: 'Puzzle board' }).first()).toBeVisible({
 			timeout: 30_000
 		});
 		await page.waitForLoadState('networkidle');

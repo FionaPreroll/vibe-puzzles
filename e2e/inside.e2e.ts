@@ -243,7 +243,7 @@ test('a solved puzzle links to the film of how it was made', async ({ page }) =>
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
 	await page.goto('/pinwheel?v=7n&id=1027244002');
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const more = page.getByRole('button', { name: 'More actions' });

@@ -12,7 +12,7 @@ test('the hint first tints where to look, then points at the step, and at a wron
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const spotlight = board.locator('g.spotlight > *');
 	const area = board.locator('g.area > *');
@@ -52,7 +52,7 @@ test('wrong marks stay pointed out through other moves until changed or closed',
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const spotlight = board.locator('g.spotlight[data-mistake] > *');
 	const status = page.getByRole('status');
@@ -87,7 +87,7 @@ test.describe('phone', () => {
 			localStorage.setItem('vp:puzzleSource', '"bank"');
 		});
 		await page.goto(PUZZLE);
-		const board = page.locator('.overflow-x-auto svg[role="grid"]');
+		const board = page.locator('.overflow-x-auto svg[role="application"]');
 		await expect(board).toBeVisible({ timeout: 30_000 });
 		const spotlight = board.locator('g.spotlight[data-mistake] > *');
 		const grid = (await board.locator('rect').first().boundingBox())!;
@@ -115,7 +115,7 @@ test.describe('320 px wide', () => {
 			localStorage.setItem('vp:puzzleSource', '"bank"');
 		});
 		await page.goto(PUZZLE);
-		const board = page.locator('.overflow-x-auto svg[role="grid"]');
+		const board = page.locator('.overflow-x-auto svg[role="application"]');
 		await expect(board).toBeVisible({ timeout: 30_000 });
 		const names = ['Undo', 'Redo', 'Cycle', 'Black', 'Cross', 'Blank', 'Hint'];
 		const boxes = await Promise.all(
@@ -142,7 +142,7 @@ test('the Sudoku and Calcudoku hints name the digit and its cell', async ({ page
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
 	await page.goto('/sudoku?v=9e');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board.locator('text').first()).toBeVisible();
 	const spotlight = board.locator('g.spotlight > *');
 	const status = page.getByRole('status');
@@ -177,7 +177,7 @@ test('the Sudoku and Calcudoku hints name the digit and its cell', async ({ page
 test('the Pinwheel hint points at edges that need a line', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:pinwheel', 'true'));
 	await page.goto('/pinwheel?v=5n');
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible();
 	const spotlight = board.locator('g.spotlight > *');
@@ -208,7 +208,7 @@ test('a setting hides the hint button and its key', async ({ page }) => {
 		);
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Hint' })).toHaveCount(0);
@@ -231,7 +231,7 @@ test('turning hints off mid-game hides the hint, and sharing tells how many were
 		});
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const spotlight = board.locator('g.spotlight > *');
 	// Where to look, then the step: one hint.
@@ -277,7 +277,7 @@ test('painting wrong digits red counts as a hint, the settings say so, and shari
 	// Calcudoku 5×5 Easy #513322150 from the bundled collection, and its only solution.
 	await page.goto('/sudoku?v=c5e&id=513322150');
 	const solution = '1254321354452315341234125';
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 
@@ -314,7 +314,7 @@ test('on wide screens a hint reads below the play bar, clear of the header and t
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
 	await page.goto(PUZZLE);
-	const board = page.locator('.overflow-x-auto svg[role="grid"]');
+	const board = page.locator('.overflow-x-auto svg[role="application"]');
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const before = (await board.boundingBox())!;
 	await page.keyboard.press('h');

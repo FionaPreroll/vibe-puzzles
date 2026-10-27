@@ -4,7 +4,7 @@ import type { TetroidPuzzle } from '../src/lib/games/tetroid/rules';
 
 /** Solve the current Tetroid special puzzle of `kind` on the board, as a player would. */
 async function solveSpecial(page: Page, kind = 'daily', size = 10) {
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const puzzle = await page.evaluate((kind) => {
@@ -51,7 +51,9 @@ test('a solved daily puzzle stays solved: it opens solved and cannot start over'
 	// Any other puzzle keeps it.
 	await page.keyboard.press('Escape');
 	await page.goto('/tetroid?v=6n');
-	await expect(page.getByRole('grid', { name: 'Puzzle board' })).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByRole('application', { name: 'Puzzle board' })).toBeVisible({
+		timeout: 30_000
+	});
 	await more.click();
 	await expect(page.getByRole('button', { name: 'Start over' })).toBeVisible();
 });
@@ -67,7 +69,7 @@ for (const [kind, size] of [
 		const label = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' }[kind];
 		const button = page
 			.getByRole('navigation', { name: 'Puzzle type' })
-			.getByRole('button', { name: label, exact: true });
+			.getByRole('button', { name: new RegExp(`^${label} ${size}×${size}`) });
 		await expect(button).toHaveAttribute('aria-current', 'true', { timeout: 30_000 });
 		await expect(button).not.toContainText('✓');
 		await solveSpecial(page, kind, size);

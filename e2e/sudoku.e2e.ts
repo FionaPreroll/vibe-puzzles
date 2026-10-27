@@ -3,63 +3,71 @@ import { colours as palette } from '../src/lib/core/palette';
 
 /** Click the centre of cell (r, c) of a size×size board. */
 async function clickCell(page: Page, size: number, r: number, c: number) {
-	const box = (await page.getByRole('grid', { name: 'Puzzle board' }).boundingBox())!;
+	const box = (await page.getByRole('application', { name: 'Puzzle board' }).boundingBox())!;
 	// The board has a 3 px margin around the grid.
 	const cell = (box.width - 6) / size;
 	await page.mouse.click(box.x + 3 + (c + 0.5) * cell, box.y + 3 + (r + 0.5) * cell);
 }
 
-test('the Sudoku tutorial can be solved with the number pad', async ({ page }) => {
-	await page.goto('/sudoku');
-	await expect(page).toHaveURL(/\/sudoku\/tutorial$/);
-	const pad = page.getByRole('toolbar', { name: 'Number pad' });
-	// Solution: 1234 / 3412 / 2143 / 4321; the empty cells and their digits.
-	const moves: [number, number, number][] = [
-		[0, 2, 3],
-		[1, 1, 4],
-		[2, 2, 4],
-		[2, 3, 3],
-		[3, 0, 4],
-		[3, 1, 3],
-		[3, 2, 2],
-		[3, 3, 1]
-	];
-	for (const [r, c, d] of moves) {
-		await clickCell(page, 4, r, c);
-		await pad.getByRole('button', { name: String(d), exact: true }).click();
+test(
+	'the Sudoku tutorial can be solved with the number pad',
+	{ tag: '@webkit' },
+	async ({ page }) => {
+		await page.goto('/sudoku');
+		await expect(page).toHaveURL(/\/sudoku\/tutorial$/);
+		const pad = page.getByRole('toolbar', { name: 'Number pad' });
+		// Solution: 1234 / 3412 / 2143 / 4321; the empty cells and their digits.
+		const moves: [number, number, number][] = [
+			[0, 2, 3],
+			[1, 1, 4],
+			[2, 2, 4],
+			[2, 3, 3],
+			[3, 0, 4],
+			[3, 1, 3],
+			[3, 2, 2],
+			[3, 3, 1]
+		];
+		for (const [r, c, d] of moves) {
+			await clickCell(page, 4, r, c);
+			await pad.getByRole('button', { name: String(d), exact: true }).click();
+		}
+		await expect(page.getByText('Well done!')).toBeVisible();
 	}
-	await expect(page.getByText('Well done!')).toBeVisible();
-});
+);
 
-test('Sudoku takes digits and notes from the keyboard and keeps them', async ({ page }) => {
-	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
-	await page.goto('/sudoku?v=9n');
-	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+test(
+	'Sudoku takes digits and notes from the keyboard and keeps them',
+	{ tag: '@webkit' },
+	async ({ page }) => {
+		await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
+		await page.goto('/sudoku?v=9n');
+		await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
+		const board = page.getByRole('application', { name: 'Puzzle board' });
 
-	// Find an empty cell: arrow keys walk the board from the top-left cell.
-	const text = async () => (await board.locator('text').allTextContents()).join('');
-	await expect(board.locator('text').first()).toBeVisible();
-	const before = await text();
-	await clickCell(page, 9, 0, 0);
-	let entered = false;
-	for (let k = 0; k < 81 && !entered; k++) {
+		// Find an empty cell: arrow keys walk the board from the top-left cell.
+		const text = async () => (await board.locator('text').allTextContents()).join('');
+		await expect(board.locator('text').first()).toBeVisible();
+		const before = await text();
+		await clickCell(page, 9, 0, 0);
+		let entered = false;
+		for (let k = 0; k < 81 && !entered; k++) {
+			await page.keyboard.press('7');
+			entered = (await text()) !== before;
+			if (!entered) await page.keyboard.press('ArrowRight');
+		}
+		expect(entered).toBe(true);
+		// The same digit again clears it; Shift+digits add notes.
 		await page.keyboard.press('7');
-		entered = (await text()) !== before;
-		if (!entered) await page.keyboard.press('ArrowRight');
-	}
-	expect(entered).toBe(true);
-	// The same digit again clears it; Shift+digits add notes.
-	await page.keyboard.press('7');
-	expect(await text()).toBe(before);
-	await page.keyboard.press('Shift+Digit1');
-	await page.keyboard.press('Shift+Digit5');
-	await expect(board.locator('g.notes text')).toHaveText(['1', '5']);
+		expect(await text()).toBe(before);
+		await page.keyboard.press('Shift+Digit1');
+		await page.keyboard.press('Shift+Digit5');
+		await expect(board.locator('g.notes text')).toHaveText(['1', '5']);
 
-	// The game is saved: notes survive a reload.
-	await page.reload();
-	await expect(board.locator('g.notes text')).toHaveText(['1', '5'], { timeout: 30_000 });
-});
+		// The game is saved: notes survive a reload.
+		await page.reload();
+		await expect(board.locator('g.notes text')).toHaveText(['1', '5'], { timeout: 30_000 });
+	}
+);
 
 test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights', async ({
 	page
@@ -73,7 +81,7 @@ test('Sudoku settings: auto notes, wrong digits, remaining counts and highlights
 	// selecting it highlights nothing else.
 	await page.goto('/sudoku?v=9n&id=980291457');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 
 	// Auto notes: every empty cell gets its possible digits right away.
 	await expect(board.locator('g.notes').first()).toBeVisible();
@@ -127,7 +135,7 @@ test('auto notes that a trial makes part of the game keep their colour', async (
 		localStorage.setItem('vp:settings:sudoku', JSON.stringify({ values, updatedAt: 1 }));
 	});
 	await page.goto('/sudoku?v=9n&id=980291457');
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board.locator('g.notes').first()).toBeVisible({ timeout: 30_000 });
 	const empty = await board.locator('g.notes').count();
 	const givenCells = await board
@@ -150,7 +158,7 @@ test('the Sudoku screenshot shows the whole board', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
 	await page.setViewportSize({ width: 1100, height: 800 });
 	await page.goto('/sudoku?v=9n');
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board.locator('text').first()).toBeVisible({ timeout: 30_000 });
 	const width = Number(await board.getAttribute('width'));
 	await page.getByRole('button', { name: 'More actions' }).click();
@@ -169,7 +177,7 @@ test('the Sudoku screenshot shows the whole board', async ({ page }) => {
 test('Calcudoku shows cages with their results and checks rows and columns', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
 	await page.goto('/sudoku?v=c5e');
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	const labels = board.locator('g.cages text');
 	await expect(labels.first()).toBeVisible({ timeout: 30_000 });
 	await expect(page.getByRole('button', { name: 'Calcudoku 5×5 Easy' })).toHaveAttribute(
@@ -203,7 +211,7 @@ test('a whole Calcudoku can be solved', async ({ page }) => {
 	// Calcudoku 5×5 Easy #513322150 from the bundled collection, and its only solution.
 	await page.goto('/sudoku?v=c5e&id=513322150');
 	const solution = '1254321354452315341234125';
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const shareSuccess = page.getByRole('button', { name: 'Share success' });
@@ -228,7 +236,7 @@ test('Calcudoku digits sit in the middle of their cells, below the cage labels',
 		localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	/** Where the digit in the top left cell sits, as a share of the cell from its top. */
 	const digitAt = async (size: number) => {
 		await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
@@ -263,7 +271,7 @@ test('picking the digit first: the pad arms a digit, left click enters it, right
 		);
 	});
 	await page.goto('/sudoku?v=9e');
-	const board = page.getByRole('grid', { name: 'Puzzle board' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
 	await expect(board).toBeVisible({ timeout: 30_000 });
 	const pad = page.getByRole('toolbar', { name: 'Number pad' });
 	const givens = await board
@@ -309,7 +317,7 @@ test('Space switches between digits and notes in Sudoku and Calcudoku, and the h
 	for (const variant of ['9e', 'c5e']) {
 		await page.goto(`/sudoku?v=${variant}`);
 		// The board takes keys once it shows the puzzle.
-		const board = page.getByRole('grid', { name: 'Puzzle board' });
+		const board = page.getByRole('application', { name: 'Puzzle board' });
 		await expect(board.locator('text').first()).toBeVisible({ timeout: 30_000 });
 		await expect(digit).toHaveAttribute('aria-pressed', 'true');
 		// No cell needs to be selected.

@@ -1,6 +1,6 @@
 # Puzzle generators
 
-How the five generators build puzzles, guarantee a unique solution and set the difficulty. Code: `src/lib/games/<game>/generator.ts` (Calcudoku: `src/lib/games/sudoku/calc/generator.ts`), with the solvers next to them.
+How the six generators build puzzles, guarantee a unique solution and set the difficulty. Code: `src/lib/games/<game>/generator.ts` (Calcudoku: `src/lib/games/sudoku/calc/generator.ts`), with the solvers next to them.
 
 ## Common ground
 
@@ -32,10 +32,11 @@ The same ID must give the same puzzle on every device, in every browser and on t
 
 Every generator follows the same three steps:
 
-1. **Build a solution** at random: a filled grid, a set of tetrominoes, a partition into regions.
+1. **Build a solution** at random: a filled grid, a set of tetrominoes, a partition into regions, a network of pipes.
 2. **Make it unique.**
    - Sudoku goes the other way round: it starts from the full grid and removes givens only while a logical solver still solves the puzzle, which proves the solution unique.
    - Calcudoku, Tetroid and Pinwheel use a complete solver (propagation plus backtracking) to look for a second solution, with `limit: 2` and a node budget. While it finds one, the generator changes the puzzle where the two solutions differ (a cell becomes its own cage, a cell moves to another region, a galaxy is split) and tries again. A search that runs out of nodes discards the attempt.
+   - Pipes changes its network where the solver's techniques get stuck until they decide every tile, which, as with Sudoku, proves the solution unique.
 3. **Grade it.** A logical solver that never guesses replays the puzzle with a limited set of techniques. The difficulty is the weakest set of techniques that solves it. Easy and normal Sudoku and normal Tetroid are right by construction: their last step already uses that logical solver (Sudoku digs with singles only; Tetroid reshapes regions until propagation solves the puzzle). Otherwise, if the result does not match the requested difficulty, the generator starts a new attempt with the same `Rng` (so still deterministic), up to an attempt limit, and then keeps the best or first puzzle it found (see [Fallbacks](#fallbacks)).
 
 Each game's `GameLogic.fitsDifficulty(puzzle, variant)` applies the same rating to any stored puzzle; the collection script and tests use it.
@@ -49,8 +50,9 @@ Each game's `GameLogic.fitsDifficulty(puzzle, variant)` applies the same rating 
 | Tetroid   | –                                          | Solvable by propagation with the connectivity look-ahead, without guessing | Not solvable without guessing                                                |
 | Pinwheel  | –                                          | Solvable by propagation alone                                              | Not solvable without case analysis                                           |
 | Loop      | –                                          | Basic rules only, as few clues as they allow                               | Needs inside and outside; never guessing; as few clues as that allows        |
+| Pipes     | –                                          | Solvable by its three techniques alone, without trying anything            | –                                                                            |
 
-Specials use these levels too: Sudoku, Tetroid and Loop daily normal, weekly and monthly hard; Pinwheel all three hard.
+Specials use these levels too: Sudoku, Tetroid and Loop daily normal, weekly and monthly hard; Pinwheel all three hard. Pipes has one level; a board with wrap (opposite edges touch) is the harder kind of each size: daily 10×10, weekly 15×15 and monthly 25×25 with wrap.
 
 ## Sudoku
 
@@ -171,6 +173,28 @@ Each step first tints where to look (the number, the dot, the line, the walk) wi
 
 A hint scans the whole board again after every cross it finds on the way to a line, so on big boards it keeps what it worked out: a window (`cachedWindow`) is tried again only when an edge it reads changed, inside and outside only search a walk between cells that decided edges join, and assumptions use the trials of the rating solver. The hints are the same as without these shortcuts (checked step by step on 115 puzzles of every size) and take about 25 ms in the median and 300 ms at most on 25×30. Before, single hints took up to 4 s on 15×15, and the first hint of some 10×10 hard puzzles 2 minutes, as it solves the puzzle to find wrong marks (see the complete solver).
 
+## Pipes
+
+`generatePipes(width, height, wrap, seed)` in `src/lib/games/pipes/generator.ts`. Types: 5×5, 7×7, 10×10, 15×15, 20×20 and 25×25, each without and with wrap (`Variant.wrap`: opposite edges touch, so a pipe that leaves on one side comes back on the other); daily 10×10, weekly 15×15 with wrap, monthly 25×25 with wrap. A tile is the set of sides its pipe opens to (UP 1, RIGHT 2, DOWN 4, LEFT 8), stored as one hex digit per cell, and turning it is a bit rotation. The source, where the water comes from, is always the middle tile (`sourceOf`).
+
+1. **Network** (`randomTree`): a random spanning tree of the board, grown from the source by randomized Prim: each step adds a random pipe from the tree to a tile outside it. No tile gets pipes on all four sides: a cross lies the same every way and would only fill the board.
+2. **Unique** (`perturb`): the solver's techniques run on the network's tiles. Where they get stuck, a pipe they could not rule out joins the network, and another pipe of the loop this closes leaves it (preferably one they were not sure of either), so the network stays a tree and no tile gets four pipes. Up to 50 changes per network and 100 networks (`PERTURBATIONS`, `TREES`); a few changes are enough in practice. Once the techniques decide every tile, the solution is unique, as they only ever rule out ways that no solution has. A straight looks the same turned half round, so its two turns count as one.
+3. **Deal** (`deal`): every tile turned a random number of quarters, again if the board would start solved.
+
+**Solver** (`PipesSolver` in `solver.ts`) keeps the ways each tile can still lie (a set of masks) and narrows them with three techniques, weakest first (`PipesLevel`):
+
+- `Fit`: a way must fit the edge of the board (no pipe leads off a board without wrap) and the neighbours: a side where every way of the neighbour opens back needs a pipe, a side where none does takes none.
+- `Loop`: known pipes join tiles into groups (union-find); a way that joins two tiles of one group closes a loop.
+- `Closed`: a way that leaves a group without a loose end, short of the whole board, cuts it off from the rest: two ends that face each other, or a tile that closes a group's last way out. Each tile keeps its number of openings however it lies, so a group knows how many pipes still have to leave it.
+
+`solvesAlone` runs them until nothing changes; the generator, `fitsDifficulty` and the collection use it. `solve` also branches on the tile with the fewest ways left, with a node budget, for `countSolutions`.
+
+**On the board** (`analyze` in `rules.ts`): water fills the tiles joined to the source by pipes that meet. An error is only what is wrong whatever the other tiles do: a pipe that leads off a board without wrap, the pipes of a loop (the connections that are not bridges, by Tarjan's bridge search), every pipe of a group of joined tiles without a loose end that leaves tiles out, and a pipe between two locked tiles that meets a closed side. A loose end between free tiles is unfinished, not wrong. A board is solved when every opening meets another one and the water reaches every tile; since the tiles have exactly the openings of a network without a loop (two per pipe, one pipe fewer than tiles, which `isValidPuzzle` checks), such a board has no loop.
+
+**Hints** (`pipesHint` in `hint.ts`) take the locked tiles as what the player knows. A locked tile that lies wrong comes first. Otherwise the hint looks for an unlocked tile that can lie only one way, with the simplest reasoning that finds one: the edge of the board alone (`edge`), the locked tiles around it (`fit`), a loop it would close or a group it would cut off through the locked tiles' pipes (`loop`, `closed`), or these rules over a few tiles in turn (`chain`, with the tiles narrowed on the way tinted). Among tiles found the same way, one that lies wrong comes before one that only needs locking. The first press tints where to look and names the rule; the second says how far to turn the tile (a quarter either way or half round) and to lock it. When no rule decides a tile (only on puzzles with more than one solution), the hint points at a tile that lies wrong and has the most ways left.
+
+Following the hints solves every puzzle in the measurements below, never with a wrong step. `fit` takes 77 % to 90 % of the steps; `edge` 5 % (25×25) to 22 % (5×5) without wrap and none with wrap; `closed` 9 % to 14 % with wrap and up to 6 % without; `loop` about 1 %; `chain` at most 4 % (5×5 with wrap). A hint takes under 0.1 ms on average; the first one of a puzzle takes up to 35 ms on 25×25, as it solves the puzzle to find wrong locks.
+
 ## Fallbacks
 
 Each generator has an attempt limit, so it always ends in bounded work. When no attempt hits the requested difficulty, the puzzle may not match it:
@@ -184,6 +208,7 @@ Each generator has an attempt limit, so it always ends in bounded work. When no 
 | Pinwheel       | 10,000   | First unique puzzle, whatever its difficulty                   |
 | Loop normal    | 40       | None: `generation failed` (not observed)                       |
 | Loop hard      | 40       | First puzzle, solvable by the basic rules (not observed)       |
+| Pipes          | 100 × 50 | None: `generation failed` (not observed)                       |
 
 The limits are far above what the measurements below need, so in practice the difficulty is always right. A returned puzzle is always valid and unique.
 
@@ -236,10 +261,21 @@ Measured on 2026-10-09 (commit `e88783b`, after issue #84) with each game's `fit
 | Loop 20×20 hard       | 10  | 10           | 1.0 s   | 1.1 s  |
 | Loop 25×30 normal     | 5   | 5            | 2.6 s   | 2.7 s  |
 | Loop 25×30 hard       | 5   | 5            | 4.0 s   | 4.6 s  |
+| Pipes 5×5, both       | 40  | 40 each      | < 1 ms  | 2 ms   |
+| Pipes 7×7, both       | 40  | 40 each      | < 1 ms  | 4 ms   |
+| Pipes 10×10, both     | 40  | 40 each      | < 1 ms  | 12 ms  |
+| Pipes 15×15 normal    | 20  | 20           | < 1 ms  | 27 ms  |
+| Pipes 15×15 wrap      | 20  | 20           | 3 ms    | 17 ms  |
+| Pipes 20×20 normal    | 10  | 10           | 6 ms    | 35 ms  |
+| Pipes 20×20 wrap      | 10  | 10           | 12 ms   | 119 ms |
+| Pipes 25×25 normal    | 10  | 10           | 28 ms   | 93 ms  |
+| Pipes 25×25 wrap      | 10  | 10           | 36 ms   | 102 ms |
 
 Loop was measured on 2026-10-10 (on top of commit `ccd2ccd`), with the clue-minimal definition of `fitsDifficulty`. Normal and hard puzzles have about as many clues (median 10 on 5×5, 19 on 7×7); the difference is how far the basic rules get. On a hard puzzle they stop with 13 % to 100 % of the edges still open (median 57 % on 5×5 and 50 % on 7×7, 100 seeds each), so every hard puzzle needs inside and outside for a good part of the board, not for one last edge.
 
 The sizes from 10×10 on were measured on 2026-10-17, with the spread loop; their times are the median and maximum of seeds 1 to 5 in `pnpm test:perf`. Every puzzle has one solution (the complete solver agrees), and every one fits its type. All have about 40 % of their cells numbered, of which 15 % to 18 % are 0s and 16 % to 20 % are 3s, and none leaves a square of more than 3×3 cells that the loop does not touch (with the plain loop: up to 4×4 on 10×10, 5×5 on 20×20 and 12×12 on 25×30). On hard puzzles the basic rules stop with a median of 43 % (10×10) to 54 % (15×15) of the edges open; as on 5×5 and 7×7, a few percent stop late (9 of 200 10×10 hard puzzles below 20 %, the lowest at 5 %).
+
+Pipes was measured on 2026-10-27 (branch `feature/pipes`). A Pipes puzzle counts as graded right when the complete solver finds exactly one solution and the three techniques alone decide every tile. The unit tests check 1,000 seeds each of 5×5 and 7×7 and 200 of 10×10, with and without wrap, the same way.
 
 Before the fix (2026-10-08, commit `9a96875`), Tetroid missed on up to 12 of 40 per type and on 5 of 12 at 20×20 normal, Pinwheel hard below 15×15 was graded right for only 2 to 16 of 40, and Tetroid 20×20 normal took a median of 8.3 s.
 
@@ -282,7 +318,7 @@ The Inside page (`/inside`) shows the generators at work from their own trace. A
 
 ## Tests and budgets
 
-- Unit tests per game check uniqueness, validity, determinism and the difficulty of generated puzzles: Sudoku (9×9, and a seed whose first 30 attempts failed), Calcudoku (4×4 to 7×7), Tetroid (6×6 and 8×8 normal and hard, 10×10 normal), Pinwheel (5×5 normal and hard, 7×7 and 10×10 hard) and Loop (5×5, 7×7 and 10×10 normal and hard, 15×15 hard, the spread loop of big boards, single-edge trials against rating from the start, and the techniques on small patterns).
-- `src/lib/games/generator-ids.test.ts` pins the puzzle behind a few IDs of every distinct generator setting (rule set, size, difficulty) and checks that every setting is pinned.
+- Unit tests per game check uniqueness, validity, determinism and the difficulty of generated puzzles: Sudoku (9×9, and a seed whose first 30 attempts failed), Calcudoku (4×4 to 7×7), Tetroid (6×6 and 8×8 normal and hard, 10×10 normal), Pinwheel (5×5 normal and hard, 7×7 and 10×10 hard), Loop (5×5, 7×7 and 10×10 normal and hard, 15×15 hard, the spread loop of big boards, single-edge trials against rating from the start, and the techniques on small patterns) and Pipes (1,000 seeds each of 5×5 and 7×7, 200 of 10×10 and a few of every bigger size, with and without wrap; the techniques and the errors on small boards).
+- `src/lib/games/generator-ids.test.ts` pins the puzzle behind a few IDs of every distinct generator setting (rule set, size, difficulty, wrap) and checks that every setting is pinned.
 - `src/lib/games/bank.test.ts` checks every stored puzzle for validity, a unique solution and its type's difficulty (special puzzles from `DIFFICULTY_CHECKED_FROM` on; see the README on `BANK_TEST_SINCE`).
 - `perf/generate.perf.ts` (`pnpm test:perf`) holds median time budgets per board size over five fixed seeds: 200 ms (5×5) up to 20 s (20×20), four times as much for Calcudoku. `PERF_BUDGET_SCALE` relaxes them on slow machines.

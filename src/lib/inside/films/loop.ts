@@ -145,6 +145,7 @@ export function loopFilm(
 	const clues = only(last, 'clues')[0].clues;
 	return {
 		game: 'loop',
+		puzzle,
 		settings: { dimSatisfiedClues: false },
 		chapters: [
 			grow(only(last, 'grow', 'block'), region),

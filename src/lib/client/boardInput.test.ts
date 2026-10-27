@@ -277,6 +277,26 @@ describe('touch', () => {
 		expect(log).toEqual(['start 1,1 touch', 'drag 1,1>1,9', 'end']);
 	});
 
+	it('drops the move when the system takes the touch away', () => {
+		const { log, gesture } = setup('draw');
+		gesture.touchstart(touches([0, 0]));
+		gesture.touchmove(touches([0, 5]));
+		gesture.touchcancel();
+		gesture.touchend(touches());
+		expect(gesture.touching).toBe(false);
+		expect(log).toEqual(['start 0,0 touch', 'drag 0,0>0,5', 'cancel']);
+	});
+
+	it('neither draws nor holds after the system took the touch away', () => {
+		const { log, gesture } = setup('auto', () => true);
+		// Nothing to drop yet.
+		gesture.touchcancel();
+		gesture.touchstart(touches([1, 1]));
+		gesture.touchcancel();
+		vi.advanceTimersByTime(HOLD_DELAY);
+		expect(log).toEqual(['cancel']);
+	});
+
 	it('forgets its timers when the board goes', () => {
 		const { log, gesture } = setup('auto', () => true);
 		gesture.touchstart(touches([1, 1]));
@@ -329,6 +349,8 @@ describe('board input attachment', () => {
 		el.dispatchEvent(event('touchstart', touches([20, 20])));
 		el.dispatchEvent(event('touchmove', touches([20, 40])));
 		el.dispatchEvent(event('touchend', touches()));
+		el.dispatchEvent(event('touchstart', touches([40, 40])));
+		el.dispatchEvent(event('touchcancel', touches()));
 		expect(el.captured).toEqual([7, 1]);
 		expect(log).toEqual([
 			'start 2,1',
@@ -341,7 +363,9 @@ describe('board input attachment', () => {
 			'cancel',
 			'start 1,1 touch',
 			'drag 1,1>1,2',
-			'end'
+			'end',
+			'start 2,2 touch',
+			'cancel'
 		]);
 
 		detach();
