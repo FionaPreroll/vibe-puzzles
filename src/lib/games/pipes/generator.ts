@@ -16,18 +16,13 @@ export interface GeneratedPipes {
 /**
  * A random spanning tree of the board, as the openings of each tile: randomized Prim from the
  * source, which adds a random pipe from the tree to a tile outside it at every step. No tile gets
- * a pipe on all four sides (it would look the same in every turn). Null if a tile cannot be
- * reached any more because its neighbours in the tree are all full.
+ * a pipe on all four sides (it would look the same in every turn). That never leaves a tile out:
+ * the tiles around a left-out part would all need three pipes, each to its neighbours outside
+ * the part, and those pipes would close a loop around it.
  */
-export function randomTree(
-	width: number,
-	height: number,
-	nb: Int32Array,
-	rng: Rng
-): number[] | null {
-	const n = width * height;
-	const tiles = new Array<number>(n).fill(0);
-	const inTree = new Uint8Array(n);
+export function randomTree(width: number, height: number, nb: Int32Array, rng: Rng): number[] {
+	const tiles = new Array<number>(width * height).fill(0);
+	const inTree = new Uint8Array(tiles.length);
 	const frontier: number[] = [];
 	const grow = (c: number) => {
 		inTree[c] = 1;
@@ -37,7 +32,6 @@ export function randomTree(
 		}
 	};
 	grow(sourceOf({ width, height }));
-	let size = 1;
 	while (frontier.length) {
 		const i = rng.int(frontier.length);
 		const edge = frontier[i];
@@ -49,10 +43,9 @@ export function randomTree(
 		if (inTree[m] || openings(tiles[c]) >= 3) continue;
 		tiles[c] |= 1 << k;
 		tiles[m] |= 1 << ((k + 2) % 4);
-		size++;
 		grow(m);
 	}
-	return size === n ? tiles : null;
+	return tiles;
 }
 
 /** The pipes of the tree on the way from tile `a` to tile `b`, as `cell * 4 + side`. */
@@ -134,7 +127,6 @@ export function generatePipes(
 	const nb = neighbourTable(shape);
 	for (let attempt = 0; attempt < TREES; attempt++) {
 		const tiles = randomTree(width, height, nb, rng);
-		if (!tiles) continue;
 		for (let round = 0; round <= PERTURBATIONS; round++) {
 			const tree: PipesPuzzle = { ...shape, tiles: hex(tiles) };
 			const solver = new PipesSolver(tree);

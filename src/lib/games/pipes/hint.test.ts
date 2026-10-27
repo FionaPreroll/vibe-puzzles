@@ -6,10 +6,15 @@ import { generatePipes, randomTree } from './generator';
 import { pipesHint, pipesSolution, type PipesHint, type PipesTechnique } from './hint';
 import { pipes } from './index';
 import {
+	dealt,
+	DOWN,
 	emptyPipesState,
 	isSolvedTiles,
+	LEFT,
 	neighbourTable,
+	RIGHT,
 	turn,
+	UP,
 	type PipesPuzzle,
 	type PipesState
 } from './rules';
@@ -42,7 +47,6 @@ function ambiguous(): PipesPuzzle {
 	const rng = new Rng(1);
 	for (let k = 0; k < 50; k++) {
 		const tree = randomTree(5, 5, nb, rng);
-		if (!tree) continue;
 		const tiles = tree.map((t) => turn(t, rng.int(4)).toString(16)).join('');
 		const p: PipesPuzzle = { width: 5, height: 5, wrap: true, tiles };
 		if (solvePipes(p, 2).solutions.length > 1) return p;
@@ -56,6 +60,8 @@ describe('pipes hints', () => {
 		for (const [size, wrap, seed] of [
 			[5, false, 7],
 			[5, true, 8],
+			// A chain step here rests on a loop the tiles narrowed on the way would close.
+			[5, true, 26],
 			[7, false, 3],
 			[7, true, 4],
 			[10, false, 5]
@@ -75,6 +81,7 @@ describe('pipes hints', () => {
 			expect(end.locks.every((l) => l === 1)).toBe(true);
 			expect(isSolvedTiles(puzzle, end.tiles)).toBe(true);
 			expect(pipesHint(puzzle, end)).toBeNull();
+			expect(pipes.hint!(puzzle, end)).toBeNull();
 		}
 		expect([...used].sort()).toEqual(['chain', 'closed', 'edge', 'fit', 'loop']);
 	});
@@ -137,6 +144,28 @@ describe('pipes hints', () => {
 		expect(s.locks[stuck.cell]).toBe(0);
 		const wrong = s.tiles.flatMap((t, c) => (!s.locks[c] && t !== solution[c] ? [c] : []));
 		if (wrong.length) expect(wrong).toContain(stuck.cell);
+		// With every tile as in the solution found, the hint still points at an unlocked one.
+		const right = { tiles: solution.slice(), locks: s.locks };
+		const again = pipesHint(p, right);
+		expect(again?.kind).toBe('stuck');
+		if (again?.kind === 'stuck') expect(right.locks[again.cell]).toBe(0);
+	});
+
+	it('say so on a board without a solution, where the locked tiles allow nothing', () => {
+		// Nine corners on a 3×3 board with wrap: two openings too many for one network.
+		const p: PipesPuzzle = { width: 3, height: 3, wrap: true, tiles: '666666666' };
+		expect(pipesSolution(p)).toBeNull();
+		const corners = (locked: Record<number, number>): PipesState => ({
+			tiles: dealt(p).map((t, c) => locked[c] ?? t),
+			locks: dealt(p).map((_, c) => (c in locked ? 1 : 0))
+		});
+		// Two locked corners joined at the top left leave the tile left of them no way to lie:
+		// across the wrap, it meets a closed side on its left and on its right.
+		const pair = corners({ 0: RIGHT | DOWN, 1: DOWN | LEFT });
+		expect(pipesHint(p, pair)).toEqual({ kind: 'stuck', cell: 2 });
+		// Four locked corners that close a loop.
+		const ring = corners({ 0: RIGHT | DOWN, 1: DOWN | LEFT, 3: UP | RIGHT, 4: UP | LEFT });
+		expect(pipesHint(p, ring)).toEqual({ kind: 'stuck', cell: 2 });
 	});
 
 	it('come with texts in every language, first where to look, then the turn', () => {

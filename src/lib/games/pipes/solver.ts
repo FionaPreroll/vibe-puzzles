@@ -92,20 +92,20 @@ export class PipesSolver {
 	 * contradiction: a tile with no way left, or a group of tiles cut off.
 	 */
 	propagate(opts: Uint16Array, level: PipesLevel = PipesLevel.Closed): boolean {
-		const all = Array.from({ length: this.n }, (_, c) => c);
-		if (!this.fit(opts, all)) return false;
-		if (level < PipesLevel.Loop) return true;
-		for (;;) {
+		let queue = Array.from({ length: this.n }, (_, c) => c);
+		while (this.fit(opts, queue)) {
+			if (level < PipesLevel.Loop) return true;
 			const changed = this.groups(opts, level);
 			if (changed === null) return false;
 			if (!changed.length) return true;
 			// The neighbours of a tile that lost ways may learn from it.
-			const queue = new Set(changed);
+			const next = new Set(changed);
 			for (const c of changed) {
-				for (let k = 0; k < 4; k++) if (this.nb[c * 4 + k] >= 0) queue.add(this.nb[c * 4 + k]);
+				for (let k = 0; k < 4; k++) if (this.nb[c * 4 + k] >= 0) next.add(this.nb[c * 4 + k]);
 			}
-			if (!this.fit(opts, [...queue])) return false;
+			queue = [...next];
 		}
+		return false;
 	}
 
 	/** The way a tile must lie to fit its neighbours and the edge (see `Fit`), out of `set`. */
@@ -143,8 +143,8 @@ export class PipesSolver {
 			if (!after) return false;
 			if (after === before) continue;
 			opts[c] = after;
-			// Neighbours only learn something when a side became known.
-			if (AND[after] === AND[before] && OR[after] === OR[before]) continue;
+			// The ways left out opened a side the rest close, or closed one the rest open: that side
+			// is known now, and the neighbours may learn from it.
 			for (let k = 0; k < 4; k++) {
 				const m = this.nb[c * 4 + k];
 				if (m >= 0 && !queued[m]) {
@@ -285,7 +285,6 @@ export class PipesSolver {
 		let nodes = 0;
 		let finished = true;
 		const search = (opts: Uint16Array) => {
-			if (solutions.length >= limit) return;
 			if (++nodes > maxNodes) {
 				finished = false;
 				return;
@@ -301,8 +300,8 @@ export class PipesSolver {
 				}
 			}
 			if (best < 0) {
-				const tiles = decided(opts);
-				if (isSolvedTiles(this.puzzle, tiles)) solutions.push(tiles);
+				// Every tile decided, with every pipe met, no loop and no group cut off: one network.
+				solutions.push(decided(opts));
 				return;
 			}
 			for (const mask of masksOf(opts[best])) {

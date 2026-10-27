@@ -75,7 +75,7 @@ export function pipesHint(p: PipesPuzzle, s: PipesState): PipesHint | null {
 
 	const step = (c: number, set: number, technique: PipesTechnique, area: number[]): PipesHint => {
 		const mask = maskOf(set);
-		const turns = [0, 1, 2, 3].find((q) => turn(s.tiles[c], q) === mask) ?? 0;
+		const turns = [0, 1, 2, 3].findIndex((q) => turn(s.tiles[c], q) === mask);
 		return { kind: 'step', cell: c, mask, turns, technique, area: [...new Set([c, ...area])] };
 	};
 	const lockedAround = (c: number) => around(solver, c).filter((m) => s.locks[m]);
@@ -95,17 +95,14 @@ export function pipesHint(p: PipesPuzzle, s: PipesState): PipesHint | null {
 	// Then loops and groups cut off by the pipes the locked tiles hold, round after round over
 	// the tiles narrowed on the way (a chain).
 	let opts = start;
-	let next = fit;
 	const narrowed = new Set<number>();
 	for (let round = 0; round <= 4 * p.width * p.height; round++) {
 		if (!solver.joinGroups(opts)) break;
 		const why = new Map<number, 'loop' | 'closed'>();
-		if (round > 0) {
-			next = opts.slice();
-			for (const c of unlocked) if (count(opts[c]) > 1) next[c] = solver.fitting(opts, c);
-		} else {
-			next = fit.slice();
-		}
+		// Every unlocked tile still has several ways here (the first one decided ends the search),
+		// so each is fitted again to what the last round narrowed.
+		const next = opts.slice();
+		for (const c of unlocked) next[c] = solver.fitting(opts, c);
 		for (const c of unlocked) {
 			if (count(next[c]) < 2) continue;
 			for (let set = next[c]; set; set &= set - 1) {
@@ -120,9 +117,10 @@ export function pipesHint(p: PipesPuzzle, s: PipesState): PipesHint | null {
 		const found = decidedNow(next, opts);
 		if (found.length) {
 			if (round === 0) {
-				// The simpler rule first: a loop before a group cut off.
+				// A tile `Fit` decides alone returned above, so a loop or a group cut off decided
+				// these. The simpler rule first: a loop.
 				const c = found.find((x) => why.get(x) === 'loop') ?? found[0];
-				return step(c, next[c], why.get(c) ?? 'fit', [
+				return step(c, next[c], why.get(c)!, [
 					...lockedAround(c),
 					...groupsAround(solver, opts, c)
 				]);
@@ -146,7 +144,8 @@ export function pipesHint(p: PipesPuzzle, s: PipesState): PipesHint | null {
 	// Point at a tile that lies wrong and has the most ways left.
 	const wrong = unlocked.filter((c) => !solution || s.tiles[c] !== solution[c]);
 	const pool = wrong.length ? wrong : unlocked;
-	const most = pool.reduce((a, c) => (count(start[c]) > count(start[a]) ? c : a), pool[0]);
+	// The sort keeps the order of tiles with as many ways: the first of them wins.
+	const [most] = pool.sort((a, b) => count(start[b]) - count(start[a]));
 	return { kind: 'stuck', cell: most };
 }
 

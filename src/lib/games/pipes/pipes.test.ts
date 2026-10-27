@@ -277,6 +277,24 @@ describe('solver', () => {
 		expect(solver.breaks(opts, 0, DOWN, PipesLevel.Closed)).toBeNull();
 	});
 
+	it('finds what Fit alone leaves: a loop, or a group cut off from the rest', () => {
+		// Four corners on a 2×2 board can only face inwards: they form a ring.
+		const ring = new PipesSolver(board(2, [RIGHT | DOWN, DOWN | LEFT, UP | RIGHT, UP | LEFT]));
+		const opts = ring.start();
+		expect(ring.propagate(opts, PipesLevel.Fit)).toBe(true);
+		expect(opts.every((set) => count(set) === 1)).toBe(true);
+		expect(ring.joinGroups(opts)).toBe(false);
+		expect(ring.propagate(ring.start())).toBe(false);
+		// Four ends in a row pair up: Fit decides every tile, but the water reaches only two.
+		const ends = new PipesSolver(board(4, [RIGHT, LEFT, RIGHT, LEFT]));
+		const pairs = ends.start();
+		expect(ends.propagate(pairs, PipesLevel.Fit)).toBe(true);
+		expect(Array.from(pairs, (set) => masksOf(set))).toEqual([[RIGHT], [LEFT], [RIGHT], [LEFT]]);
+		expect(ends.solvesAlone(PipesLevel.Fit)).toBeNull();
+		expect(ends.joinGroups(pairs)).toBe(false);
+		expect(ends.solvesAlone()).toBeNull();
+	});
+
 	it('solves a generated puzzle by the techniques alone, and its solution is the only one', () => {
 		const { puzzle, solution } = generatePipes(10, 10, true, 5);
 		const opts = new PipesSolver(puzzle).solvesAlone();
@@ -295,10 +313,9 @@ describe('solver', () => {
 		const rng = new Rng(1);
 		let found: { p: PipesPuzzle; res: SolveResult } | null = null;
 		for (let k = 0; k < 50 && !found; k++) {
-			const tiles = randomTree(5, 5, nb, rng);
-			const p = tiles && board(5, tiles, true);
-			const res = p && solvePipes(p, 3);
-			if (p && res && res.solutions.length > 1) found = { p, res };
+			const p = board(5, randomTree(5, 5, nb, rng), true);
+			const res = solvePipes(p, 3);
+			if (res.solutions.length > 1) found = { p, res };
 		}
 		expect(found).not.toBeNull();
 		const { p, res } = found!;
@@ -308,7 +325,7 @@ describe('solver', () => {
 
 	it('gives up after its node budget', () => {
 		const nb = neighbourTable({ width: 15, height: 15, wrap: true });
-		const res = solvePipes(board(15, randomTree(15, 15, nb, new Rng(1))!, true), 1000, 3);
+		const res = solvePipes(board(15, randomTree(15, 15, nb, new Rng(1)), true), 1000, 3);
 		expect(res.finished).toBe(false);
 		expect(res.nodes).toBeLessThanOrEqual(4);
 	});
@@ -321,12 +338,19 @@ describe('generator', () => {
 			const rng = new Rng(7);
 			for (let k = 0; k < 20; k++) {
 				const tiles = randomTree(8, 6, nb, rng);
-				if (!tiles) continue;
 				const p = board(8, tiles, wrap);
 				expect(tiles.every((t) => t > 0 && t < 15)).toBe(true);
 				expect(tiles.reduce((sum, t) => sum + openings(t), 0)).toBe(2 * (48 - 1));
 				expect(isSolvedTiles(p, tiles)).toBe(true);
 			}
+		}
+	});
+
+	it('never deals a solved board, even where a random deal often is', () => {
+		// Two ends side by side: one deal in 16 would be solved.
+		for (let seed = 1; seed <= 100; seed++) {
+			const { puzzle } = generatePipes(2, 1, false, seed);
+			expect(isSolvedTiles(puzzle, dealt(puzzle)), `#${seed}`).toBe(false);
 		}
 	});
 
