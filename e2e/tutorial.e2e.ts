@@ -2,6 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { edgeKey } from '../src/lib/games/loop/rules';
 import { solveLoop } from '../src/lib/games/loop/solver';
 import { LOOP_TUTORIAL } from '../src/lib/games/loop/tutorial';
+import { dealt, turn } from '../src/lib/games/pipes/rules';
+import { solvePipes } from '../src/lib/games/pipes/solver';
+import { PIPES_TUTORIAL } from '../src/lib/games/pipes/tutorial';
 
 /** Clicks the middle of an edge of the 5×5 tutorial board (padding: a fifth of a cell). */
 async function clickEdge(page: Page, kind: 'h' | 'v', i: number, j: number) {
@@ -303,5 +306,67 @@ test('the Loop tutorial goes from the 0 to the 3s, the dots and the early loop',
 	await expect(page.getByText('Well done!')).toBeVisible();
 	await page.getByRole('link', { name: 'Play a real puzzle' }).click();
 	await expect(page).toHaveURL(/\/loop(\?|$)/);
+	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
+});
+
+test('the Pipes tutorial turns and locks the corner, then the ends, then the rest', async ({
+	page
+}) => {
+	await page.goto('/');
+	await page.getByRole('link', { name: 'Learn Pipes', exact: true }).click();
+	await expect(page).toHaveURL(/\/pipes\/tutorial$/);
+	const next = page.getByRole('button', { name: 'Next' });
+	const board = page.getByRole('application', { name: 'Puzzle board' });
+	const grid = (await board.locator('rect').first().boundingBox())!;
+	const cell = grid.width / 5;
+	const click = (c: number, options?: { button: 'right' }) =>
+		page.mouse.click(
+			grid.x + ((c % 5) + 0.5) * cell,
+			grid.y + (Math.floor(c / 5) + 0.5) * cell,
+			options
+		);
+	const tiles = dealt(PIPES_TUTORIAL);
+	const [solution] = solvePipes(PIPES_TUTORIAL, 1).solutions;
+
+	await expect(page.getByText('Step 1 of 6')).toBeVisible();
+	await next.click();
+
+	// The corner in the corner of the board: two quarter turns.
+	await expect(next).toBeDisabled();
+	await click(0);
+	await expect(next).toBeDisabled();
+	await click(0);
+	await expect(page.getByText(/the water flows in/)).toBeVisible();
+	await next.click();
+
+	// Locking it with the right button.
+	await click(0, { button: 'right' });
+	await expect(page.getByText(/Locked\. A locked tile only shakes/)).toBeVisible();
+	await expect(board.locator('[data-tile="0"][data-locked]')).toHaveCount(1);
+	await next.click();
+
+	// The end below it: "Show me".
+	await expect(next).toBeDisabled();
+	await page.getByRole('button', { name: 'Show me' }).click();
+	await next.click();
+
+	// The end in the top right corner: Shift+click turns it back a quarter, to point down.
+	await page.keyboard.down('Shift');
+	await click(4);
+	await page.keyboard.up('Shift');
+	await expect(page.getByText(/two ends never face each other/)).toBeVisible();
+	await next.click();
+
+	// The rest alone.
+	await expect(page.getByText('Step 6 of 6')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Show me' })).toHaveCount(0);
+	for (let c = 0; c < 25; c++) {
+		if ([0, 4, 5].includes(c)) continue;
+		const q = [0, 1, 2, 3].find((k) => turn(tiles[c], k) === solution[c])!;
+		for (let k = 0; k < q; k++) await click(c);
+	}
+	await expect(page.getByText('Well done!')).toBeVisible();
+	await page.getByRole('link', { name: 'Play a real puzzle' }).click();
+	await expect(page).toHaveURL(/\/pipes(\?|$)/);
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 });

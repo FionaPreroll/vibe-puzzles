@@ -56,12 +56,16 @@ describe('variant lists', () => {
 			loop: [
 				...['5n', '5h', '7n', '7h', '10n', '10h', '15n', '15h', '20n', '20h', '25x30n', '25x30h'],
 				...['daily', 'weekly', 'monthly']
+			],
+			pipes: [
+				...['5n', '5w', '7n', '7w', '10n', '10w', '15n', '15w', '20n', '20w', '25n', '25w'],
+				...['daily', 'weekly', 'monthly']
 			]
 		});
 	});
 
 	// "New puzzle" on a special type continues with this regular one.
-	it('pairs every special with the regular type nearest in difficulty and size', () => {
+	it('pairs every special with the regular type of its rules nearest in difficulty and size', () => {
 		const pairs = Object.fromEntries(
 			Object.values(GAME_LOGIC).map((logic) => [
 				logic.id,
@@ -74,7 +78,9 @@ describe('variant lists', () => {
 			tetroid: ['10n', '15h', '20h'],
 			pinwheel: ['10h', '15h', '15h'],
 			sudoku: ['9n', '9h', '9h'],
-			loop: ['10n', '15h', '25x30h']
+			loop: ['10n', '15h', '25x30h'],
+			// Wrap is a rule of its own, like a mode: the weekly and monthly have it.
+			pipes: ['10n', '15w', '25w']
 		});
 	});
 

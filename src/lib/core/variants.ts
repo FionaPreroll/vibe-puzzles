@@ -14,6 +14,11 @@ export interface Variant {
 	/** A rule set other than the game's main one, e.g. 'calc' for Calcudoku in Sudoku. */
 	mode?: string;
 	/**
+	 * Opposite edges of the board touch, as in Pipes: what leaves it on one side comes back on the
+	 * other. The picker shows such types in a column of their own, named by this, not by difficulty.
+	 */
+	wrap?: boolean;
+	/**
 	 * Listed but not playable yet: the type keeps its place (puzzle IDs hold it), but has no
 	 * puzzles, no collection and no pinned generator, so its generator may still change.
 	 */
@@ -115,11 +120,14 @@ export function specialSeed(gameId: string, kind: SpecialKind, period: string): 
 }
 
 /**
- * The regular type closest to a special one: same rules, then the same difficulty, then the
- * nearest size. "New puzzle" on a special type continues here (or stays, if there is none).
+ * The regular type closest to a special one: same rules (mode and wrap), then the same
+ * difficulty, then the nearest size. "New puzzle" on a special type continues here (or stays, if
+ * there is none).
  */
 export function regularCounterpart(variants: Variant[], special: Variant): Variant {
-	const regular = variants.filter((v) => !v.special && v.mode === special.mode && isPlayable(v));
+	const regular = variants.filter(
+		(v) => !v.special && v.mode === special.mode && !!v.wrap === !!special.wrap && isPlayable(v)
+	);
 	const area = (v: Variant) => v.width * v.height;
 	const score = (v: Variant) => [
 		v.difficulty === special.difficulty ? 0 : 1,

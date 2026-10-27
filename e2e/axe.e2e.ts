@@ -34,13 +34,14 @@ const GAMES = [
 	'/sudoku',
 	'/sudoku?v=calc6',
 	'/loop?v=5n',
-	'/pinwheel?v=7n&id=1027244002'
+	'/pinwheel?v=7n&id=1027244002',
+	'/pipes?v=7w'
 ];
 const TETROID = GAMES[0];
 
 test.beforeEach(async ({ page }) => {
 	await page.addInitScript(() => {
-		for (const game of ['tetroid', 'sudoku', 'loop', 'pinwheel'])
+		for (const game of ['tetroid', 'sudoku', 'loop', 'pinwheel', 'pipes'])
 			localStorage.setItem(`vp:tutorialSeen:${game}`, 'true');
 		localStorage.setItem('vp:puzzleSource', '"bank"');
 	});
@@ -139,7 +140,8 @@ for (const scheme of ['light', 'dark'] as const) {
 				'/sudoku/tutorial',
 				'/sudoku/tutorial/calc',
 				'/loop/tutorial',
-				'/pinwheel/tutorial'
+				'/pinwheel/tutorial',
+				'/pipes/tutorial'
 			]) {
 				await openPage(page, path);
 				await expect(page.getByText(/^Step 1 of \d+$/i)).toBeVisible();

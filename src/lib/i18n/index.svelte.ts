@@ -92,8 +92,15 @@ export function tSteps(key: string): TutorialText[] {
 export function variantLabel(v: Variant): string {
 	if (v.special) return t(`special.${v.special}`);
 	const mode = v.mode ? `${t(`mode.${v.mode}`)} ` : '';
-	return `${mode}${v.width}×${v.height} ${t(`difficulty.${v.difficulty}`)}`;
+	return `${mode}${v.width}×${v.height} ${columnLabel(variantColumn(v))}`;
 }
+
+/** The picker's column of a regular puzzle type: its difficulty, or `wrap` for one with wrap. */
+export const variantColumn = (v: Variant): string => (v.wrap ? 'wrap' : v.difficulty);
+
+/** The name of a column of the picker, e.g. "Hard" or "Wrap". */
+export const columnLabel = (column: string): string =>
+	column === 'wrap' ? t('wrap') : t(`difficulty.${column}`);
 
 /**
  * When the next daily puzzle comes, e.g. "New daily puzzle in 5 h 07 min, at 02:00": it changes
