@@ -102,6 +102,9 @@ const PINNED: Record<string, string> = {
 	'pipes 7w 2': 'b3b3ce27eebff623',
 	'pipes 10n 1': 'e6716963f872863c',
 	'pipes 10n 2': 'b60eaf6922aa5f70',
+	// 10n 21 and 25n 6: the generator swaps the same two pipes back and forth until its limit,
+	// then starts over with a new network.
+	'pipes 10n 21': '7f897d0dc4c3b724',
 	'pipes 10w 1': '68b72c41853a04a5',
 	'pipes 10w 2': '9d53d2bf43f53585',
 	'pipes 15n 1': '43a7be745cfff5a3',
@@ -109,6 +112,7 @@ const PINNED: Record<string, string> = {
 	'pipes 20n 1': '362d70fd848b439e',
 	'pipes 20w 1': '326161e35edbb3d1',
 	'pipes 25n 1': '91bb8fd041a9e9aa',
+	'pipes 25n 6': 'd189204ff77b764d',
 	'pipes 25w 1': 'a51d5c592856728b'
 };
 

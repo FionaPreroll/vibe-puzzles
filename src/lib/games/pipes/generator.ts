@@ -127,11 +127,19 @@ export function generatePipes(
 	const nb = neighbourTable(shape);
 	for (let attempt = 0; attempt < TREES; attempt++) {
 		const tiles = randomTree(width, height, nb, rng);
+		// What the techniques made of each network so far. The changes can swap the same two pipes
+		// back and forth until the limit; a network met again needs no new solve.
+		const solved = new Map<string, { opts: Uint16Array; ok: boolean }>();
 		for (let round = 0; round <= PERTURBATIONS; round++) {
 			const tree: PipesPuzzle = { ...shape, tiles: hex(tiles) };
-			const solver = new PipesSolver(tree);
-			const opts = solver.start();
-			const ok = solver.propagate(opts);
+			let known = solved.get(tree.tiles);
+			if (!known) {
+				const solver = new PipesSolver(tree);
+				const opts = solver.start();
+				known = { opts, ok: solver.propagate(opts) };
+				solved.set(tree.tiles, known);
+			}
+			const { opts, ok } = known;
 			if (ok && opts.every((set) => !(set & (set - 1)))) {
 				return { puzzle: { ...shape, tiles: hex(deal(tree, tiles, rng)) }, solution: tiles };
 			}
