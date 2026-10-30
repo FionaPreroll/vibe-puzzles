@@ -337,7 +337,9 @@ const en = {
 		showRemaining: 'Show how many of each digit are left',
 		digitFirst: 'Pick the digit first, then the cells (left click: digit, right click: note)',
 		showWater: 'Show the water',
-		animateRotation: 'Animate turning tiles'
+		animateRotation: 'Animate turning tiles',
+		markErrors: 'Show tiles that cannot keep to their notes',
+		turnToMarks: 'Turn tiles only into ways that fit their notes'
 	},
 	/** What each setting does, shown below it. Games and modes can word it their own way. */
 	settingHelp: {
@@ -397,7 +399,12 @@ const en = {
 			'Pick a digit on the pad first, then click every cell that gets it. Handy for placing one digit all over the board.',
 		showWater:
 			'Fills every pipe joined to the source with blue water, so you see at a glance which tiles already belong to the network.',
-		animateRotation: 'Tiles turn smoothly instead of in one jump. Quick clicks still count at once.'
+		animateRotation:
+			'Tiles turn smoothly instead of in one jump. Quick clicks still count at once.',
+		markErrors:
+			'A tile turns red when no way of turning it fits the notes on its sides, such as an = on two neighbouring sides of a straight. It compares with your notes only, not with the solution.',
+		turnToMarks:
+			'A click turns a tile on to the next way that fits its notes and skips the others: open towards every =, closed towards every x. Tiles without notes, and tiles that no way fits, turn as usual.'
 	},
 	source: {
 		title: 'Where new puzzles come from',
@@ -1022,18 +1029,20 @@ const en = {
 				'On a board with wrap, opposite edges touch: a pipe that leaves on one side comes back in on the other.'
 			],
 			notes: [
-				'Water fills every pipe joined to the source in the middle. Lock a tile once you are sure of it: it stays put, and hints build on it.'
+				'Water fills every pipe joined to the source in the middle. Lock a tile once you are sure of it: it stays put, and hints build on it.',
+				'Notes help you think it through: with the Note tool, put an = on the side between two tiles where a pipe must join them, or an x where none may pass. Notes stay put while the tiles turn.'
 			],
 			toolHint: {
 				turn: 'Click a tile to turn it a quarter clockwise, Shift+click to turn it back. Right click locks it.',
-				lock: 'Click a tile to lock it, so that it cannot turn by accident, and again to unlock it. Drag to lock several.'
+				lock: 'Click a tile to lock it, so that it cannot turn by accident, and again to unlock it. Drag to lock several.',
+				note: 'Click near a side of a tile to note it: a left click sets = (a pipe joins the two tiles there), a right click x (no pipe). Click again to clear it. Drag from tile to tile to set = on the sides in between.'
 			},
 			controlsMouse:
-				'Click a tile to turn it clockwise, Shift+click to turn it back. Right click locks or unlocks a tile; drag with the right button to lock several.',
+				'Click a tile to turn it clockwise, Shift+click to turn it back. Right click locks or unlocks a tile; drag with the right button to lock several. With the Note tool, a click near a side of a tile notes it =, a right click x; dragging notes = from tile to tile.',
 			controlsTouch:
-				'Tap a tile to turn it clockwise. Hold a tile to lock or unlock it, or pick the Lock tool and tap or drag.',
+				'Tap a tile to turn it clockwise. Hold a tile to lock or unlock it, or pick the Lock tool and tap or drag. With the Note tool, tap near a side of a tile for =, hold it for x, or drag from tile to tile for =.',
 			controlsKeys:
-				'Arrow keys or W, A, S, D move a cursor over the tiles. Space turns the tile under it clockwise (with the Lock tool: locks it), Shift+Space turns it back, L locks or unlocks it. Hold {mod} and press the arrows to lock every tile on the way; letting go sets them. Esc hides the cursor.',
+				'Arrow keys or W, A, S, D move a cursor over the tiles. Space turns the tile under it clockwise (with the Lock tool: locks it), Shift+Space turns it back, L locks or unlocks it. Hold {mod} and press the arrows to lock every tile on the way; letting go sets them. With the Note tool, {mod} with the arrows notes = on the sides on the way instead, and Shift with the arrows x. Esc hides the cursor.',
 			speech: {
 				tile: '{kind}, open {list}',
 				end: 'end',
@@ -1042,7 +1051,10 @@ const en = {
 				tee: 'T piece',
 				source: 'source',
 				water: 'water',
-				locked: 'locked'
+				locked: 'locked',
+				joins: 'noted open {list}',
+				crosses: 'noted closed {list}',
+				unfit: 'does not fit its notes'
 			},
 			settingHelp: {
 				highlightErrors:
@@ -1052,6 +1064,10 @@ const en = {
 			hints: {
 				mistake:
 					'The highlighted locked tiles lie wrong. They stay highlighted until you unlock or turn them.',
+				mistakeMarks:
+					'The highlighted notes are wrong: in the solution, a pipe crosses an x there, or none crosses an =. They stay highlighted until you change them.',
+				mistakeBoth:
+					'The highlighted locked tiles lie wrong, and the highlighted notes are wrong too. They stay highlighted until you change them.',
 				edgeLook: 'Look at the tinted tile at the edge of the board: no pipe may lead off it.',
 				edge: 'Only one way of turning it keeps all its pipes on the board.',
 				fitLook:

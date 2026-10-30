@@ -6,15 +6,19 @@ import { generatePipes, randomTree } from './generator';
 import { pipesHint, pipesSolution, type PipesHint, type PipesTechnique } from './hint';
 import { pipes } from './index';
 import {
+	CROSS,
 	dealt,
 	DOWN,
 	emptyPipesState,
 	isSolvedTiles,
+	JOIN,
 	LEFT,
 	neighbourTable,
 	RIGHT,
 	turn,
 	UP,
+	withMark,
+	withMarks,
 	type PipesPuzzle,
 	type PipesState
 } from './rules';
@@ -124,10 +128,55 @@ describe('pipes hints', () => {
 		const s = emptyPipesState(puzzle);
 		const wrong = s.tiles.findIndex((t, c) => t !== solution[c]);
 		s.locks[wrong] = 1;
-		expect(pipesHint(puzzle, s)).toEqual({ kind: 'mistake', cells: [wrong] });
+		expect(pipesHint(puzzle, s)).toEqual({ kind: 'mistake', cells: [wrong], marks: [] });
 		// Locked the right way, the tile is known.
 		s.tiles[wrong] = solution[wrong];
 		expect(pipesHint(puzzle, s)?.kind).toBe('step');
+	});
+
+	it('point at marks that the solution breaks, and build on none of them', () => {
+		const { puzzle, solution } = generatePipes(7, 7, true, 4);
+		const s = emptyPipesState(puzzle);
+		/** The mark the solution gives side `k` of tile `c`, or the other one. */
+		const mark = (c: number, k: number, right: boolean) =>
+			!!(solution[c] & (1 << k)) === right ? JOIN : CROSS;
+		const right = withMark(
+			puzzle,
+			withMark(puzzle, undefined, 0, 1, mark(0, 1, true)),
+			0,
+			2,
+			mark(0, 2, true)
+		);
+		expect(pipesHint(puzzle, withMarks(s, right))).toEqual(pipesHint(puzzle, s));
+		const wrong = withMarks(s, withMark(puzzle, right, 0, 2, mark(0, 2, false)));
+		expect(pipesHint(puzzle, wrong)).toEqual({ kind: 'mistake', cells: [], marks: ['d:0'] });
+		expect(pipes.hint!(puzzle, wrong)).toMatchObject({
+			kind: 'mistake',
+			spotlight: ['d:0'],
+			text: ['games.pipes.hints.mistakeMarks']
+		});
+		// With a locked tile that lies wrong too.
+		const tile = s.tiles.findIndex((t, c) => t !== solution[c]);
+		const both = { ...wrong, locks: s.locks.map((l, c) => (c === tile ? 1 : l)) };
+		expect(pipesHint(puzzle, both)).toEqual({ kind: 'mistake', cells: [tile], marks: ['d:0'] });
+		expect(pipes.hint!(puzzle, both)).toMatchObject({
+			spotlight: [String(tile), 'd:0'],
+			text: ['games.pipes.hints.mistakeBoth']
+		});
+	});
+
+	it('name the tiles a move changed and the sides whose marks it changed', () => {
+		const { puzzle } = generatePipes(5, 5, false, 7);
+		const s = emptyPipesState(puzzle);
+		const next = withMarks(
+			{
+				tiles: s.tiles.map((t, c) => (c === 3 ? turn(t, 1) : t)),
+				locks: s.locks.map((l, c) => (c === 9 ? 1 : l))
+			},
+			withMark(puzzle, undefined, 7, 0, CROSS)
+		);
+		expect(pipes.changes(puzzle, s, next)).toEqual(['3', '9', 'd:2']);
+		expect(pipes.changes(puzzle, next, withMarks(next, undefined))).toEqual(['d:2']);
 	});
 
 	it('say so when no rule decides a tile', () => {
@@ -195,6 +244,8 @@ describe('pipes hints', () => {
 		collect(ambiguous(), emptyPipesState(ambiguous()));
 		expect([...kinds].sort()).toEqual(['mistake', 'step', 'stuck']);
 		for (const q of [0, 1, 2, 3]) keys.add(`games.pipes.hints.turn${q}`);
+		keys.add('games.pipes.hints.mistakeMarks');
+		keys.add('games.pipes.hints.mistakeBoth');
 		for (const key of keys) {
 			expect(lookup(en, key), key).toBeTypeOf('string');
 			expect(lookup(de, key), key).toBeTypeOf('string');

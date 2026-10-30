@@ -1,27 +1,43 @@
 import { describe, expect, it } from 'vitest';
+import { packDigits } from '../../core/grid';
 import { Rng } from '../../core/rng';
 import { isPlayable } from '../../core/variants';
-import { quartersBetween, spinFrom, tilePath, waterRings } from './draw';
+import { nearestSide, quartersBetween, spinFrom, tilePath, waterRings } from './draw';
 import { generatePipes, randomTree } from './generator';
 import { PIPES_VARIANTS, pipesLogic } from './logic';
 import {
 	analyze,
+	changedMarks,
 	connections,
+	CROSS,
 	dealt,
 	DOWN,
 	emptyPipesState,
 	isSolvedTiles,
+	JOIN,
 	kindOf,
 	LEFT,
 	loopSides,
+	markable,
+	markAt,
+	markedSides,
+	markKey,
+	markList,
 	neighbourTable,
+	NO_MARK,
 	openings,
+	parseMarkKey,
 	reach,
 	RIGHT,
 	sourceOf,
 	turn,
 	turnsOf,
+	turnToMarks,
+	unfitTiles,
 	UP,
+	validMarks,
+	withMark,
+	withMarks,
 	type PipesPuzzle
 } from './rules';
 import { count, masksOf, PipesLevel, PipesSolver, solvePipes, type SolveResult } from './solver';
@@ -231,6 +247,131 @@ describe('rules', () => {
 		tiles[1] = turn(tiles[1], 2); // the top T now opens up, away from the source
 		const water = reach(p, connections(p, tiles), sourceOf(p));
 		expect(water).toEqual([false, false, false, false, true, false, true, true, true]);
+	});
+});
+
+describe('marks', () => {
+	const p = board(3, PLAIN);
+	const w = board(3, WRAPPED, true);
+	const none = new Array<number>(9).fill(0);
+	/** `marks` on `q`, each `[tile, side, mark]` set in turn. */
+	const marked = (q: PipesPuzzle, ...list: [number, number, number][]) =>
+		list.reduce<number[]>((m, [c, k, mark]) => withMark(q, m, c, k, mark), none);
+
+	it('lie on the side between two tiles, the same for both', () => {
+		const right = withMark(p, undefined, 0, 1, JOIN);
+		expect(markAt(p, right, 0, 1)).toBe(JOIN);
+		expect(markAt(p, right, 1, 3)).toBe(JOIN);
+		expect(markAt(p, undefined, 1, 3)).toBe(NO_MARK);
+		expect([markKey(p, 0, 1), markKey(p, 1, 3)]).toEqual(['r:0', 'r:0']);
+		// Above the source is below the top T.
+		const both = withMark(p, right, 4, 0, CROSS);
+		expect(markAt(p, both, 1, 2)).toBe(CROSS);
+		expect(markKey(p, 4, 0)).toBe('d:1');
+		expect(markList(both)).toEqual([
+			[0, 1, JOIN],
+			[1, 2, CROSS]
+		]);
+		expect(withMark(p, both, 1, 2, NO_MARK)).toEqual(right);
+		const { joins, crosses } = markedSides(p, both);
+		expect(joins).toEqual([RIGHT, LEFT, 0, 0, 0, 0, 0, 0, 0]);
+		expect(crosses).toEqual([0, DOWN, 0, 0, UP, 0, 0, 0, 0]);
+	});
+
+	it('take no place on the edge of a board without wrap, and cross it with wrap', () => {
+		expect([markable(p, 2, 1), markable(p, 0, 0), markable(p, 6, 2), markable(p, 3, 3)]).toEqual([
+			false,
+			false,
+			false,
+			false
+		]);
+		expect(withMark(p, undefined, 2, 1, JOIN)).toEqual(none);
+		expect(markAt(p, [15, 15, 15, 15, 15, 15, 15, 15, 15], 0, 3)).toBe(NO_MARK);
+		// With wrap, the left side of the top left tile is the right side of the top right one.
+		const across = withMark(w, undefined, 0, 3, CROSS);
+		expect(markKey(w, 0, 3)).toBe('r:2');
+		expect(markAt(w, across, 2, 1)).toBe(CROSS);
+		expect(markKey(w, 1, 0)).toBe('d:7');
+		expect(markedSides(w, across).crosses).toEqual([LEFT, 0, RIGHT, 0, 0, 0, 0, 0, 0]);
+	});
+
+	it('name the sides whose marks changed by their keys', () => {
+		const a = marked(p, [0, 1, JOIN]);
+		const b = marked(p, [0, 1, CROSS], [1, 2, JOIN]);
+		expect(changedMarks(a, b)).toEqual(['r:0', 'd:1']);
+		expect(changedMarks(undefined, a)).toEqual(['r:0']);
+		expect(changedMarks(a, undefined)).toEqual(['r:0']);
+		expect(changedMarks(undefined, undefined)).toEqual([]);
+		expect(parseMarkKey('d:12')).toEqual({ cell: 12, side: 2 });
+		expect(parseMarkKey('r:0')).toEqual({ cell: 0, side: 1 });
+		expect(parseMarkKey('12')).toBeNull();
+	});
+
+	it('are left out of a position while there are none', () => {
+		const s = emptyPipesState(p);
+		expect(withMarks(s, marked(p, [0, 1, JOIN])).marks).toEqual(withMark(p, none, 0, 1, JOIN));
+		expect(withMarks(s, none)).toEqual(s);
+		expect('marks' in withMarks(s, none)).toBe(false);
+		expect(withMarks({ ...s, marks: marked(p, [0, 1, JOIN]) }, undefined)).toEqual(s);
+	});
+
+	it('take two bits for each side, and none off the board', () => {
+		expect(validMarks(p, none)).toBe(true);
+		expect(validMarks(p, marked(p, [0, 1, CROSS], [4, 2, JOIN]))).toBe(true);
+		const at = (c: number, value: number) => none.map((_, i) => (i === c ? value : 0));
+		const bad: unknown[] = [
+			undefined,
+			'0',
+			none.slice(1),
+			at(0, 3),
+			at(0, 12),
+			at(0, 16),
+			at(0, -1),
+			at(0, 0.5),
+			// The right side of the last column, the lower side of the last row.
+			at(2, JOIN),
+			at(6, JOIN << 2)
+		];
+		for (const m of bad) expect(validMarks(p, m), JSON.stringify(m)).toBe(false);
+		// With wrap, those sides lead across the edge.
+		expect(validMarks(w, at(2, JOIN))).toBe(true);
+		expect(validMarks(w, at(6, JOIN << 2))).toBe(true);
+	});
+
+	it('find the tiles that no way of turning keeps to their marks', () => {
+		const unfit = (...list: [number, number, number][]) =>
+			unfitTiles(p, { ...emptyPipesState(p), marks: marked(p, ...list) }).flatMap((u, c) =>
+				u ? [c] : []
+			);
+		expect(unfitTiles(p, emptyPipesState(p)).some(Boolean)).toBe(false);
+		// A straight with "=" on two sides that meet, an end with two "=", a T with two "x".
+		expect(unfit([4, 0, JOIN], [4, 1, JOIN])).toEqual([4]);
+		expect(unfit([3, 0, JOIN], [3, 1, JOIN])).toEqual([3]);
+		expect(unfit([7, 1, CROSS], [7, 3, CROSS])).toEqual([7]);
+		// A corner with "=" below and "x" to its right lies one way, and its neighbours fit too.
+		expect(unfit([0, 2, JOIN], [0, 1, CROSS])).toEqual([]);
+	});
+
+	it('turn a tile on to the next way that keeps to its marks', () => {
+		// The corner at the top left, dealt right and down, with "=" to its right: it may also
+		// lie up and right, three quarters on, or one back.
+		const s = { ...emptyPipesState(p), marks: marked(p, [0, 1, JOIN]) };
+		expect(turnToMarks(p, s, 0, 1)).toBe(3);
+		expect(turnToMarks(p, s, 0, -1)).toBe(-1);
+		// With "=" below as well, only the way it lies keeps to them.
+		const only = { ...s, marks: marked(p, [0, 1, JOIN], [0, 2, JOIN]) };
+		expect(turnToMarks(p, only, 0, 1)).toBe(0);
+		// Without marks of its own, or with marks that no way keeps to, it turns as usual.
+		expect(turnToMarks(p, emptyPipesState(p), 0, 1)).toBeNull();
+		expect(turnToMarks(p, only, 8, 1)).toBeNull();
+		const unfit = { ...s, marks: marked(p, [4, 0, JOIN], [4, 1, JOIN]) };
+		expect(turnToMarks(p, unfit, 4, 1)).toBeNull();
+		// A straight lies two ways: with "x" to its left, upright only.
+		const upright = { ...emptyPipesState(p), marks: marked(p, [4, 3, CROSS]) };
+		expect(turnToMarks(p, upright, 4, 1)).toBe(0);
+		const across = { ...upright, tiles: PLAIN.map((t, c) => (c === 4 ? LEFT | RIGHT : t)) };
+		expect(turnToMarks(p, across, 4, 1)).toBe(1);
+		expect(turnToMarks(p, across, 4, -1)).toBe(-1);
 	});
 });
 
@@ -468,8 +609,34 @@ describe('pipes logic', () => {
 		expect(pipesLogic.decodeState(puzzle, pipesLogic.encodeState(s))).toEqual(s);
 	});
 
+	it('round-trips marks, and reads positions from before marks', () => {
+		const s = emptyPipesState(puzzle);
+		// Across the right and the lower edge: the board has wrap.
+		const marks = withMark(puzzle, withMark(puzzle, undefined, 6, 1, JOIN), 48, 2, CROSS);
+		const marked = withMarks(s, marks);
+		const text = pipesLogic.encodeState(marked);
+		expect(text.split('.')).toHaveLength(3);
+		expect(pipesLogic.decodeState(puzzle, text)).toEqual(marked);
+		// Without marks, a position is written as before, and read so.
+		expect(pipesLogic.encodeState(s).split('.')).toHaveLength(2);
+		expect(pipesLogic.encodeState({ ...s, marks: s.tiles.map(() => 0) })).toBe(
+			pipesLogic.encodeState(s)
+		);
+		expect(pipesLogic.decodeState(puzzle, `${pipesLogic.encodeState(s)}.AA`)).toEqual(s);
+		expect(pipesLogic.isValidState(puzzle, { tiles: s.tiles, locks: s.locks })).toBe(true);
+		expect(pipesLogic.isValidState(puzzle, marked)).toBe(true);
+		expect(pipesLogic.isValidState(puzzle, { ...s, marks: [] })).toBe(false);
+		const broken = marks.map((m, c) => (c === 0 ? 3 : m));
+		expect(
+			pipesLogic.decodeState(
+				puzzle,
+				`${text.slice(0, text.lastIndexOf('.'))}.${packDigits(broken)}`
+			)
+		).toBeNull();
+	});
+
 	it('rejects corrupt saved states', () => {
-		expect(pipesLogic.decodeState(puzzle, 'one.two.three')).toBeNull();
+		expect(pipesLogic.decodeState(puzzle, 'one.two.three.four')).toBeNull();
 		expect(pipesLogic.decodeState(puzzle, '!.!')).toBeNull();
 		const s = emptyPipesState(puzzle);
 		s.locks[0] = 2;
@@ -490,6 +657,15 @@ describe('drawing', () => {
 		expect(tilePath(UP | DOWN, 10)).toBe('M0 -10L0 10');
 		expect(tilePath(RIGHT | DOWN, 10)).toBe('M10 0L0 0L0 10');
 		expect(tilePath(UP | RIGHT | DOWN, 10)).toBe('M0 -10L0 10M0 0L10 0');
+	});
+
+	it('finds the side of a tile nearest to a point, none in its middle', () => {
+		expect(nearestSide(0.5, 0.1)).toBe(0);
+		expect(nearestSide(0.9, 0.4)).toBe(1);
+		expect(nearestSide(0.3, 0.95)).toBe(2);
+		expect(nearestSide(-0.05, 0.5)).toBe(3);
+		expect(nearestSide(0.5, 0.5)).toBeNull();
+		expect(nearestSide(0.6, 0.4)).toBeNull();
 	});
 
 	it('counts the turns of each tile from how it was dealt, the short way round', () => {
@@ -539,5 +715,11 @@ describe('tutorial', () => {
 		const turned = s.tiles.flatMap((t, c) => (t !== dealt(p)[c] ? [c] : []));
 		for (const c of turned) expect(s.tiles[c], `tile ${c}`).toBe(solution[c]);
 		expect(isSolvedTiles(p, s.tiles)).toBe(false);
+	});
+
+	it('keeps the marks when it shows a task', async () => {
+		const { PIPES_TUTORIAL: p, PIPES_TUTORIAL_STEPS: steps } = await import('./tutorial');
+		const s = withMarks(emptyPipesState(p), withMark(p, undefined, 12, 0, CROSS));
+		for (const step of steps) if (step.show) expect(step.show(p, s).marks).toEqual(s.marks);
 	});
 });

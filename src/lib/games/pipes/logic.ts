@@ -9,6 +9,8 @@ import {
 	isSolvedTiles,
 	openings,
 	turnsOf,
+	validMarks,
+	withMarks,
 	type PipesPuzzle,
 	type PipesState
 } from './rules';
@@ -103,13 +105,16 @@ export const pipesLogic: GameLogic<PipesPuzzle, PipesState, PipesSettingKey> = {
 		const tiles = Array.from(answer, (ch) => parseInt(ch, 16));
 		return turnsOfDealt(p, tiles) && isSolvedTiles(p, tiles);
 	},
-	encodeState: (s) => `${packDigits(s.tiles)}.${packDigits(s.locks)}`,
+	// The marks come third, only where there are any: a position without them reads as before.
+	encodeState: (s) =>
+		[s.tiles, s.locks, ...(s.marks?.some(Boolean) ? [s.marks] : [])].map(packDigits).join('.'),
 	decodeState(p, text) {
 		try {
 			const parts = text.split('.');
-			if (parts.length !== 2) return null;
+			if (parts.length !== 2 && parts.length !== 3) return null;
 			const n = p.width * p.height;
-			const s: PipesState = { tiles: unpackDigits(parts[0], n), locks: unpackDigits(parts[1], n) };
+			const [tiles, locks, marks] = parts.map((part) => unpackDigits(part, n));
+			const s = withMarks({ tiles, locks }, marks);
 			return this.isValidState(p, s) ? s : null;
 		} catch {
 			return null;
@@ -125,7 +130,8 @@ export const pipesLogic: GameLogic<PipesPuzzle, PipesState, PipesSettingKey> = {
 			t.locks.length === n &&
 			t.locks.every((x) => x === 0 || x === 1) &&
 			t.tiles.every((x) => Number.isInteger(x)) &&
-			turnsOfDealt(p, t.tiles)
+			turnsOfDealt(p, t.tiles) &&
+			(t.marks === undefined || validMarks(p, t.marks))
 		);
 	}
 };

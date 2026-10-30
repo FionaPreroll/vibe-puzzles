@@ -42,7 +42,7 @@ function turnStep(
 	return {
 		spotlight: spotlight.map(String),
 		done: (_, s) => s.tiles[cell] === mask,
-		show: (_, s) => ({ tiles: replaced(s.tiles, cell, mask), locks: s.locks })
+		show: (_, s) => ({ ...s, tiles: replaced(s.tiles, cell, mask) })
 	};
 }
 
@@ -57,6 +57,7 @@ export const PIPES_TUTORIAL_STEPS: TutorialStep<PipesPuzzle, PipesState>[] = [
 		spotlight: [String(CORNER)],
 		done: (_, s) => s.locks[CORNER] === 1 && s.tiles[CORNER] === 6,
 		show: (_, s) => ({
+			...s,
 			tiles: replaced(s.tiles, CORNER, 6),
 			locks: replaced(s.locks, CORNER, 1)
 		})
