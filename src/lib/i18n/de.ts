@@ -327,7 +327,9 @@ const de: Dictionary = {
 		showRemaining: 'Anzeigen, wie oft jede Ziffer noch fehlt',
 		digitFirst: 'Erst die Ziffer wählen, dann die Felder (Linksklick: Ziffer, Rechtsklick: Notiz)',
 		showWater: 'Wasser zeigen',
-		animateRotation: 'Kacheln sanft drehen'
+		animateRotation: 'Kacheln sanft drehen',
+		markErrors: 'Kacheln zeigen, die nicht zu ihren Notizen passen',
+		turnToMarks: 'Kacheln nur in Lagen drehen, die zu ihren Notizen passen'
 	},
 	/** Was jede Einstellung bewirkt, unter ihr angezeigt. Spiele und Modi können es eigens formulieren. */
 	settingHelp: {
@@ -393,7 +395,11 @@ const de: Dictionary = {
 		showWater:
 			'Füllt jedes Rohr, das mit der Quelle verbunden ist, mit blauem Wasser. So siehst du auf einen Blick, welche Kacheln schon zum Netz gehören.',
 		animateRotation:
-			'Kacheln drehen sich sanft statt mit einem Sprung. Schnelle Klicks zählen trotzdem sofort.'
+			'Kacheln drehen sich sanft statt mit einem Sprung. Schnelle Klicks zählen trotzdem sofort.',
+		markErrors:
+			'Eine Kachel wird rot hinterlegt, wenn keine Lage zu den Notizen an ihren Seiten passt, etwa ein = an zwei benachbarten Seiten einer Geraden. Verglichen wird nur mit deinen Notizen, nicht mit der Lösung.',
+		turnToMarks:
+			'Ein Klick dreht eine Kachel gleich in die nächste Lage, die zu ihren Notizen passt, und überspringt die anderen: offen zu jedem =, geschlossen zu jedem x. Kacheln ohne Notizen und Kacheln, zu denen keine Lage passt, drehen sich wie gewohnt.'
 	},
 	source: {
 		title: 'Woher neue Rätsel kommen',
@@ -1024,18 +1030,20 @@ const de: Dictionary = {
 				'Auf einem Spielfeld ohne Rand berühren sich gegenüberliegende Kanten: Ein Rohr, das auf einer Seite hinausführt, kommt auf der anderen wieder herein.'
 			],
 			notes: [
-				'Wasser füllt jedes Rohr, das mit der Quelle in der Mitte verbunden ist. Sperre eine Kachel, sobald du dir sicher bist: Dann bleibt sie, wie sie ist, und Tipps bauen auf ihr auf.'
+				'Wasser füllt jedes Rohr, das mit der Quelle in der Mitte verbunden ist. Sperre eine Kachel, sobald du dir sicher bist: Dann bleibt sie, wie sie ist, und Tipps bauen auf ihr auf.',
+				'Notizen helfen beim Durchdenken: Setz mit dem Werkzeug Notiz ein = auf die Seite zwischen zwei Kacheln, wo ein Rohr sie verbinden muss, oder ein x, wo keins hindurchdarf. Notizen bleiben stehen, während sich die Kacheln drehen.'
 			],
 			toolHint: {
 				turn: 'Ein Klick dreht eine Kachel um eine Vierteldrehung im Uhrzeigersinn, Shift+Klick dreht sie zurück. Rechtsklick sperrt sie.',
-				lock: 'Ein Klick sperrt eine Kachel, damit sie sich nicht versehentlich dreht, ein zweiter gibt sie wieder frei. Ziehen sperrt mehrere.'
+				lock: 'Ein Klick sperrt eine Kachel, damit sie sich nicht versehentlich dreht, ein zweiter gibt sie wieder frei. Ziehen sperrt mehrere.',
+				note: 'Klick nah an eine Seite einer Kachel, um sie zu notieren: Linksklick setzt ein = (dort verbindet ein Rohr die beiden Kacheln), Rechtsklick ein x (kein Rohr). Ein zweiter Klick nimmt die Notiz weg. Zieh von Kachel zu Kachel, um ein = auf die Seiten dazwischen zu setzen.'
 			},
 			controlsMouse:
-				'Ein Klick dreht eine Kachel im Uhrzeigersinn, Shift+Klick dreht sie zurück. Rechtsklick sperrt eine Kachel oder gibt sie frei; mit gedrückter rechter Taste ziehen sperrt mehrere.',
+				'Ein Klick dreht eine Kachel im Uhrzeigersinn, Shift+Klick dreht sie zurück. Rechtsklick sperrt eine Kachel oder gibt sie frei; mit gedrückter rechter Taste ziehen sperrt mehrere. Mit dem Werkzeug Notiz setzt ein Klick nah an einer Seite einer Kachel ein =, ein Rechtsklick ein x; Ziehen setzt = von Kachel zu Kachel.',
 			controlsTouch:
-				'Tippe eine Kachel an, um sie im Uhrzeigersinn zu drehen. Halte eine Kachel, um sie zu sperren oder freizugeben, oder wähle das Werkzeug Sperren und tippe oder zieh.',
+				'Tippe eine Kachel an, um sie im Uhrzeigersinn zu drehen. Halte eine Kachel, um sie zu sperren oder freizugeben, oder wähle das Werkzeug Sperren und tippe oder zieh. Mit dem Werkzeug Notiz: Tippe nah an eine Seite einer Kachel für ein =, halte sie für ein x, oder zieh von Kachel zu Kachel für =.',
 			controlsKeys:
-				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Kacheln. Die Leertaste dreht die Kachel darunter im Uhrzeigersinn (mit dem Werkzeug Sperren: sperrt sie), Shift+Leertaste dreht sie zurück, L sperrt sie oder gibt sie frei. Halte {mod} und drücke die Pfeile, um jede Kachel auf dem Weg zu sperren; beim Loslassen wird das übernommen. Esc blendet den Cursor aus.',
+				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Kacheln. Die Leertaste dreht die Kachel darunter im Uhrzeigersinn (mit dem Werkzeug Sperren: sperrt sie), Shift+Leertaste dreht sie zurück, L sperrt sie oder gibt sie frei. Halte {mod} und drücke die Pfeile, um jede Kachel auf dem Weg zu sperren; beim Loslassen wird das übernommen. Mit dem Werkzeug Notiz setzt {mod} mit den Pfeilen stattdessen ein = auf die Seiten auf dem Weg, Shift mit den Pfeilen ein x. Esc blendet den Cursor aus.',
 			speech: {
 				tile: '{kind}, offen nach {list}',
 				end: 'Endstück',
@@ -1044,7 +1052,10 @@ const de: Dictionary = {
 				tee: 'T-Stück',
 				source: 'Quelle',
 				water: 'Wasser',
-				locked: 'gesperrt'
+				locked: 'gesperrt',
+				joins: 'Notiz offen nach {list}',
+				crosses: 'Notiz geschlossen nach {list}',
+				unfit: 'passt nicht zu den Notizen'
 			},
 			settingHelp: {
 				highlightErrors:
@@ -1054,6 +1065,10 @@ const de: Dictionary = {
 			hints: {
 				mistake:
 					'Die markierten gesperrten Kacheln liegen falsch. Sie bleiben markiert, bis du sie freigibst oder drehst.',
+				mistakeMarks:
+					'Die markierten Notizen sind falsch: In der Lösung führt dort ein Rohr über ein x, oder keins über ein =. Sie bleiben markiert, bis du sie änderst.',
+				mistakeBoth:
+					'Die markierten gesperrten Kacheln liegen falsch, und die markierten Notizen stimmen auch nicht. Sie bleiben markiert, bis du sie änderst.',
 				edgeLook:
 					'Schau dir die hinterlegte Kachel am Rand an: Kein Rohr darf aus dem Spielfeld führen.',
 				edge: 'Nur in einer Lage bleiben alle ihre Rohre im Spielfeld.',

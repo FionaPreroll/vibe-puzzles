@@ -27,6 +27,11 @@ export interface PipesState {
 	tiles: number[];
 	/** 1 for a tile the player locked: it does not turn until it is unlocked. */
 	locks: number[];
+	/**
+	 * The player's marks on the sides between tiles (see `markAt`), left out while there are none:
+	 * saves from before marks look the same.
+	 */
+	marks?: number[];
 }
 
 /** `mask` turned clockwise by `quarters` quarter turns (negative: anticlockwise). */
@@ -272,6 +277,153 @@ export function analyze(
 		}
 	}
 	return { water, reached, errors, closed };
+}
+
+// ---- The player's marks on the sides between tiles ---------------------------------------------
+
+/** A mark on the side between two tiles: none, "=" (a pipe joins them) or "x" (none does). */
+export const NO_MARK = 0;
+export const JOIN = 1;
+export const CROSS = 2;
+
+/**
+ * The marks lie on the sides between tiles, not on the tiles, so they stay put when a tile turns.
+ * `marks[c]` holds the mark on the right side of tile `c` in its low two bits and the one on its
+ * lower side in the next two; the left and upper sides are those of the neighbours. A board
+ * without wrap has no marks on its edge.
+ */
+const SHIFT = [-1, 0, 2, -1];
+
+/** Where the mark on side `k` of tile `c` is kept: a tile and the shift of its bits, or null. */
+function markPlace(p: PipesPuzzle, c: number, k: number): [number, number] | null {
+	const n = neighboursOf(p)[c * 4 + k];
+	if (n < 0) return null;
+	return k === 1 || k === 2 ? [c, SHIFT[k]] : [n, SHIFT[(k + 2) % 4]];
+}
+
+/** The mark on side `k` (0 up to 3 left) of tile `c`. */
+export function markAt(p: PipesPuzzle, marks: readonly number[] | undefined, c: number, k: number) {
+	const at = markPlace(p, c, k);
+	return at && marks ? (marks[at[0]] >> at[1]) & 3 : NO_MARK;
+}
+
+/** Whether side `k` of tile `c` takes a mark: it lies between two tiles. */
+export const markable = (p: PipesPuzzle, c: number, k: number) => markPlace(p, c, k) !== null;
+
+/** `marks` with the mark on side `k` of tile `c` set to `mark`. */
+export function withMark(
+	p: PipesPuzzle,
+	marks: readonly number[] | undefined,
+	c: number,
+	k: number,
+	mark: number
+): number[] {
+	const out = marks ? marks.slice() : new Array<number>(p.width * p.height).fill(0);
+	const at = markPlace(p, c, k);
+	if (at) out[at[0]] = (out[at[0]] & ~(3 << at[1])) | (mark << at[1]);
+	return out;
+}
+
+/** `s` with the marks `marks`, which it leaves out when there are none. */
+export function withMarks(s: PipesState, marks: readonly number[] | undefined): PipesState {
+	const { tiles, locks } = s;
+	return marks?.some(Boolean) ? { tiles, locks, marks: marks.slice() } : { tiles, locks };
+}
+
+/**
+ * The key of the side `k` of tile `c` that the boards name changes and hints by: `r:<tile>` for
+ * the right side of a tile, `d:<tile>` for its lower side. Tiles are plain numbers.
+ */
+export function markKey(p: PipesPuzzle, c: number, k: number): string {
+	const at = markPlace(p, c, k)!;
+	return `${at[1] ? 'd' : 'r'}:${at[0]}`;
+}
+
+/** The tile and side of a mark's key; null for any other key. */
+export function parseMarkKey(key: string): { cell: number; side: number } | null {
+	const m = /^([rd]):(\d+)$/.exec(key);
+	return m ? { cell: Number(m[2]), side: m[1] === 'r' ? 1 : 2 } : null;
+}
+
+/** The keys of the sides whose marks differ between `from` and `to`. */
+export function changedMarks(from: readonly number[] = [], to: readonly number[] = []): string[] {
+	const out: string[] = [];
+	for (let c = 0; c < Math.max(from.length, to.length); c++) {
+		const diff = (from[c] ?? 0) ^ (to[c] ?? 0);
+		if (diff & 3) out.push(`r:${c}`);
+		if (diff & 12) out.push(`d:${c}`);
+	}
+	return out;
+}
+
+/** Every mark as its side, `[tile, side, mark]`, each side once (a tile's right or lower side). */
+export function markList(marks: readonly number[] | undefined): [number, number, number][] {
+	const out: [number, number, number][] = [];
+	marks?.forEach((m, c) => {
+		if (m & 3) out.push([c, 1, m & 3]);
+		if (m & 12) out.push([c, 2, (m >> 2) & 3]);
+	});
+	return out;
+}
+
+/** Whether `marks` can be a position's marks on `p`: two bits per side, none off the board. */
+export function validMarks(p: PipesPuzzle, marks: unknown): marks is number[] {
+	const n = p.width * p.height;
+	if (!Array.isArray(marks) || marks.length !== n) return false;
+	return marks.every((m, c) => {
+		if (!Number.isInteger(m) || m < 0 || m > 15 || (m & 3) === 3 || (m & 12) === 12) return false;
+		return ((m & 3) === 0 || markable(p, c, 1)) && ((m & 12) === 0 || markable(p, c, 2));
+	});
+}
+
+/** Per tile, the sides marked "=" and those marked "x", as bits like a tile's openings. */
+export function markedSides(p: PipesPuzzle, marks: readonly number[] | undefined) {
+	const n = p.width * p.height;
+	const joins = new Array<number>(n).fill(0);
+	const crosses = new Array<number>(n).fill(0);
+	if (marks) {
+		const nb = neighboursOf(p);
+		for (const [c, k, mark] of markList(marks)) {
+			const out = mark === JOIN ? joins : crosses;
+			out[c] |= 1 << k;
+			out[nb[c * 4 + k]] |= 1 << ((k + 2) % 4);
+		}
+	}
+	return { joins, crosses };
+}
+
+/** Whether a tile lying as `mask` keeps to its marks: open where "=", closed where "x". */
+export const fitsMarks = (mask: number, joins: number, crosses: number) =>
+	(mask & joins) === joins && (mask & crosses) === 0;
+
+/** Per tile, whether no way of turning it keeps to its marks. */
+export function unfitTiles(p: PipesPuzzle, s: PipesState): boolean[] {
+	const { joins, crosses } = markedSides(p, s.marks);
+	return s.tiles.map(
+		(mask, c) =>
+			(joins[c] | crosses[c]) !== 0 &&
+			!turnsOf(mask).some((m) => fitsMarks(m, joins[c], crosses[c]))
+	);
+}
+
+/**
+ * How far to turn tile `c` to the next way that keeps to its marks, in quarters `dir` (1:
+ * clockwise, -1: back): 0 when only the way it lies does, null when it has no marks or no way
+ * keeps to them (then it turns as usual).
+ */
+export function turnToMarks(p: PipesPuzzle, s: PipesState, c: number, dir: number): number | null {
+	if (!s.marks) return null;
+	const { joins, crosses } = markedSides(p, s.marks);
+	if (!(joins[c] | crosses[c])) return null;
+	const mask = s.tiles[c];
+	let fits = false;
+	for (let q = 1; q <= 4; q++) {
+		const next = turn(mask, dir * q);
+		if (!fitsMarks(next, joins[c], crosses[c])) continue;
+		if (next !== mask) return dir * q;
+		fits = true;
+	}
+	return fits ? 0 : null;
 }
 
 /** Whether the tiles join into one network without loose ends (and so without loops). */

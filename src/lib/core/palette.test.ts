@@ -39,6 +39,9 @@ const MARKS: [ColourName, ColourName[]][] = [
 	['label', ['locked']],
 	['water', ['surface']],
 	['source', ['surface', 'locked']],
+	// Pipes: the marks "=" and "x" on the sides between tiles, locked ones too.
+	['joinMark', ['surface', 'locked']],
+	['cross', ['locked']],
 	// Wrong marks a hint points at.
 	['error', ['surface', 'paper']],
 	['blueError', ['surface', 'paper']]

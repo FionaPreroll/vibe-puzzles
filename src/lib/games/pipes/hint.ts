@@ -1,4 +1,4 @@
-import { turn, type PipesPuzzle, type PipesState } from './rules';
+import { JOIN, markKey, markList, turn, type PipesPuzzle, type PipesState } from './rules';
 import { count, PipesLevel, PipesSolver } from './solver';
 
 /**
@@ -9,7 +9,8 @@ import { count, PipesLevel, PipesSolver } from './solver';
 export type PipesTechnique = 'edge' | 'fit' | 'loop' | 'closed' | 'chain';
 
 export type PipesHint =
-	| { kind: 'mistake'; cells: number[] }
+	/** Locked tiles that lie wrong, and marks that the solution breaks (by `markKey`). */
+	| { kind: 'mistake'; cells: number[]; marks: string[] }
 	| {
 			kind: 'step';
 			/** The tile that can only lie one way, and that way. */
@@ -45,15 +46,19 @@ const maskOf = (set: number) => 31 - Math.clz32(set);
 
 /**
  * The next step from the player's position. Locked tiles are what the player knows: a locked
- * tile that lies wrong comes first. Otherwise the hint finds an unlocked tile that can only lie
+ * tile that lies wrong comes first, and so does a mark on a side that the solution breaks (a pipe
+ * across an "x", none across an "="). Otherwise the hint finds an unlocked tile that can only lie
  * one way given the locked ones, by the simplest reasoning that decides one, and among those
  * prefers a tile that lies wrong now. Null when every tile is locked.
  */
 export function pipesHint(p: PipesPuzzle, s: PipesState): PipesHint | null {
 	const { solver, solution } = solverOf(p);
 	if (solution) {
-		const wrong = s.locks.flatMap((locked, c) => (locked && s.tiles[c] !== solution[c] ? [c] : []));
-		if (wrong.length) return { kind: 'mistake', cells: wrong };
+		const cells = s.locks.flatMap((locked, c) => (locked && s.tiles[c] !== solution[c] ? [c] : []));
+		const marks = markList(s.marks).flatMap(([c, k, mark]) =>
+			!!(solution[c] & (1 << k)) !== (mark === JOIN) ? [markKey(p, c, k)] : []
+		);
+		if (cells.length || marks.length) return { kind: 'mistake', cells, marks };
 	}
 	const unlocked = s.locks.flatMap((locked, c) => (locked ? [] : [c]));
 	if (!unlocked.length) return null;
