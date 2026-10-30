@@ -76,6 +76,8 @@ const LIGHT = {
 	water: '#4f8fe8',
 	locked: '#e4e2df',
 	source: '#c62828',
+	/** Pipes: the "=" a player marks on a side where a pipe joins two tiles ("x" is a `cross`). */
+	joinMark: '#1d4ed8',
 	/** Pinwheel's centres in the Halloween look: pumpkins, lit by a candle once complete. */
 	pumpkin: '#f97316',
 	pumpkinShade: '#ea580c',
@@ -134,6 +136,7 @@ const DARK: Palette = {
 	water: '#2563eb',
 	locked: '#3a3532',
 	source: '#ef4444',
+	joinMark: '#93c5fd',
 	pumpkin: '#ea580c',
 	pumpkinShade: '#c2410c',
 	stem: '#65a30d',

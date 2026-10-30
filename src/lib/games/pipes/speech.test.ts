@@ -1,6 +1,17 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { i18n } from '../../i18n/index.svelte';
-import { analyze, DOWN, LEFT, RIGHT, UP, type PipesPuzzle, type PipesState } from './rules';
+import {
+	analyze,
+	CROSS,
+	DOWN,
+	JOIN,
+	LEFT,
+	RIGHT,
+	UP,
+	withMark,
+	type PipesPuzzle,
+	type PipesState
+} from './rules';
 import { sayTile } from './speech';
 
 afterEach(() => {
@@ -40,6 +51,30 @@ describe('sayTile', () => {
 		};
 		expect(say(s, 6)).toBe('Row 3, column 1: end, open down (error)');
 		expect(say(s, 6, false)).toBe('Row 3, column 1: end, open down');
+	});
+
+	it('says the marks on its sides, and when no way of turning it keeps to them', () => {
+		// The straight through the source: "=" above and to its right, "x" to its left.
+		let marks = withMark(puzzle, undefined, 4, 0, JOIN);
+		marks = withMark(puzzle, withMark(puzzle, marks, 4, 1, JOIN), 4, 3, CROSS);
+		const s: PipesState = { tiles, locks: tiles.map(() => 0), marks };
+		const say = (cell: number, markErrors: boolean) =>
+			sayTile(puzzle, s, analyze(puzzle, s.tiles, s.locks), cell, {
+				errors: true,
+				water: false,
+				markErrors
+			});
+		expect(say(4, true)).toBe(
+			'Row 2, column 2: straight, open up, down (source, noted open up, right, noted closed left, does not fit its notes)'
+		);
+		expect(say(4, false)).toBe(
+			'Row 2, column 2: straight, open up, down (source, noted open up, right, noted closed left)'
+		);
+		expect(say(5, true)).toBe('Row 2, column 3: end, open up (noted open left)');
+		i18n.locale = 'de';
+		expect(say(3, true)).toBe(
+			'Zeile 2, Spalte 1: Endstück, offen nach oben (Notiz geschlossen nach rechts)'
+		);
 	});
 
 	it('speaks German', () => {

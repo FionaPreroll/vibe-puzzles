@@ -19,6 +19,19 @@ export function tilePath(mask: number, half: number): string {
 	return d;
 }
 
+/** Half the size of the middle of a cell, in cells, where a click is near none of its sides. */
+const MIDDLE = 0.15;
+
+/**
+ * The side of a cell nearest to a point, (`fx`, `fy`) from the cell's top left corner in cells:
+ * 0 up to 3 left, or null in the middle of the cell, where no side is near.
+ */
+export function nearestSide(fx: number, fy: number): number | null {
+	if (Math.abs(fx - 0.5) < MIDDLE && Math.abs(fy - 0.5) < MIDDLE) return null;
+	const away = [fy, 1 - fx, 1 - fy, fx];
+	return away.indexOf(Math.min(...away));
+}
+
 /** For each tile, the quarter turns clockwise from how it was dealt (`base`) to how it lies. */
 export function spinFrom(base: readonly number[], tiles: readonly number[]): number[] {
 	return tiles.map((mask, c) =>
