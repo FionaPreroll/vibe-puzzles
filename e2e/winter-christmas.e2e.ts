@@ -16,6 +16,16 @@ const FEBRUARY = new Date(2027, 1, 2, 12);
 const root = (page: Page) => page.locator('html');
 const themeSelect = (page: Page) => page.getByRole('combobox', { name: 'Theme' });
 
+/**
+ * Opens the home page, or reloads it, and waits until the app runs: a look picked before that
+ * goes unnoticed. The look itself shows earlier, set by app.html, and the daily puzzle links only
+ * once the app runs.
+ */
+async function openHome(page: Page, reload = false) {
+	await (reload ? page.reload() : page.goto('/'));
+	await expect(page.getByRole('link', { name: /Daily puzzle waiting/ }).first()).toBeVisible();
+}
+
 test('the calendar picks winter in November, Christmas in December and winter after it', async ({
 	page
 }) => {
@@ -39,12 +49,13 @@ test('the calendar picks winter in November, Christmas in December and winter af
 
 test('in December the player can pick winter or the classic look instead', async ({ page }) => {
 	await page.clock.setFixedTime(ADVENT);
-	await page.goto('/');
+	await openHome(page);
 	await themeSelect(page).selectOption('winter');
 	await expect(root(page)).toHaveAttribute('data-theme', 'winter');
 	await expect(page.getByText('Merry puzzling!')).toBeHidden();
-	await page.reload();
+	await openHome(page, true);
 	await expect(root(page)).toHaveAttribute('data-theme', 'winter');
+	await expect(themeSelect(page)).toHaveValue('winter');
 
 	await themeSelect(page).selectOption('classic');
 	await expect(root(page)).not.toHaveAttribute('data-theme');
