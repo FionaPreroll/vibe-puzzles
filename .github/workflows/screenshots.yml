@@ -1,0 +1,118 @@
+name: Update README screenshots
+
+# Takes the README's screenshots again (docs/screenshots, see e2e-screenshots/) and proposes those
+# that look different in a pull request against the branch it ran on. By hand only: the pull
+# request waits for review and never merges itself. Pull requests that change the screenshots'
+# code take them as a check and keep them as an artifact, without proposing anything.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'e2e-screenshots/**'
+      - 'playwright.screenshots.config.ts'
+      - '.github/workflows/screenshots.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: screenshots-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  take:
+    name: Take the screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Same image as the browser tests in ci.yml: the same browser and fonts every run, so that a
+    # screenshot only changes when the page does. Keep the tag in step with @playwright/test.
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      # Installs the pnpm version from the packageManager field in package.json.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Note the screenshots as committed
+        run: sha256sum docs/screenshots/*.png > "$RUNNER_TEMP/before.txt" || true
+      # Writes the screenshots that look different from the committed ones, or are missing.
+      - run: pnpm screenshots
+      - name: List the screenshots that changed
+        id: compare
+        run: |
+          sha256sum docs/screenshots/*.png > "$RUNNER_TEMP/after.txt"
+          changed=$(comm -13 <(sort "$RUNNER_TEMP/before.txt") <(sort "$RUNNER_TEMP/after.txt") | awk '{print $2}')
+          {
+            echo "### README screenshots"
+            if [ -n "$changed" ]; then
+              echo "These look different from the committed ones (new ones count too):"
+              for file in $changed; do echo "- \`$file\`"; done
+            else
+              echo "All look the same as the committed ones."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "changed=$([ -n "$changed" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: docs/screenshots/
+          retention-days: 14
+
+  propose:
+    name: Propose them in a pull request
+    needs: take
+    if: github.event_name == 'workflow_dispatch' && needs.take.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      # The workflow's own branch: every run replaces its commit.
+      BRANCH: feature/update_screenshots
+      BASE: ${{ github.ref_name }}
+      # Pull requests opened with the default token start no other workflows, so CI would not run
+      # on them. The token in BANK_PR_TOKEN (contents and pull requests: write) avoids that.
+      GH_TOKEN: ${{ secrets.BANK_PR_TOKEN || github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      # The commit the screenshots were taken of.
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.BANK_PR_TOKEN || github.token }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: screenshots
+          path: docs/screenshots
+      - name: Commit the screenshots and propose them
+        run: |
+          git checkout -B "$BRANCH"
+          git add docs/screenshots
+          if git diff --cached --quiet; then
+            echo "Nothing new."
+            exit 0
+          fi
+          files=$(git diff --cached --name-only | sed 's/^/- `/; s/$/`/')
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update the README screenshots"
+          git push --force origin "HEAD:$BRANCH"
+          note="Taken of \`$BASE\` at ${GITHUB_SHA::7} by the \`Update README screenshots\` workflow: $RUN_URL"
+          open=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh pr edit "$open" --base "$BASE"
+            gh pr comment "$open" --body "Replaced the screenshots with newer ones. $note"$'\n\n'"$files"
+          else
+            body="New screenshots for the README. $note"$'\n\n'"These look different from the ones in \`$BASE\`:"$'\n\n'"$files"$'\n\n'"Compare them under Files changed (GitHub shows each image before and after) and merge if they look right. This pull request never merges itself."
+            gh pr create --base "$BASE" --head "$BRANCH" --title "Update the README screenshots" \
+              --body "$body" --assignee "$GITHUB_ACTOR"
+          fi

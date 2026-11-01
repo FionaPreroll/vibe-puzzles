@@ -4,6 +4,8 @@
 
 A collection of logic puzzles that runs in the browser, in English and German. Every puzzle has a unique solution; puzzles are generated on the device or taken from a pre-generated collection.
 
+![The home page: five games, each with its tutorial and its daily puzzle](docs/screenshots/home.png)
+
 - **Tetroid**: shade one tetromino in every region so that all shaded cells connect, no 2×2 block is shaded and equal tetrominoes never touch.
 - **Pinwheel**: divide the grid into regions with one circle each, every region point-symmetric around its circle.
 - **Sudoku**: fill the 9×9 grid so that every row, column and 3×3 box holds the digits 1 to 9 once.
@@ -11,7 +13,69 @@ A collection of logic puzzles that runs in the browser, in English and German. E
 - **Loop**: draw one closed loop along the grid lines; a number in a cell tells how many of its four sides the loop uses. 5×5 to 25×30, Normal and Hard, plus daily, weekly and monthly specials. Numbers that have all their lines turn grey (a setting, on by default); with error highlighting a number turns red when its lines or crosses contradict it, and, once the lines form one closed loop, when it has too few.
 - **Pipes**: turn the tiles until all pipes join into one network, without loose ends and without loops. Water from the source in the middle fills every pipe joined to it. 5×5 to 25×25, each with and without wrap (opposite edges touch, so a pipe can leave the board on one side and come back on the other), plus daily, weekly and monthly specials. A click turns a tile clockwise, Shift+click back; a right click (or holding a tile on a touch screen, or the Lock tool) locks it so that it stays put. With error highlighting, pipes turn red where they surely break a rule: a pipe off the board, a loop, a group of tiles cut off from the rest, a pipe between two locked tiles that meets a closed side. The Note tool notes the side between two tiles: a click near it sets a blue "=" (a pipe joins the tiles there), a right click (or holding it on a touch screen) a red "x" (none does), and a drag sets "=" from tile to tile. Notes lie on the sides, not on the tiles, so they stay put while the tiles turn. Two settings, both on by default, tint a tile red when no way of turning it fits its notes, and let a click skip the ways that do not fit them.
 
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/tetroid.png" width="260" alt="A Tetroid puzzle half solved: shaded tetrominoes and crosses"><br><b>Tetroid</b></td>
+    <td align="center"><img src="docs/screenshots/pinwheel.png" width="260" alt="A Pinwheel puzzle half solved: lines between regions, some regions coloured"><br><b>Pinwheel</b></td>
+    <td align="center"><img src="docs/screenshots/sudoku.png" width="260" alt="A Sudoku half filled in, with notes"><br><b>Sudoku</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/calcudoku.png" width="260" alt="A 7×7 Calcudoku half filled in"><br><b>Calcudoku</b></td>
+    <td align="center"><img src="docs/screenshots/loop.png" width="260" alt="A 10×10 Loop half drawn, with crosses around the zeros"><br><b>Loop</b></td>
+    <td align="center"><img src="docs/screenshots/pipes.png" width="260" alt="A Pipes puzzle: the tiles around the source turned and locked, water in the joined pipes"><br><b>Pipes</b></td>
+  </tr>
+</table>
+
 Built with SvelteKit 3, Svelte 5, TypeScript and Tailwind CSS 4. The optional server runs on Cloudflare Workers with D1.
+
+## Screenshots
+
+The screenshots are taken by `pnpm screenshots` and kept up to date by the workflow "Update README screenshots" (see [Continuous integration](#continuous-integration)).
+
+### Looks
+
+The seasonal looks follow the calendar (Halloween in October, winter in November and January, Christmas in December) or the player's choice in the footer; night mode works with each of them.
+
+<table>
+  <tr><th></th><th>Day</th><th>Night</th></tr>
+  <tr>
+    <th>Classic</th>
+    <td><img src="docs/screenshots/look-classic-day.png" width="400" alt="The home page in the classic look by day"></td>
+    <td><img src="docs/screenshots/look-classic-night.png" width="400" alt="The home page in the classic look by night"></td>
+  </tr>
+  <tr>
+    <th>Halloween</th>
+    <td><img src="docs/screenshots/look-halloween-day.png" width="400" alt="The home page in the Halloween look by day"></td>
+    <td><img src="docs/screenshots/look-halloween-night.png" width="400" alt="The home page in the Halloween look by night"></td>
+  </tr>
+  <tr>
+    <th>Winter</th>
+    <td><img src="docs/screenshots/look-winter-day.png" width="400" alt="The home page in the winter look by day"></td>
+    <td><img src="docs/screenshots/look-winter-night.png" width="400" alt="The home page in the winter look by night"></td>
+  </tr>
+  <tr>
+    <th>Christmas</th>
+    <td><img src="docs/screenshots/look-christmas-day.png" width="400" alt="The home page in the Christmas look by day"></td>
+    <td><img src="docs/screenshots/look-christmas-night.png" width="400" alt="The home page in the Christmas look by night"></td>
+  </tr>
+</table>
+
+### Features
+
+<table>
+  <tr>
+    <td align="center" valign="top" width="33%"><img src="docs/screenshots/hint.png" width="260" alt="A Sudoku hint: the box to look at tinted, the cell framed, and the reason below the board"><br><b>Hints</b> in two stages: first where to look, then the step and why</td>
+    <td align="center" valign="top" width="33%"><img src="docs/screenshots/trial.png" width="260" alt="A Loop trial: the lines drawn since Try in teal, with Keep and Discard below"><br><b>Trials</b>: new marks show in teal until they are kept or discarded</td>
+    <td align="center" valign="top" width="33%"><img src="docs/screenshots/inside.png" width="260" alt="The Inside page: the film of how a Loop puzzle is made, with chapters and player controls"><br><b>Inside</b>: how a puzzle is made, as a film</td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" colspan="2"><img src="docs/screenshots/tutorial.png" width="540" alt="Step 2 of the Pinwheel tutorial beside its board"><br><b>Tutorials</b>: a guided first puzzle for every game</td>
+    <td align="center" valign="top"><img src="docs/screenshots/phone.png" width="125" alt="Pinwheel on a phone"> <img src="docs/screenshots/phone-de-night.png" width="125" alt="Calcudoku on a phone, in German, by night"><br><b>Phones</b>, in English and German</td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" colspan="3"><img src="docs/screenshots/widescreen.png" width="800" alt="Pipes 10×10 on a tablet in landscape: the board takes the screen's height, everything else sits in a column on the left"><br><b>Widescreen</b> on tablets and phones in landscape</td>
+  </tr>
+</table>
 
 ## Features
 
@@ -62,6 +126,7 @@ pnpm test:e2e       # browser tests in Chromium, and those tagged @webkit in Web
 pnpm test:server    # browser tests against the server: a ranked solve and the leaderboard, sync between devices, settings, streaks, offline start
 pnpm test:soak      # long play sessions (desktop, phone): nothing leaks (SOAK_ACTIONS=600, SOAK_SEED)
 pnpm test:perf      # generator, page load and move latency budgets (PERF_BUDGET_SCALE=1)
+pnpm screenshots    # the README's screenshots in docs/screenshots: writes those that look different
 pnpm bank:grow      # add puzzles to the collection (--per-variant N --max-minutes M)
 pnpm bank:regrade   # replace collection puzzles that miss their type's difficulty
 ```
@@ -93,7 +158,8 @@ migrations/              D1 schema
 e2e/                     browser tests
 e2e-server/              browser tests against the server
 e2e-load/, perf/         soak and performance tests
-docs/                    technical documentation (generators.md: how puzzles and their difficulty are made)
+e2e-screenshots/         the README's screenshots (positions.ts: the half-played games they show)
+docs/                    technical documentation (generators.md: how puzzles and their difficulty are made), screenshots/ for the README
 CHANGELOG.md             what changes for players, newest first
 ```
 
@@ -166,6 +232,7 @@ The unit tests check every stored puzzle again (valid, one solution, the difficu
 - **CI** runs on every push to `main` and `dev` and on every pull request, whatever its base: lint and type checks, unit tests with coverage (reported to Codecov), browser tests and the server tests. On `main` it then deploys, but only once all of these have passed. Coverage counts the TypeScript modules; Svelte components and the service worker are covered by the browser tests.
 - **Soak test** plays a long session every night (or by hand) and checks that nothing leaks: memory, DOM nodes (also detached ones), listeners, timers, animation frames, observers, object URLs, workers and storage. A failed night opens an issue, or comments on the one still open; the run's artifacts hold the measurements of every round.
 - **Grow puzzle collection**: see [Growing it](#growing-it).
+- **Update README screenshots**, by hand only (Actions, "Update README screenshots", "Run workflow" on the branch to update): takes the screenshots again (`pnpm screenshots`) in the browser tests' container and, if any looks different, proposes the new ones in a pull request against that branch, from `feature/update_screenshots` (a run replaces the screenshots of a pull request that is still open). It never merges itself. What would change from run to run is fixed (the date, the clock, the puzzles and positions, the moment the animations show, the font, the commit in the footer), so a run without visible changes proposes nothing. Its pull request is opened with `BANK_PR_TOKEN` (see [Repository settings it needs](#repository-settings-it-needs)), so that CI runs on it. A pull request that changes `e2e-screenshots/` takes the screenshots as a check and keeps them as an artifact.
 - **Deploy to GitHub Pages** and **Deploy to Cloudflare Workers**: run as the last jobs of CI, see [Deployment](#deployment).
 
 ## Deployment
