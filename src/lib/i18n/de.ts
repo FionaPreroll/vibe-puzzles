@@ -59,7 +59,16 @@ const de: Dictionary = {
 		classic: 'Klassisch',
 		halloween: 'Halloween',
 		tagline: 'Süßes oder Rätsel?',
-		taglineNight: 'Rätsel bei Mondschein'
+		taglineNight: 'Rätsel bei Mondschein',
+		snow: 'Weihnachten A: Winterwunderland',
+		market: 'Weihnachten B: Weihnachtsmarkt',
+		nordic: 'Weihnachten C: Nordische Weihnacht',
+		snowTagline: 'Leise rieselt das Rätsel',
+		snowTaglineNight: 'Rätsel unterm Polarlicht',
+		marketTagline: 'Frohe Rätseltage!',
+		marketTaglineNight: 'Rätsel im Lichterglanz',
+		nordicTagline: 'Gemütliche Adventszeit',
+		nordicTaglineNight: 'Rätsel bei Kerzenschein'
 	},
 	home: {
 		title: 'Logikrätsel, nur einen Klick entfernt',

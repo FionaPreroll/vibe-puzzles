@@ -60,7 +60,17 @@ const en = {
 		halloween: 'Halloween',
 		/** Above the home page's title in the Halloween look, by day and by night. */
 		tagline: 'Trick or puzzle?',
-		taglineNight: 'Puzzles by moonlight'
+		taglineNight: 'Puzzles by moonlight',
+		snow: 'Christmas A: Winter wonderland',
+		market: 'Christmas B: Christmas market',
+		nordic: 'Christmas C: Nordic Christmas',
+		/** Above the home page's title in the Christmas drafts, by day and by night. */
+		snowTagline: 'Let it snow, let it solve',
+		snowTaglineNight: 'Puzzles under the northern lights',
+		marketTagline: 'Merry puzzling!',
+		marketTaglineNight: 'Puzzles by fairy light',
+		nordicTagline: 'A cosy Advent',
+		nordicTaglineNight: 'Puzzles by candlelight'
 	},
 	home: {
 		title: 'Logic puzzles, one click away',

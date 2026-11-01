@@ -1,0 +1,675 @@
+/*
+ * Drafts of a Christmas look, to choose one from, each by day and by night:
+ *   A "snow"   Winter wonderland: snow, ice blue, navy; the northern lights by night.
+ *   B "market" Christmas market: red, fir green and gold, fairy lights.
+ *   C "nordic" Nordic Christmas: linen, pine green and a muted red, paper stars, candlelight.
+ * Like halloween.css, each recolours Tailwind's palette; the board colours are in palette.ts.
+ */
+
+html:not([data-theme='snow']) .snow-only,
+html:not([data-theme='market']) .market-only,
+html:not([data-theme='nordic']) .nordic-only {
+	display: none !important;
+}
+
+@layer base {
+	/* A: snow white to navy, winter blue. */
+	html[data-theme='snow'] {
+		--color-stone-50: #f3f8fd;
+		--color-stone-100: #e8f1fa;
+		--color-stone-200: #d3e2f1;
+		--color-stone-300: #b7cde3;
+		--color-stone-400: #8ba3bd;
+		--color-stone-500: #5d7690;
+		--color-stone-600: #475f78;
+		--color-stone-700: #334a61;
+		--color-stone-800: #22364b;
+		--color-stone-900: #142638;
+		--color-stone-950: #0a1726;
+		--color-indigo-50: #eef6ff;
+		--color-indigo-100: #dbeefe;
+		--color-indigo-200: #bde0fb;
+		--color-indigo-300: #8ecbf6;
+		--color-indigo-400: #55aaec;
+		--color-indigo-500: #2a8ad8;
+		--color-indigo-600: #1b6cb8;
+		--color-indigo-700: #175795;
+		--color-indigo-800: #17487a;
+		--color-indigo-900: #173d65;
+		--color-indigo-950: #0f2743;
+		--color-amber-50: #e6f3fd;
+		--color-amber-100: #d0e8fb;
+		--color-amber-900: #173d65;
+		--color-blue-700: #1660a8;
+	}
+	html.dark[data-theme='snow'] {
+		--color-stone-50: #f2f7fc;
+		--color-stone-100: #e6eef7;
+		--color-stone-200: #d5e1ee;
+		--color-stone-300: #bccbdc;
+		--color-stone-400: #9fb1c6;
+		--color-stone-500: #7489a2;
+		--color-stone-600: #4a5f78;
+		--color-stone-700: #2f415a;
+		--color-stone-800: #1f3048;
+		--color-stone-900: #111f33;
+		--color-stone-950: #08121f;
+		--color-indigo-50: #effcff;
+		--color-indigo-100: #d6f6fd;
+		--color-indigo-200: #b1edfa;
+		--color-indigo-300: #7ddff5;
+		--color-indigo-400: #7ddff5;
+		--color-indigo-500: #67d6f0;
+		--color-indigo-600: #5cc8e6;
+		--color-indigo-700: #1c6f8a;
+		--color-indigo-800: #154e63;
+		--color-indigo-900: #103a4a;
+		--color-indigo-950: #0b2a37;
+		--color-amber-200: #b1edfa;
+		--color-amber-900: #103a4a;
+		--color-amber-950: #0b2433;
+		--color-blue-200: #8fe3f5;
+	}
+
+	/* B: warm cream, Christmas red; a fir green night with gold. */
+	html[data-theme='market'] {
+		--color-stone-50: #fcf7ef;
+		--color-stone-100: #f7ecdc;
+		--color-stone-200: #ebdac2;
+		--color-stone-300: #dbc3a3;
+		--color-stone-400: #a8937a;
+		--color-stone-500: #7b6853;
+		--color-stone-600: #65543f;
+		--color-stone-700: #4b3d2d;
+		--color-stone-800: #34291e;
+		--color-stone-900: #231b12;
+		--color-stone-950: #140f09;
+		--color-indigo-50: #fdf2f2;
+		--color-indigo-100: #fbe1e1;
+		--color-indigo-200: #f6c3c3;
+		--color-indigo-300: #ee9a9a;
+		--color-indigo-400: #e06666;
+		--color-indigo-500: #cc3333;
+		--color-indigo-600: #b3261e;
+		--color-indigo-700: #931f19;
+		--color-indigo-800: #761b17;
+		--color-indigo-900: #611815;
+		--color-indigo-950: #3d0b09;
+		--color-amber-50: #e8f3ea;
+		--color-amber-100: #d3e9d7;
+		--color-amber-900: #14532d;
+		--color-blue-700: #17663a;
+	}
+	html.dark[data-theme='market'] {
+		--color-stone-50: #f8f5ec;
+		--color-stone-100: #efe9da;
+		--color-stone-200: #e2dac6;
+		--color-stone-300: #cdc3ab;
+		--color-stone-400: #b0a68c;
+		--color-stone-500: #8a8670;
+		--color-stone-600: #556455;
+		--color-stone-700: #34473a;
+		--color-stone-800: #23352a;
+		--color-stone-900: #13241b;
+		--color-stone-950: #0a1610;
+		--color-indigo-50: #fffaeb;
+		--color-indigo-100: #fff1c7;
+		--color-indigo-200: #ffe28a;
+		--color-indigo-300: #fcd15a;
+		--color-indigo-400: #f5c451;
+		--color-indigo-500: #eab53c;
+		--color-indigo-600: #e3a92e;
+		--color-indigo-700: #8a6414;
+		--color-indigo-800: #5c430f;
+		--color-indigo-900: #3d2d0c;
+		--color-indigo-950: #2a1f09;
+		--color-amber-200: #fecaca;
+		--color-amber-900: #5c1a1a;
+		--color-amber-950: #3d1212;
+		--color-blue-200: #f5c451;
+	}
+
+	/* C: linen and charcoal, pine green; candlelight by night. */
+	html[data-theme='nordic'] {
+		--color-stone-50: #f8f5f0;
+		--color-stone-100: #f1ece4;
+		--color-stone-200: #e4ddd2;
+		--color-stone-300: #d1c8bb;
+		--color-stone-400: #a69d91;
+		--color-stone-500: #776f66;
+		--color-stone-600: #625a52;
+		--color-stone-700: #4a443e;
+		--color-stone-800: #33302c;
+		--color-stone-900: #23211f;
+		--color-stone-950: #151413;
+		--color-indigo-50: #eff6f2;
+		--color-indigo-100: #dbebe1;
+		--color-indigo-200: #b9d7c5;
+		--color-indigo-300: #8ebda1;
+		--color-indigo-400: #5f9c79;
+		--color-indigo-500: #3f7d5c;
+		--color-indigo-600: #2f5d4a;
+		--color-indigo-700: #284f3f;
+		--color-indigo-800: #223f33;
+		--color-indigo-900: #1c342b;
+		--color-indigo-950: #0f1f19;
+		--color-amber-50: #fbeceb;
+		--color-amber-100: #f6d9d6;
+		--color-amber-900: #7f2620;
+		--color-blue-700: #2f5d4a;
+	}
+	html.dark[data-theme='nordic'] {
+		--color-stone-50: #faf6f0;
+		--color-stone-100: #f2ebe1;
+		--color-stone-200: #e5dccf;
+		--color-stone-300: #cfc4b5;
+		--color-stone-400: #b1a595;
+		--color-stone-500: #8b7f71;
+		--color-stone-600: #5c534a;
+		--color-stone-700: #3d3631;
+		--color-stone-800: #2a2521;
+		--color-stone-900: #1b1714;
+		--color-stone-950: #110e0c;
+		--color-indigo-50: #fff8ec;
+		--color-indigo-100: #fdebcc;
+		--color-indigo-200: #f9d9a3;
+		--color-indigo-300: #f4c47a;
+		--color-indigo-400: #f0b866;
+		--color-indigo-500: #eaa94f;
+		--color-indigo-600: #e49c3c;
+		--color-indigo-700: #8f5a1d;
+		--color-indigo-800: #5e3c16;
+		--color-indigo-900: #3f2a12;
+		--color-indigo-950: #2b1d0d;
+		--color-amber-200: #f9d9a3;
+		--color-amber-900: #3f2a12;
+		--color-amber-950: #2b1d0d;
+		--color-blue-200: #f0b866;
+	}
+}
+
+@layer components {
+	/* A: round like snowballs, a frosty glow; ice buttons that glow at night. */
+	html[data-theme='snow'] .btn,
+	html[data-theme='snow'] .btn-sm {
+		border-radius: 999px;
+	}
+	html[data-theme='snow'] .btn {
+		padding-inline: 0.9rem;
+	}
+	html[data-theme='snow'] .btn-primary {
+		font-weight: 700;
+		box-shadow: 0 4px 14px -6px rgb(27 108 184 / 0.7);
+	}
+	html[data-theme='snow'] .panel {
+		border-radius: 1.25rem;
+		box-shadow: 0 10px 30px -18px rgb(23 72 122 / 0.35);
+	}
+	html[data-theme='snow'] .board-stage {
+		border-radius: 1.5rem;
+		box-shadow:
+			0 0 0 1px var(--color-stone-200),
+			0 22px 44px -20px rgb(23 72 122 / 0.45);
+	}
+	html[data-theme='snow'] .play-bar {
+		border-radius: 1.25rem;
+	}
+	html[data-theme='snow'] .section-title {
+		color: var(--color-indigo-700);
+	}
+	html[data-theme='snow'] header nav a[aria-current='page'] {
+		border-radius: 999px;
+		background: var(--color-indigo-100);
+		color: var(--color-indigo-800);
+	}
+	html.dark[data-theme='snow'] .btn-primary {
+		color: #06202c;
+		box-shadow:
+			0 0 0 1px rgb(125 223 245 / 0.5),
+			0 6px 24px -6px rgb(125 223 245 / 0.6);
+	}
+	html.dark[data-theme='snow'] .panel {
+		box-shadow: 0 10px 30px -18px rgb(0 0 0 / 0.6);
+	}
+	html.dark[data-theme='snow'] .board-stage {
+		box-shadow:
+			0 0 0 1px rgb(125 223 245 / 0.22),
+			0 18px 50px -16px rgb(94 234 212 / 0.25);
+	}
+	html.dark[data-theme='snow'] .section-title {
+		color: #7ddff5;
+	}
+	html.dark[data-theme='snow'] header nav a[aria-current='page'] {
+		background: rgb(125 223 245 / 0.14);
+		color: #b1edfa;
+	}
+
+	/* B: red buttons with a gold seam, panels framed in gold; gold buttons that glow at night. */
+	html[data-theme='market'] .btn {
+		border-radius: 0.625rem;
+	}
+	html[data-theme='market'] .btn-primary {
+		font-weight: 600;
+		box-shadow:
+			inset 0 0 0 1px rgb(245 196 81 / 0.55),
+			0 2px 0 var(--color-indigo-800);
+	}
+	html[data-theme='market'] .panel {
+		border-radius: 1rem;
+		border-color: #ead7b0;
+		box-shadow:
+			inset 0 0 0 3px #fffdf8,
+			inset 0 0 0 4px #f1e3c4;
+	}
+	html[data-theme='market'] .board-stage {
+		border-radius: 1.25rem;
+		background: #fffdf8;
+		box-shadow:
+			0 0 0 1px #e3c98f,
+			0 0 0 5px #fffdf8,
+			0 0 0 6px #ead7b0,
+			0 20px 40px -18px rgb(118 27 23 / 0.35);
+	}
+	html[data-theme='market'] .section-title {
+		color: #166534;
+	}
+	html[data-theme='market'] .link {
+		color: #166534;
+	}
+	html[data-theme='market'] header nav a[aria-current='page'] {
+		background: var(--color-indigo-100);
+		color: var(--color-indigo-800);
+	}
+	html.dark[data-theme='market'] .btn-primary {
+		color: #13241b;
+		font-weight: 700;
+		box-shadow:
+			0 0 0 1px rgb(245 196 81 / 0.5),
+			0 6px 22px -8px rgb(245 196 81 / 0.65);
+	}
+	html.dark[data-theme='market'] .panel {
+		border-color: #3a4a32;
+		box-shadow: none;
+	}
+	html.dark[data-theme='market'] .board-stage {
+		background: #11231a;
+		box-shadow:
+			0 0 0 1px rgb(245 196 81 / 0.35),
+			0 18px 48px -18px rgb(245 196 81 / 0.35);
+	}
+	html.dark[data-theme='market'] .section-title,
+	html.dark[data-theme='market'] .link {
+		color: #f5c451;
+	}
+	html.dark[data-theme='market'] header nav a[aria-current='page'] {
+		border-radius: 0;
+		background: transparent;
+		color: #ffe28a;
+		box-shadow: inset 0 -2px 0 #e3a92e;
+	}
+
+	/* C: quiet and flat, small corners and fine lines; candle buttons that glow at night. */
+	html[data-theme='nordic'] .btn,
+	html[data-theme='nordic'] .btn-sm {
+		border-radius: 0.25rem;
+		box-shadow: none;
+	}
+	html[data-theme='nordic'] .btn-primary {
+		font-weight: 600;
+		letter-spacing: 0.02em;
+	}
+	html[data-theme='nordic'] .panel {
+		border-radius: 0.5rem;
+		box-shadow: none;
+	}
+	html[data-theme='nordic'] .board-stage {
+		border-radius: 0.75rem;
+		box-shadow:
+			0 0 0 1px var(--color-stone-200),
+			0 16px 32px -20px rgb(35 33 31 / 0.3);
+	}
+	html[data-theme='nordic'] .play-bar {
+		border-radius: 0.5rem;
+	}
+	html[data-theme='nordic'] .section-title {
+		font-family: 'Josefin Sans', ui-sans-serif, system-ui, sans-serif;
+		letter-spacing: 0.2em;
+		color: #a33a32;
+	}
+	html[data-theme='nordic'] header nav a[aria-current='page'] {
+		border-radius: 0;
+		background: transparent;
+		box-shadow: inset 0 -2px 0 #a33a32;
+	}
+	html.dark[data-theme='nordic'] .btn-primary {
+		color: #1b1208;
+		box-shadow: 0 6px 24px -8px rgb(240 184 102 / 0.6);
+	}
+	html.dark[data-theme='nordic'] .board-stage {
+		box-shadow:
+			0 0 0 1px rgb(240 184 102 / 0.18),
+			0 18px 48px -18px rgb(240 184 102 / 0.3);
+	}
+	html.dark[data-theme='nordic'] .section-title {
+		color: #f0b866;
+	}
+	html.dark[data-theme='nordic'] .link {
+		color: #f0b866;
+	}
+	html.dark[data-theme='nordic'] header nav a[aria-current='page'] {
+		color: #f9d9a3;
+		box-shadow: inset 0 -2px 0 #e49c3c;
+	}
+}
+
+/* Headings: rounded Comfortaa (A), Playfair Display (B), Josefin Sans (C). */
+html[data-theme='snow'] .font-display {
+	font-family: 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+html[data-theme='market'] .font-display {
+	font-family: 'Playfair Display', Georgia, serif;
+	font-weight: 700;
+	letter-spacing: 0;
+}
+html[data-theme='nordic'] .font-display {
+	font-family: 'Josefin Sans', ui-sans-serif, system-ui, sans-serif;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+}
+.xmas-tagline-serif {
+	font-family: 'Playfair Display', Georgia, serif;
+	font-style: italic;
+	font-weight: 700;
+}
+.xmas-tagline-spaced {
+	font-family: 'Josefin Sans', ui-sans-serif, system-ui, sans-serif;
+	font-weight: 600;
+	letter-spacing: 0.22em;
+}
+
+/* A by night: the northern lights over the top of the page. */
+html.dark[data-theme='snow'] body {
+	background-image:
+		radial-gradient(ellipse 55% 38% at 72% -4%, rgb(45 212 191 / 0.16), transparent 70%),
+		radial-gradient(ellipse 45% 30% at 38% -6%, rgb(139 92 246 / 0.13), transparent 70%);
+	background-repeat: no-repeat;
+}
+/* B by night: a warm glow from the lights. */
+html.dark[data-theme='market'] body {
+	background-image: radial-gradient(
+		ellipse 70% 34% at 50% -6%,
+		rgb(245 196 81 / 0.09),
+		transparent 70%
+	);
+	background-repeat: no-repeat;
+}
+
+/* Phones: the home page's title leaves room for the scene in the corner. */
+@media (width < 40rem) {
+	html[data-theme='snow'] .hero-title,
+	html[data-theme='market'] .hero-title,
+	html[data-theme='nordic'] .hero-title {
+		padding-right: 5.5rem;
+	}
+}
+
+/* Snow falling: each flake falls through its box and sways a little. */
+.xmas-snowfall {
+	container-type: size;
+}
+.xmas-snowfall .flake {
+	position: absolute;
+	top: -12px;
+	left: var(--x);
+	width: var(--s);
+	opacity: var(--o);
+	animation: xmas-fall var(--t) linear var(--d) infinite;
+}
+@keyframes xmas-fall {
+	0% {
+		transform: translate(0, 0) rotate(0);
+	}
+	50% {
+		transform: translate(var(--dx), 50cqh) rotate(90deg);
+	}
+	100% {
+		transform: translate(0, calc(100cqh + 24px)) rotate(180deg);
+	}
+}
+
+/* The northern lights, waving slowly. */
+.xmas-aurora {
+	filter: blur(18px);
+	animation: xmas-aurora 14s ease-in-out infinite alternate;
+}
+@keyframes xmas-aurora {
+	from {
+		transform: translateX(-4%) skewX(-8deg);
+		opacity: 0.75;
+	}
+	to {
+		transform: translateX(4%) skewX(6deg);
+		opacity: 1;
+	}
+}
+
+.xmas-twinkle {
+	animation: xmas-twinkle 3s ease-in-out infinite;
+}
+@keyframes xmas-twinkle {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.35;
+	}
+}
+.xmas-swing {
+	transform-origin: 50% 0;
+	animation: xmas-swing 5s ease-in-out infinite;
+}
+@keyframes xmas-swing {
+	0%,
+	100% {
+		transform: rotate(-5deg);
+	}
+	50% {
+		transform: rotate(5deg);
+	}
+}
+.xmas-spin {
+	animation: xmas-spin 24s linear infinite;
+}
+@keyframes xmas-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.xmas-bob {
+	animation: xmas-bob 3.6s ease-in-out infinite;
+}
+@keyframes xmas-bob {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-5px);
+	}
+}
+
+/* Fairy lights: by night each bulb glows (a halo, as a filter would be cut off at the bulb's
+   box) and they twinkle in turn. The tree's star and the candle flames glow too. */
+.xmas-bulb .halo,
+.halo-star,
+.halo-flame {
+	display: none;
+}
+html.dark .xmas-bulb .halo {
+	display: inline;
+	opacity: 0.35;
+}
+html.dark .halo-star {
+	display: inline;
+	opacity: 0.22;
+}
+html.dark .halo-flame {
+	display: inline;
+	opacity: 0.25;
+}
+html.dark .xmas-bulb {
+	animation: xmas-bulb 2.4s ease-in-out var(--d, 0s) infinite;
+}
+@keyframes xmas-bulb {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.55;
+	}
+}
+html.dark .xmas-glow {
+	filter: drop-shadow(0 0 10px rgb(253 224 71 / 0.55));
+}
+html.dark .xmas-glow-warm {
+	filter: drop-shadow(0 0 14px rgb(240 184 102 / 0.6));
+}
+
+/* The win animations, inside the board: snow drifts down (A), presents and stars fly up (B),
+   paper stars and hearts float down (C). `cqh` is the board's height. */
+.xmas-burst {
+	container-type: size;
+	animation: xmas-flash 1.8s ease-out forwards;
+}
+@keyframes xmas-flash {
+	0% {
+		box-shadow: inset 0 0 0 0 var(--flash, rgb(125 211 252 / 0));
+	}
+	30% {
+		box-shadow: inset 0 0 44px 12px var(--flash, rgb(125 211 252 / 0.5));
+	}
+	100% {
+		box-shadow: inset 0 0 0 0 transparent;
+	}
+}
+.xmas-burst .flyer {
+	position: absolute;
+	left: var(--x);
+	width: var(--size);
+	opacity: 0;
+}
+.xmas-burst.fall .flyer {
+	top: -14%;
+	animation: xmas-drop 2s cubic-bezier(0.3, 0.4, 0.5, 1) var(--d) forwards;
+}
+.xmas-burst.rise .flyer {
+	top: 100%;
+	animation: xmas-rise 1.7s cubic-bezier(0.2, 0.7, 0.3, 1) var(--d) forwards;
+}
+@keyframes xmas-drop {
+	0% {
+		opacity: 1;
+		transform: translate(-50%, 0) rotate(0);
+	}
+	80% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: translate(calc(-50% + var(--dx)), calc(100cqh + 120%)) rotate(var(--turn));
+	}
+}
+@keyframes xmas-rise {
+	0% {
+		opacity: 1;
+		transform: translate(-50%, 0) scale(0.5) rotate(0);
+	}
+	80% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: translate(calc(-50% + var(--dx)), calc(-100cqh - 120%)) scale(1.1)
+			rotate(var(--turn));
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.xmas-snowfall .flake,
+	.xmas-aurora,
+	.xmas-twinkle,
+	.xmas-swing,
+	.xmas-spin,
+	.xmas-bob,
+	html.dark .xmas-bulb,
+	.xmas-burst {
+		animation: none;
+	}
+	.xmas-snowfall,
+	.xmas-burst .flyer {
+		display: none;
+	}
+}
+
+/* Solved: the ring around the board and the regions' colours in each draft. */
+html[data-theme='snow'] .solved-glow {
+	animation: none;
+	box-shadow: 0 0 0 4px rgb(42 138 216 / 0.55);
+}
+html.dark[data-theme='snow'] .solved-glow {
+	box-shadow:
+		0 0 0 2px rgb(125 223 245 / 0.7),
+		0 0 40px 0 rgb(125 223 245 / 0.25);
+}
+html[data-theme='market'] .solved-glow {
+	animation: none;
+	box-shadow: 0 0 0 4px rgb(227 169 46 / 0.7);
+}
+html.dark[data-theme='market'] .solved-glow {
+	box-shadow:
+		0 0 0 2px rgb(245 196 81 / 0.7),
+		0 0 40px 0 rgb(245 196 81 / 0.25);
+}
+html[data-theme='nordic'] .solved-glow {
+	animation: none;
+	box-shadow: 0 0 0 3px rgb(163 58 50 / 0.6);
+}
+html.dark[data-theme='nordic'] .solved-glow {
+	box-shadow:
+		0 0 0 2px rgb(240 184 102 / 0.6),
+		0 0 40px 0 rgb(240 184 102 / 0.22);
+}
+html[data-theme='snow'] {
+	--celebrate-1: #8ecbf6;
+	--celebrate-2: #c7d2fe;
+	--celebrate-3: #a5f3fc;
+	--celebrate-4: #bde0fb;
+	--celebrate-5: #55aaec;
+	--celebrate-6: #e0e7ff;
+	--celebrate-7: #99f6e4;
+	--celebrate-8: #93c5fd;
+}
+html[data-theme='market'] {
+	--celebrate-1: #e0362c;
+	--celebrate-2: #f5c451;
+	--celebrate-3: #2f9e5b;
+	--celebrate-4: #f87171;
+	--celebrate-5: #d9a63a;
+	--celebrate-6: #4ade80;
+	--celebrate-7: #fca5a5;
+	--celebrate-8: #fde68a;
+}
+html[data-theme='nordic'] {
+	--celebrate-1: #c0443a;
+	--celebrate-2: #8ebda1;
+	--celebrate-3: #e9d5b0;
+	--celebrate-4: #d98c84;
+	--celebrate-5: #5f9c79;
+	--celebrate-6: #f0c27a;
+	--celebrate-7: #b9d7c5;
+	--celebrate-8: #e5c3a0;
+}

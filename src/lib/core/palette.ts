@@ -180,11 +180,134 @@ const HALLOWEEN_DARK: Palette = {
 	recent: '#b79cff'
 };
 
+/** Christmas draft A, "Winter wonderland": navy ink on snow, ice blue highlights. */
+const SNOW_LIGHT: Palette = {
+	...LIGHT,
+	paper: '#f6fafe',
+	ink: '#12263d',
+	line: '#12263d',
+	gridLine: '#5b7088',
+	faint: '#a9bccf',
+	dot: '#34495f',
+	label: '#455d77',
+	entered: '#1660a8',
+	selection: '#bfe1f8',
+	sameDigit: '#d7e6fb',
+	unit: '#edf4fb',
+	cursor: '#0b6e99',
+	recent: '#2a7bd3'
+};
+
+/** Christmas draft A by night: a polar night board, ice cyan digits. */
+const SNOW_DARK: Palette = {
+	...DARK,
+	surface: '#0f1d30',
+	paper: '#0f1d30',
+	ink: '#eef5fc',
+	line: '#a8bdd3',
+	gridLine: '#5f7591',
+	faint: '#34485f',
+	dot: '#a8bdd3',
+	label: '#bccde0',
+	entered: '#8fe3f5',
+	selection: '#1d4a63',
+	sameDigit: '#263f6b',
+	unit: '#16273d',
+	cursor: '#a7f3d0',
+	recent: '#7dd3fc',
+	trialShade: '#2e786f'
+};
+
+/** Christmas draft B, "Christmas market": fir green digits on cream, gold highlights. */
+const MARKET_LIGHT: Palette = {
+	...LIGHT,
+	surface: '#fffdf8',
+	paper: '#fdf6ea',
+	ink: '#1d2b22',
+	line: '#1d2b22',
+	gridLine: '#5f6b5f',
+	faint: '#b8b09c',
+	dot: '#3a4a3e',
+	label: '#5a6656',
+	entered: '#17663a',
+	selection: '#f9dc8c',
+	sameDigit: '#d9eedb',
+	unit: '#fbf1e1',
+	cursor: '#9a3412',
+	recent: '#a16207'
+};
+
+/** Christmas draft B by night: a fir green board, gold digits. */
+const MARKET_DARK: Palette = {
+	...DARK,
+	surface: '#11231a',
+	paper: '#11231a',
+	ink: '#fbf4e4',
+	line: '#d6cdb4',
+	gridLine: '#6f7d6c',
+	faint: '#3c4d40',
+	dot: '#d6cdb4',
+	label: '#d3cab4',
+	entered: '#f5c451',
+	selection: '#5c2121',
+	sameDigit: '#24452f',
+	unit: '#182d21',
+	cursor: '#fbbf24',
+	recent: '#e9b949',
+	shaded: '#7d766f',
+	errorShade: '#d42a2a',
+	blueErrorShade: '#2f6ae6',
+	trialShade: '#2e786f'
+};
+
+/** Christmas draft C, "Nordic Christmas": charcoal on white, pine green digits. */
+const NORDIC_LIGHT: Palette = {
+	...LIGHT,
+	paper: '#faf7f2',
+	ink: '#262626',
+	line: '#262626',
+	gridLine: '#6b6661',
+	faint: '#bdb5ab',
+	dot: '#45403b',
+	label: '#625c55',
+	entered: '#2f5d4a',
+	selection: '#f3d9c9',
+	sameDigit: '#dbe8df',
+	unit: '#f5f1ea',
+	cursor: '#a33a32',
+	recent: '#b4553a'
+};
+
+/** Christmas draft C by night: a warm dark board, candle amber digits. */
+const NORDIC_DARK: Palette = {
+	...DARK,
+	surface: '#1d1916',
+	paper: '#1d1916',
+	ink: '#f3ece2',
+	line: '#bfb4a6',
+	gridLine: '#7b7166',
+	faint: '#4a423a',
+	dot: '#bfb4a6',
+	label: '#cdc2b4',
+	entered: '#f0b866',
+	selection: '#4a2e1c',
+	sameDigit: '#2f3d33',
+	unit: '#26211d',
+	cursor: '#fbbf24',
+	recent: '#f0b866'
+};
+
 export const PALETTES = {
 	light: LIGHT,
 	dark: DARK,
 	halloweenLight: HALLOWEEN_LIGHT,
-	halloweenDark: HALLOWEEN_DARK
+	halloweenDark: HALLOWEEN_DARK,
+	snowLight: SNOW_LIGHT,
+	snowDark: SNOW_DARK,
+	marketLight: MARKET_LIGHT,
+	marketDark: MARKET_DARK,
+	nordicLight: NORDIC_LIGHT,
+	nordicDark: NORDIC_DARK
 } satisfies Record<string, Palette>;
 
 const NAMES = Object.keys(LIGHT) as ColourName[];
@@ -206,13 +329,22 @@ const declarations = (palette: Palette) =>
  * the class `board-light` (the printed board).
  */
 export function paletteCss(): string {
-	const halloween = ':root[data-theme="halloween"]';
+	const looks: [string, Palette, Palette][] = [
+		['halloween', HALLOWEEN_LIGHT, HALLOWEEN_DARK],
+		['snow', SNOW_LIGHT, SNOW_DARK],
+		['market', MARKET_LIGHT, MARKET_DARK],
+		['nordic', NORDIC_LIGHT, NORDIC_DARK]
+	];
 	return (
 		`:root,.board-light{${declarations(LIGHT)}}` +
 		`:root.dark{${declarations(DARK)}}` +
-		`${halloween}{${declarations(HALLOWEEN_LIGHT)}}` +
-		`${halloween}.dark{${declarations(HALLOWEEN_DARK)}}` +
-		`:root.dark .board-light,${halloween} .board-light{${declarations(LIGHT)}}`
+		looks
+			.map(([look, light, dark]) => {
+				const root = `:root[data-theme="${look}"]`;
+				return `${root}{${declarations(light)}}${root}.dark{${declarations(dark)}}`;
+			})
+			.join('') +
+		`:root.dark .board-light,:root[data-theme] .board-light{${declarations(LIGHT)}}`
 	);
 }
 

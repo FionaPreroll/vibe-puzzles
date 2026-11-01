@@ -10,6 +10,7 @@
 	import ActionRow from './ActionRow.svelte';
 	import CheckpointBar from './CheckpointBar.svelte';
 	import HalloweenLogo from '../halloween/Logo.svelte';
+	import ChristmasLogo from '../christmas/Logo.svelte';
 	import GameInfo from './GameInfo.svelte';
 	import HintNote from './HintNote.svelte';
 	import { SHORT_PANEL } from './boardFit';
@@ -165,6 +166,9 @@
 		>
 			<img src={favicon} alt="" class="classic-only size-6" />
 			<HalloweenLogo class="halloween-only size-6" />
+			<ChristmasLogo look="snow" class="size-6" />
+			<ChristmasLogo look="market" class="size-6" />
+			<ChristmasLogo look="nordic" class="size-6" />
 		</button>
 	{/if}
 {/snippet}

@@ -178,7 +178,16 @@ importers:
       '@fontsource/cinzel':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/comfortaa':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/fredoka':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/josefin-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/playfair-display':
         specifier: ^5.3.0
         version: 5.3.0
       '@playwright/test':
@@ -546,8 +555,17 @@ packages:
   '@fontsource/cinzel@5.3.0':
     resolution: {integrity: sha512-KEOYTsrRppW0uRIPWBDPrQgunCS6f8u4nzZxYRBfo9SCknKojLYjK7B0ZoVmJhyVLefz271ZQRF9EOpHZlfhRw==}
 
+  '@fontsource/comfortaa@5.3.0':
+    resolution: {integrity: sha512-ab4DERH0q6ko8QCpEZzOV9ebK39LgQ2oM91AkLNqu0VIxxwT0nV2D3sOuI7iLirWWq4IMooaIN6/2llxrDN2JA==}
+
   '@fontsource/fredoka@5.3.0':
     resolution: {integrity: sha512-s2IhjQ50wDnKkkaKmjhtL0rxQg6ITsVusiipM3m7zUwVZZbbCKsscNDkngwp28xVzfIt7neWrkgU1qKqyTycQg==}
+
+  '@fontsource/josefin-sans@5.3.0':
+    resolution: {integrity: sha512-N2xY1l8gBCNrlRa0tMnjUtbSJb/rqWmPLgLSMq6H+EY2/uerAHtbyoHsQQKwhMA8hJat7S+OSk6saxGMceKKvA==}
+
+  '@fontsource/playfair-display@5.3.0':
+    resolution: {integrity: sha512-uJSABalvdWc10fEPppQjQocamT21LEyRfzzWfRfqbkPz+sRv+kKpYDKyluBUskvJREkJTos9epj1WjQROGu99Q==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2345,7 +2363,13 @@ snapshots:
 
   '@fontsource/cinzel@5.3.0': {}
 
+  '@fontsource/comfortaa@5.3.0': {}
+
   '@fontsource/fredoka@5.3.0': {}
+
+  '@fontsource/josefin-sans@5.3.0': {}
+
+  '@fontsource/playfair-display@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

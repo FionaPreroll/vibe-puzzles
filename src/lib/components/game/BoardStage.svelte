@@ -9,6 +9,9 @@
 	import HangingSpider from './HangingSpider.svelte';
 	import MessageToast from './MessageToast.svelte';
 	import StageDecor from './StageDecor.svelte';
+	import ChristmasStageDecor from '../christmas/StageDecor.svelte';
+	import ChristmasHanging from '../christmas/Hanging.svelte';
+	import Snowfall from '../christmas/Snowfall.svelte';
 	import type { ToolState } from './tools.svelte';
 	import { twoFingers } from './twoFingers';
 
@@ -110,6 +113,8 @@
 >
 	{#if decorBeside && session.puzzle}
 		<HangingSpider headerGap={fit.headerGap} stageWidth={fit.stageWidth} />
+		<ChristmasHanging headerGap={fit.headerGap} stageWidth={fit.stageWidth} />
+		<div class="snow-only"><Snowfall count={34} class="text-[#9ec3e6] dark:text-white" /></div>
 	{/if}
 	<div
 		bind:this={fit.boardArea}
@@ -127,6 +132,7 @@
 					: undefined}
 			>
 				<StageDecor beside={decorBeside} />
+				<ChristmasStageDecor beside={decorBeside} />
 				<div
 					bind:this={boardEl}
 					class="relative z-10 mx-auto w-fit rounded-sm {session.paused

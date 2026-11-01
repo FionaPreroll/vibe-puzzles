@@ -2,12 +2,15 @@
 	import { theme } from '../../client/settings.svelte';
 	import { CELEBRATION_COLOURS } from '../../core/grid';
 	import HalloweenBurst from '../halloween/Burst.svelte';
+	import ChristmasBurst from '../christmas/Burst.svelte';
 
 	/** The short celebration over a board that was just solved. */
 </script>
 
 {#if theme.look === 'halloween'}
 	<HalloweenBurst night={theme.night} />
+{:else if theme.look === 'snow' || theme.look === 'market' || theme.look === 'nordic'}
+	<ChristmasBurst look={theme.look} night={theme.night} />
 {:else}
 	<!-- Clipped to the board so the sparkles never resize the page -->
 	<div class="solved-burst pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">

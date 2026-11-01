@@ -3,6 +3,11 @@
 	// Headings of the Halloween look; browsers load each font only once a page uses it.
 	import '@fontsource/cinzel/latin-600.css';
 	import '@fontsource/fredoka/latin-600.css';
+	// Headings of the Christmas drafts.
+	import '@fontsource/comfortaa/latin-700.css';
+	import '@fontsource/playfair-display/latin-700.css';
+	import '@fontsource/playfair-display/latin-700-italic.css';
+	import '@fontsource/josefin-sans/latin-600.css';
 	import { resolve } from '$app/paths';
 	import { afterNavigate } from '$app/navigation';
 	import { page, updated } from '$app/state';
@@ -11,6 +16,10 @@
 	import ConnectionMenu from '#lib/components/ConnectionMenu.svelte';
 	import Bunting from '#lib/components/halloween/Bunting.svelte';
 	import HalloweenLogo from '#lib/components/halloween/Logo.svelte';
+	import ChristmasLogo from '#lib/components/christmas/Logo.svelte';
+	import FairyLights from '#lib/components/christmas/FairyLights.svelte';
+	import KnitBand from '#lib/components/christmas/KnitBand.svelte';
+	import SnowCap from '#lib/components/christmas/SnowCap.svelte';
 	import { serverAvailable } from '#lib/client/api.ts';
 	import { headerBar } from '#lib/client/headerBar.svelte.ts';
 	import { net, tellServiceWorker } from '#lib/client/network.svelte.ts';
@@ -60,7 +69,7 @@
 		return scheduleUpdateChecks(() => updated.check());
 	});
 	$effect(() => {
-		if (theme.look === 'halloween') document.documentElement.dataset.theme = theme.look;
+		if (theme.look !== 'classic') document.documentElement.dataset.theme = theme.look;
 		else delete document.documentElement.dataset.theme;
 	});
 
@@ -117,6 +126,9 @@
 		>
 			<img src={favicon} alt="" class="classic-only size-6" />
 			<HalloweenLogo class="halloween-only size-6" />
+			<ChristmasLogo look="snow" class="size-6" />
+			<ChristmasLogo look="market" class="size-6" />
+			<ChristmasLogo look="nordic" class="size-6" />
 			<span class="font-display max-sm:sr-only">{t('app.name')}</span>
 		</a>
 		<nav class="flex min-w-0 text-sm sm:gap-1" aria-label="Main">
@@ -162,7 +174,9 @@
 		>
 	</div>
 	<!-- Hangs into the space above the page's content, so nothing moves -->
-	{#if !headerBar.autoHide}<div class="absolute inset-x-0 top-full"><Bunting /></div>{/if}
+	{#if !headerBar.autoHide}<div class="absolute inset-x-0 top-full">
+			<Bunting /><SnowCap /><FairyLights /><KnitBand />
+		</div>{/if}
 </header>
 
 <main class="mx-auto max-w-7xl px-4 py-6">

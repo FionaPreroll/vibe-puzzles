@@ -7,6 +7,12 @@
 	import { t } from '../../i18n/index.svelte';
 	import HalloweenCandle from '../halloween/Candle.svelte';
 	import HalloweenPumpkin from '../halloween/Pumpkin.svelte';
+	import CandyCane from '../christmas/CandyCane.svelte';
+	import FirTree from '../christmas/FirTree.svelte';
+	import Gift from '../christmas/Gift.svelte';
+	import Heart from '../christmas/Heart.svelte';
+	import Snowman from '../christmas/Snowman.svelte';
+	import StrawStar from '../christmas/StrawStar.svelte';
 
 	/**
 	 * The puzzle's ID on a line of its own, then at most three buttons: one stands out only when it
@@ -79,6 +85,11 @@
 	<div class="flex flex-wrap items-end justify-center gap-2">
 		<!-- Halloween on phones: a jack-o'-lantern and candles beside the buttons -->
 		<HalloweenPumpkin face="night" class="halloween-only mr-2 w-10 lg:hidden" />
+		<span class="mr-2 lg:hidden" aria-hidden="true">
+			<Snowman class="snow-only w-9" />
+			<Gift class="market-only w-9" />
+			<StrawStar class="nordic-only mb-1 w-8" />
+		</span>
 		{#if !session.solved && !autoSubmit}
 			<button
 				class="btn btn-primary max-lg:min-h-11"
@@ -151,6 +162,15 @@
 		<span class="halloween-only ml-2 flex items-end gap-1.5 lg:hidden" aria-hidden="true">
 			<HalloweenCandle class="w-4" />
 			<HalloweenCandle class="w-3" />
+		</span>
+		<span class="ml-2 lg:hidden" aria-hidden="true">
+			<FirTree
+				snow
+				class="snow-only w-8 fill-[#2e6a5e] dark:fill-[#1d4a52]"
+				snowClass="fill-white dark:fill-[#dbe7f5]"
+			/>
+			<CandyCane class="market-only w-5" />
+			<Heart class="nordic-only w-7" />
 		</span>
 	</div>
 </div>

@@ -74,7 +74,7 @@ describe('board palette', () => {
 		const css = paletteCss();
 		for (const [name, value] of Object.entries(colours)) {
 			const variable = value.slice(4, -1);
-			expect(css.split(`${variable}:`).length, name).toBe(6);
+			expect(css.split(`${variable}:`).length, name).toBe(12);
 		}
 		expect(css).toContain(':root.dark{--board-surface:#1c1917;');
 		expect(css).toContain(':root[data-theme="halloween"].dark{--board-surface:#1b1528;');
