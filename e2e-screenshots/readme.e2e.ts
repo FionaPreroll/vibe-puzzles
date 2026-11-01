@@ -24,6 +24,8 @@ interface Options {
 	layout?: 'standard' | 'auto';
 	/** Whether to wait for the game board. */
 	board?: boolean;
+	/** Game settings switched on, by game. */
+	settings?: Record<string, string[]>;
 }
 
 /**
@@ -51,9 +53,10 @@ test.use({
 /** Opens `path` as a returning player would see it: no first-visit tutorials. */
 async function open(page: Page, path: string, options: Options = {}) {
 	const { look = 'classic', night = false, layout = 'standard', board = false } = options;
+	const settings = options.settings ?? {};
 	await page.clock.setFixedTime(NOW);
 	await page.addInitScript(
-		([look, night, layout]) => {
+		([look, night, layout, settings]) => {
 			localStorage.setItem('vp:look', JSON.stringify(look));
 			localStorage.setItem('vp:night', JSON.stringify(night));
 			if (layout !== 'auto') localStorage.setItem('vp:layout', JSON.stringify(layout));
@@ -61,8 +64,12 @@ async function open(page: Page, path: string, options: Options = {}) {
 			for (const game of ['tetroid', 'pinwheel', 'sudoku', 'loop', 'pipes']) {
 				localStorage.setItem(`vp:tutorialSeen:${game}`, 'true');
 			}
+			for (const [game, keys] of Object.entries(settings)) {
+				const values = Object.fromEntries(keys.map((key) => [key, true]));
+				localStorage.setItem(`vp:settings:${game}`, JSON.stringify({ values, updatedAt: 1 }));
+			}
 		},
-		[look, night, layout] as const
+		[look, night, layout, settings] as const
 	);
 	await page.route('**/*', async (route) => {
 		if (route.request().resourceType() !== 'document') return route.fallback();
@@ -145,6 +152,9 @@ test('home page', async ({ page }) => {
 	await snap(page, 'home.png', 'full');
 });
 
+/** Settings the games are shown with: Tetroid's pieces in their colours. */
+const GAME_SETTINGS = { tetroid: ['colorTetrominoes'] };
+
 test.describe('games', () => {
 	for (const [name, position] of Object.entries({
 		tetroid: () => positions.tetroid(),
@@ -155,7 +165,7 @@ test.describe('games', () => {
 		pipes: () => positions.pipes()
 	})) {
 		test(name, async ({ page }) => {
-			await open(page, position().path, { board: true });
+			await open(page, position().path, { board: true, settings: GAME_SETTINGS });
 			await playFor(page);
 			await snap(page, `${name}.png`, await gameArea(page));
 		});
