@@ -71,35 +71,37 @@ export function tetroid(type = '8n', share = 0.55): Position {
 }
 
 /**
- * Pinwheel: the lines between the regions of the upper rows, the regions that lie wholly in
- * them coloured.
+ * Pinwheel: the lines between the regions of the upper rows, the regions that lie wholly in them
+ * outlined all round and every other one of them coloured.
  */
 export function pinwheel(type = '7n', rows = 4): Position {
 	const { id, puzzle } = first<PinwheelPuzzle>('pinwheel', type);
 	const [owner] = solvePinwheel(puzzle, { limit: 1, branch: true }).solutions;
 	const { width: w, height: h } = puzzle;
-	const edge = (a: number, b: number, shown: boolean) =>
-		shown && owner[a] !== owner[b] ? LINE : OPEN;
+	// The regions that lie wholly in the upper rows.
+	const lowest = new Map<number, number>();
+	owner.forEach((o, c) => lowest.set(o, Math.max(lowest.get(o) ?? 0, row(c, w))));
+	const finished = [...lowest].filter(([, r]) => r < rows).map(([o]) => o);
+	const done = (c: number) => finished.includes(owner[c]);
+	const edge = (a: number, b: number) =>
+		owner[a] !== owner[b] && ((row(a, w) < rows && row(b, w) < rows) || done(a) || done(b))
+			? LINE
+			: OPEN;
 	// Horizontal edge (i, j) lies between cells (i - 1, j) and (i, j); vertical (i, j) between
 	// (i, j - 1) and (i, j). The border is never marked.
 	const hEdges = Array.from({ length: (h + 1) * w }, (_, k) => {
 		const i = Math.floor(k / w);
 		const j = k % w;
-		if (i === 0 || i === h) return OPEN;
-		return edge((i - 1) * w + j, i * w + j, i < rows);
+		return i === 0 || i === h ? OPEN : edge((i - 1) * w + j, i * w + j);
 	});
 	const vEdges = Array.from({ length: h * (w + 1) }, (_, k) => {
 		const i = Math.floor(k / (w + 1));
 		const j = k % (w + 1);
-		if (j === 0 || j === w) return OPEN;
-		return edge(i * w + j - 1, i * w + j, i < rows);
+		return j === 0 || j === w ? OPEN : edge(i * w + j - 1, i * w + j);
 	});
-	// Every other region that lies wholly in the upper rows, in the first colours.
-	const lowest = new Map<number, number>();
-	owner.forEach((o, c) => lowest.set(o, Math.max(lowest.get(o) ?? 0, row(c, w))));
-	const coloured = [...lowest].filter(([, r]) => r < rows).map(([o]) => o);
+	// Every other finished region, in the first colours.
 	const colour = (o: number) => {
-		const k = coloured.indexOf(o);
+		const k = finished.indexOf(o);
 		return k >= 0 && k % 2 === 0 ? ((k / 2) % 4) + 1 : 0;
 	};
 	return {
