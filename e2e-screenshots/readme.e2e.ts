@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Look } from '../src/lib/core/theme';
 import * as positions from './positions';
@@ -8,7 +9,7 @@ import * as positions from './positions';
  * different; the "Update README screenshots" workflow proposes them in a pull request.
  *
  * Everything that would change from run to run is fixed: the date and the clock, the puzzles and
- * positions, the moment every animation shows, and the commit in the footer is left out.
+ * positions, the moment every animation shows, the font, and the commit in the footer is left out.
  */
 
 /** The date the pages see: countdowns, the daily puzzles. The look is chosen per screenshot. */
@@ -24,6 +25,21 @@ interface Options {
 	/** Whether to wait for the game board. */
 	board?: boolean;
 }
+
+/**
+ * The app writes in the system's font, which differs from machine to machine (and is rather plain
+ * in the browser tests' container). The screenshots use Inter, much like the fonts of Apple's and
+ * Google's systems, added to every page before it is first drawn.
+ */
+const FONT = (() => {
+	const file = 'node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2';
+	const data = readFileSync(file).toString('base64');
+	return (
+		`<style>@font-face{font-family:'Inter Screenshots';font-style:normal;font-weight:100 900;` +
+		`src:url(data:font/woff2;base64,${data}) format('woff2')}` +
+		`:root{--font-sans:'Inter Screenshots',sans-serif}</style>`
+	);
+})();
 
 test.use({
 	viewport: { width: 1280, height: 800 },
@@ -48,6 +64,12 @@ async function open(page: Page, path: string, options: Options = {}) {
 		},
 		[look, night, layout] as const
 	);
+	await page.route('**/*', async (route) => {
+		if (route.request().resourceType() !== 'document') return route.fallback();
+		const response = await route.fetch();
+		const body = (await response.text()).replace('</head>', `${FONT}</head>`);
+		await route.fulfill({ response, body });
+	});
 	await page.goto(path);
 	if (board) {
 		await expect(boardOf(page)).toBeVisible({ timeout: 30_000 });
