@@ -58,8 +58,14 @@ const de: Dictionary = {
 		auto: '{look} (automatisch)',
 		classic: 'Klassisch',
 		halloween: 'Halloween',
+		winter: 'Winter',
+		christmas: 'Weihnacht',
 		tagline: 'Süßes oder Rätsel?',
-		taglineNight: 'Rätsel bei Mondschein'
+		taglineNight: 'Rätsel bei Mondschein',
+		winterTagline: 'Leise rieselt das Rätsel',
+		winterTaglineNight: 'Rätsel unterm Polarlicht',
+		christmasTagline: 'Frohe Rätseltage!',
+		christmasTaglineNight: 'Rätsel im Lichterglanz'
 	},
 	home: {
 		title: 'Logikrätsel, nur einen Klick entfernt',

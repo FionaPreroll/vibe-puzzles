@@ -1,0 +1,337 @@
+/*
+ * The winter look, on <html data-theme="winter">: a winter wonderland of snow white, ice blue and
+ * navy by day, a polar night under the northern lights by night, with rounded Comfortaa headings.
+ * Like halloween.css it recolours Tailwind's palette; the board colours are in palette.ts.
+ */
+
+html:not([data-theme='winter']) .winter-only {
+	display: none !important;
+}
+
+@layer base {
+	html[data-theme='winter'] {
+		/* Snow white to navy instead of stone. */
+		--color-stone-50: #f3f8fd;
+		--color-stone-100: #e8f1fa;
+		--color-stone-200: #d3e2f1;
+		--color-stone-300: #b7cde3;
+		--color-stone-400: #8ba3bd;
+		--color-stone-500: #5a7189;
+		--color-stone-600: #475f78;
+		--color-stone-700: #334a61;
+		--color-stone-800: #22364b;
+		--color-stone-900: #142638;
+		--color-stone-950: #0a1726;
+		/* Winter blue instead of indigo. */
+		--color-indigo-50: #eef6ff;
+		--color-indigo-100: #dbeefe;
+		--color-indigo-200: #bde0fb;
+		--color-indigo-300: #8ecbf6;
+		--color-indigo-400: #55aaec;
+		--color-indigo-500: #2a8ad8;
+		--color-indigo-600: #1b6cb8;
+		--color-indigo-700: #175795;
+		--color-indigo-800: #17487a;
+		--color-indigo-900: #173d65;
+		--color-indigo-950: #0f2743;
+		/* The daily puzzle waits in ice blue. */
+		--color-amber-50: #e6f3fd;
+		--color-amber-100: #d0e8fb;
+		--color-amber-900: #173d65;
+		/* Sudoku's digit keys match the board's entered digits. */
+		--color-blue-700: #1660a8;
+		/* The win animation's region colours (see CELEBRATION_COLOURS): ice and frost. */
+		--celebrate-1: #8ecbf6;
+		--celebrate-2: #c7d2fe;
+		--celebrate-3: #a5f3fc;
+		--celebrate-4: #bde0fb;
+		--celebrate-5: #55aaec;
+		--celebrate-6: #e0e7ff;
+		--celebrate-7: #99f6e4;
+		--celebrate-8: #93c5fd;
+	}
+	html.dark[data-theme='winter'] {
+		/* A polar night. */
+		--color-stone-50: #f2f7fc;
+		--color-stone-100: #e6eef7;
+		--color-stone-200: #d5e1ee;
+		--color-stone-300: #bccbdc;
+		--color-stone-400: #9fb1c6;
+		--color-stone-500: #7489a2;
+		--color-stone-600: #4a5f78;
+		--color-stone-700: #2f415a;
+		--color-stone-800: #1f3048;
+		--color-stone-900: #111f33;
+		--color-stone-950: #08121f;
+		/* Ice cyan. */
+		--color-indigo-50: #effcff;
+		--color-indigo-100: #d6f6fd;
+		--color-indigo-200: #b1edfa;
+		--color-indigo-300: #7ddff5;
+		--color-indigo-400: #7ddff5;
+		--color-indigo-500: #67d6f0;
+		--color-indigo-600: #5cc8e6;
+		--color-indigo-700: #1c6f8a;
+		--color-indigo-800: #154e63;
+		--color-indigo-900: #103a4a;
+		--color-indigo-950: #0b2a37;
+		--color-amber-200: #b1edfa;
+		--color-amber-900: #103a4a;
+		--color-amber-950: #0b2433;
+		--color-blue-200: #8fe3f5;
+		--celebrate-1: #5cc8e6;
+		--celebrate-2: #8b5cf6;
+		--celebrate-3: #2dd4bf;
+		--celebrate-4: #3b82f6;
+		--celebrate-5: #7ddff5;
+		--celebrate-6: #a78bfa;
+		--celebrate-7: #5eead4;
+		--celebrate-8: #60a5fa;
+	}
+}
+
+@layer components {
+	/* By day: round like snowballs, with a frosty shadow. */
+	html[data-theme='winter'] .btn,
+	html[data-theme='winter'] .btn-sm {
+		border-radius: 999px;
+	}
+	html[data-theme='winter'] .btn {
+		padding-inline: 0.9rem;
+	}
+	html[data-theme='winter'] .btn-primary {
+		font-weight: 700;
+		box-shadow: 0 4px 14px -6px rgb(27 108 184 / 0.7);
+	}
+	html[data-theme='winter'] .panel {
+		border-radius: 1.25rem;
+		box-shadow: 0 10px 30px -18px rgb(23 72 122 / 0.35);
+	}
+	html[data-theme='winter'] .board-stage {
+		border-radius: 1.5rem;
+		box-shadow:
+			0 0 0 1px var(--color-stone-200),
+			0 22px 44px -20px rgb(23 72 122 / 0.45);
+	}
+	html[data-theme='winter'] .play-bar {
+		border-radius: 1.25rem;
+	}
+	html[data-theme='winter'] .section-title {
+		color: var(--color-indigo-700);
+	}
+	html[data-theme='winter'] header nav a[aria-current='page'] {
+		border-radius: 999px;
+		background: var(--color-indigo-100);
+		color: var(--color-indigo-800);
+	}
+
+	/* By night: ice buttons that glow. */
+	html.dark[data-theme='winter'] .btn-primary {
+		color: #06202c;
+		box-shadow:
+			0 0 0 1px rgb(125 223 245 / 0.5),
+			0 6px 24px -6px rgb(125 223 245 / 0.6);
+	}
+	html.dark[data-theme='winter'] .panel {
+		box-shadow: 0 10px 30px -18px rgb(0 0 0 / 0.6);
+	}
+	html.dark[data-theme='winter'] .board-stage {
+		box-shadow:
+			0 0 0 1px rgb(125 223 245 / 0.22),
+			0 18px 50px -16px rgb(94 234 212 / 0.25);
+	}
+	html.dark[data-theme='winter'] .section-title {
+		color: #7ddff5;
+	}
+	html.dark[data-theme='winter'] header nav a[aria-current='page'] {
+		background: rgb(125 223 245 / 0.14);
+		color: #b1edfa;
+	}
+}
+
+/* Headings: rounded Comfortaa. Unlayered, so it wins over the weight and tracking utilities on
+   the headings: the font ships in weight 700 only. */
+html[data-theme='winter'] .font-display {
+	font-family: 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+/* By night the northern lights glow over the top of the page. */
+html.dark[data-theme='winter'] body {
+	background-image:
+		radial-gradient(ellipse 55% 38% at 72% -4%, rgb(45 212 191 / 0.16), transparent 70%),
+		radial-gradient(ellipse 45% 30% at 38% -6%, rgb(139 92 246 / 0.13), transparent 70%);
+	background-repeat: no-repeat;
+}
+
+/* Phones: the home page's title leaves room for the scene in the corner. */
+@media (width < 40rem) {
+	html[data-theme='winter'] .hero-title {
+		padding-right: 5.5rem;
+	}
+}
+
+/* Solved: an ice blue ring around the board. */
+html[data-theme='winter'] .solved-glow {
+	animation-name: winter-glow;
+	box-shadow: 0 0 0 4px rgb(42 138 216 / 0.55);
+}
+html.dark[data-theme='winter'] .solved-glow {
+	animation-name: winter-glow-night;
+	box-shadow:
+		0 0 0 2px rgb(125 223 245 / 0.7),
+		0 0 40px 0 rgb(125 223 245 / 0.25);
+}
+@keyframes winter-glow {
+	0% {
+		box-shadow: 0 0 0 0 rgb(42 138 216 / 0.9);
+	}
+	30% {
+		box-shadow: 0 0 0 6px rgb(42 138 216 / 0.8);
+	}
+	100% {
+		box-shadow: 0 0 0 4px rgb(42 138 216 / 0.55);
+	}
+}
+@keyframes winter-glow-night {
+	0% {
+		box-shadow: 0 0 0 0 rgb(125 223 245 / 0);
+	}
+	30% {
+		box-shadow:
+			0 0 0 3px rgb(125 223 245 / 0.9),
+			0 0 60px 10px rgb(125 223 245 / 0.4);
+	}
+	100% {
+		box-shadow:
+			0 0 0 2px rgb(125 223 245 / 0.7),
+			0 0 40px 0 rgb(125 223 245 / 0.25);
+	}
+}
+
+/* Snow falling: each flake falls through its box (`cqh` is its height) and sways a little. */
+.winter-snowfall {
+	container-type: size;
+}
+.winter-snowfall .flake {
+	position: absolute;
+	top: -12px;
+	left: var(--x);
+	width: var(--s);
+	opacity: var(--o);
+	animation: winter-fall var(--t) linear var(--d) infinite;
+}
+@keyframes winter-fall {
+	0% {
+		transform: translate(0, 0);
+	}
+	50% {
+		transform: translate(var(--dx), 50cqh);
+	}
+	100% {
+		transform: translate(0, calc(100cqh + 24px));
+	}
+}
+
+/* The northern lights, waving slowly. */
+.winter-aurora {
+	filter: blur(18px);
+	animation: winter-aurora 14s ease-in-out infinite alternate;
+}
+@keyframes winter-aurora {
+	from {
+		transform: translateX(-4%) skewX(-8deg);
+		opacity: 0.75;
+	}
+	to {
+		transform: translateX(4%) skewX(6deg);
+		opacity: 1;
+	}
+}
+.winter-twinkle {
+	animation: winter-twinkle 3s ease-in-out infinite;
+}
+@keyframes winter-twinkle {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.35;
+	}
+}
+.winter-spin {
+	animation: winter-spin 24s linear infinite;
+}
+@keyframes winter-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Inside the board: an icy flash, then snowflakes drift down through it. */
+.winter-burst {
+	container-type: size;
+	animation: winter-flash 1.8s ease-out forwards;
+}
+html.dark .winter-burst {
+	animation-name: winter-flash-night;
+}
+@keyframes winter-flash {
+	0% {
+		box-shadow: inset 0 0 0 0 rgb(125 211 252 / 0);
+	}
+	30% {
+		box-shadow: inset 0 0 44px 12px rgb(125 211 252 / 0.55);
+	}
+	100% {
+		box-shadow: inset 0 0 0 0 rgb(125 211 252 / 0);
+	}
+}
+@keyframes winter-flash-night {
+	0% {
+		box-shadow: inset 0 0 0 0 rgb(125 223 245 / 0);
+	}
+	30% {
+		box-shadow: inset 0 0 44px 12px rgb(125 223 245 / 0.5);
+	}
+	100% {
+		box-shadow: inset 0 0 0 0 rgb(125 223 245 / 0);
+	}
+}
+.winter-burst .flyer {
+	position: absolute;
+	top: -14%;
+	left: var(--x);
+	width: var(--size);
+	opacity: 0;
+	animation: winter-drift 2s cubic-bezier(0.3, 0.4, 0.5, 1) var(--d) forwards;
+}
+@keyframes winter-drift {
+	0% {
+		opacity: 1;
+		transform: translate(-50%, 0) rotate(0);
+	}
+	80% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: translate(calc(-50% + var(--dx)), calc(100cqh + 120%)) rotate(var(--turn));
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.winter-snowfall,
+	.winter-burst .flyer {
+		display: none;
+	}
+	.winter-aurora,
+	.winter-twinkle,
+	.winter-spin,
+	.winter-burst,
+	html[data-theme='winter'] .solved-glow {
+		animation: none;
+	}
+}

@@ -7,6 +7,10 @@
 	import { t } from '../../i18n/index.svelte';
 	import HalloweenCandle from '../halloween/Candle.svelte';
 	import HalloweenPumpkin from '../halloween/Pumpkin.svelte';
+	import CandyCane from '../christmas/CandyCane.svelte';
+	import Gift from '../christmas/Gift.svelte';
+	import FirTree from '../winter/FirTree.svelte';
+	import Snowman from '../winter/Snowman.svelte';
 
 	/**
 	 * The puzzle's ID on a line of its own, then at most three buttons: one stands out only when it
@@ -79,6 +83,9 @@
 	<div class="flex flex-wrap items-end justify-center gap-2">
 		<!-- Halloween on phones: a jack-o'-lantern and candles beside the buttons -->
 		<HalloweenPumpkin face="night" class="halloween-only mr-2 w-10 lg:hidden" />
+		<!-- Winter: a snowman and a fir; Christmas: a present and a candy cane -->
+		<Snowman class="winter-only mr-2 w-9 lg:hidden" />
+		<Gift class="christmas-only mr-2 w-9 lg:hidden" />
 		{#if !session.solved && !autoSubmit}
 			<button
 				class="btn btn-primary max-lg:min-h-11"
@@ -152,5 +159,11 @@
 			<HalloweenCandle class="w-4" />
 			<HalloweenCandle class="w-3" />
 		</span>
+		<FirTree
+			snow
+			class="winter-only ml-2 w-8 fill-[#2e6a5e] lg:hidden dark:fill-[#1d4a52]"
+			snowClass="fill-white dark:fill-[#dbe7f5]"
+		/>
+		<CandyCane class="christmas-only ml-2 w-5 lg:hidden" />
 	</div>
 </div>

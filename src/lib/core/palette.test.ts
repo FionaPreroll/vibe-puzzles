@@ -74,10 +74,14 @@ describe('board palette', () => {
 		const css = paletteCss();
 		for (const [name, value] of Object.entries(colours)) {
 			const variable = value.slice(4, -1);
-			expect(css.split(`${variable}:`).length, name).toBe(6);
+			// One block per palette, and the classic light one again for printed boards.
+			expect(css.split(`${variable}:`).length - 1, name).toBe(Object.keys(PALETTES).length + 1);
 		}
 		expect(css).toContain(':root.dark{--board-surface:#1c1917;');
 		expect(css).toContain(':root[data-theme="halloween"].dark{--board-surface:#1b1528;');
+		expect(css).toContain(':root[data-theme="winter"].dark{--board-surface:#0f1d30;');
+		expect(css).toContain(':root[data-theme="christmas"]{--board-surface:#fffdf8;');
+		expect(css).toContain(':root[data-theme] .board-light{--board-surface:#ffffff;');
 	});
 
 	it('puts the light colours into board markup', () => {

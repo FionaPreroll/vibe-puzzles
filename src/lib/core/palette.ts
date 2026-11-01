@@ -1,5 +1,7 @@
+import type { Look } from './theme';
+
 /**
- * Board colours for the light and the dark theme, in the classic and the Halloween look. Boards
+ * Board colours for the light and the dark theme, in the classic look and each seasonal one. Boards
  * never use colour literals: they take `colours.<name>`, a CSS variable that follows night mode
  * and the look. Screenshots and prints use the classic light theme (see `lightColours` and the
  * `board-light` class).
@@ -180,12 +182,103 @@ const HALLOWEEN_DARK: Palette = {
 	recent: '#b79cff'
 };
 
+/** Winter by day: navy ink on snow, deep blue digits, ice blue highlights. */
+const WINTER_LIGHT: Palette = {
+	...LIGHT,
+	paper: '#f6fafe',
+	ink: '#12263d',
+	line: '#12263d',
+	gridLine: '#5b7088',
+	faint: '#a9bccf',
+	dot: '#34495f',
+	label: '#455d77',
+	entered: '#1660a8',
+	selection: '#bfe1f8',
+	sameDigit: '#d7e6fb',
+	unit: '#edf4fb',
+	cursor: '#0b6e99',
+	recent: '#2a7bd3'
+};
+
+/** Winter by night: a polar night board, ice cyan digits. */
+const WINTER_DARK: Palette = {
+	...DARK,
+	surface: '#0f1d30',
+	paper: '#0f1d30',
+	ink: '#eef5fc',
+	line: '#a8bdd3',
+	gridLine: '#5f7591',
+	faint: '#34485f',
+	dot: '#a8bdd3',
+	label: '#bccde0',
+	entered: '#8fe3f5',
+	selection: '#1d4a63',
+	sameDigit: '#263f6b',
+	unit: '#16273d',
+	cursor: '#a7f3d0',
+	recent: '#7dd3fc',
+	trialShade: '#2e786f'
+};
+
+/** Christmas by day: fir green digits on cream, gold highlights. */
+const CHRISTMAS_LIGHT: Palette = {
+	...LIGHT,
+	surface: '#fffdf8',
+	paper: '#fdf6ea',
+	ink: '#1d2b22',
+	line: '#1d2b22',
+	gridLine: '#5f6b5f',
+	faint: '#b8b09c',
+	dot: '#3a4a3e',
+	label: '#5a6656',
+	entered: '#17663a',
+	selection: '#f9dc8c',
+	sameDigit: '#d9eedb',
+	unit: '#fbf1e1',
+	cursor: '#9a3412',
+	recent: '#a16207'
+};
+
+/** Christmas by night: a fir green board, gold digits. */
+const CHRISTMAS_DARK: Palette = {
+	...DARK,
+	surface: '#11231a',
+	paper: '#11231a',
+	ink: '#fbf4e4',
+	line: '#d6cdb4',
+	gridLine: '#6f7d6c',
+	faint: '#3c4d40',
+	dot: '#d6cdb4',
+	label: '#d3cab4',
+	entered: '#f5c451',
+	selection: '#5c2121',
+	sameDigit: '#24452f',
+	unit: '#182d21',
+	cursor: '#fbbf24',
+	recent: '#e9b949',
+	shaded: '#7d766f',
+	errorShade: '#d42a2a',
+	blueErrorShade: '#2f6ae6',
+	trialShade: '#2e786f'
+};
+
 export const PALETTES = {
 	light: LIGHT,
 	dark: DARK,
 	halloweenLight: HALLOWEEN_LIGHT,
-	halloweenDark: HALLOWEEN_DARK
+	halloweenDark: HALLOWEEN_DARK,
+	winterLight: WINTER_LIGHT,
+	winterDark: WINTER_DARK,
+	christmasLight: CHRISTMAS_LIGHT,
+	christmasDark: CHRISTMAS_DARK
 } satisfies Record<string, Palette>;
+
+/** Each seasonal look's board colours by day and by night, under `data-theme="<look>"`. */
+const SEASONAL: [Exclude<Look, 'classic'>, Palette, Palette][] = [
+	['halloween', HALLOWEEN_LIGHT, HALLOWEEN_DARK],
+	['winter', WINTER_LIGHT, WINTER_DARK],
+	['christmas', CHRISTMAS_LIGHT, CHRISTMAS_DARK]
+];
 
 const NAMES = Object.keys(LIGHT) as ColourName[];
 
@@ -201,18 +294,20 @@ const declarations = (palette: Palette) =>
 	NAMES.map((name) => `${variable(name)}:${palette[name]};`).join('');
 
 /**
- * The CSS variables: dark when the page has the `dark` class, light otherwise, in the Halloween
- * colours when it has `data-theme="halloween"`, and always classic light inside an element with
- * the class `board-light` (the printed board).
+ * The CSS variables: dark when the page has the `dark` class, light otherwise, in a seasonal
+ * look's colours when it has `data-theme="<look>"`, and always classic light inside an element
+ * with the class `board-light` (the printed board).
  */
 export function paletteCss(): string {
-	const halloween = ':root[data-theme="halloween"]';
+	const seasonal = SEASONAL.map(([look, light, dark]) => {
+		const root = `:root[data-theme="${look}"]`;
+		return `${root}{${declarations(light)}}${root}.dark{${declarations(dark)}}`;
+	}).join('');
 	return (
 		`:root,.board-light{${declarations(LIGHT)}}` +
 		`:root.dark{${declarations(DARK)}}` +
-		`${halloween}{${declarations(HALLOWEEN_LIGHT)}}` +
-		`${halloween}.dark{${declarations(HALLOWEEN_DARK)}}` +
-		`:root.dark .board-light,${halloween} .board-light{${declarations(LIGHT)}}`
+		seasonal +
+		`:root.dark .board-light,:root[data-theme] .board-light{${declarations(LIGHT)}}`
 	);
 }
 

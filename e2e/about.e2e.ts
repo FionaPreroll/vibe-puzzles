@@ -11,8 +11,13 @@ test('the About page lists every shipped library with its licence text', async (
 			name,
 			terms: /MIT License|Permission is hereby granted/
 		})),
-		// The Halloween look's heading fonts.
-		...['@fontsource/fredoka', '@fontsource/cinzel'].map((name) => ({
+		// The heading fonts of the Halloween, winter and Christmas looks.
+		...[
+			'@fontsource/fredoka',
+			'@fontsource/cinzel',
+			'@fontsource/comfortaa',
+			'@fontsource/playfair-display'
+		].map((name) => ({
 			name,
 			terms: /SIL Open Font License/
 		}))

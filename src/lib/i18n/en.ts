@@ -58,9 +58,16 @@ const en = {
 		auto: '{look} (automatic)',
 		classic: 'Classic',
 		halloween: 'Halloween',
+		winter: 'Winter',
+		christmas: 'Christmas',
 		/** Above the home page's title in the Halloween look, by day and by night. */
 		tagline: 'Trick or puzzle?',
-		taglineNight: 'Puzzles by moonlight'
+		taglineNight: 'Puzzles by moonlight',
+		/** The same in the winter and the Christmas look. */
+		winterTagline: 'Let it snow, let it solve',
+		winterTaglineNight: 'Puzzles under the northern lights',
+		christmasTagline: 'Merry puzzling!',
+		christmasTaglineNight: 'Puzzles by fairy light'
 	},
 	home: {
 		title: 'Logic puzzles, one click away',

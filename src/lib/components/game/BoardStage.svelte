@@ -9,6 +9,10 @@
 	import HangingSpider from './HangingSpider.svelte';
 	import MessageToast from './MessageToast.svelte';
 	import StageDecor from './StageDecor.svelte';
+	import ChristmasHanging from '../christmas/Hanging.svelte';
+	import ChristmasStageDecor from '../christmas/StageDecor.svelte';
+	import Snowfall from '../winter/Snowfall.svelte';
+	import WinterStageDecor from '../winter/StageDecor.svelte';
 	import type { ToolState } from './tools.svelte';
 	import { twoFingers } from './twoFingers';
 
@@ -50,7 +54,7 @@
 	} = $props();
 
 	const Board = $derived(game.board);
-	/** Halloween: room beside the board for decorations, which must not make the page scroll. */
+	/** Seasonal looks: room beside the board for decorations, which must not make the page scroll. */
 	const decorBeside = $derived(fit.wide && fit.areaWidth - fit.stageWidth >= 2 * 96);
 	// A hint's first look tints only where to look; the next press points at the step itself.
 	const spotlight = $derived(
@@ -110,6 +114,9 @@
 >
 	{#if decorBeside && session.puzzle}
 		<HangingSpider headerGap={fit.headerGap} stageWidth={fit.stageWidth} />
+		<ChristmasHanging headerGap={fit.headerGap} stageWidth={fit.stageWidth} />
+		<!-- Winter: snow falls beside the board, behind its surface -->
+		<Snowfall count={34} class="winter-only text-[#9ec3e6] dark:text-white" />
 	{/if}
 	<div
 		bind:this={fit.boardArea}
@@ -127,6 +134,8 @@
 					: undefined}
 			>
 				<StageDecor beside={decorBeside} />
+				<WinterStageDecor beside={decorBeside} />
+				<ChristmasStageDecor beside={decorBeside} />
 				<div
 					bind:this={boardEl}
 					class="relative z-10 mx-auto w-fit rounded-sm {session.paused
