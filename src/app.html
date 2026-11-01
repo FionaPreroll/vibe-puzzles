@@ -22,12 +22,16 @@
 				if (night ?? matchMedia('(prefers-color-scheme: dark)').matches) {
 					document.documentElement.classList.add('dark');
 				}
-				if (look !== 'classic' && look !== 'halloween') {
+				if (!['classic', 'halloween', 'winter', 'christmas'].includes(look)) {
 					const now = new Date();
-					const october = now.getMonth() === 9;
-					look = october || (now.getMonth() === 10 && now.getDate() === 1) ? 'halloween' : '';
+					const month = now.getMonth();
+					const day = now.getDate();
+					if (month === 9 || (month === 10 && day === 1)) look = 'halloween';
+					else if (month === 11 && day <= 27) look = 'christmas';
+					else if (month === 10 || month === 11 || month === 0) look = 'winter';
+					else look = 'classic';
 				}
-				if (look === 'halloween') document.documentElement.dataset.theme = 'halloween';
+				if (look !== 'classic') document.documentElement.dataset.theme = look;
 			}
 		</script>
 		%sveltekit.head%

@@ -21,7 +21,9 @@ const SHIPPED_PACKAGES = [
 	'clsx',
 	'tailwindcss',
 	'@fontsource/fredoka',
-	'@fontsource/cinzel'
+	'@fontsource/cinzel',
+	'@fontsource/comfortaa',
+	'@fontsource/playfair-display'
 ];
 
 function commit(): string {

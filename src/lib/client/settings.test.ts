@@ -108,9 +108,12 @@ describe('look', () => {
 
 		vi.setSystemTime(new Date(2026, 11, 24));
 		setLook('auto');
+		expect(theme.look).toBe('christmas');
+		vi.setSystemTime(new Date(2027, 2, 1));
+		setLook('auto');
 		expect(theme.look).toBe('classic');
-		setLook('halloween');
-		expect(theme.look).toBe('halloween');
+		setLook('winter');
+		expect(theme.look).toBe('winter');
 	});
 
 	it('starts from the stored pick, or the calendar if there is none', async () => {

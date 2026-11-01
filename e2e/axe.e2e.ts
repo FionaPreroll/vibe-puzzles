@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 /**
  * Automatic accessibility checks with axe: names and roles, contrast, keyboard access and the size
- * of touch targets (the rules for WCAG 2.2 A and AA). Every page and game, in both looks, by day
+ * of touch targets (the rules for WCAG 2.2 A and AA). Every page and game, in every look, by day
  * and by night, then the menus and dialogs, a solved puzzle, the tutorials, a phone and the
  * widescreen layout.
  */
@@ -58,7 +58,7 @@ async function openGame(page: Page, path: string) {
 	await page.waitForLoadState('networkidle');
 }
 
-for (const look of ['classic', 'halloween'] as const) {
+for (const look of ['classic', 'halloween', 'winter', 'christmas'] as const) {
 	for (const scheme of ['light', 'dark'] as const) {
 		test.describe(`${look} by ${scheme === 'light' ? 'day' : 'night'}`, () => {
 			test.use({ colorScheme: scheme });

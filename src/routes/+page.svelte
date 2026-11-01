@@ -9,6 +9,15 @@
 	import Pumpkin from '#lib/components/halloween/Pumpkin.svelte';
 	import Spider from '#lib/components/halloween/Spider.svelte';
 	import Stars from '#lib/components/halloween/Stars.svelte';
+	import Bauble from '#lib/components/christmas/Bauble.svelte';
+	import CandyCane from '#lib/components/christmas/CandyCane.svelte';
+	import Gift from '#lib/components/christmas/Gift.svelte';
+	import Holly from '#lib/components/christmas/Holly.svelte';
+	import ChristmasScene from '#lib/components/christmas/HomeScene.svelte';
+	import FirTree from '#lib/components/winter/FirTree.svelte';
+	import WinterScene from '#lib/components/winter/HomeScene.svelte';
+	import Sky from '#lib/components/winter/Sky.svelte';
+	import Snowflake from '#lib/components/winter/Snowflake.svelte';
 	import { currentPlayer } from '#lib/client/api.ts';
 	import { syncGamePeriods } from '#lib/client/periodSync.ts';
 	import { latestUnfinished } from '#lib/client/resume.ts';
@@ -77,6 +86,7 @@
 
 <section class="relative flex items-end justify-between gap-6">
 	<Stars />
+	<Sky />
 	<div class="relative max-w-3xl min-w-0 flex-1">
 		<p class="halloween-only mb-3">
 			<span
@@ -87,10 +97,31 @@
 				>{t('look.taglineNight')}</span
 			>
 		</p>
+		<p class="winter-only relative mb-3">
+			<span
+				class="only-day inline-flex items-center gap-2 rounded-full bg-[#dbeefe] py-1 pr-3.5 pl-2 text-sm font-semibold text-[#17487a]"
+				><Snowflake class="h-[1.2em] text-[#2a8ad8]" />{t('look.winterTagline')}</span
+			>
+			<span
+				class="only-night inline-flex items-center gap-2 text-sm font-semibold tracking-[0.18em] text-[#7ddff5] uppercase"
+				><Snowflake class="h-[1.1em]" />{t('look.winterTaglineNight')}</span
+			>
+		</p>
+		<p class="christmas-only mb-2">
+			<span
+				class="only-day christmas-tagline inline-flex items-center gap-2 rounded-full bg-[#fbe1e1] py-0.5 pr-3.5 pl-1.5 text-base text-[#931f19]"
+				><Holly class="h-[1.3em]" />{t('look.christmasTagline')}</span
+			>
+			<span class="only-night christmas-tagline text-lg text-[#f5c451]"
+				>{t('look.christmasTaglineNight')}</span
+			>
+		</p>
 		<h1 class="hero-title font-display text-3xl font-bold tracking-tight">{t('home.title')}</h1>
 		<p class="mt-2 text-stone-600 dark:text-stone-400">{t('home.intro')}</p>
 	</div>
 	<HomeScene />
+	<WinterScene />
+	<ChristmasScene />
 </section>
 
 {#if !mounted}
@@ -134,6 +165,29 @@
 				/>
 			{:else if game.id === 'sudoku'}
 				<Cobweb class="halloween-only absolute top-0 right-0 -z-10 w-16" />
+			{/if}
+			<!-- Winter and Christmas: a decoration in the corner of some cards -->
+			{#if game.id === 'tetroid'}
+				<Snowflake
+					class="winter-only absolute top-4 right-5 -z-10 w-8 text-[#8ecbf6] dark:text-[#4fd0ee]"
+				/>
+				<Holly class="christmas-only absolute top-3 right-4 -z-10 w-14" />
+			{:else if game.id === 'pinwheel'}
+				<Snowflake
+					class="winter-only winter-spin absolute top-3 right-4 -z-10 w-12 text-[#bde0fb] dark:text-[#2f6b8a]"
+				/>
+				<Bauble
+					thread={14}
+					colour="#c81e1e"
+					class="christmas-only christmas-swing absolute top-0 right-8 -z-10 w-8"
+				/>
+			{:else if game.id === 'sudoku'}
+				<FirTree
+					snow
+					class="winter-only absolute top-3 right-5 -z-10 w-9 fill-[#2e6a5e] dark:fill-[#1d4a52]"
+					snowClass="fill-[#e8f1fa] dark:fill-[#dbe7f5]"
+				/>
+				<CandyCane class="christmas-only absolute top-2 right-6 -z-10 w-5 rotate-12" />
 			{/if}
 			<a href={gameUrl(game.id)} class="group block flex-1">
 				<div class="flex items-center gap-3">
@@ -188,6 +242,8 @@
 						<span class="classic-only" aria-hidden="true">☀</span>
 						<Pumpkin class="halloween-only only-day w-[1.1em]" />
 						<Candle class="halloween-only only-night h-[1.1em]" />
+						<Snowflake class="winter-only w-[1.1em] text-[#2a8ad8] dark:text-[#7ddff5]" />
+						<Gift class="christmas-only w-[1.1em]" />
 					{/if}
 					<span class="flex-1">{s.dailyDone ? t('home.dailyDone') : t('home.dailyOpen')}</span>
 					{#if s.dailyStreak > 0}
