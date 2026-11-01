@@ -5,9 +5,10 @@
  * own, and shows the decorations marked .halloween-only. The board colours are in palette.ts.
  */
 
-/* Decorations: .halloween-only and .classic-only by look, .only-day and .only-night by mode. */
+/* Decorations: .halloween-only by look, .classic-only only in the classic look (every seasonal
+   look sets data-theme), .only-day and .only-night by mode. */
 html:not([data-theme='halloween']) .halloween-only,
-html[data-theme='halloween'] .classic-only,
+html[data-theme] .classic-only,
 html.dark .only-day,
 html:not(.dark) .only-night {
 	display: none !important;

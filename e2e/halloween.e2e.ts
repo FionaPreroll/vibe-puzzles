@@ -11,6 +11,9 @@ const CREAM = 'rgb(255, 248, 241)';
 
 const root = (page: Page) => page.locator('html');
 const themeSelect = (page: Page) => page.getByRole('combobox', { name: 'Theme' });
+/** A look picked before the app runs goes unnoticed; the daily puzzle links show once it runs. */
+const appRuns = (page: Page) =>
+	expect(page.getByRole('link', { name: /Daily puzzle waiting/ }).first()).toBeVisible();
 
 test('the calendar picks Halloween in October; the player can switch it off and back', async ({
 	page
@@ -21,6 +24,7 @@ test('the calendar picks Halloween in October; the player can switch it off and 
 	await expect(themeSelect(page).locator('option:checked')).toHaveText('Halloween (automatic)');
 	await expect(page.getByText('Trick or puzzle?')).toBeVisible();
 
+	await appRuns(page);
 	await themeSelect(page).selectOption('classic');
 	await expect(root(page)).not.toHaveAttribute('data-theme');
 	await expect(page.getByText('Trick or puzzle?')).toBeHidden();
@@ -40,6 +44,7 @@ test('outside the season the look stays classic unless the player picks Hallowee
 	await expect(themeSelect(page).locator('option:checked')).toHaveText('Classic (automatic)');
 	await expect(root(page)).not.toHaveAttribute('data-theme');
 
+	await appRuns(page);
 	await themeSelect(page).selectOption('halloween');
 	await expect(root(page)).toHaveAttribute('data-theme', 'halloween');
 	await page.reload();

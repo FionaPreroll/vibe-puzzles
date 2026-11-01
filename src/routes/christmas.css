@@ -1,0 +1,355 @@
+/*
+ * The Christmas look, on <html data-theme="christmas">: a Christmas market of warm cream,
+ * Christmas red and fir green with gold by day, a fir green night with glowing gold and fairy
+ * lights by night, with Playfair Display headings. Like halloween.css it recolours Tailwind's
+ * palette; the board colours are in palette.ts.
+ */
+
+html:not([data-theme='christmas']) .christmas-only {
+	display: none !important;
+}
+
+@layer base {
+	html[data-theme='christmas'] {
+		/* Warm cream to dark brown instead of stone. */
+		--color-stone-50: #fcf7ef;
+		--color-stone-100: #f7ecdc;
+		--color-stone-200: #ebdac2;
+		--color-stone-300: #dbc3a3;
+		--color-stone-400: #a8937a;
+		--color-stone-500: #75634f;
+		--color-stone-600: #65543f;
+		--color-stone-700: #4b3d2d;
+		--color-stone-800: #34291e;
+		--color-stone-900: #231b12;
+		--color-stone-950: #140f09;
+		/* Christmas red instead of indigo. */
+		--color-indigo-50: #fdf2f2;
+		--color-indigo-100: #fbe1e1;
+		--color-indigo-200: #f6c3c3;
+		--color-indigo-300: #ee9a9a;
+		--color-indigo-400: #e06666;
+		--color-indigo-500: #cc3333;
+		--color-indigo-600: #b3261e;
+		--color-indigo-700: #931f19;
+		--color-indigo-800: #761b17;
+		--color-indigo-900: #611815;
+		--color-indigo-950: #3d0b09;
+		/* The daily puzzle waits in fir green. */
+		--color-amber-50: #e8f3ea;
+		--color-amber-100: #d3e9d7;
+		--color-amber-900: #14532d;
+		/* Sudoku's digit keys match the board's entered digits. */
+		--color-blue-700: #17663a;
+		/* The win animation's region colours (see CELEBRATION_COLOURS): red, green and gold. */
+		--celebrate-1: #e0362c;
+		--celebrate-2: #f5c451;
+		--celebrate-3: #2f9e5b;
+		--celebrate-4: #f87171;
+		--celebrate-5: #d9a63a;
+		--celebrate-6: #4ade80;
+		--celebrate-7: #fca5a5;
+		--celebrate-8: #fde68a;
+	}
+	html.dark[data-theme='christmas'] {
+		/* A fir green night. */
+		--color-stone-50: #f8f5ec;
+		--color-stone-100: #efe9da;
+		--color-stone-200: #e2dac6;
+		--color-stone-300: #cdc3ab;
+		--color-stone-400: #b0a68c;
+		--color-stone-500: #8a8670;
+		--color-stone-600: #556455;
+		--color-stone-700: #34473a;
+		--color-stone-800: #23352a;
+		--color-stone-900: #13241b;
+		--color-stone-950: #0a1610;
+		/* Gold. */
+		--color-indigo-50: #fffaeb;
+		--color-indigo-100: #fff1c7;
+		--color-indigo-200: #ffe28a;
+		--color-indigo-300: #fcd15a;
+		--color-indigo-400: #f5c451;
+		--color-indigo-500: #eab53c;
+		--color-indigo-600: #e3a92e;
+		--color-indigo-700: #8a6414;
+		--color-indigo-800: #5c430f;
+		--color-indigo-900: #3d2d0c;
+		--color-indigo-950: #2a1f09;
+		/* The daily puzzle waits in deep red. */
+		--color-amber-200: #fecaca;
+		--color-amber-900: #5c1a1a;
+		--color-amber-950: #3d1212;
+		--color-blue-200: #f5c451;
+		--celebrate-1: #c81e1e;
+		--celebrate-2: #e3a92e;
+		--celebrate-3: #1f8a4c;
+		--celebrate-4: #b45309;
+		--celebrate-5: #f5c451;
+		--celebrate-6: #15803d;
+		--celebrate-7: #dc2626;
+		--celebrate-8: #ca8a04;
+	}
+}
+
+@layer components {
+	/* By day: red buttons with a gold seam, panels with a fine gold frame. */
+	html[data-theme='christmas'] .btn {
+		border-radius: 0.625rem;
+	}
+	html[data-theme='christmas'] .btn-primary {
+		font-weight: 600;
+		box-shadow:
+			inset 0 0 0 1px rgb(245 196 81 / 0.55),
+			0 2px 0 var(--color-indigo-800);
+	}
+	html[data-theme='christmas'] .btn-primary:active {
+		transform: translateY(1px);
+		box-shadow:
+			inset 0 0 0 1px rgb(245 196 81 / 0.55),
+			0 1px 0 var(--color-indigo-800);
+	}
+	html[data-theme='christmas'] .panel {
+		border-radius: 1rem;
+		border-color: #ead7b0;
+		box-shadow:
+			inset 0 0 0 3px #fffdf8,
+			inset 0 0 0 4px #f1e3c4;
+	}
+	html[data-theme='christmas'] .board-stage {
+		border-radius: 1.25rem;
+		background: #fffdf8;
+		box-shadow:
+			0 0 0 1px #e3c98f,
+			0 0 0 5px #fffdf8,
+			0 0 0 6px #ead7b0,
+			0 20px 40px -18px rgb(118 27 23 / 0.35);
+	}
+	html[data-theme='christmas'] .section-title,
+	html[data-theme='christmas'] .link {
+		color: #166534;
+	}
+	html[data-theme='christmas'] header nav a[aria-current='page'] {
+		background: var(--color-indigo-100);
+		color: var(--color-indigo-800);
+	}
+
+	/* By night: gold buttons that glow, quiet panels. */
+	html.dark[data-theme='christmas'] .btn-primary {
+		color: #13241b;
+		font-weight: 700;
+		box-shadow:
+			0 0 0 1px rgb(245 196 81 / 0.5),
+			0 6px 22px -8px rgb(245 196 81 / 0.65);
+	}
+	html.dark[data-theme='christmas'] .btn-primary:active {
+		transform: none;
+	}
+	html.dark[data-theme='christmas'] .panel {
+		border-color: #34473a;
+		box-shadow: none;
+	}
+	html.dark[data-theme='christmas'] .board-stage {
+		background: #11231a;
+		box-shadow:
+			0 0 0 1px rgb(245 196 81 / 0.35),
+			0 18px 48px -18px rgb(245 196 81 / 0.35);
+	}
+	html.dark[data-theme='christmas'] .section-title,
+	html.dark[data-theme='christmas'] .link {
+		color: #f5c451;
+	}
+	html.dark[data-theme='christmas'] header nav a[aria-current='page'] {
+		border-radius: 0;
+		background: transparent;
+		color: #ffe28a;
+		box-shadow: inset 0 -2px 0 #e3a92e;
+	}
+}
+
+/* Headings in Playfair Display. Unlayered, so it wins over the weight and tracking utilities on
+   the headings: the font ships in weight 700 only. */
+html[data-theme='christmas'] .font-display {
+	font-family: 'Playfair Display', Georgia, serif;
+	font-weight: 700;
+	letter-spacing: 0;
+}
+/* The line above the home page's title. */
+.christmas-tagline {
+	font-family: 'Playfair Display', Georgia, serif;
+	font-style: italic;
+	font-weight: 700;
+}
+
+/* By night a warm glow from the fairy lights at the top of the page. */
+html.dark[data-theme='christmas'] body {
+	background-image: radial-gradient(
+		ellipse 70% 34% at 50% -6%,
+		rgb(245 196 81 / 0.09),
+		transparent 70%
+	);
+	background-repeat: no-repeat;
+}
+
+/* Phones: the home page's title leaves room for the scene in the corner. */
+@media (width < 40rem) {
+	html[data-theme='christmas'] .hero-title {
+		padding-right: 5.5rem;
+	}
+}
+
+/* Solved: a gold ring around the board. */
+html[data-theme='christmas'] .solved-glow {
+	animation-name: christmas-glow;
+	box-shadow: 0 0 0 4px rgb(227 169 46 / 0.7);
+}
+html.dark[data-theme='christmas'] .solved-glow {
+	animation-name: christmas-glow-night;
+	box-shadow:
+		0 0 0 2px rgb(245 196 81 / 0.7),
+		0 0 40px 0 rgb(245 196 81 / 0.25);
+}
+@keyframes christmas-glow {
+	0% {
+		box-shadow: 0 0 0 0 rgb(227 169 46 / 0.9);
+	}
+	30% {
+		box-shadow: 0 0 0 6px rgb(227 169 46 / 0.85);
+	}
+	100% {
+		box-shadow: 0 0 0 4px rgb(227 169 46 / 0.7);
+	}
+}
+@keyframes christmas-glow-night {
+	0% {
+		box-shadow: 0 0 0 0 rgb(245 196 81 / 0);
+	}
+	30% {
+		box-shadow:
+			0 0 0 3px rgb(245 196 81 / 0.9),
+			0 0 60px 10px rgb(245 196 81 / 0.4);
+	}
+	100% {
+		box-shadow:
+			0 0 0 2px rgb(245 196 81 / 0.7),
+			0 0 40px 0 rgb(245 196 81 / 0.25);
+	}
+}
+html[data-theme='christmas'] .next-up {
+	animation-name: christmas-next-up;
+}
+@keyframes christmas-next-up {
+	0% {
+		box-shadow: 0 0 0 0 rgb(179 38 30 / 0.6);
+	}
+	100% {
+		box-shadow: 0 0 0 10px rgb(179 38 30 / 0);
+	}
+}
+
+/* Fairy lights and the tree's lights: by night each bulb glows (a halo: a filter would be cut off
+   at the bulb's box) and they twinkle in turn. The tree's star glows too. */
+.christmas-bulb .halo,
+.christmas-star-halo {
+	display: none;
+}
+html.dark .christmas-bulb .halo {
+	display: inline;
+	opacity: 0.35;
+}
+html.dark .christmas-star-halo {
+	display: inline;
+	opacity: 0.22;
+}
+html.dark .christmas-bulb {
+	animation: christmas-bulb 2.4s ease-in-out var(--d, 0s) infinite;
+}
+@keyframes christmas-bulb {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.55;
+	}
+}
+html.dark .christmas-glow {
+	filter: drop-shadow(0 0 10px rgb(253 224 71 / 0.55));
+}
+.christmas-swing {
+	transform-origin: 50% 0;
+	animation: christmas-swing 5s ease-in-out infinite;
+}
+@keyframes christmas-swing {
+	0%,
+	100% {
+		transform: rotate(-5deg);
+	}
+	50% {
+		transform: rotate(5deg);
+	}
+}
+/* A long thread swings slower and less far. */
+[data-bauble].christmas-swing {
+	animation-duration: 7s;
+}
+
+/* Inside the board: a golden flash, then presents, baubles and stars (by night stars and lights)
+   fly up from below it. `cqh` is the board's height. */
+.christmas-burst {
+	container-type: size;
+	animation: christmas-flash 1.7s ease-out forwards;
+}
+@keyframes christmas-flash {
+	0% {
+		box-shadow: inset 0 0 0 0 rgb(245 196 81 / 0);
+	}
+	30% {
+		box-shadow: inset 0 0 44px 12px rgb(245 196 81 / 0.55);
+	}
+	100% {
+		box-shadow: inset 0 0 0 0 rgb(245 196 81 / 0);
+	}
+}
+.christmas-burst .flyer {
+	position: absolute;
+	top: 100%;
+	left: var(--x);
+	width: var(--size);
+	opacity: 0;
+	animation: christmas-rise 1.7s cubic-bezier(0.2, 0.7, 0.3, 1) var(--d) forwards;
+}
+.christmas-burst .light {
+	background: #ffe28a;
+	box-shadow: 0 0 10px 4px rgb(245 196 81 / 0.7);
+}
+@keyframes christmas-rise {
+	0% {
+		opacity: 1;
+		transform: translate(-50%, 0) scale(0.5) rotate(0);
+	}
+	80% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: translate(calc(-50% + var(--dx)), calc(-100cqh - 120%)) scale(1.1)
+			rotate(var(--turn));
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.christmas-burst .flyer {
+		display: none;
+	}
+	html.dark .christmas-bulb,
+	.christmas-swing,
+	.christmas-burst,
+	html[data-theme='christmas'] .solved-glow,
+	html[data-theme='christmas'] .next-up {
+		animation: none;
+	}
+	html[data-theme='christmas'] .btn-primary:active {
+		transform: none;
+	}
+}
