@@ -24,7 +24,7 @@
 	import type { SavedGame } from '#lib/client/session/saves.ts';
 	import { currentPeriodStreak, getStats } from '#lib/client/stats.ts';
 	import { load } from '#lib/client/storage.ts';
-	import { isPlayable, periodKey } from '#lib/core/variants.ts';
+	import { isPlayable, modeStarts, periodKey } from '#lib/core/variants.ts';
 	import { GAMES } from '#lib/games/index.ts';
 	import { tutorialDoneKey, tutorialsOf, type TutorialRef } from '#lib/games/tutorials.ts';
 	import { nextDailyText, t, variantLabel } from '#lib/i18n/index.svelte.ts';
@@ -154,6 +154,7 @@
 	{#each GAMES as game (game.id)}
 		{@const s = status[game.id]}
 		{@const daily = dailyKey(game)}
+		{@const modes = modeStarts(game.variants)}
 		<li class="panel relative isolate flex h-full flex-col overflow-hidden">
 			<!-- Halloween: a spider, a bat or a cobweb in the corner -->
 			{#if game.id === 'tetroid'}
@@ -252,8 +253,16 @@
 				</a>
 				<p class="mt-1 text-xs text-stone-500 dark:text-stone-400">{nextDailyText(now)}</p>
 			{/if}
-			<div class="mt-3">
-				<a class="btn btn-primary" href={gameUrl(game.id)}>{t('home.play')}</a>
+			<!-- A game with modes gets a button per mode, each named: "Play Sudoku", "Play Calcudoku". -->
+			<div class="mt-3 flex flex-wrap gap-2">
+				<a class="btn btn-primary" href={gameUrl(game.id)}
+					>{modes.length ? t('home.playGame', { game: game.name }) : t('home.play')}</a
+				>
+				{#each modes as m (m.mode)}
+					<a class="btn btn-primary" href={gameUrl(game.id, m.key)}
+						>{t('home.playGame', { game: t(`mode.${m.mode}`) })}</a
+					>
+				{/each}
 			</div>
 		</li>
 	{/each}

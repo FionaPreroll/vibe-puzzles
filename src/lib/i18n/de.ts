@@ -77,7 +77,8 @@ const de: Dictionary = {
 		streak: 'Serie {count}',
 		newHere: 'Neu hier? Jedes Tutorial dauert nur eine Minute.',
 		learn: '{game} lernen',
-		play: 'Spielen'
+		play: 'Spielen',
+		playGame: '{game} spielen'
 	},
 	game: {
 		menu: '{game}-Menü',

@@ -174,6 +174,40 @@ test('the Sudoku screenshot shows the whole board', async ({ page }) => {
 	expect(size).toEqual([width, width]);
 });
 
+test('the Sudoku card on the home page plays Sudoku or Calcudoku, side by side', async ({
+	page
+}) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
+	await page.setViewportSize({ width: 320, height: 800 });
+	await page.goto('/');
+	const card = page
+		.getByRole('listitem')
+		.filter({ has: page.getByRole('heading', { name: 'Sudoku' }) });
+	const sudoku = card.getByRole('link', { name: 'Play Sudoku', exact: true });
+	const calc = card.getByRole('link', { name: 'Play Calcudoku', exact: true });
+	await expect(sudoku).toBeVisible();
+	await expect(calc).toBeVisible();
+	// In English they share a line even on the narrowest phone; longer names (German, the winter
+	// look's larger buttons) put the second one below the first.
+	const [a, b] = [(await sudoku.boundingBox())!, (await calc.boundingBox())!];
+	expect(b.y).toBe(a.y);
+	expect(b.x).toBeGreaterThan(a.x + a.width);
+	// Games without modes keep their plain "Play".
+	const tetroid = page
+		.getByRole('listitem')
+		.filter({ has: page.getByRole('heading', { name: 'Tetroid' }) });
+	await expect(tetroid.getByRole('link', { name: 'Play', exact: true })).toBeVisible();
+
+	// It opens the first Calcudoku type, as the tutorial does when done.
+	await calc.click();
+	await expect(page).toHaveURL(/\/sudoku\?v=c5e$/);
+	await expect(
+		page.getByRole('button', { name: /Calcudoku 5×5 Easy, Puzzle types/ })
+	).toBeVisible();
+	const board = page.getByRole('application', { name: 'Puzzle board' });
+	await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
+});
+
 test('Calcudoku shows cages with their results and checks rows and columns', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
 	await page.goto('/sudoku?v=c5e');

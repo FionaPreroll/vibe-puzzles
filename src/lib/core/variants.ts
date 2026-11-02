@@ -28,6 +28,20 @@ export interface Variant {
 /** Whether a type can be played (it exists and is not just announced). */
 export const isPlayable = (v: Variant | undefined): v is Variant => !!v && !v.comingSoon;
 
+/**
+ * Where each mode other than the game's main one starts: its first playable regular type, in
+ * the order the modes first appear (Calcudoku 5×5 Easy in Sudoku).
+ */
+export function modeStarts(variants: Variant[]): (Variant & { mode: string })[] {
+	const starts = new Map<string, Variant & { mode: string }>();
+	for (const v of variants) {
+		if (v.mode && !v.special && isPlayable(v) && !starts.has(v.mode)) {
+			starts.set(v.mode, { ...v, mode: v.mode });
+		}
+	}
+	return [...starts.values()];
+}
+
 const SEED_SPACE = 1 << 26;
 const VARIANT_SLOTS = 16;
 
