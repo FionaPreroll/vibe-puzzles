@@ -4,7 +4,9 @@ What changes for players, newest first. The app shows this list on its About pag
 
 Changes go under `## [Unreleased]` until they get a version; see "Changelog and versions" in the README. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.9.0] - 2026-11-02
+
+Pipes joins the games, Loop is playable in every size, the new Inside page shows how the puzzles are made, and the site dresses up for winter and Christmas.
 
 ### Added
 

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { readChangelog } from '../scripts/changelog';
 import { BACKUP_FORMAT, BACKUP_VERSION } from '../src/lib/client/backup';
 import { colours as palette } from '../src/lib/core/palette';
 
@@ -204,10 +205,16 @@ test('the About page shows the changelog, and the version in the footer leads to
 		section.getByRole('heading', { level: 3, name: new RegExp(`^Version ${escaped}, `) })
 	).toHaveText(new RegExp(`^Version ${escaped}, \\w+ \\d+, \\d{4}$`));
 	await expect(section.getByRole('heading', { name: 'New', level: 4 }).first()).toBeVisible();
-	// Bold and plain pieces join without stray spaces.
-	const change = section.getByRole('listitem').filter({ hasText: /^Changelog on the About/ });
-	await expect(change).toHaveText('Changelog on the About page.');
-	await expect(change.locator('strong')).toHaveText('Changelog');
+	// Bold and plain pieces join without stray spaces: a change of the current version, as
+	// CHANGELOG.md has it.
+	const item = readChangelog('.')
+		.find((r) => r.version === version)!
+		.sections.flatMap((s) => s.items)
+		.find((pieces) => pieces.some((p) => p.strong))!;
+	const text = item.map((p) => p.text).join('');
+	const change = section.getByRole('listitem').filter({ hasText: text });
+	await expect(change).toHaveText(text);
+	await expect(change.locator('strong').first()).toHaveText(item.find((p) => p.strong)!.text);
 
 	// In German, the headings follow; the changes themselves stay in English.
 	await page.getByRole('combobox', { name: /Language|Sprache/ }).selectOption('de');
