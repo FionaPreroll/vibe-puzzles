@@ -19,6 +19,7 @@ import {
 	decodePuzzleId,
 	encodePuzzleId,
 	isPlayable,
+	modeStarts,
 	nextPeriodStart,
 	parsePlayableId,
 	periodKey,
@@ -360,6 +361,30 @@ describe('variants', () => {
 		expect(parsePlayableId('x', types)).toBeUndefined();
 		// "New puzzle" after a special never continues with an announced type.
 		expect(regularCounterpart(types, types[2]).key).toBe('small');
+	});
+
+	it('starts each mode with its first playable regular type', () => {
+		const type = (key: string, extra: Partial<Variant> = {}): Variant => ({
+			key,
+			label: key,
+			width: 5,
+			height: 5,
+			difficulty: 'normal',
+			...extra
+		});
+		const types = [
+			type('main'),
+			type('calcDaily', { mode: 'calc', special: 'daily' }),
+			type('calcSoon', { mode: 'calc', comingSoon: true }),
+			type('calcSmall', { mode: 'calc' }),
+			type('other', { mode: 'other' }),
+			type('calcBig', { mode: 'calc' })
+		];
+		expect(modeStarts(types).map((v) => [v.mode, v.key])).toEqual([
+			['calc', 'calcSmall'],
+			['other', 'other']
+		]);
+		expect(modeStarts([type('main')])).toEqual([]);
 	});
 
 	it('keeps longer periods longer', () => {

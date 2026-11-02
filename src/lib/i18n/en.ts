@@ -79,7 +79,9 @@ const en = {
 		streak: 'Streak {count}',
 		newHere: 'New here? Each tutorial takes a minute.',
 		learn: 'Learn {game}',
-		play: 'Play'
+		play: 'Play',
+		/** On the card of a game with modes, one button per mode (Sudoku and Calcudoku). */
+		playGame: 'Play {game}'
 	},
 	game: {
 		menu: '{game} menu',
