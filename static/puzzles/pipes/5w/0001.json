@@ -1,0 +1,12 @@
+{
+	"version": 2,
+	"game": "pipes",
+	"variant": "5w",
+	"puzzles": [
+		{"id":1028762513,"puzzle":{"width":5,"height":5,"wrap":true,"tiles":"32739a1e44347e549ddd4a426"}},
+		{"id":592703777,"puzzle":{"width":5,"height":5,"wrap":true,"tiles":"b5d5b218485d7d28ec4426aab"}},
+		{"id":440396641,"puzzle":{"width":5,"height":5,"wrap":true,"tiles":"a5d925ad4217eb49d4794c524"}},
+		{"id":1059228801,"puzzle":{"width":5,"height":5,"wrap":true,"tiles":"54da571648b5965dad2898785"}},
+		{"id":93833073,"puzzle":{"width":5,"height":5,"wrap":true,"tiles":"636a1b2b213bdd1ad2c1a7581"}}
+	]
+}

@@ -1,0 +1,12 @@
+{
+	"version": 2,
+	"game": "pipes",
+	"variant": "7n",
+	"puzzles": [
+		{"id":661588802,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"8539a1895db2cca9db5d655db88521a985a4db786b268bc16"}},
+		{"id":35161826,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"16426985b287e2e7dbbea88b54c32ed3bb46911d2222aa7a9"}},
+		{"id":264877714,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"41317b9be764a25a9e4bc245de753db7482a52dea98126622"}},
+		{"id":592055618,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"44c2c417bba7595a5b7a41add7526b2cdd4434b2732a5b228"}},
+		{"id":945708306,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"48977685a54125cbb2eca93bbe258b646dd473dc514e64162"}}
+	]
+}
