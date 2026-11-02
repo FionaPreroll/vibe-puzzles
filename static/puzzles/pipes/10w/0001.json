@@ -1,0 +1,12 @@
+{
+	"version": 2,
+	"game": "pipes",
+	"variant": "10w",
+	"puzzles": [
+		{"id":710715013,"puzzle":{"width":10,"height":10,"wrap":true,"tiles":"421ec39423aea959881e4d24e627822d23e1db71aed45554824654ab7ed64e6ebbd3827dee85b91445eb11b9a8ed9b827e89"}},
+		{"id":831070069,"puzzle":{"width":10,"height":10,"wrap":true,"tiles":"7435ae545984e64d55319a11cc51426ab159a8e91edee984798e1e5adeb5b51bd7827d3827aa9e35d13755411b7485a752c8"}},
+		{"id":793454069,"puzzle":{"width":10,"height":10,"wrap":true,"tiles":"d25912276bac7bb98b8c5a82a3841bed592a138575514d3ebdb8157e7da79a144e3338e82d5da5a85197473d817b46924d1a"}},
+		{"id":236736101,"puzzle":{"width":10,"height":10,"wrap":true,"tiles":"8648c88ba8c8d61abbc688d82271851aebbeb81515a5bb83ebeeaede83bc85278b62313d2a87e7ad278b98e8eb2ac9749183"}},
+		{"id":502597541,"puzzle":{"width":10,"height":10,"wrap":true,"tiles":"1aaab8455121a5d7698b412e95da27562b2be7eea3878b31a22d7bbd61654124eb75513457e4eeab629b851c84ea943dc664"}}
+	]
+}
