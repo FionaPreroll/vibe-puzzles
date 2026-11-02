@@ -1,0 +1,13 @@
+{
+	"version": 2,
+	"game": "pipes",
+	"variant": "daily",
+	"puzzles": [
+		{"id":132586012,"period":"2027-12-01","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"48492193485b45a2e98a595ebed2a5587dd7cdd652141d586c97aaeb573a3b63de373aa2de83ea5846c6ee5ae62c16211114"}},
+		{"id":937911724,"period":"2027-12-02","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"81a64867519b17d67499478b847c4a4b1ebe3b2a8e8ae29bbc4e62dba63217be3e1d5cb92d9b4e9aa3a71a8152884b19b9c8"}},
+		{"id":669469820,"period":"2027-12-03","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"8c64492138cbd36d37b81295295e4819ed9dde53236cbbe5a8583a3ea7b2dbc2abc8b6d487b7725ae29759829264883a5a51"}},
+		{"id":401002108,"period":"2027-12-04","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"642492c5a63ece94c2ab1ba7c861d62ab2a858e22e91b7add84d1317dd525eadde8ae89b81cb51b986b7aee5d2853115b468"}},
+		{"id":132560204,"period":"2027-12-05","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"2562d8881249ca7273a59d82b56d9a96335bb7e38ebeb27c3855153ace54cb952d6c826ace737d3a5cbe76aa678422482314"}},
+		{"id":937885916,"period":"2027-12-06","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"38245b5832b8e41ac4b452a43eed76a5e6244ecd5a5c99be2aaa59d77c25eee535dd2a7665bd4212a852e7a734c1486c26a3"}}
+	]
+}
