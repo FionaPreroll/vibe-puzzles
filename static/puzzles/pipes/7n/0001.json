@@ -7,6 +7,16 @@
 		{"id":35161826,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"16426985b287e2e7dbbea88b54c32ed3bb46911d2222aa7a9"}},
 		{"id":264877714,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"41317b9be764a25a9e4bc245de753db7482a52dea98126622"}},
 		{"id":592055618,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"44c2c417bba7595a5b7a41add7526b2cdd4434b2732a5b228"}},
-		{"id":945708306,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"48977685a54125cbb2eca93bbe258b646dd473dc514e64162"}}
+		{"id":945708306,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"48977685a54125cbb2eca93bbe258b646dd473dc514e64162"}},
+		{"id":1040132210,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"859178181b8b4d33723bb29be5716a378c1cbdedb24185364"}},
+		{"id":994062802,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"3a55ba814ac592459773424b7a1a587ec3bbb5ddd58886498"}},
+		{"id":672263330,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"26a41c49763dd92b65c584dd789212a5dd97dcb36e644c838"}},
+		{"id":972432562,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"1c4ca423eee12518bc9ce98b6ea6d5d9772a9d8eb61811c89"}},
+		{"id":48547666,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"15e56212eec1d92e3a6b8414b9e93d271981e57d794dd3218"}},
+		{"id":337929042,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"875bbdc414185472db4d2524e7b857ae8ded92e25a425b981"}},
+		{"id":120903778,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"2da44328788bb6cdd8a92363d7e857beb5925a2e92868c362"}},
+		{"id":157858514,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"c599aa4423d2e48a47ce83eaeae62dce76449b9e484a72656"}},
+		{"id":629089506,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"25649c286a55391cdea619da7aa4266bde3867c7d2963c162"}},
+		{"id":995649234,"puzzle":{"width":7,"height":7,"wrap":false,"tiles":"25aa55c21aeae9a4831d4e7757d911d55113bda771941a362"}}
 	]
 }
