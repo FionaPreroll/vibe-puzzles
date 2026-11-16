@@ -17,6 +17,11 @@
 		{"id":958278067,"puzzle":{"width":7,"height":7,"wrap":true,"tiles":"2caddc1a188db1b1dcdd584d3978a4d64e1de7a359a283116"}},
 		{"id":759690147,"puzzle":{"width":7,"height":7,"wrap":true,"tiles":"1216d7e1433b19983d48adced2aa7abb4429b36ae45da6344"}},
 		{"id":888723683,"puzzle":{"width":7,"height":7,"wrap":true,"tiles":"b77cc93155b9d16a8d113461d74a8e3aebb81d35a92531384"}},
-		{"id":36318883,"puzzle":{"width":7,"height":7,"wrap":true,"tiles":"28d9c4aa593bdb9d3eb88d7d71832e47b716e49ab82241842"}}
+		{"id":36318883,"puzzle":{"width":7,"height":7,"wrap":true,"tiles":"28d9c4aa593bdb9d3eb88d7d71832e47b716e49ab82241842"}},
+		{"id":512408563,"puzzle":{"width":7,"height":7,"wrap":true,"tiles":"46ad95a92a7e48ec2d986587bdbd6bd6da869521b228221b1"}},
+		{"id":1030785251,"puzzle":{"width":7,"height":7,"wrap":true,"tiles":"8b56ba84d22eb96bd9753a2dad2c52db75451384c42938ab2"}},
+		{"id":576001155,"puzzle":{"width":7,"height":7,"wrap":true,"tiles":"2a576c5224781459e5a51edbee81b827d23d2abe84345b78c"}},
+		{"id":730169699,"puzzle":{"width":7,"height":7,"wrap":true,"tiles":"285e739d7b4e3c14687b1b856a11dbded41eaa1e7d1448284"}},
+		{"id":925618195,"puzzle":{"width":7,"height":7,"wrap":true,"tiles":"b77e149aa86e229b741529c35de821b6a22217ceb591a927e"}}
 	]
 }
