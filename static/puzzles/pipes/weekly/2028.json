@@ -1,0 +1,8 @@
+{
+	"version": 2,
+	"game": "pipes",
+	"variant": "weekly",
+	"puzzles": [
+		{"id":699890237,"period":"2028-W01","puzzle":{"width":15,"height":15,"wrap":true,"tiles":"985a27c862315c5d797d54ab281c422565767ae56ed887b42cc75245d9171e4765334d56492adadbd8b19754a1b55c37d62b729e3a45ea3cbbd1631843ac6eb72beb2122b8cd61a9e6c3baeba43dc1ab4cb272c68b332a53e4874718ed28cbe9c4bcb13a1987dacb4e869a1152ea54541"}}
+	]
+}
