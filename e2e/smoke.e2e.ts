@@ -146,6 +146,10 @@ test('has an install manifest', async ({ request }) => {
 	const manifest = await (await request.get('/manifest.webmanifest')).json();
 	expect(manifest.icons.length).toBeGreaterThan(1);
 	for (const icon of manifest.icons) expect((await request.get(`/${icon.src}`)).ok()).toBe(true);
+	// Browsers that colour the installed app's bars from the manifest alone (Firefox) keep them
+	// black, so that they never glare at night.
+	expect(manifest.theme_color).toBe('#000000');
+	expect(manifest.background_color).toBe('#000000');
 });
 
 test('plays a puzzle from the collection when chosen', async ({ page }) => {

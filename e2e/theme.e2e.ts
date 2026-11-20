@@ -94,3 +94,60 @@ test('the daily puzzle link stays readable on hover at night', async ({ page }) 
 	});
 	expect(ratio).toBeGreaterThanOrEqual(4.5);
 });
+
+test("Android's system bars take the colours of the page", async ({ page }) => {
+	await page.goto('/');
+	await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+	// The page reaches under the navigation bar, so that its background shows there.
+	await expect(page.locator('meta[name="viewport"]')).toHaveAttribute(
+		'content',
+		/viewport-fit=cover/
+	);
+
+	const themeColor = page.locator('meta[name="theme-color"]');
+	/** The colour of the header bar as painted, at its top left corner. */
+	const headerPixel = async () => {
+		const png = await page.screenshot({ clip: { x: 1, y: 1, width: 1, height: 1 } });
+		return page.evaluate(
+			async (src) => {
+				const img = new Image();
+				img.src = src;
+				await img.decode();
+				const ctx = document
+					.createElement('canvas')
+					.getContext('2d', { willReadFrequently: true })!;
+				ctx.drawImage(img, 0, 0);
+				return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+			},
+			`data:image/png;base64,${png.toString('base64')}`
+		);
+	};
+	const channels = async () => {
+		const hex = (await themeColor.getAttribute('content'))!;
+		expect(hex).toMatch(/^#[0-9a-f]{6}$/);
+		return [1, 3, 5].map((k) => parseInt(hex.slice(k, k + 2), 16));
+	};
+	/** The status bar's colour is the header bar's, within rounding. */
+	const matchesHeader = async () => {
+		const [want, got] = [await headerPixel(), await channels()];
+		for (let k = 0; k < 3; k++) expect(Math.abs(want[k] - got[k])).toBeLessThanOrEqual(3);
+		return got;
+	};
+
+	// Night (the system's scheme here): dark bars.
+	const night = await matchesHeader();
+	expect(Math.max(...night)).toBeLessThan(64);
+
+	await page.getByRole('button', { name: 'Switch to day mode' }).click();
+	await expect.poll(async () => Math.min(...(await channels()))).toBeGreaterThan(192);
+	await matchesHeader();
+
+	// Every look has its own colour.
+	const looks = new Set<string>();
+	for (const look of ['classic', 'halloween', 'winter', 'christmas']) {
+		await page.getByRole('combobox', { name: 'Theme' }).selectOption(look);
+		await matchesHeader();
+		looks.add((await themeColor.getAttribute('content'))!);
+	}
+	expect(looks.size).toBe(4);
+});

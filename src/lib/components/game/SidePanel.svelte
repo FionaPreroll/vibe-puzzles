@@ -51,7 +51,7 @@
 	class="panel shrink-0 lg:sticky lg:top-4 lg:block {collapsed
 		? 'lg:w-14'
 		: 'lg:w-72'} lg:rounded-xl {open
-		? 'fixed inset-y-0 left-0 z-40 block w-[min(22rem,88vw)] overflow-y-auto rounded-none'
+		? 'fixed inset-y-0 left-0 z-40 block w-[min(22rem,88vw)] overflow-y-auto rounded-none pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))]'
 		: 'hidden'}"
 	aria-label={t('game.menu', { game: game.name })}
 >

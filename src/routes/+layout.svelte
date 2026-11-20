@@ -21,6 +21,7 @@
 	import SnowCap from '#lib/components/winter/SnowCap.svelte';
 	import { serverAvailable } from '#lib/client/api.ts';
 	import { headerBar } from '#lib/client/headerBar.svelte.ts';
+	import { followThemeColor } from '#lib/client/systemBars.ts';
 	import { net, tellServiceWorker } from '#lib/client/network.svelte.ts';
 	import { followSystemTheme, setLook, setNight, theme } from '#lib/client/settings.svelte.ts';
 	import { scheduleUpdateChecks } from '#lib/client/updates.ts';
@@ -71,6 +72,13 @@
 		if (theme.look !== 'classic') document.documentElement.dataset.theme = theme.look;
 		else delete document.documentElement.dataset.theme;
 	});
+	// Android's status bar takes the colour at the top of the page; this runs after the two
+	// effects above, so it reads the colours of the new look.
+	$effect(() => {
+		void theme.night;
+		void theme.look;
+		followThemeColor(!headerBar.autoHide || headerBar.shown);
+	});
 
 	// The hidden header bar (`headerBar`) goes away again on a tap or click anywhere else, on
 	// Escape, and once a link in it is followed.
@@ -109,10 +117,11 @@
 
 <!-- z-25: the connection menu opens over the page, the board and the top bar's messages (z-20)
      included; drawers (z-30) and dialogs stay above it. Hidden on short screens while playing
-     (`headerBar`): then it comes down over the page when asked for. -->
+     (`headerBar`): then it comes down over the page when asked for. Where the page reaches under
+     the status bar (`viewport-fit=cover`), the header bar's background goes on up behind it. -->
 <header
-	class="z-25 border-b border-stone-200 backdrop-blur dark:border-stone-800 {headerBar.autoHide
-		? 'fixed inset-x-0 top-0 bg-white/95 transition-transform duration-200 dark:bg-stone-900/95 ' +
+	class="z-25 border-b border-stone-200 pt-[env(safe-area-inset-top)] backdrop-blur dark:border-stone-800 {headerBar.autoHide
+		? 'fixed inset-x-0 top-0 bg-white/95 pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] transition-transform duration-200 dark:bg-stone-900/95 ' +
 			(headerBar.shown ? 'shadow-md' : '-translate-y-full')
 		: 'relative bg-white/80 dark:bg-stone-900/80'}"
 	inert={headerBar.autoHide && !headerBar.shown}

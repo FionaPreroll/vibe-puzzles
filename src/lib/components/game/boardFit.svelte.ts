@@ -1,3 +1,4 @@
+import { safeAreaBottom } from '../../client/systemBars';
 import type { PageLayout } from '../../core/types';
 import {
 	afterBoard,
@@ -89,9 +90,13 @@ export class BoardFit {
 		// Up to the page's end, but not where a longer side panel reaches beyond the game column.
 		const rootBox = pageRoot.getBoundingClientRect();
 		const root = rootBox.bottom;
-		// Short screens leave the footer below the screen, for whoever scrolls down to it.
+		// Short screens leave the footer below the screen, for whoever scrolls down to it, but keep
+		// the board above Android's navigation bar where the page reaches under it (systemBars.ts);
+		// elsewhere the body's padding keeps the page's end clear of it.
 		const footer = this.short ? document.querySelector('footer') : null;
-		const body = (footer ?? document.body).getBoundingClientRect()[footer ? 'top' : 'bottom'];
+		const body = footer
+			? footer.getBoundingClientRect().top + safeAreaBottom()
+			: document.body.getBoundingClientRect().bottom;
 		this.panelHeight = panelHeight(this.viewportHeight, rootBox.top + window.scrollY, body - root);
 		this.afterBoard = afterBoard({
 			body,

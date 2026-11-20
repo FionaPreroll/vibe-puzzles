@@ -189,9 +189,12 @@ describe('measuring the page', () => {
 		vi.stubGlobal('window', { scrollY: 0 });
 		vi.stubGlobal('getComputedStyle', () => ({ paddingBottom: '0px' }));
 		const footer = box(390, 430);
+		// The height of Android's navigation bar where the page reaches under it (systemBars.ts).
+		let navigationBar = 0;
 		vi.stubGlobal('document', {
 			querySelector: (selector: string) => (selector === 'footer' ? footer : null),
-			body: box(0, 430)
+			createElement: () => ({ style: {}, offsetHeight: navigationBar, remove() {} }),
+			body: Object.assign(box(0, 430), { append() {} })
 		});
 		const fit = new BoardFit();
 		fit.viewportHeight = 390;
@@ -211,6 +214,11 @@ describe('measuring the page', () => {
 		// Down to the screen's edge, less the page's padding (8) below the panel.
 		expect(fit.panelHeight).toBe(374);
 		expect(fit.afterBoard).toBe(8);
+		// The board and the panel stay above the navigation bar.
+		navigationBar = 24;
+		fit.measure();
+		expect(fit.panelHeight).toBe(374 - 24);
+		expect(fit.afterBoard).toBe(8 + 24);
 
 		fit.viewportHeight = SHORT_SCREEN;
 		expect(fit.short).toBe(false);
