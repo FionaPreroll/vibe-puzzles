@@ -18,6 +18,14 @@
 	} from '../client/settings.svelte';
 	import { load, save } from '../client/storage';
 	import { boardZoomKey, KEY } from '../client/storageKeys';
+	import {
+		browserWakeLock,
+		keepScreenAwake,
+		loadKeepAwake,
+		saveKeepAwake,
+		ScreenAwake,
+		type KeepAwake
+	} from '../client/wakeLock';
 	import type { LayoutChoice, TouchMode } from '../core/types';
 	import { parsePlayableId } from '../core/variants';
 	import type { AnyGame } from '../games';
@@ -62,6 +70,10 @@
 	const keys = new KeyDispatcher(shortcuts);
 
 	let touchMode = $state<TouchMode>(loadTouchMode());
+	/** Keeps the screen on during a game, where the browser can (`navigator.wakeLock`). */
+	const wakeLock = browserWakeLock();
+	const awake = new ScreenAwake(wakeLock, () => document.visibilityState === 'visible');
+	let keepAwake = $state<KeepAwake>(loadKeepAwake());
 	let showSettings = $state(false);
 	let showShortcuts = $state(false);
 	/** Phone layout: the side panel opens as a drawer. */
@@ -108,6 +120,11 @@
 	function setTouchMode(mode: TouchMode) {
 		touchMode = mode;
 		saveTouchMode(mode);
+	}
+
+	function setKeepAwake(choice: KeepAwake) {
+		keepAwake = choice;
+		saveKeepAwake(choice);
 	}
 
 	function setLayout(choice: LayoutChoice) {
@@ -220,8 +237,10 @@
 		const stopLayout = fit.observe((wide) => wide && (menuOpen = false));
 		const tick = setInterval(() => (now = Date.now()), 500);
 		const stopWatching = watchPage(session, settings);
+		const stopAwake = keepScreenAwake(awake);
 		return () => {
 			stopWatching();
+			stopAwake();
 			clearInterval(tick);
 			stopLayout();
 		};
@@ -256,6 +275,10 @@
 		JSON.stringify(settings.values);
 		return pushSettingsSoon(settings);
 	});
+
+	// The screen stays on while a puzzle is played, as long as the player chose.
+	$effect(() => awake.setChoice(keepAwake));
+	$effect(() => awake.setPlaying(!!session.puzzle && !session.loading && !session.solved));
 
 	// The short celebration when the puzzle gets solved.
 	$effect(() => celebrate.follow(session.solved, session.loading, settings.values.solvedAnimation));
@@ -425,4 +448,6 @@
 	ontouchmode={setTouchMode}
 	layout={fit.landscape ? layoutChoice : undefined}
 	onlayout={setLayout}
+	keepAwake={wakeLock ? keepAwake : undefined}
+	onkeepawake={setKeepAwake}
 />

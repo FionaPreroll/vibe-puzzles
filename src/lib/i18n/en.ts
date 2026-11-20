@@ -156,6 +156,12 @@ const en = {
 			'The board takes the full height of the screen; everything else sits in a column on the right that folds into a narrow strip.',
 		layoutLeftText:
 			'The board takes the full height of the screen; everything else sits in a column on the left that folds into a narrow strip.',
+		keepAwake: 'Keep the screen on',
+		keepAwakeOff: 'Off',
+		keepAwakeMinutes: 'For {n} minutes after the last touch',
+		keepAwakeAlways: 'Always, while a puzzle is open',
+		keepAwakeNote:
+			'Stops the screen from dimming and locking during a game, on this device. When the time is up, the screen dims as usual. A solved puzzle, another app or a battery saver lets it go.',
 		expandControls: 'Expand controls',
 		collapseControls: 'Collapse controls',
 		checkpoints: 'Checkpoints',

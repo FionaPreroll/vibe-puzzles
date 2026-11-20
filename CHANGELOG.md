@@ -6,6 +6,10 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 
 ## [Unreleased]
 
+### Added
+
+- **Keep the screen on**: during a game the screen no longer dims or locks while you think, on phones and tablets (also as an installed app on Android) and in browsers that allow it. By default it stays on for 5 minutes after your last touch, click or key; the settings choose 2, 15 or 30 minutes, always while a puzzle is open, or off. The choice holds for this device. Once the puzzle is solved, or when you switch to another app, the screen dims as usual again.
+
 ### Changed
 
 - **System bars on Android**: in the installed app, the status bar at the top takes the colour of the page's header, and the page goes on behind the gesture bar at the bottom, so both match the look, by day and by night, instead of a fixed purple. Browsers that colour the bars from the app's settings alone, such as Firefox, now keep them black, so they no longer glare at night.
