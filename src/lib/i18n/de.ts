@@ -152,6 +152,12 @@ const de: Dictionary = {
 			'Das Spielfeld nutzt die ganze Bildschirmhöhe, alles andere steht in einer Spalte rechts, die sich zu einem schmalen Streifen einklappen lässt.',
 		layoutLeftText:
 			'Das Spielfeld nutzt die ganze Bildschirmhöhe, alles andere steht in einer Spalte links, die sich zu einem schmalen Streifen einklappen lässt.',
+		keepAwake: 'Bildschirm wach halten',
+		keepAwakeOff: 'Aus',
+		keepAwakeMinutes: '{n} Minuten nach der letzten Berührung',
+		keepAwakeAlways: 'Immer, solange ein Rätsel offen ist',
+		keepAwakeNote:
+			'Verhindert auf diesem Gerät, dass sich der Bildschirm während eines Spiels abdunkelt und sperrt. Ist die Zeit um, dunkelt er wie gewohnt ab. Ein gelöstes Rätsel, eine andere App oder der Energiesparmodus geben ihn wieder frei.',
 		expandControls: 'Bedienung ausklappen',
 		collapseControls: 'Bedienung einklappen',
 		checkpoints: 'Zwischenstände',

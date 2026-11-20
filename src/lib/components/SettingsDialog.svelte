@@ -9,6 +9,7 @@
 	} from '../client/bank';
 	import { deviceLayout, LAYOUT_CHOICES } from '../client/settings.svelte';
 	import type { LayoutChoice, TouchMode } from '../core/types';
+	import { KEEP_AWAKE_CHOICES, type KeepAwake } from '../client/wakeLock';
 	import Dialog from './Dialog.svelte';
 
 	let {
@@ -18,7 +19,9 @@
 		touchMode,
 		ontouchmode,
 		layout,
-		onlayout
+		onlayout,
+		keepAwake,
+		onkeepawake
 	}: {
 		open: boolean;
 		settings: GameSettings<string>;
@@ -30,6 +33,9 @@
 		/** Set on screens in landscape, which get a choice of the page's layout. */
 		layout?: LayoutChoice;
 		onlayout?: (layout: LayoutChoice) => void;
+		/** Set where the browser can keep the screen on. */
+		keepAwake?: KeepAwake;
+		onkeepawake?: (choice: KeepAwake) => void;
 	} = $props();
 
 	/** A line under a setting, lined up with its label. */
@@ -121,6 +127,37 @@
 				</label>
 				<p id="touch-{m}-help" class={HELP}>{t(`game.touch${name(m)}Text`)}</p>
 			{/each}
+		</fieldset>
+	{/if}
+	{#if keepAwake}
+		<fieldset
+			class="mt-4 border-t border-stone-200 pt-3 dark:border-stone-700"
+			aria-describedby="keep-awake-note"
+		>
+			<legend class="section-title px-2">{t('game.keepAwake')}</legend>
+			{#each KEEP_AWAKE_CHOICES as c (c)}
+				<label
+					class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-stone-100 dark:hover:bg-stone-800"
+				>
+					<input
+						type="radio"
+						name="keep-awake"
+						class="size-4 accent-indigo-600"
+						checked={keepAwake === c}
+						onchange={() => onkeepawake?.(c)}
+					/>
+					<span
+						>{c === 'off'
+							? t('game.keepAwakeOff')
+							: c === 'always'
+								? t('game.keepAwakeAlways')
+								: t('game.keepAwakeMinutes', { n: c })}</span
+					>
+				</label>
+			{/each}
+			<p id="keep-awake-note" class="mt-1 px-2 text-xs text-stone-500 dark:text-stone-400">
+				{t('game.keepAwakeNote')}
+			</p>
 		</fieldset>
 	{/if}
 	<fieldset class="mt-4 border-t border-stone-200 pt-3 dark:border-stone-700">
