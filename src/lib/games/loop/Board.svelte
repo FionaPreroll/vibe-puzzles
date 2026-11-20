@@ -160,6 +160,11 @@
 	const px = (j: number) => pad + j * cellSize;
 	const py = (i: number) => pad + i * cellSize;
 	const lineWidth = $derived(Math.max(3, cellSize * 0.1));
+	/** The hint's dashed outlines: thick enough to see at a glance, inset from the cell's edges. */
+	const spotWidth = $derived(Math.max(3, cellSize * 0.06));
+	const spotInset = $derived(Math.max(3, cellSize * 0.06));
+	/** How far an outline may reach past a line or dot and still stay inside the board's margin. */
+	const spotReach = $derived(pad - spotWidth / 2 - 2);
 
 	const edgeList = $derived.by(() => {
 		const out: { key: string; e: Edge; value: number }[] = [];
@@ -335,46 +340,60 @@
 	{/if}
 
 	{#if spotlight?.size && !blank}
-		<g
-			class="spotlight"
-			data-mistake={mistake || undefined}
-			fill="none"
-			stroke={mistake ? mistakeColour : colours.cursor}
-			stroke-width="3"
-			aria-hidden="true"
-		>
-			{#each [...spotlight] as key (key)}
+		{#snippet spotShapes(keys: ReadonlySet<string>)}
+			{#each [...keys] as key (key)}
 				{#if key.startsWith('c:')}
 					{@const i = Number(key.slice(2))}
 					<rect
-						x={px(i % w) + 4}
-						y={py(Math.floor(i / w)) + 4}
-						width={cellSize - 8}
-						height={cellSize - 8}
-						rx="4"
-						stroke-dasharray="6 4"
+						x={px(i % w) + spotInset}
+						y={py(Math.floor(i / w)) + spotInset}
+						width={cellSize - 2 * spotInset}
+						height={cellSize - 2 * spotInset}
+						rx={spotWidth * 1.5}
 					/>
 				{:else if key.startsWith('d:')}
 					{@const k = Number(key.slice(2))}
 					<circle
 						cx={px(k % (w + 1))}
 						cy={py(Math.floor(k / (w + 1)))}
-						r={cellSize * 0.2}
-						stroke-dasharray="4 3"
+						r={Math.min(cellSize * 0.22, spotReach)}
 					/>
 				{:else if key.startsWith('h:') || key.startsWith('v:')}
 					{@const e = parseEdge(key)}
 					{@const m = edgeMid(e)}
+					{@const along = cellSize / 2 - spotInset}
+					{@const across = Math.min(cellSize * 0.2, spotReach)}
 					<rect
-						x={m.x - (e.kind === 'h' ? cellSize / 2 - 3 : 6)}
-						y={m.y - (e.kind === 'v' ? cellSize / 2 - 3 : 6)}
-						width={e.kind === 'h' ? cellSize - 6 : 12}
-						height={e.kind === 'v' ? cellSize - 6 : 12}
-						rx="5"
-						stroke-dasharray="6 4"
+						x={m.x - (e.kind === 'h' ? along : across)}
+						y={m.y - (e.kind === 'v' ? along : across)}
+						width={2 * (e.kind === 'h' ? along : across)}
+						height={2 * (e.kind === 'v' ? along : across)}
+						rx={across}
 					/>
 				{/if}
 			{/each}
+		{/snippet}
+		<!-- Thick dashes on a band of paper: they stand out from the tinted area
+		     beneath them and from the lines, in either theme. -->
+		<g
+			class="spotlight-halo"
+			fill="none"
+			stroke={colours.paper}
+			stroke-width={spotWidth + 3}
+			aria-hidden="true"
+		>
+			{@render spotShapes(spotlight)}
+		</g>
+		<g
+			class="spotlight"
+			data-mistake={mistake || undefined}
+			fill="none"
+			stroke={mistake ? mistakeColour : colours.cursor}
+			stroke-width={spotWidth}
+			stroke-dasharray="{spotWidth * 1.6} {spotWidth * 1.4}"
+			aria-hidden="true"
+		>
+			{@render spotShapes(spotlight)}
 		</g>
 	{/if}
 
