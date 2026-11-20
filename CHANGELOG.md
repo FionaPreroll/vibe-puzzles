@@ -16,7 +16,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 
 ### Fixed
 
-- **Loop hints** are easier to see: the dashed outline around the edges a hint points at is thicker, with longer dashes, and stands out from the tinted area beneath it, by day and by night.
+- **Hints** are easier to see in every game: the dashed outline around what a hint points at is thicker on larger boards, with longer dashes, and stands out from the tinted area, the lines and the pipes beneath it, by day and by night. In Loop and Pinwheel the outline around an edge is wider, and it no longer gets cut off at the board's border. In Calcudoku the cage labels stay readable over it.
 
 ## [0.9.0] - 2026-11-02
 
