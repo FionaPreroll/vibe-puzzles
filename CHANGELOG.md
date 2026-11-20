@@ -4,6 +4,12 @@ What changes for players, newest first. The app shows this list on its About pag
 
 Changes go under `## [Unreleased]` until they get a version; see "Changelog and versions" in the README. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Keep the screen on**: during a game the screen no longer dims or locks while you think, on phones and tablets (also as an installed app on Android) and in browsers that allow it. By default it stays on for 5 minutes after your last touch, click or key; the settings choose 2, 15 or 30 minutes, always while a puzzle is open, or off. The choice holds for this device. Once the puzzle is solved, or when you switch to another app, the screen dims as usual again.
+
 ## [0.9.0] - 2026-11-02
 
 Pipes joins the games, Loop is playable in every size, the new Inside page shows how the puzzles are made, and the site dresses up for winter and Christmas.

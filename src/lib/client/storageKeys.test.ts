@@ -67,6 +67,7 @@ describe('other keys', () => {
 			'panelCollapsed',
 			'offlineMode',
 			'updateCheck',
+			'keepAwake',
 			'outbox'
 		]);
 	});

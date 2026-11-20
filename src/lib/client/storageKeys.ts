@@ -21,6 +21,8 @@ export const KEY = {
 	offlineMode: 'offlineMode',
 	/** The player's choice of update checks; the build's default until they switch it. */
 	updateCheck: 'updateCheck',
+	/** How long a game keeps the screen on (`KeepAwake`), on this device. */
+	keepAwake: 'keepAwake',
 	/** Uploads that wait for the server (`outbox.ts`). */
 	outbox: 'outbox'
 } as const;
