@@ -14,6 +14,10 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 
 - **System bars on Android**: in the installed app, the status bar at the top takes the colour of the page's header, and the page goes on behind the gesture bar at the bottom, so both match the look, by day and by night, instead of a fixed purple. Browsers that colour the bars from the app's settings alone, such as Firefox, now keep them black, so they no longer glare at night.
 
+### Fixed
+
+- **Loop hints** are easier to see: the dashed outline around the edges a hint points at is thicker, with longer dashes, and stands out from the tinted area beneath it, by day and by night.
+
 ## [0.9.0] - 2026-11-02
 
 Pipes joins the games, Loop is playable in every size, the new Inside page shows how the puzzles are made, and the site dresses up for winter and Christmas.

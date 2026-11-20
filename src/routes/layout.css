@@ -248,7 +248,8 @@ body.widescreen-short footer {
 	}
 }
 /* Tutorial: what a step talks about on the board breathes gently. */
-.spotlight {
+.spotlight,
+.spotlight-halo {
 	animation: spotlight 1.6s ease-in-out infinite;
 }
 @keyframes spotlight {
@@ -262,6 +263,7 @@ body.widescreen-short footer {
 }
 @media (prefers-reduced-motion: reduce) {
 	.spotlight,
+	.spotlight-halo,
 	.next-up,
 	.solved-glow,
 	.solved-burst,
