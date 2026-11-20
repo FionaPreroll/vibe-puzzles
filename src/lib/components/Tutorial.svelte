@@ -100,7 +100,14 @@
 	});
 </script>
 
-<svelte:window onkeydown={keys.keydown} onkeyup={keys.keyup} onblur={keys.blur} />
+<svelte:window
+	onkeydown={keys.keydown}
+	onkeyup={keys.keyup}
+	onblur={keys.blur}
+	onmousedown={keys.mousedown}
+	onmouseup={keys.mouseup}
+	onfocusin={keys.focusin}
+/>
 
 <svelte:head>
 	<title>{t('tutorial.title', { game: name })} · {t('app.name')}</title>

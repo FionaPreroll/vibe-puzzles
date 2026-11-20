@@ -42,9 +42,12 @@ export function trapFocus(node: HTMLElement, onEscape?: () => void): () => void 
 	}
 
 	node.addEventListener('keydown', onkeydown);
+	// Buttons in here keep the focus that a click gives them (`KeyDispatcher.mousedown`).
+	node.dataset.focusTrap = '';
 	items()[0]?.focus();
 	return () => {
 		node.removeEventListener('keydown', onkeydown);
+		delete node.dataset.focusTrap;
 		const active = document.activeElement;
 		if (!active || active === document.body || node.contains(active)) opener?.focus();
 	};
