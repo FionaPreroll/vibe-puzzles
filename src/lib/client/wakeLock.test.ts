@@ -1,7 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryStorage } from '../../test/memory-storage';
 import {
+	browserWakeLock,
 	DEFAULT_KEEP_AWAKE,
+	keepScreenAwake,
 	loadKeepAwake,
 	saveKeepAwake,
 	ScreenAwake,
@@ -141,6 +143,16 @@ describe('keeping the screen on', () => {
 		expect(lock.requests).toBe(2);
 	});
 
+	it('asks once while a request is on its way', async () => {
+		awake.setPlaying(true);
+		awake.setChoice('always');
+		awake.input();
+		awake.input();
+		await settle();
+		expect(lock.requests).toBe(1);
+		expect(awake.held).toBe(true);
+	});
+
 	it('gives back a lock granted after it was no longer wanted', async () => {
 		awake.setPlaying(true);
 		awake.setChoice('always');
@@ -191,5 +203,51 @@ describe('the choice', () => {
 		expect(loadKeepAwake()).toBe('always');
 		localStorage.setItem('vp:keepAwake', '"7"');
 		expect(loadKeepAwake()).toBe(DEFAULT_KEEP_AWAKE);
+	});
+});
+
+describe('the page', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		vi.useRealTimers();
+	});
+
+	it('finds the browser wake lock where there is one', () => {
+		vi.stubGlobal('navigator', {});
+		expect(browserWakeLock()).toBeUndefined();
+		vi.stubGlobal('navigator', { wakeLock: lock });
+		expect(browserWakeLock()).toBe(lock);
+	});
+
+	it('counts input and showing the page, and lets go when the page goes', async () => {
+		vi.useFakeTimers();
+		const win = new EventTarget();
+		const doc = new EventTarget();
+		vi.stubGlobal('window', win);
+		vi.stubGlobal('document', doc);
+		const page = new ScreenAwake(lock, () => visible);
+		const stop = keepScreenAwake(page);
+		page.setPlaying(true);
+		page.setChoice('2');
+		await vi.advanceTimersByTimeAsync(0);
+		expect(page.held).toBe(true);
+
+		await vi.advanceTimersByTimeAsync(MINUTE);
+		win.dispatchEvent(new Event('pointerdown'));
+		await vi.advanceTimersByTimeAsync(1.5 * MINUTE);
+		expect(page.held).toBe(true);
+		await vi.advanceTimersByTimeAsync(MINUTE);
+		expect(page.held).toBe(false);
+
+		doc.dispatchEvent(new Event('visibilitychange'));
+		await vi.advanceTimersByTimeAsync(0);
+		expect(page.held).toBe(true);
+
+		stop();
+		expect(page.held).toBe(false);
+		win.dispatchEvent(new Event('keydown'));
+		await vi.advanceTimersByTimeAsync(0);
+		expect(page.held).toBe(false);
+		expect(lock.requests).toBe(2);
 	});
 });

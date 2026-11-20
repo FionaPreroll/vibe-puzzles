@@ -105,8 +105,9 @@ export class ScreenAwake {
 		this.update();
 	}
 
+	/** The chosen duration, for a choice in minutes. */
 	private durationMs(): number {
-		return this.choice === 'off' || this.choice === 'always' ? 0 : Number(this.choice) * 60_000;
+		return Number(this.choice) * 60_000;
 	}
 
 	private wanted(): boolean {
@@ -133,10 +134,11 @@ export class ScreenAwake {
 	}
 
 	private async request() {
-		if (this.requesting || !this.api) return;
+		// Only called while wanted, which needs the API.
+		if (this.requesting) return;
 		this.requesting = true;
 		try {
-			const sentinel = await this.api.request('screen');
+			const sentinel = await this.api!.request('screen');
 			this.requesting = false;
 			if (!this.wanted()) {
 				void sentinel.release().catch(() => undefined);
