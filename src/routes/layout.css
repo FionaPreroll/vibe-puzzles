@@ -13,6 +13,13 @@
 	html.dark {
 		color-scheme: dark;
 	}
+	/* The page reaches under Android's navigation bar and, on a phone on its side, beside the
+	   camera (`viewport-fit=cover`, see systemBars.ts): its background shows there, its content
+	   stays clear of them. The header bar takes the inset at the top; the phones' play bar at the
+	   bottom sets the body's padding while it is shown (BelowBoard). */
+	body {
+		padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+	}
 }
 
 @layer components {

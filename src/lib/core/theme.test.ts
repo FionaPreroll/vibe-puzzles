@@ -44,12 +44,18 @@ describe('app.html', () => {
 	function run(stored: Record<string, string>, now: Date, storage = true) {
 		const classes = new Set<string>();
 		const root = { classList: { add: (c: string) => classes.add(c) }, dataset: {} as DOMStringMap };
+		// Android's status bar, until the layout sets the look's own colour.
+		const themeColor = { content: '#ffffff' };
 		const RealDate = Date;
 		const FixedDate = function () {
 			return new RealDate(now);
 		};
 		runInNewContext(script, {
-			document: { documentElement: root },
+			document: {
+				documentElement: root,
+				querySelector: (selector: string) =>
+					selector === 'meta[name="theme-color"]' ? themeColor : null
+			},
 			matchMedia: () => ({ matches: false }),
 			Date: FixedDate,
 			JSON,
@@ -58,7 +64,7 @@ describe('app.html', () => {
 				return { getItem: (key: string) => stored[key] ?? null };
 			}
 		});
-		return { dark: classes.has('dark'), theme: root.dataset.theme };
+		return { dark: classes.has('dark'), theme: root.dataset.theme, statusBar: themeColor.content };
 	}
 
 	it('applies the seasonal look like the app does', () => {
@@ -74,10 +80,18 @@ describe('app.html', () => {
 			expect(run({ 'vp:look': `"${look}"` }, new Date(2026, 4, 1)).theme).toBe(look);
 		expect(run({ 'vp:look': '"winter"' }, new Date(2026, 11, 10)).theme).toBe('winter');
 		expect(run({ 'vp:look': '"spooky"' }, october).theme).toBe('halloween');
-		expect(run({ 'vp:night': 'true' }, october)).toEqual({ dark: true, theme: 'halloween' });
+		expect(run({ 'vp:night': 'true' }, october)).toEqual({
+			dark: true,
+			theme: 'halloween',
+			statusBar: '#000000'
+		});
 	});
 
 	it('still follows the calendar without storage', () => {
-		expect(run({}, new Date(2026, 9, 10), false)).toEqual({ dark: false, theme: 'halloween' });
+		expect(run({}, new Date(2026, 9, 10), false)).toEqual({
+			dark: false,
+			theme: 'halloween',
+			statusBar: '#ffffff'
+		});
 	});
 });

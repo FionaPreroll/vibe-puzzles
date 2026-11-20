@@ -83,7 +83,7 @@
 	<!-- Phones: the play bar fixed at the bottom, in reach of the thumb -->
 	<div
 		bind:offsetHeight={fit.barHeight}
-		class="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 px-1 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden dark:border-stone-800 dark:bg-stone-900/95"
+		class="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 pt-1.5 pr-[max(0.25rem,env(safe-area-inset-right))] pb-[max(0.375rem,env(safe-area-inset-bottom))] pl-[max(0.25rem,env(safe-area-inset-left))] backdrop-blur lg:hidden dark:border-stone-800 dark:bg-stone-900/95"
 	>
 		{#if game.toolOptions && tools.swatches}
 			<div class="mb-1.5 flex justify-center"><SwatchRow {game} {tools} /></div>

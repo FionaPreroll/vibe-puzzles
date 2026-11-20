@@ -2,9 +2,9 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="text-scale" content="scale" />
-		<meta name="theme-color" content="#4f46e5" />
+		<meta name="theme-color" content="#ffffff" />
 		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/icon-192.png" />
 		<script>
@@ -21,6 +21,9 @@
 				}
 				if (night ?? matchMedia('(prefers-color-scheme: dark)').matches) {
 					document.documentElement.classList.add('dark');
+					// Android's status bar, dark until the layout sets the look's own colour
+					// (followThemeColor in systemBars.ts).
+					document.querySelector('meta[name="theme-color"]').content = '#000000';
 				}
 				if (!['classic', 'halloween', 'winter', 'christmas'].includes(look)) {
 					const now = new Date();
