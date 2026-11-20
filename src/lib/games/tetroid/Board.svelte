@@ -9,6 +9,7 @@
 	import { analyze, CROSS, EMPTY, SHADED, type TetroidPuzzle, type TetroidState } from './rules';
 	import { sayCell } from './speech';
 	import BoardSpeech from '../../components/game/BoardSpeech.svelte';
+	import Spotlight, { spotlightWidth } from '../../components/game/Spotlight.svelte';
 	import { t } from '../../i18n/index.svelte';
 
 	let {
@@ -40,6 +41,9 @@
 	const w = $derived(puzzle.width);
 	const h = $derived(puzzle.height);
 	const pad = $derived(boardPad(cellSize, settings.showCoordinates && !blank, 3));
+	/** Hint outlines: as thick as `Spotlight` draws them, inset from the cell's edges. */
+	const spotWidth = $derived(spotlightWidth(cellSize));
+	const spotInset = $derived(Math.max(4, spotWidth));
 	const width = $derived(w * cellSize + 2 * pad);
 	const height = $derived(h * cellSize + 2 * pad);
 
@@ -374,26 +378,23 @@
 	{/if}
 
 	{#if spotlight?.size && !blank}
-		<g
-			class="spotlight"
-			data-mistake={mistake || undefined}
-			fill="none"
-			stroke={mistake ? mistakeColour : colours.cursor}
-			stroke-width="3"
-			aria-hidden="true"
+		<Spotlight
+			{cellSize}
+			colour={mistake ? mistakeColour : colours.cursor}
+			background={colours.surface}
+			{mistake}
 		>
 			{#each [...spotlight] as key (key)}
 				{@const i = Number(key)}
 				<rect
-					x={pad + (i % w) * cellSize + 4}
-					y={pad + Math.floor(i / w) * cellSize + 4}
-					width={cellSize - 8}
-					height={cellSize - 8}
-					rx="4"
-					stroke-dasharray="6 4"
+					x={pad + (i % w) * cellSize + spotInset}
+					y={pad + Math.floor(i / w) * cellSize + spotInset}
+					width={cellSize - 2 * spotInset}
+					height={cellSize - 2 * spotInset}
+					rx={spotWidth * 1.5}
 				/>
 			{/each}
-		</g>
+		</Spotlight>
 	{/if}
 
 	{#if cursor != null && !blank}

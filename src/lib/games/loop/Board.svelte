@@ -11,6 +11,7 @@
 	import type { LoopSettingKey } from './settings';
 	import { sayDot } from './speech';
 	import BoardSpeech from '../../components/game/BoardSpeech.svelte';
+	import Spotlight, { spotlightWidth } from '../../components/game/Spotlight.svelte';
 	import {
 		analyze,
 		clueAt,
@@ -160,9 +161,9 @@
 	const px = (j: number) => pad + j * cellSize;
 	const py = (i: number) => pad + i * cellSize;
 	const lineWidth = $derived(Math.max(3, cellSize * 0.1));
-	/** The hint's dashed outlines: thick enough to see at a glance, inset from the cell's edges. */
-	const spotWidth = $derived(Math.max(3, cellSize * 0.06));
-	const spotInset = $derived(Math.max(3, cellSize * 0.06));
+	/** Hint outlines: as thick as `Spotlight` draws them, inset from the cell's edges. */
+	const spotWidth = $derived(spotlightWidth(cellSize));
+	const spotInset = $derived(Math.max(4, spotWidth));
 	/** How far an outline may reach past a line or dot and still stay inside the board's margin. */
 	const spotReach = $derived(pad - spotWidth / 2 - 2);
 
@@ -340,8 +341,13 @@
 	{/if}
 
 	{#if spotlight?.size && !blank}
-		{#snippet spotShapes(keys: ReadonlySet<string>)}
-			{#each [...keys] as key (key)}
+		<Spotlight
+			{cellSize}
+			colour={mistake ? mistakeColour : colours.cursor}
+			background={colours.paper}
+			{mistake}
+		>
+			{#each [...spotlight] as key (key)}
 				{#if key.startsWith('c:')}
 					{@const i = Number(key.slice(2))}
 					<rect
@@ -359,6 +365,8 @@
 						r={Math.min(cellSize * 0.22, spotReach)}
 					/>
 				{:else if key.startsWith('h:') || key.startsWith('v:')}
+					<!-- An edge: a frame along it, wide enough to stand clear of the tinted band and
+					     of a line drawn there -->
 					{@const e = parseEdge(key)}
 					{@const m = edgeMid(e)}
 					{@const along = cellSize / 2 - spotInset}
@@ -372,29 +380,7 @@
 					/>
 				{/if}
 			{/each}
-		{/snippet}
-		<!-- Thick dashes on a band of paper: they stand out from the tinted area
-		     beneath them and from the lines, in either theme. -->
-		<g
-			class="spotlight-halo"
-			fill="none"
-			stroke={colours.paper}
-			stroke-width={spotWidth + 3}
-			aria-hidden="true"
-		>
-			{@render spotShapes(spotlight)}
-		</g>
-		<g
-			class="spotlight"
-			data-mistake={mistake || undefined}
-			fill="none"
-			stroke={mistake ? mistakeColour : colours.cursor}
-			stroke-width={spotWidth}
-			stroke-dasharray="{spotWidth * 1.6} {spotWidth * 1.4}"
-			aria-hidden="true"
-		>
-			{@render spotShapes(spotlight)}
-		</g>
+		</Spotlight>
 	{/if}
 
 	{#if cursor && !blank}

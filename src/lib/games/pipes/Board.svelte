@@ -6,6 +6,7 @@
 	import { KeyCursor } from '../../client/keyCursor.svelte';
 	import { nextMark } from '../../client/marks';
 	import BoardSpeech from '../../components/game/BoardSpeech.svelte';
+	import Spotlight, { spotlightWidth } from '../../components/game/Spotlight.svelte';
 	import { t } from '../../i18n/index.svelte';
 	import type { PipesSettingKey } from './settings';
 	import { sayTile } from './speech';
@@ -350,6 +351,9 @@
 	// ---- Drawing ------------------------------------------------------------------------------
 
 	const px = (col: number) => pad + col * cellSize;
+	/** Hint outlines: as thick as `Spotlight` draws them, inset from the cell's edges. */
+	const spotWidth = $derived(spotlightWidth(cellSize));
+	const spotInset = $derived(Math.max(4, spotWidth));
 	const py = (row: number) => pad + row * cellSize;
 	/** The pipe: its inside, its walls, and both together. */
 	const inner = $derived(Math.max(3, cellSize * 0.18));
@@ -668,26 +672,17 @@
 	{/if}
 
 	{#if spotlight?.size && !blank}
-		<g
-			class="spotlight"
-			data-mistake={mistake || undefined}
-			fill="none"
-			stroke={mistake ? errorColour : colours.cursor}
-			stroke-width="3"
-			aria-hidden="true"
+		<Spotlight
+			{cellSize}
+			colour={mistake ? errorColour : colours.cursor}
+			background={colours.surface}
+			{mistake}
 		>
 			{#each [...spotlight] as key (key)}
-				{@const box = boxOf(key, 4)}
-				<rect
-					x={box.x}
-					y={box.y}
-					width={box.size}
-					height={box.size}
-					rx="4"
-					stroke-dasharray="6 4"
-				/>
+				{@const box = boxOf(key, spotInset)}
+				<rect x={box.x} y={box.y} width={box.size} height={box.size} rx={spotWidth * 1.5} />
 			{/each}
-		</g>
+		</Spotlight>
 	{/if}
 
 	{#if cursor != null && !blank}
