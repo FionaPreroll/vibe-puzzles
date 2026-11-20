@@ -299,6 +299,9 @@
 	onkeydown={keys.keydown}
 	onkeyup={keys.keyup}
 	onblur={keys.blur}
+	onmousedown={keys.mousedown}
+	onmouseup={keys.mouseup}
+	onfocusin={keys.focusin}
 	bind:innerHeight={fit.viewportHeight}
 />
 

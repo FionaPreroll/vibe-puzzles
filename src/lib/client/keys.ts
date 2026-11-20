@@ -26,6 +26,9 @@ function dialogOpen() {
 	return typeof document !== 'undefined' && !!document.querySelector('dialog[open]');
 }
 
+/** Where a button keeps the focus that a press gives it: inside a dialog, popover or drawer. */
+const KEEPS_FOCUS = 'dialog, [data-focus-trap]';
+
 /**
  * The one keyboard listener of a game page. The board gets each key first and says whether it
  * used it; only keys it leaves go on to the page's shortcuts. Keys typed into a field, and keys
@@ -33,6 +36,8 @@ function dialogOpen() {
  */
 export class KeyDispatcher {
 	#board: BoardKeys | null = null;
+	/** The button that the press of the mouse, a finger or a pen under way is on. */
+	#pressed: Element | null = null;
 
 	constructor(
 		private shortcuts: (e: KeyboardEvent) => void = () => {},
@@ -58,4 +63,24 @@ export class KeyDispatcher {
 	keyup = (e: KeyboardEvent) => this.#board?.keyup?.(e);
 
 	blur = () => this.#board?.blur?.();
+
+	/**
+	 * A button that a press of the mouse, a finger or a pen focuses gives the focus up again at
+	 * once (`focusin`), as buttons in Safari never take it. Otherwise Space and Enter would press it
+	 * again, "New puzzle" say where the player meant to switch to notes, instead of reaching the
+	 * board and the shortcuts. Tab still brings the focus to a button, which then keeps these keys,
+	 * and so do buttons in dialogs and in popovers and drawers that keep the focus (`trapFocus`).
+	 */
+	mousedown = (e: MouseEvent) => {
+		const button = (e.target as Element).closest('button');
+		this.#pressed = button?.closest(KEEPS_FOCUS) ? null : button;
+	};
+
+	mouseup = () => {
+		this.#pressed = null;
+	};
+
+	focusin = (e: FocusEvent) => {
+		if (e.target === this.#pressed) (e.target as HTMLElement).blur();
+	};
 }

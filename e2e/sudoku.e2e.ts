@@ -374,3 +374,34 @@ test('Space switches between digits and notes in Sudoku and Calcudoku, and the h
 	await expect(help.locator('dt', { hasText: 'Space' })).toBeVisible();
 	await expect(help.getByText('Switch between Digit and Note')).toBeVisible();
 });
+
+test('a button clicked with the mouse leaves Space to the board', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
+	await page.goto('/sudoku?v=c5e');
+	const board = page.getByRole('application', { name: 'Puzzle board' });
+	await expect(board.locator('text').first()).toBeVisible({ timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+	const digit = page.getByRole('button', { name: 'Digit', exact: true });
+	const note = page.getByRole('button', { name: 'Note', exact: true });
+
+	// Chrome and Firefox focus a clicked button: Space pressed it again instead of switching.
+	await note.click();
+	await expect(note).toHaveAttribute('aria-pressed', 'true');
+	await page.keyboard.press('Space');
+	await expect(digit).toHaveAttribute('aria-pressed', 'true');
+	await page.keyboard.press('Space');
+	await expect(note).toHaveAttribute('aria-pressed', 'true');
+	await digit.click();
+
+	// Undo, which repeats on Space and Enter while it has the focus.
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('Digit1');
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('Digit2');
+	await expect(board.locator('text[data-cell="1"]')).toHaveText('2');
+	await page.getByRole('button', { name: 'Undo' }).first().click();
+	await expect(board.locator('text[data-cell="1"]')).toHaveCount(0);
+	await page.keyboard.press('Space');
+	await expect(note).toHaveAttribute('aria-pressed', 'true');
+	await expect(board.locator('text[data-cell="0"]')).toHaveText('1');
+});

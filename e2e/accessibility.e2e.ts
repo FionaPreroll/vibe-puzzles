@@ -131,9 +131,20 @@ test.describe('on a phone', () => {
 	test('the drawer keeps the focus and gives it back', async ({ page }) => {
 		await openPuzzle(page);
 		const opener = page.getByRole('button', { name: 'Puzzle types and rules' });
-		await opener.click();
 		const drawer = page.getByRole('complementary', { name: 'Tetroid menu' });
-		await expect(drawer.getByRole('button', { name: 'Close menu' })).toBeFocused();
+		const close = drawer.getByRole('button', { name: 'Close menu' });
+		// Opened with a tap, it leaves the focus with nothing when it closes: Space and Enter then
+		// reach the board rather than opening the drawer again.
+		await opener.click();
+		await expect(close).toBeFocused();
+		await page.keyboard.press('Escape');
+		await expect(drawer).toBeHidden();
+		await expect(opener).not.toBeFocused();
+
+		// Opened from the keyboard, it gives the focus back to its button.
+		await opener.focus();
+		await page.keyboard.press('Enter');
+		await expect(close).toBeFocused();
 		// Shift+Tab from the first control goes round to the last one in the drawer.
 		await page.keyboard.press('Shift+Tab');
 		await expect(drawer.getByRole('link').last()).toBeFocused();

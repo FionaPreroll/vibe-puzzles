@@ -4,6 +4,7 @@ import { trapFocus } from './focus';
 /** Just enough of an element: focus, visibility and keydown listeners. */
 class FakeElement extends EventTarget {
 	children: FakeElement[] = [];
+	dataset: Record<string, string> = {};
 	constructor(
 		public name: string,
 		public visible = true
@@ -92,6 +93,13 @@ describe('focus trap', () => {
 		const plain = new FakeElement('plain');
 		trapFocus(plain as unknown as HTMLElement);
 		expect(key(plain, 'Escape').defaultPrevented).toBe(false);
+	});
+
+	it('marks the panel while it keeps the focus', () => {
+		const release = trap();
+		expect(panel.dataset).toEqual({ focusTrap: '' });
+		release();
+		expect(panel.dataset).toEqual({});
 	});
 
 	it('gives the focus back when closed', () => {

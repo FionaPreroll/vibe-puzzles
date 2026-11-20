@@ -186,10 +186,12 @@ for (const screen of SCREENS) {
 			}
 
 			// Rare actions sit in the "more" menu, "Start over" last and set apart.
-			await more.click();
+			await more.focus();
+			await page.keyboard.press('Enter');
 			const menu = page.getByRole('group', { name: 'More actions' });
 			await expect(menu.getByRole('button')).toHaveText(['Share board', 'Print…', 'Start over']);
-			// The focus moves into the menu and comes back when Escape closes it.
+			// Opened from the keyboard, the focus moves into the menu and comes back when Escape
+			// closes it.
 			await expect(menu.getByRole('button', { name: 'Share board' })).toBeFocused();
 			await page.keyboard.press('Escape');
 			await expect(menu).toBeHidden();

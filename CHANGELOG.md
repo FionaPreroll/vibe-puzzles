@@ -17,6 +17,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 ### Fixed
 
 - **Hints** are easier to see in every game: the dashed outline around what a hint points at is thicker on larger boards, with longer dashes, and stands out from the tinted area, the lines and the pipes beneath it, by day and by night. In Loop and Pinwheel the outline around an edge is wider, and it no longer gets cut off at the board's border. In Calcudoku the cage labels stay readable over it.
+- **Space after a click**: once you had clicked or tapped a button such as "New puzzle", "Note" or "Undo", Space and Enter pressed that button again. So Space could start yet another new puzzle instead of switching between digits and notes in Sudoku and Calcudoku. Now these keys go to the board and the keyboard shortcuts after a click, in every game and tutorial; a button you reach with Tab still takes them.
 
 ## [0.9.0] - 2026-11-02
 

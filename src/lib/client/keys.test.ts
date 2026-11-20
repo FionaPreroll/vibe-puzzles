@@ -106,6 +106,47 @@ describe('key dispatcher', () => {
 		expect(shortcuts).toHaveBeenCalledTimes(1);
 	});
 
+	it('takes the focus from a button that a press of the mouse gave it', () => {
+		const keys = new KeyDispatcher(undefined, () => false);
+		/** An element in `parent`, which `closest` finds by name; it gets blurred. */
+		const el = (name: string, parent?: { closest(q: string): unknown }) => {
+			const node = {
+				blur: vi.fn(),
+				closest(q: string): unknown {
+					return q.split(', ').includes(name) ? node : (parent?.closest(q) ?? null);
+				}
+			};
+			return node;
+		};
+		const press = (target: unknown) => keys.mousedown({ target } as unknown as MouseEvent);
+		const focus = (target: unknown) => keys.focusin({ target } as unknown as FocusEvent);
+
+		// A press on a button's icon focuses the button: it lets go of the focus.
+		const button = el('button');
+		press(el('svg', button));
+		focus(button);
+		expect(button.blur).toHaveBeenCalledOnce();
+
+		// Once the press is over, Tab brings the focus back to it to stay.
+		keys.mouseup();
+		focus(button);
+		expect(button.blur).toHaveBeenCalledOnce();
+
+		// Pressing elsewhere leaves a focus that arrives anyway alone.
+		press(el('svg'));
+		focus(button);
+		// So do buttons in a dialog or a popover that keeps the focus.
+		const inDialog = el('button', el('dialog'));
+		press(inDialog);
+		focus(inDialog);
+		const inTrap = el('button', el('[data-focus-trap]'));
+		press(inTrap);
+		focus(inTrap);
+		expect(button.blur).toHaveBeenCalledOnce();
+		expect(inDialog.blur).not.toHaveBeenCalled();
+		expect(inTrap.blur).not.toHaveBeenCalled();
+	});
+
 	it('finds open dialogs in the page by default', () => {
 		const board = { keydown: vi.fn(() => true) };
 		const shortcuts = vi.fn();
