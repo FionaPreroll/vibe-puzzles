@@ -8,12 +8,20 @@ async function marks(page: Page, variant: string): Promise<number[]> {
 	}, `vp:save:tetroid:${variant}`);
 }
 
+/**
+ * Open the game at `path` and wait for its puzzle: keys before it is on the board go nowhere.
+ * The puzzle's ID shows once it is there. A quiet network alone is not enough, as half the
+ * puzzles are made on the device (the default source, "mixed"), with no network at all.
+ */
+async function openPuzzle(page: Page, path: string) {
+	await page.goto(path);
+	await expect(page.locator('.font-mono.select-all')).toHaveText(/^\d/, { timeout: 30_000 });
+	await page.waitForLoadState('networkidle');
+}
+
 test('the board gets each key first, the shortcuts only the ones it leaves', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
-	await page.goto('/tetroid?v=6n');
-	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	// Keys are handled once the page has hydrated and the puzzle is in.
-	await page.waitForLoadState('networkidle');
+	await openPuzzle(page, '/tetroid?v=6n');
 
 	// The first arrow puts the cursor on the top-left cell, Space shades it.
 	await page.keyboard.press('ArrowRight');
@@ -37,10 +45,8 @@ test('the board gets each key first, the shortcuts only the ones it leaves', asy
 
 test('Shift+0 on a German keyboard erases a Sudoku cell and nothing else', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:sudoku', 'true'));
-	await page.goto('/sudoku?v=9n');
+	await openPuzzle(page, '/sudoku?v=9n');
 	const id = page.getByText(/Puzzle ID/i).first();
-	await expect(id).toBeVisible({ timeout: 30_000 });
-	await page.waitForLoadState('networkidle');
 	const before = await id.textContent();
 	const board = page.getByRole('application', { name: 'Puzzle board' });
 
@@ -66,9 +72,7 @@ test('Shift+0 on a German keyboard erases a Sudoku cell and nothing else', async
 
 test('Ctrl or Shift alone leaves the Tetroid cell at the cursor as it is', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:tetroid', 'true'));
-	await page.goto('/tetroid?v=6n');
-	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	await page.waitForLoadState('networkidle');
+	await openPuzzle(page, '/tetroid?v=6n');
 
 	await page.keyboard.press('ArrowRight');
 	await page.keyboard.press('Space');
@@ -104,9 +108,7 @@ test('Ctrl with the arrows draws Loop and Pinwheel lines from the dot the cursor
 	});
 	// In this Pinwheel, the edges below the top row of cells may take lines.
 	for (const path of ['/loop?v=5n', '/pinwheel?v=7n&id=1027244002']) {
-		await page.goto(path);
-		await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-		await page.waitForLoadState('networkidle');
+		await openPuzzle(page, path);
 		const board = page.getByRole('application', { name: 'Puzzle board' });
 		const line = (key: string) => board.locator(`[data-line="${key}"]`);
 
@@ -140,9 +142,7 @@ test('Ctrl with the arrows draws Loop and Pinwheel lines from the dot the cursor
 
 test('switching to another window while drawing with the keys drops the move', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('vp:tutorialSeen:loop', 'true'));
-	await page.goto('/loop?v=5n');
-	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	await page.waitForLoadState('networkidle');
+	await openPuzzle(page, '/loop?v=5n');
 	const lines = page.getByRole('application', { name: 'Puzzle board' }).locator('[data-line]');
 
 	await page.keyboard.press('ArrowRight');
