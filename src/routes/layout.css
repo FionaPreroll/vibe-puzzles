@@ -140,6 +140,45 @@ body.widescreen-short footer {
 	padding-inline: 0.75rem;
 }
 
+/* A decoration beside the action row's buttons (ActionRow): its box grows into the room the
+   buttons leave, up to 3rem, and shrinks to nothing rather than wrap them. The art sits on the
+   box's bottom, 0.5rem from the buttons, at its own size (its max-width) or a little smaller; with
+   less room it hides, on both sides alike, as their boxes share the room equally. */
+.decor-start,
+.decor-end {
+	display: flex;
+	flex: 1 1 0;
+	min-width: 0;
+	max-width: 3rem;
+	align-items: flex-end;
+	overflow: hidden;
+	container-type: inline-size;
+}
+@container (width < 2.5rem) {
+	.decor-art {
+		visibility: hidden;
+	}
+}
+.decor-start {
+	justify-content: flex-end;
+}
+.decor-start .decor-art {
+	margin-right: 0.5rem;
+}
+.decor-end .decor-art {
+	margin-left: 0.5rem;
+}
+.decor-art {
+	width: calc(100% - 0.5rem);
+	flex-shrink: 0;
+}
+@media (width >= 64rem) {
+	.decor-start,
+	.decor-end {
+		display: none;
+	}
+}
+
 /* A solved tutorial: a green ring pulses around its board. The game page's board has no ring: on
    phones it filled the surface's narrow edge and made the board look smaller. */
 .solved-glow {
