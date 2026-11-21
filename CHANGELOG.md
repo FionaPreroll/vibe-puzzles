@@ -18,7 +18,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 
 - **Hints** are easier to see in every game: the dashed outline around what a hint points at is thicker on larger boards, with longer dashes, and stands out from the tinted area, the lines and the pipes beneath it, by day and by night. In Loop and Pinwheel the outline around an edge is wider, and it no longer gets cut off at the board's border. In Calcudoku the cage labels stay readable over it.
 - **Space after a click**: once you had clicked or tapped a button such as "New puzzle", "Note" or "Undo", Space and Enter pressed that button again. So Space could start yet another new puzzle instead of switching between digits and notes in Sudoku and Calcudoku. Now these keys go to the board and the keyboard shortcuts after a click, in every game and tutorial; a button you reach with Tab still takes them.
-- **Win animation on phones**: the coloured ring that appeared around the board when you solved a puzzle filled the board's narrow white edge, so on phones held upright the board seemed to shrink for a moment. The ring is gone; the board keeps its look and size while the colours, confetti and sparkles play inside it.
+- **Win animation on phones**: the coloured ring that appeared around the board when you solved a puzzle filled the board's narrow white edge, so on phones held upright the board seemed to shrink for a moment. The ring is gone; the board keeps its look and size while the colours, confetti and sparkles play inside it. In Sudoku and Calcudoku the number pad no longer disappears once the puzzle is solved: it stays, greyed out, so the board does not get shorter.
 
 ## [0.9.0] - 2026-11-02
 

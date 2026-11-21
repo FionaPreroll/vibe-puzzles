@@ -479,8 +479,9 @@
 		<BoardSpeech id={speechId} game="sudoku" text={speech} />
 	{/if}
 
-	{#if !blank && !readonly}
-		<!-- Number pad: enters into the selected cell with the current tool, or arms a digit -->
+	{#if !blank}
+		<!-- Number pad: enters into the selected cell with the current tool, or arms a digit. Stays
+		     once solved, greyed out, so the board keeps its size -->
 		<div class="mt-2 flex w-full gap-1 px-[3px]" role="toolbar" aria-label={t('games.sudoku.pad')}>
 			{#each digits as d (d)}
 				<button
@@ -490,7 +491,7 @@
 					class:opacity-40={settings.showRemaining && remaining[d] <= 0}
 					class:ring-2={armed === d}
 					class:ring-indigo-500={armed === d}
-					disabled={!digitFirst && selected < 0}
+					disabled={readonly || (!digitFirst && selected < 0)}
 					aria-pressed={digitFirst ? armed === d : undefined}
 					onpointerdown={(e) => e.preventDefault()}
 					title={settings.showRemaining
@@ -513,7 +514,7 @@
 				style:font-size="{Math.min(24, cellSize * 0.4)}px"
 				class:ring-2={armed === 0}
 				class:ring-indigo-500={armed === 0}
-				disabled={!digitFirst && selected < 0}
+				disabled={readonly || (!digitFirst && selected < 0)}
 				aria-pressed={digitFirst ? armed === 0 : undefined}
 				aria-label={t('games.sudoku.erase')}
 				title={t('games.sudoku.erase')}

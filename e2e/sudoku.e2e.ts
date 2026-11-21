@@ -249,17 +249,24 @@ test('a whole Calcudoku can be solved', async ({ page }) => {
 	await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
 	await page.waitForLoadState('networkidle');
 	const shareSuccess = page.getByRole('button', { name: 'Share success' });
+	const stage = page.locator('.board-stage');
+	let before = null;
 
 	for (const [i, d] of [...solution].entries()) {
 		if (i === solution.length - 1) {
 			// Every cell but the last: not solved yet, and nothing is marked wrong.
 			await expect(board.locator(`text[fill="${palette.error}"]`)).toHaveCount(0);
 			await expect(shareSuccess).toHaveCount(0);
+			before = await stage.boundingBox();
 		}
 		await clickCell(page, 5, Math.floor(i / 5), i % 5);
 		await page.keyboard.press(d);
 	}
 	await expect(shareSuccess).toBeVisible();
+	// The number pad stays, greyed out, so the board's surface keeps its size.
+	const pad = page.getByRole('toolbar', { name: 'Number pad' });
+	await expect(pad.getByRole('button', { name: '1', exact: true })).toBeDisabled();
+	expect(await stage.boundingBox()).toEqual(before);
 	await expect(page.getByRole('status')).toContainText('Solved in');
 });
 
