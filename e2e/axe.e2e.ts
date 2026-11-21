@@ -130,7 +130,7 @@ for (const scheme of ['light', 'dark'] as const) {
 						grid.y + (Math.floor(i / 6) + 0.5) * cell
 					);
 			}
-			await expect(page.locator('.solved-glow')).toHaveCount(1);
+			await expect(page.locator('.celebrate-regions')).toHaveCount(1);
 			await expectAccessible(page);
 		});
 

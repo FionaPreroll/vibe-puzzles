@@ -126,7 +126,7 @@ for (const look of ['winter', 'christmas'] as const) {
 							grid.y + (Math.floor(i / 6) + 0.5) * cell
 						);
 				}
-				await expect(page.locator('.solved-glow')).toHaveCount(1);
+				await expect(page.locator('.celebrate-regions')).toHaveCount(1);
 				await expect(page.locator(`.${look}-burst .flyer`)).toHaveCount(18);
 				if (look === 'christmas')
 					await expect(page.locator('.christmas-burst .light')).toHaveCount(night ? 9 : 0);

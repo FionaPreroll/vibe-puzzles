@@ -140,8 +140,8 @@ body.widescreen-short footer {
 	padding-inline: 0.75rem;
 }
 
-/* Solved: a green glow pulses around the board and a few sparkles fly out. Neither changes the
-   layout: box-shadow takes no space and the sparkles are clipped to the board. */
+/* A solved tutorial: a green ring pulses around its board. The game page's board has no ring: on
+   phones it filled the surface's narrow edge and made the board look smaller. */
 .solved-glow {
 	animation: solved-glow 1.2s ease-out;
 	box-shadow: 0 0 0 4px rgb(16 185 129 / 0.6);
@@ -157,7 +157,8 @@ body.widescreen-short footer {
 		box-shadow: 0 0 0 4px rgb(16 185 129 / 0.6);
 	}
 }
-/* The flash sits inside the board, so the scroll container around it never clips it. */
+/* Solved: a flash and a few sparkles inside the board, clipped to it, so the layout never changes
+   and the scroll container around it never clips them. */
 .solved-burst {
 	animation: solved-flash 1.2s ease-out forwards;
 }

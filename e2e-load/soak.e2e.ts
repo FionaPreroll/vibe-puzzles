@@ -89,7 +89,7 @@ async function solve(page: Page, game: Game) {
 	const grid = (await board(page).locator('rect').first().boundingBox())!;
 	const cell = grid.width / p.size;
 	for (const [x, y] of clicks) await page.mouse.click(grid.x + x * cell, grid.y + y * cell);
-	await expect(page.locator('.solved-glow')).toHaveCount(1);
+	await expect(page.locator('.celebrate-regions')).toHaveCount(1);
 	// Let the celebration finish.
 	await expect(page.locator('.solved-burst')).toHaveCount(0, { timeout: 10_000 });
 }
