@@ -80,90 +80,103 @@
 			<span title={t('game.idHiddenTitle')}>{t('game.idHidden')}</span>
 		{/if}
 	</p>
-	<div class="flex flex-wrap items-end justify-center gap-2">
-		<!-- Halloween on phones: a jack-o'-lantern and candles beside the buttons -->
-		<HalloweenPumpkin face="night" class="halloween-only mr-2 w-10 lg:hidden" />
-		<!-- Winter: a snowman and a fir; Christmas: a present and a candy cane -->
-		<Snowman class="winter-only mr-2 w-9 lg:hidden" />
-		<Gift class="christmas-only mr-2 w-9 lg:hidden" />
-		{#if !session.solved && !autoSubmit}
-			<button
-				class="btn btn-primary max-lg:min-h-11"
-				onclick={() => session.submit()}
-				disabled={session.loading}>{t('game.done')}</button
-			>
-		{/if}
-		{#if session.solved && session.puzzleId}
-			<button
-				class="btn max-lg:min-h-11 {nextUp ? '' : 'btn-primary next-up'}"
-				onclick={onsharesolve}>{t('game.shareSolve')}</button
-			>
-		{/if}
-		<button
-			class="btn max-lg:min-h-11 {nextUp ? 'btn-primary next-up' : ''}"
-			onclick={onnew}
-			disabled={newBusy || session.loading}
-			>{newPeriod ? t(`game.currentPeriod.${newPeriod}`) : t('game.newPuzzle')}</button
-		>
-		<div class="relative">
-			<button
-				class="btn max-lg:min-h-11"
-				onclick={() => (moreOpen = !moreOpen)}
-				aria-expanded={moreOpen}
-				aria-label={t('game.more')}
-				title={t('game.more')}
-			>
-				<svg viewBox="0 0 24 24" class="size-5" fill="currentColor" aria-hidden="true">
-					<circle cx="5" cy="12" r="1.8" />
-					<circle cx="12" cy="12" r="1.8" />
-					<circle cx="19" cy="12" r="1.8" />
-				</svg>
-			</button>
-			{#if moreOpen}
-				<button
-					class="fixed inset-0 z-20 cursor-default"
-					tabindex="-1"
-					aria-hidden="true"
-					onclick={() => (moreOpen = false)}
-				></button>
-				<div
-					class="popover absolute {menuStart
-						? 'left-0'
-						: 'right-0'} bottom-full z-30 mb-1 flex w-56 flex-col p-1"
-					role="group"
-					aria-label={t('game.more')}
-					{@attach (node) => trapFocus(node, () => (moreOpen = false))}
-				>
-					<button
-						class="menu-item"
-						onclick={pick(onshare)}
-						disabled={session.loading || !session.puzzleId}>{t('game.share')}</button
-					>
-					<button class="menu-item" onclick={pick(() => window.print())}>{t('game.print')}</button>
-					{#if howMade}
-						<a class="menu-item" href={howMade}>{t('game.howMade')}</a>
-					{/if}
-					<!-- Not for the current special puzzle once solved: it is played once -->
-					{#if session.canStartOver}
-						<hr class="mx-2 my-1 border-stone-200 dark:border-stone-700" />
-						<button
-							class="menu-item text-rose-700 dark:text-rose-400"
-							onclick={pick(onstartover)}
-							disabled={session.loading}>{t('game.startOver')}</button
-						>
-					{/if}
-				</div>
-			{/if}
-		</div>
-		<span class="halloween-only ml-2 flex items-end gap-1.5 lg:hidden" aria-hidden="true">
-			<HalloweenCandle class="w-4" />
-			<HalloweenCandle class="w-3" />
+	<!-- Seasonal looks on phones: a decoration on each side of the buttons. It takes only the room
+	     the buttons leave and shrinks into it, so the buttons that come with solving never push it
+	     onto a line of its own: a taller row would shrink the board. Its box keeps its height, so
+	     the row does too. -->
+	<div class="flex w-full items-end justify-center lg:w-auto">
+		<!-- Halloween: a jack-o'-lantern and candles -->
+		<span class="halloween-only decor-start h-[37px]">
+			<HalloweenPumpkin face="night" class="decor-art max-w-10" />
 		</span>
-		<FirTree
-			snow
-			class="winter-only ml-2 w-8 fill-[#2e6a5e] lg:hidden dark:fill-[#1d4a52]"
-			snowClass="fill-white dark:fill-[#dbe7f5]"
-		/>
-		<CandyCane class="christmas-only ml-2 w-5 lg:hidden" />
+		<!-- Winter: a snowman and a fir; Christmas: a present and a candy cane -->
+		<span class="winter-only decor-start h-[52px]"><Snowman class="decor-art max-w-9" /></span>
+		<span class="christmas-only decor-start h-[36px]"><Gift class="decor-art max-w-9" /></span>
+		<div class="flex flex-wrap items-end justify-center gap-2">
+			{#if !session.solved && !autoSubmit}
+				<button
+					class="btn btn-primary max-lg:min-h-11"
+					onclick={() => session.submit()}
+					disabled={session.loading}>{t('game.done')}</button
+				>
+			{/if}
+			{#if session.solved && session.puzzleId}
+				<button
+					class="btn max-lg:min-h-11 {nextUp ? '' : 'btn-primary next-up'}"
+					onclick={onsharesolve}>{t('game.shareSolve')}</button
+				>
+			{/if}
+			<button
+				class="btn max-lg:min-h-11 {nextUp ? 'btn-primary next-up' : ''}"
+				onclick={onnew}
+				disabled={newBusy || session.loading}
+				>{newPeriod ? t(`game.currentPeriod.${newPeriod}`) : t('game.newPuzzle')}</button
+			>
+			<div class="relative">
+				<button
+					class="btn max-lg:min-h-11"
+					onclick={() => (moreOpen = !moreOpen)}
+					aria-expanded={moreOpen}
+					aria-label={t('game.more')}
+					title={t('game.more')}
+				>
+					<svg viewBox="0 0 24 24" class="size-5" fill="currentColor" aria-hidden="true">
+						<circle cx="5" cy="12" r="1.8" />
+						<circle cx="12" cy="12" r="1.8" />
+						<circle cx="19" cy="12" r="1.8" />
+					</svg>
+				</button>
+				{#if moreOpen}
+					<button
+						class="fixed inset-0 z-20 cursor-default"
+						tabindex="-1"
+						aria-hidden="true"
+						onclick={() => (moreOpen = false)}
+					></button>
+					<div
+						class="popover absolute {menuStart
+							? 'left-0'
+							: 'right-0'} bottom-full z-30 mb-1 flex w-56 flex-col p-1"
+						role="group"
+						aria-label={t('game.more')}
+						{@attach (node) => trapFocus(node, () => (moreOpen = false))}
+					>
+						<button
+							class="menu-item"
+							onclick={pick(onshare)}
+							disabled={session.loading || !session.puzzleId}>{t('game.share')}</button
+						>
+						<button class="menu-item" onclick={pick(() => window.print())}>{t('game.print')}</button
+						>
+						{#if howMade}
+							<a class="menu-item" href={howMade}>{t('game.howMade')}</a>
+						{/if}
+						<!-- Not for the current special puzzle once solved: it is played once -->
+						{#if session.canStartOver}
+							<hr class="mx-2 my-1 border-stone-200 dark:border-stone-700" />
+							<button
+								class="menu-item text-rose-700 dark:text-rose-400"
+								onclick={pick(onstartover)}
+								disabled={session.loading}>{t('game.startOver')}</button
+							>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		</div>
+		<span class="halloween-only decor-end h-[23px]" aria-hidden="true">
+			<span class="decor-art flex max-w-[34px] items-end gap-[18%]">
+				<HalloweenCandle class="w-[47%]" />
+				<HalloweenCandle class="w-[35%]" />
+			</span>
+		</span>
+		<span class="winter-only decor-end h-[48px]">
+			<FirTree
+				snow
+				class="decor-art max-w-8 fill-[#2e6a5e] dark:fill-[#1d4a52]"
+				snowClass="fill-white dark:fill-[#dbe7f5]"
+			/>
+		</span>
+		<span class="christmas-only decor-end h-[43px]"><CandyCane class="decor-art max-w-5" /></span>
 	</div>
 </div>

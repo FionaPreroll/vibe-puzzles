@@ -85,6 +85,59 @@ for (const [width, height, locale] of [
 	});
 }
 
+// Calcudoku 5×5 Easy #513322150 from the bundled collection and its solution: with the number pad
+// below it, its board is as tall as the phone allows, so anything below it that grew would
+// shrink it.
+const CALCUDOKU = '/sudoku?v=c5e&id=513322150';
+const CALCUDOKU_SOLUTION = '1254321354452315341234125';
+
+// The seasonal looks put a decoration on each side of the buttons below the board; the button that
+// comes with solving must not push one onto a line of its own.
+for (const look of ['winter', 'christmas', 'halloween']) {
+	test.describe(`412×830 de-DE, ${look}`, () => {
+		test.use({
+			viewport: { width: 412, height: 830 },
+			isMobile: true,
+			hasTouch: true,
+			locale: 'de-DE'
+		});
+
+		test('solving a Calcudoku keeps the board and the page as they were', async ({ page }) => {
+			await page.addInitScript((look) => {
+				localStorage.setItem('vp:tutorialSeen:sudoku', 'true');
+				localStorage.setItem('vp:puzzleSource', '"bank"');
+				localStorage.setItem('vp:look', JSON.stringify(look));
+			}, look);
+			await page.goto(CALCUDOKU);
+			const board = page.locator('.overflow-x-auto svg[role="application"]');
+			await expect(board.locator('g.cages text').first()).toBeVisible({ timeout: 30_000 });
+			await page.waitForLoadState('networkidle');
+
+			// The board has a 3 px margin around the grid.
+			const box = (await board.boundingBox())!;
+			const cell = (box.width - 6) / 5;
+			const enter = async (i: number) => {
+				await page.touchscreen.tap(
+					box.x + 3 + ((i % 5) + 0.5) * cell,
+					box.y + 3 + (Math.floor(i / 5) + 0.5) * cell
+				);
+				await page.keyboard.press(CALCUDOKU_SOLUTION[i]);
+			};
+			const last = CALCUDOKU_SOLUTION.length - 1;
+			for (let i = 0; i < last; i++) await enter(i);
+			const before = await measure(page);
+
+			await enter(last);
+			await expect(page.getByRole('button', { name: 'Erfolg teilen' })).toBeVisible();
+			// Wait out the celebration.
+			await page.waitForTimeout(2000);
+			const after = await measure(page);
+			expect(after.board).toEqual(before.board);
+			expect(after.page).toBe(before.page);
+		});
+	});
+}
+
 // Pinwheel 7×7 Normal #1027244002 from the bundled bank and its solution lines, as in
 // galaxy-dots.e2e.ts. Its stage is wide enough that the ID and two buttons once fitted on one
 // line, until solving added a third.
