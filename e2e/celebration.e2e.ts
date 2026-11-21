@@ -24,14 +24,14 @@ test('a new puzzle right after solving ends the celebration', async ({ page }) =
 			grid.y + (Math.floor(i / 6) + 0.5) * cell
 		);
 	}
-	const glow = page.locator('.solved-glow');
-	await expect(glow).toHaveCount(1);
+	const regions = page.locator('.celebrate-regions');
+	await expect(regions).toHaveCount(1);
 
 	await page.getByRole('button', { name: 'New puzzle' }).click();
 	await expect(page.locator('.font-mono.select-all')).not.toHaveText('496,678,832');
 	// The celebration is over at once and stays over.
-	await expect(glow).toHaveCount(0);
+	await expect(regions).toHaveCount(0);
 	await expect(page.locator('.solved-burst')).toHaveCount(0);
 	await page.waitForTimeout(2500);
-	await expect(glow).toHaveCount(0);
+	await expect(regions).toHaveCount(0);
 });

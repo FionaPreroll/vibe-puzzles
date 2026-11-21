@@ -138,9 +138,7 @@
 				<ChristmasStageDecor beside={decorBeside} />
 				<div
 					bind:this={boardEl}
-					class="relative z-10 mx-auto w-fit rounded-sm {session.paused
-						? 'invisible'
-						: ''} {celebrate ? 'solved-glow' : ''}"
+					class="relative z-10 mx-auto w-fit rounded-sm {session.paused ? 'invisible' : ''}"
 				>
 					<Board
 						puzzle={session.puzzle}
