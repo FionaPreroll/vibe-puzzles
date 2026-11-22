@@ -24,16 +24,69 @@ export interface Backup {
 	data: Record<string, string>;
 }
 
+/** What a stored value is, for choosing what goes into a backup. */
+export type BackupPart = 'saves' | 'stats' | 'settings' | 'player';
+
+export const BACKUP_PARTS: readonly BackupPart[] = ['saves', 'stats', 'settings', 'player'];
+
+/** Kinds of keys that belong to one game: `<kind>:<game>…` (see `storageKeys.ts`). */
+const GAME_KEYS: Record<string, BackupPart> = {
+	save: 'saves',
+	stats: 'stats',
+	bankPlayed: 'stats',
+	settings: 'settings',
+	tool: 'settings',
+	boardZoom: 'settings',
+	tutorialSeen: 'settings',
+	tutorialDone: 'settings'
+};
+
+/** The part a stored key (without `vp:`) belongs to, and its game if it belongs to one. */
+export function backupPart(key: string): { part: BackupPart; game?: string } {
+	if (key === KEY.player || key === KEY.outbox) return { part: 'player' };
+	const [kind, game] = key.split(':');
+	const part = Object.hasOwn(GAME_KEYS, kind) ? GAME_KEYS[kind] : undefined;
+	// Anything else holds once for the whole app: the language, night mode, the look, …
+	return part && game ? { part, game } : { part: 'settings' };
+}
+
+/** What goes into a backup: its parts, and of the keys that belong to a game those of `games`. */
+export interface BackupSelection {
+	parts: readonly BackupPart[];
+	/** All games when left out. */
+	games?: readonly string[];
+}
+
+export function selects(selection: BackupSelection, key: string): boolean {
+	const { part, game } = backupPart(key);
+	if (!selection.parts.includes(part)) return false;
+	return !game || !selection.games || selection.games.includes(game);
+}
+
+/** The games this browser keeps something of, in alphabetical order. */
+export function backupGames(storage: Storage): string[] {
+	const games = new Set<string>();
+	for (let i = 0; i < storage.length; i++) {
+		const key = storage.key(i);
+		if (!key?.startsWith(PREFIX)) continue;
+		const { game } = backupPart(key.slice(PREFIX.length));
+		if (game) games.add(game);
+	}
+	return [...games].sort();
+}
+
 export function createBackup(
 	storage: Storage,
 	app: Backup['app'],
 	schemaUrl?: string,
-	now = new Date()
+	now = new Date(),
+	selection?: BackupSelection
 ): Backup {
 	const data: Record<string, string> = {};
 	for (let i = 0; i < storage.length; i++) {
 		const key = storage.key(i);
 		if (!key?.startsWith(PREFIX)) continue;
+		if (selection && !selects(selection, key.slice(PREFIX.length))) continue;
 		const value = storage.getItem(key);
 		if (value != null) data[key.slice(PREFIX.length)] = value;
 	}

@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 import {
 	BACKUP_FORMAT,
 	BACKUP_VERSION,
+	backupGames,
+	backupPart,
 	createBackup,
 	mergeBackup,
 	parseBackup,
@@ -277,6 +279,52 @@ describe('backup', () => {
 			mergeBackup(fresh, backupOf({ player: me, outbox: { saves: {}, scores: [] } }));
 			expect(json(fresh, 'player')).toEqual(me);
 			expect(fresh.getItem('vp:outbox')).not.toBeNull();
+		});
+	});
+
+	describe('choosing what goes in', () => {
+		const from = memory({
+			'vp:player': '{"id":"p"}',
+			'vp:outbox': '{}',
+			'vp:locale': 'de',
+			'vp:night': 'true',
+			'vp:save:loop:7n': '{}',
+			'vp:save:sudoku:9n': '{}',
+			'vp:stats:loop:7n': '{}',
+			'vp:bankPlayed:sudoku:9n': '[]',
+			'vp:settings:loop': '{}',
+			'vp:tutorialDone:sudoku:calc': 'true',
+			'vp:boardZoom:loop:7n': '1.5'
+		});
+		const keysOf = (selection: Parameters<typeof createBackup>[4]) =>
+			Object.keys(createBackup(from, APP, undefined, new Date(0), selection).data).sort();
+
+		it('sorts every key into its part and game', () => {
+			expect(backupPart('player')).toEqual({ part: 'player' });
+			expect(backupPart('outbox')).toEqual({ part: 'player' });
+			expect(backupPart('locale')).toEqual({ part: 'settings' });
+			expect(backupPart('save:loop:7n:2026-10-01')).toEqual({ part: 'saves', game: 'loop' });
+			expect(backupPart('bankPlayed:loop:7n')).toEqual({ part: 'stats', game: 'loop' });
+			expect(backupPart('tutorialDone:sudoku:calc')).toEqual({ part: 'settings', game: 'sudoku' });
+			expect(backupPart('constructor:x')).toEqual({ part: 'settings' });
+			expect(backupGames(from)).toEqual(['loop', 'sudoku']);
+		});
+
+		it('leaves out the parts and games not chosen', () => {
+			expect(keysOf(undefined)).toHaveLength(11);
+			expect(keysOf({ parts: ['saves', 'stats', 'settings'] })).not.toContain('player');
+			expect(keysOf({ parts: ['saves', 'stats', 'settings'] })).not.toContain('outbox');
+			expect(keysOf({ parts: ['settings'], games: ['loop'] })).toEqual([
+				'boardZoom:loop:7n',
+				'locale',
+				'night',
+				'settings:loop'
+			]);
+			expect(keysOf({ parts: ['saves', 'stats'], games: ['sudoku'] })).toEqual([
+				'bankPlayed:sudoku:9n',
+				'save:sudoku:9n'
+			]);
+			expect(keysOf({ parts: ['saves'], games: [] })).toEqual([]);
 		});
 	});
 });
