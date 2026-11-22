@@ -11,10 +11,9 @@ import { parseBackup, type Backup, type ParseResult } from './backup';
 export const LINK_PARAM = 'backup';
 
 /**
- * Links up to this length also get a QR code: version 25 at the lowest error correction holds
- * 1,273 bytes, about as dense as a phone's camera still reads off a screen.
+ * The densest QR code shown: version 25 at the lowest error correction holds a link of 1,273
+ * characters, about as dense as a phone's camera still reads off a screen.
  */
-export const QR_MAX_LENGTH = 1200;
 const QR_MAX_VERSION = 25;
 
 async function pipe(bytes: Uint8Array, through: CompressionStream | DecompressionStream) {
@@ -70,7 +69,6 @@ export async function backupFromHash(hash: string): Promise<ParseResult | null> 
 
 /** The QR code of `link` as an SVG path in a square of `size` modules, or null if it is too long. */
 export function qrCode(link: string): { size: number; path: string } | null {
-	if (link.length > QR_MAX_LENGTH) return null;
 	try {
 		const qr = encode(link, { ecc: 'L', maxVersion: QR_MAX_VERSION, border: 2 });
 		let path = '';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BACKUP_FORMAT, BACKUP_VERSION, type Backup } from './backup';
-import { backupFromHash, backupLink, QR_MAX_LENGTH, qrCode } from './backupLink';
+import { backupFromHash, backupLink, qrCode } from './backupLink';
 
 const backup = (data: Record<string, string>): Backup => ({
 	$schema: 'https://example.org/backup.schema.json',
@@ -35,7 +35,13 @@ describe('backup links', () => {
 	it('leave other fragments alone and refuse broken ones', async () => {
 		expect(await backupFromHash('')).toBeNull();
 		expect(await backupFromHash('#changes')).toBeNull();
-		for (const hash of ['#backup=', '#backup=not+base64', '#backup=AAAA', '#backup=%%%']) {
+		for (const hash of [
+			'#backup=',
+			'#backup=not+base64',
+			'#backup=A',
+			'#backup=AAAA',
+			'#backup=%%%'
+		]) {
 			expect(await backupFromHash(hash)).toEqual({ ok: false, error: 'broken link' });
 		}
 		// Valid compression, but no backup inside.
@@ -53,6 +59,9 @@ describe('backup links', () => {
 		const qr = qrCode('https://example.org/about#backup=abc');
 		expect(qr?.size).toBeGreaterThanOrEqual(25);
 		expect(qr?.path).toMatch(/^M\d+ \d+h1v1h-1z/);
-		expect(qrCode(`https://example.org/about#backup=${'a'.repeat(QR_MAX_LENGTH)}`)).toBeNull();
+		// Version 25 holds 1,273 characters.
+		const link = (length: number) => `https://example.org/about#backup=`.padEnd(length, 'a');
+		expect(qrCode(link(1273))?.size).toBe(25 * 4 + 17 + 4);
+		expect(qrCode(link(1274))).toBeNull();
 	});
 });
