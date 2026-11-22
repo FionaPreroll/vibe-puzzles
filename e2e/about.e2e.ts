@@ -149,7 +149,7 @@ test('the export takes only what the player chose', async ({ page }) => {
 		localStorage.setItem('vp:settings:loop', '{"values":{},"updatedAt":1}');
 	});
 	await page.reload();
-	await page.getByText('Choose what goes into the file').click();
+	await page.getByText('Choose what goes into the file', { exact: true }).click();
 	await page.getByLabel('Player code').uncheck();
 	await page.getByLabel('Sudoku, Calcudoku').uncheck();
 	const downloading = page.waitForEvent('download');
