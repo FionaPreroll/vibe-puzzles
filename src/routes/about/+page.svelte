@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { asset, resolve } from '$app/paths';
-	import { createBackup, parseBackup, restoreBackup } from '#lib/client/backup.ts';
-	import { ask } from '#lib/client/confirm.svelte.ts';
+	import { createBackup, mergeBackup, parseBackup, restoreBackup } from '#lib/client/backup.ts';
+	import { choose } from '#lib/client/confirm.svelte.ts';
 	import { downloadFile } from '#lib/client/download.ts';
 	import { i18n, t } from '#lib/i18n/index.svelte.ts';
 	import type { ChangelogRelease, Inline } from '../../../scripts/changelog';
@@ -45,15 +45,22 @@
 		const parsed = parseBackup(await file.text());
 		if (!parsed.ok) return void (error = t('about.importFailed', { error: parsed.error }));
 		const count = Object.keys(parsed.backup.data).length;
-		const agreed = await ask({
+		const choice = await choose({
 			title: t('confirm.import.title', { count }),
 			text: t('confirm.import.text'),
 			confirm: t('confirm.import.ok'),
-			danger: true
+			other: t('confirm.import.replace'),
+			otherDanger: true
 		});
-		if (!agreed) return;
-		restoreBackup(localStorage, parsed.backup);
-		done = t('about.imported', { count });
+		if (!choice) return;
+		if (choice === 'other') {
+			restoreBackup(localStorage, parsed.backup);
+			done = t('about.imported', { count });
+		} else {
+			const changed = mergeBackup(localStorage, parsed.backup);
+			if (!changed) return void (done = t('about.mergedNothing'));
+			done = t('about.merged', { count: changed });
+		}
 		setTimeout(() => location.reload(), 800);
 	}
 </script>
