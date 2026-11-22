@@ -126,7 +126,8 @@ describe('backup', () => {
 			'vp:bankPlayed:sudoku:9n': '[]',
 			'vp:settings:loop': '{}',
 			'vp:tutorialDone:sudoku:calc': 'true',
-			'vp:boardZoom:loop:7n': '1.5'
+			'vp:boardZoom:loop:7n': '1.5',
+			other: 'not ours'
 		});
 		const keysOf = (selection: Parameters<typeof createBackup>[4]) =>
 			Object.keys(createBackup(from, APP, undefined, new Date(0), selection).data).sort();
