@@ -262,6 +262,56 @@ describe('backup', () => {
 			expect(json(to, 'bankPlayed:loop:7n')).toEqual([1, 2, 3]);
 		});
 
+		it('keeps what this browser has where the backup cannot be merged into it', () => {
+			const to = memory({
+				'vp:stats:loop:7n': 'not JSON',
+				'vp:save:loop:7n': JSON.stringify(game(1, 100)),
+				'vp:settings:loop': JSON.stringify({ values: {}, updatedAt: 5 }),
+				'vp:bankPlayed:loop:7n': '[1,2]',
+				'vp:night': 'true',
+				'vp:player': 'broken'
+			});
+			const n = mergeBackup(
+				to,
+				backupOf({
+					'stats:loop:7n': { solved: 1 },
+					'save:loop:7n': { version: 99 },
+					'settings:loop': { values: { a: true }, updatedAt: 'later' },
+					'bankPlayed:loop:7n': [2, 'x'],
+					night: 'true',
+					player: { id: 'p', name: 'P', token: 't' }
+				})
+			);
+			// Only the player: the one here cannot be read.
+			expect(n).toBe(1);
+			expect(to.getItem('vp:stats:loop:7n')).toBe('not JSON');
+			expect(json(to, 'save:loop:7n').puzzleId).toBe(1);
+			expect(json(to, 'settings:loop').updatedAt).toBe(5);
+			expect(json(to, 'bankPlayed:loop:7n')).toEqual([1, 2]);
+			expect(json(to, 'player').id).toBe('p');
+		});
+
+		it('reads statistics that lack fields, and counts what only the backup solved', () => {
+			const to = memory({ 'vp:stats:pipes:5n': JSON.stringify({ solved: 1, solvedIds: [1] }) });
+			mergeBackup(
+				to,
+				backupOf({
+					'stats:pipes:5n': { solved: 2, totalMs: 100, solvedIds: [1, 2], recent: 'x' }
+				})
+			);
+			// Puzzle 1 counts once; its time, unknown, is the backup's average.
+			expect(json(to, 'stats:pipes:5n')).toMatchObject({
+				solved: 2,
+				totalMs: 50,
+				recent: [],
+				solvedIds: [1, 2]
+			});
+
+			const again = memory({ 'vp:stats:pipes:5n': JSON.stringify({ solved: 3, solvedIds: [1] }) });
+			mergeBackup(again, backupOf({ 'stats:pipes:5n': { solved: 0, solvedIds: [7] } }));
+			expect(json(again, 'stats:pipes:5n')).toMatchObject({ solved: 3, totalMs: 0 });
+		});
+
 		it('keeps the player here, and leaves out uploads of another player', () => {
 			const me = { id: 'me', name: 'Me', token: 't1' };
 			const to = memory({ 'vp:player': JSON.stringify(me) });
@@ -294,7 +344,8 @@ describe('backup', () => {
 			'vp:bankPlayed:sudoku:9n': '[]',
 			'vp:settings:loop': '{}',
 			'vp:tutorialDone:sudoku:calc': 'true',
-			'vp:boardZoom:loop:7n': '1.5'
+			'vp:boardZoom:loop:7n': '1.5',
+			other: 'not ours'
 		});
 		const keysOf = (selection: Parameters<typeof createBackup>[4]) =>
 			Object.keys(createBackup(from, APP, undefined, new Date(0), selection).data).sort();
