@@ -444,6 +444,20 @@ const de: Dictionary = {
 		pickName: 'Wähle einen Spielernamen',
 		toAppear: ', um hier zu erscheinen.'
 	},
+	today: {
+		title: 'Heute',
+		intro: 'Die Rätsel, die du heute auf diesem Gerät gelöst hast.',
+		share: 'Deinen Tag teilen',
+		shareOne: 'Mein Rätseltag: 1 Rätsel in {time} gelöst.',
+		shareMany: 'Mein Rätseltag: {count} Rätsel in {time} gelöst.',
+		line: '{icon} {game} {variant}: {time}',
+		lineHinted: '{icon} {game} {variant}: {time} (mit Hinweisen)',
+		hinted: 'mit Hinweisen',
+		more: '… und {count} weitere',
+		invite: 'Spielst du mit?',
+		copied: 'Dein Tag und der Link sind kopiert. Füge sie ein, wo du sie teilen möchtest.',
+		manualTitle: 'Deinen Tag teilen'
+	},
 	player: {
 		title: 'Spieler',
 		checking: 'Suche nach dem Server…',

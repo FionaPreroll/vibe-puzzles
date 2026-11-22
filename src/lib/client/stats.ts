@@ -3,6 +3,15 @@ import { periodKey, periodStart, type SpecialKind } from '../core/variants';
 import { load, save, watchStorage } from './storage';
 import { STATS_PREFIX, statsKey } from './storageKeys';
 
+/** A recent solve: its puzzle, time and when (epoch ms). */
+export interface RecentSolve {
+	puzzleId: number;
+	timeMs: number;
+	at: number;
+	/** Solved with a hint (only set by versions that know it). */
+	hinted?: true;
+}
+
 /** Per-device statistics for one game variant. */
 export interface VariantStats {
 	solved: number;
@@ -12,7 +21,7 @@ export interface VariantStats {
 	bestMs: number | null;
 	totalMs: number;
 	/** Most recent solve times, newest first. */
-	recent: { puzzleId: number; timeMs: number; at: number }[];
+	recent: RecentSolve[];
 	/** Special types: the last period solved. */
 	lastPeriod?: string;
 	/**
@@ -138,7 +147,8 @@ export function recordSolve(
 	s.bestStreak = Math.max(s.bestStreak, s.streak);
 	if (!hinted) s.bestMs = s.bestMs == null ? timeMs : Math.min(s.bestMs, timeMs);
 	s.totalMs += timeMs;
-	s.recent = [{ puzzleId, timeMs, at: Date.now() }, ...s.recent].slice(0, 20);
+	const solve: RecentSolve = { puzzleId, timeMs, at: Date.now(), ...(hinted && { hinted: true }) };
+	s.recent = [solve, ...s.recent].slice(0, 20);
 	if (period && kind) countPeriod(s, period, kind);
 	write(game, variant, s);
 	return s;

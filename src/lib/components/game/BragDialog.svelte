@@ -8,9 +8,12 @@
 	 */
 	let {
 		text = $bindable(),
+		title,
 		oncopied
 	}: {
 		text: string | null;
+		/** The dialog's title; sharing a solve by default. */
+		title?: string;
 		oncopied: () => void;
 	} = $props();
 
@@ -29,7 +32,7 @@
 
 <Dialog
 	bind:open={() => text !== null, (open) => !open && (text = null)}
-	title={t('game.shareSolve')}
+	title={title ?? t('game.shareSolve')}
 >
 	<p class="text-sm text-stone-600 dark:text-stone-300">{t('game.bragManual')}</p>
 	<textarea
