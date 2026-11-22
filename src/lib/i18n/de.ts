@@ -560,7 +560,7 @@ const de: Dictionary = {
 		export: 'Sicherung exportieren',
 		import: 'Sicherung importieren',
 		schema: 'Dateiformat (JSON-Schema)',
-		choose: 'Auswählen, was in die Datei kommt',
+		choose: 'Auswählen, was in die Sicherung kommt',
 		contents: 'Inhalt',
 		games: 'Spiele',
 		part: {
@@ -569,7 +569,21 @@ const de: Dictionary = {
 			settings: 'Einstellungen',
 			player: 'Spieler-Code (deine Anmeldung am Server)'
 		},
-		entries: 'Die Datei bekommt {count} Einträge.',
+		entries: 'Die Sicherung bekommt {count} Einträge.',
+		makeLink: 'Link für ein anderes Gerät',
+		linkTitle: 'Vibe-Puzzles-Sicherungslink',
+		linkQr: 'QR-Code des Sicherungslinks',
+		linkScan:
+			'Scanne den Code mit dem anderen Gerät oder schick dir den Link. Wenn du ihn dort öffnest, bietet die Seite an, die Sicherung zu importieren.',
+		linkTooLong:
+			'Für einen QR-Code ist dieser Link zu lang ({length} Zeichen): Schick ihn dir selbst, oder wähl weniger aus, zum Beispiel ohne Spielstände.',
+		linkPlayer:
+			'Der Link enthält deinen Spieler-Code, deine Anmeldung am Server: Schick ihn nur an dich selbst.',
+		shareLink: 'Link teilen',
+		copyLink: 'Link kopieren',
+		linkCopied: 'Kopiert.',
+		linkCopyFailed: 'Kopieren ging nicht: Markier den Link oben und kopier ihn von Hand.',
+		linkFailed: 'Dieser Link lässt sich nicht importieren: {error}.',
 		imported: '{count} Einträge wiederhergestellt. Seite wird neu geladen…',
 		merged: 'Zusammengeführt: {count} Einträge neu oder geändert. Seite wird neu geladen…',
 		mergedNothing: 'Dieses Gerät hat schon alles aus der Sicherung.',

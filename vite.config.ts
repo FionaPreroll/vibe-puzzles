@@ -23,7 +23,8 @@ const SHIPPED_PACKAGES = [
 	'@fontsource/fredoka',
 	'@fontsource/cinzel',
 	'@fontsource/comfortaa',
-	'@fontsource/playfair-display'
+	'@fontsource/playfair-display',
+	'uqr'
 ];
 
 function commit(): string {

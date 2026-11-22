@@ -571,7 +571,7 @@ const en = {
 		export: 'Export backup',
 		import: 'Import backup',
 		schema: 'File format (JSON Schema)',
-		choose: 'Choose what goes into the file',
+		choose: 'Choose what goes into the backup',
 		contents: 'Contents',
 		games: 'Games',
 		part: {
@@ -580,7 +580,21 @@ const en = {
 			settings: 'Settings',
 			player: 'Player code (your sign-in on the server)'
 		},
-		entries: 'The file gets {count} entries.',
+		entries: 'The backup gets {count} entries.',
+		makeLink: 'Link for another device',
+		linkTitle: 'Vibe Puzzles backup link',
+		linkQr: 'QR code of the backup link',
+		linkScan:
+			'Scan the code with the other device, or send yourself the link. Opening it there offers to import the backup.',
+		linkTooLong:
+			'This link is too long for a QR code ({length} characters): send it to yourself, or choose less, such as no saved games.',
+		linkPlayer:
+			'The link holds your player code, your sign-in on the server: send it only to yourself.',
+		shareLink: 'Share link',
+		copyLink: 'Copy link',
+		linkCopied: 'Copied.',
+		linkCopyFailed: 'Could not copy: select the link above and copy it by hand.',
+		linkFailed: 'This link cannot be imported: {error}.',
 		imported: 'Restored {count} entries. Reloading…',
 		merged: 'Merged: {count} entries added or updated. Reloading…',
 		mergedNothing: 'This device already has everything in the backup.',
