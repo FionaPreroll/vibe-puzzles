@@ -398,7 +398,7 @@ const de: Dictionary = {
 		autoNotes:
 			'Jedes leere Feld ohne Notizen bekommt die Ziffern, die Zeile, Spalte und Block dort noch zulassen.',
 		autoRemoveNotes:
-			'Eine neue Ziffer verschwindet aus den Notizen in ihrer Zeile, Spalte und ihrem Block.',
+			'Eine neue Ziffer verschwindet aus den Notizen in ihrer Zeile, Spalte und ihrem Block. Kommt sie dort schon vor, ist sie wohl vertippt, und die Notizen bleiben.',
 		highlightLines: 'Hinterlegt Zeile, Spalte und Block des gewählten Felds.',
 		highlightSame:
 			'Hebt alle Felder hervor, in denen dieselbe Ziffer steht wie im gewählten Feld. Wählst du erst die Ziffer, gilt diese.',
@@ -828,7 +828,7 @@ const de: Dictionary = {
 						autoNotes:
 							'Jedes leere Feld ohne Notizen bekommt die Ziffern, die Zeile und Spalte dort noch zulassen. Die Käfige bleiben dir überlassen.',
 						autoRemoveNotes:
-							'Eine neue Ziffer verschwindet aus den Notizen in ihrer Zeile und Spalte.',
+							'Eine neue Ziffer verschwindet aus den Notizen in ihrer Zeile und Spalte. Kommt sie dort schon vor oder verfehlt ein voller Käfig sein Ergebnis, ist sie wohl vertippt, und die Notizen bleiben.',
 						highlightLines: 'Hinterlegt Zeile und Spalte des gewählten Felds.'
 					},
 					rules: [

@@ -141,6 +141,50 @@ describe('rules', () => {
 		expect(digitsOf(pruned.notes[2])).toEqual([2]);
 	});
 
+	it('keeps the notes that a digit breaking a rule would rule out', () => {
+		// Cell 47 shares a column with cell 2, and either may still hold a 1 or a 3.
+		let s = toggleNote(easy, emptySudokuState(easy), 47, 3);
+		s = toggleNote(easy, s, 47, 1);
+		// A 3 in cell 2 repeats the given 3 next to it: a typo, so the notes stay.
+		s = placeDigit(easy, s, 2, 3);
+		expect(pruneNotes(easy, s)).toBe(s);
+		// Corrected to a digit that breaks no rule, it rules out its notes as usual.
+		s = placeDigit(easy, s, 2, 1);
+		expect(digitsOf(pruneNotes(easy, s).notes[47])).toEqual([3]);
+	});
+
+	it('in Calcudoku, keeps the notes that a repeated digit or a broken cage would rule out', () => {
+		// 4×4, solution 1234 / 2341 / 3412 / 4123: a 3+ cage over cells 0 and 1, the rest single.
+		const solution = [1, 2, 3, 4, 2, 3, 4, 1, 3, 4, 1, 2, 4, 1, 2, 3];
+		const calc: SudokuPuzzle = {
+			width: 4,
+			height: 4,
+			givens: new Array(16).fill(0),
+			cages: [
+				{ cells: [0, 1], op: '+', target: 3 },
+				...solution.slice(2).map((d, k) => ({ cells: [k + 2], op: '=' as const, target: d }))
+			]
+		};
+		const noted = (cells: number[]) =>
+			cells.reduce((s, i) => toggleNote(calc, s, i, 1), emptySudokuState(calc));
+		// Notes 1 in cell 3 (row 0) and cell 4 (column 0).
+		let s = noted([3, 4]);
+		// 1 and 1 in the cage: they repeat in the row and miss 3+, so no note goes.
+		s = placeDigit(calc, placeDigit(calc, s, 0, 1), 1, 1);
+		expect(pruneNotes(calc, s)).toBe(s);
+		// 2 and 1 add up to 3 but sit the wrong way round: nothing breaks a rule yet, so the 1 in
+		// cell 1 rules out the note in its row.
+		s = placeDigit(calc, s, 0, 2);
+		expect(pruneNotes(calc, s).notes[3]).toBe(0);
+		// A full cage that misses its target: neither of its digits rules anything out.
+		s = placeDigit(calc, noted([3, 4]), 0, 1);
+		s = placeDigit(calc, s, 1, 3);
+		expect(pruneNotes(calc, s)).toBe(s);
+		s = placeDigit(calc, s, 1, 2);
+		const pruned = pruneNotes(calc, s);
+		expect([pruned.notes[3], pruned.notes[4]]).toEqual([0, 0]);
+	});
+
 	it('recognises a solved grid', () => {
 		expect(isSolvedGrid(9, EASY_SOLUTION)).toBe(true);
 		expect(isSolvedGrid(9, EASY)).toBe(false);
