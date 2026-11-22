@@ -1,12 +1,21 @@
 <script lang="ts">
 	import { asset, resolve } from '$app/paths';
-	import { createBackup, parseBackup, restoreBackup } from '#lib/client/backup.ts';
+	import { onMount } from 'svelte';
+	import {
+		BACKUP_PARTS,
+		backupGames,
+		createBackup,
+		parseBackup,
+		restoreBackup,
+		type BackupPart
+	} from '#lib/client/backup.ts';
 	import { ask } from '#lib/client/confirm.svelte.ts';
 	import { downloadFile } from '#lib/client/download.ts';
 	import { i18n, t } from '#lib/i18n/index.svelte.ts';
 	import type { ChangelogRelease, Inline } from '../../../scripts/changelog';
 
 	const build = __BUILD__;
+	const app = { version: build.version, commit: build.commit };
 	/** Open: changes not in a version yet and the newest version; the older ones fold away. */
 	const open = __CHANGELOG__.slice(0, Math.max(1, __CHANGELOG__.findIndex((r) => r.date) + 1));
 	const earlier = __CHANGELOG__.slice(open.length);
@@ -17,12 +26,37 @@
 	let error = $state('');
 	let done = $state('');
 
+	/** Game names for the choice of games; Calcudoku is a mode of Sudoku. */
+	const GAME_NAMES: Record<string, string> = { sudoku: 'Sudoku, Calcudoku' };
+	const gameName = (id: string) => GAME_NAMES[id] ?? id.charAt(0).toUpperCase() + id.slice(1);
+
+	/** What the export takes: every part and every game until the player chooses. */
+	let parts = $state<BackupPart[]>([...BACKUP_PARTS]);
+	let games = $state<string[]>([]);
+	let chosenGames = $state<string[]>([]);
+
+	onMount(() => {
+		games = backupGames(localStorage);
+		chosenGames = [...games];
+	});
+
+	function makeBackup() {
+		return createBackup(localStorage, app, new URL(schemaUrl, location.href).href, new Date(), {
+			parts,
+			games: chosenGames
+		});
+	}
+
+	/** How many entries the file gets, so that an empty choice cannot be exported. */
+	const entries = $derived.by(() => {
+		if (typeof localStorage === 'undefined') return 0;
+		const selection = { parts, games: chosenGames };
+		return Object.keys(createBackup(localStorage, app, undefined, undefined, selection).data)
+			.length;
+	});
+
 	function exportBackup() {
-		const backup = createBackup(
-			localStorage,
-			{ version: build.version, commit: build.commit },
-			new URL(schemaUrl, location.href).href
-		);
+		const backup = makeBackup();
 		const blob = new Blob([JSON.stringify(backup, null, '\t')], { type: 'application/json' });
 		downloadFile(blob, `vibe-puzzles-backup-${backup.exportedAt.slice(0, 10)}.json`);
 	}
@@ -139,7 +173,7 @@
 		<h2 class="section-title">{t('about.backup')}</h2>
 		<p class="mt-2 text-sm">{t('about.backupNote')}</p>
 		<div class="mt-3 flex flex-wrap items-center gap-2">
-			<button class="btn" onclick={exportBackup}>{t('about.export')}</button>
+			<button class="btn" onclick={exportBackup} disabled={!entries}>{t('about.export')}</button>
 			<label class="btn cursor-pointer">
 				{t('about.import')}
 				<input
@@ -152,6 +186,36 @@
 			<!-- A static file, not a page: without the reload the router looks for a game of that name. -->
 			<a class="link text-sm" href={schemaUrl} data-sveltekit-reload>{t('about.schema')}</a>
 		</div>
+		<details class="mt-3 text-sm">
+			<summary class="cursor-pointer text-stone-600 dark:text-stone-400">
+				{t('about.choose')}
+			</summary>
+			<div class="mt-2 flex flex-wrap gap-x-8 gap-y-3">
+				<fieldset>
+					<legend class="font-semibold">{t('about.contents')}</legend>
+					{#each BACKUP_PARTS as part (part)}
+						<label class="mt-1 flex items-center gap-2">
+							<input type="checkbox" value={part} bind:group={parts} />
+							{t(`about.part.${part}`)}
+						</label>
+					{/each}
+				</fieldset>
+				{#if games.length}
+					<fieldset>
+						<legend class="font-semibold">{t('about.games')}</legend>
+						{#each games as game (game)}
+							<label class="mt-1 flex items-center gap-2">
+								<input type="checkbox" value={game} bind:group={chosenGames} />
+								{gameName(game)}
+							</label>
+						{/each}
+					</fieldset>
+				{/if}
+			</div>
+			<p class="mt-2 text-stone-600 dark:text-stone-400" aria-live="polite">
+				{t('about.entries', { count: entries })}
+			</p>
+		</details>
 		{#if error}<p class="mt-2 text-sm text-rose-600 dark:text-rose-400" role="alert">
 				{error}
 			</p>{/if}

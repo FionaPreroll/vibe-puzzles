@@ -139,6 +139,35 @@ test(
 	}
 );
 
+test('the export takes only what the player chose', async ({ page }) => {
+	await page.goto('/about');
+	await page.evaluate(() => {
+		localStorage.setItem('vp:player', JSON.stringify({ id: 'p', name: 'P', token: 't' }));
+		localStorage.setItem('vp:night', 'true');
+		localStorage.setItem('vp:stats:loop:7n', '{"solved":1}');
+		localStorage.setItem('vp:stats:sudoku:9n', '{"solved":2}');
+		localStorage.setItem('vp:settings:loop', '{"values":{},"updatedAt":1}');
+	});
+	await page.reload();
+	await page.getByText('Choose what goes into the file').click();
+	await page.getByLabel('Player code').uncheck();
+	await page.getByLabel('Sudoku, Calcudoku').uncheck();
+	const downloading = page.waitForEvent('download');
+	await page.getByRole('button', { name: 'Export backup' }).click();
+	const backup = JSON.parse(readFileSync(await (await downloading).path(), 'utf8'));
+	const keys = Object.keys(backup.data);
+	expect(keys).toEqual(expect.arrayContaining(['night', 'settings:loop', 'stats:loop:7n']));
+	expect(keys).not.toContain('player');
+	expect(keys.filter((key) => key.includes('sudoku'))).toEqual([]);
+	await expect(page.getByText(`The file gets ${keys.length} entries.`)).toBeVisible();
+
+	// Nothing chosen: nothing to export.
+	for (const part of ['Saved games', 'Statistics', 'Settings']) {
+		await page.getByLabel(part).uncheck();
+	}
+	await expect(page.getByRole('button', { name: 'Export backup' })).toBeDisabled();
+});
+
 test('the About page refuses a file that is not a backup and keeps everything', async ({
 	page
 }) => {
