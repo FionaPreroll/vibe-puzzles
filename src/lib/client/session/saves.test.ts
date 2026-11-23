@@ -10,6 +10,7 @@ import {
 	cleanupSpecialSaves,
 	freeSaveSpace,
 	hasProgress,
+	importedSaveWins,
 	migrateSave,
 	playableSave,
 	remoteWins,
@@ -139,6 +140,26 @@ describe('progress', () => {
 		const state = game.emptyState(puzzle);
 		state.auto[0] = 1;
 		expect(hasProgress(game, saved({ state }))).toBe(true);
+	});
+});
+
+describe('which save wins on importing a backup', () => {
+	it.each([
+		// [what is here, what the backup has, does it win?]
+		[null, saved(), true],
+		[saved({ updatedAt: 1000 }), saved({ updatedAt: 2000 }), true],
+		[saved({ updatedAt: 2000 }), saved({ updatedAt: 1000 }), false],
+		[saved({ updatedAt: 2000 }), saved({ updatedAt: 1000, solved: true }), true],
+		[saved({ updatedAt: 1000, solved: true }), saved({ updatedAt: 2000 }), false],
+		[saved({ updatedAt: 1000 }), saved({ puzzleId: 99, updatedAt: 2000, solved: true }), false],
+		[saved({ updatedAt: 1000, solved: true }), saved({ puzzleId: 99, updatedAt: 2000 }), true],
+		[
+			saved({ ticket: 'a', updatedAt: 1000 }),
+			saved({ ticket: 'b', updatedAt: 2000, solved: true }),
+			false
+		]
+	] as const)('%o here, %o in the backup: %s', (local, imported, wins) => {
+		expect(importedSaveWins(local, imported)).toBe(wins);
 	});
 });
 

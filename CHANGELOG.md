@@ -12,6 +12,7 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 
 ### Changed
 
+- **Importing a backup** on the About page now merges it with what this device already has, so nothing gets lost: solves and streaks from both devices are added up (a puzzle solved on both counts once), the best times and the solved days of the daily, weekly and monthly puzzles are kept, and of two saved games the newer one stays. If this device already has a player, it keeps it, and settings that only this device has stay as they are. "Replace" still writes the backup over everything, as before.
 - **System bars on Android**: in the installed app, the status bar at the top takes the colour of the page's header, and the page goes on behind the gesture bar at the bottom, so both match the look, by day and by night, instead of a fixed purple. Browsers that colour the bars from the app's settings alone, such as Firefox, now keep them black, so they no longer glare at night.
 
 ### Fixed

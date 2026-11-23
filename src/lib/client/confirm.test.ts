@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { answer, ask, confirmation } from './confirm.svelte';
+import { answer, ask, choose, confirmation } from './confirm.svelte';
 
 const question = (title: string) => ({ title, text: 'Sure?', confirm: 'Yes' });
 
@@ -30,5 +30,15 @@ describe('confirmations', () => {
 	it('ignores an answer without a question', () => {
 		answer(true);
 		expect(confirmation.queue).toHaveLength(0);
+	});
+
+	it('tells which of two ways the player picked', async () => {
+		const picked = choose({ ...question('Import'), other: 'Replace' });
+		expect(confirmation.queue[0]).toMatchObject({ other: 'Replace' });
+		answer('other');
+		expect(await picked).toBe('other');
+		const cancelled = choose({ ...question('Import'), other: 'Replace' });
+		answer(false);
+		expect(await cancelled).toBeNull();
 	});
 });
