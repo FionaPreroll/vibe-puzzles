@@ -8,8 +8,10 @@
 		mergeBackup,
 		parseBackup,
 		restoreBackup,
+		type Backup,
 		type BackupPart
 	} from '#lib/client/backup.ts';
+	import { backupFromHash, backupLink, qrCode } from '#lib/client/backupLink.ts';
 	import { choose } from '#lib/client/confirm.svelte.ts';
 	import { downloadFile } from '#lib/client/download.ts';
 	import { i18n, t } from '#lib/i18n/index.svelte.ts';
@@ -39,7 +41,54 @@
 	onMount(() => {
 		games = backupGames(localStorage);
 		chosenGames = [...games];
+		void importFromLink();
+		const onHash = () => void importFromLink();
+		addEventListener('hashchange', onHash);
+		return () => removeEventListener('hashchange', onHash);
 	});
+
+	/** A link made for the choice `selection` (its JSON): it goes stale once the choice changes. */
+	let link = $state<{ selection: string; url: string; qr: ReturnType<typeof qrCode> } | null>(null);
+	let linkStatus = $state('');
+	const selection = $derived(JSON.stringify([parts, chosenGames]));
+	const shownLink = $derived(link?.selection === selection ? link : null);
+	const canShare = typeof navigator !== 'undefined' && !!navigator.share;
+
+	async function makeLink() {
+		const url = await backupLink(new URL(resolve('/about'), location.href).href, makeBackup());
+		link = { selection, url, qr: qrCode(url) };
+		linkStatus = '';
+	}
+
+	async function shareLink() {
+		if (!shownLink) return;
+		try {
+			await navigator.share({ title: t('about.linkTitle'), url: shownLink.url });
+		} catch {
+			// The share sheet was closed.
+		}
+	}
+
+	async function copyLink() {
+		if (!shownLink) return;
+		try {
+			await navigator.clipboard.writeText(shownLink.url);
+			linkStatus = t('about.linkCopied');
+		} catch {
+			linkStatus = t('about.linkCopyFailed');
+		}
+	}
+
+	/** A link to this page that carries a backup (`backupLink`) offers to import it. */
+	async function importFromLink() {
+		const parsed = await backupFromHash(location.hash);
+		if (!parsed) return;
+		// Out of the address bar and the history: a reload does not ask again.
+		history.replaceState(history.state, '', location.pathname + location.search);
+		error = done = '';
+		if (!parsed.ok) return void (error = t('about.linkFailed', { error: parsed.error }));
+		await importBackup(parsed.backup);
+	}
 
 	function makeBackup() {
 		return createBackup(localStorage, app, new URL(schemaUrl, location.href).href, new Date(), {
@@ -72,14 +121,19 @@
 		return t('about.release', { version: r.version, date });
 	}
 
-	async function importBackup(e: Event & { currentTarget: HTMLInputElement }) {
+	async function importFile(e: Event & { currentTarget: HTMLInputElement }) {
 		const file = e.currentTarget.files?.[0];
 		e.currentTarget.value = '';
 		if (!file) return;
 		error = done = '';
 		const parsed = parseBackup(await file.text());
 		if (!parsed.ok) return void (error = t('about.importFailed', { error: parsed.error }));
-		const count = Object.keys(parsed.backup.data).length;
+		await importBackup(parsed.backup);
+	}
+
+	/** Ask whether to merge or replace, then do so and reload. */
+	async function importBackup(backup: Backup) {
+		const count = Object.keys(backup.data).length;
 		const choice = await choose({
 			title: t('confirm.import.title', { count }),
 			text: t('confirm.import.text'),
@@ -89,10 +143,10 @@
 		});
 		if (!choice) return;
 		if (choice === 'other') {
-			restoreBackup(localStorage, parsed.backup);
+			restoreBackup(localStorage, backup);
 			done = t('about.imported', { count });
 		} else {
-			const changed = mergeBackup(localStorage, parsed.backup);
+			const changed = mergeBackup(localStorage, backup);
 			if (!changed) return void (done = t('about.mergedNothing'));
 			done = t('about.merged', { count: changed });
 		}
@@ -182,14 +236,10 @@
 		<p class="mt-2 text-sm">{t('about.backupNote')}</p>
 		<div class="mt-3 flex flex-wrap items-center gap-2">
 			<button class="btn" onclick={exportBackup} disabled={!entries}>{t('about.export')}</button>
+			<button class="btn" onclick={makeLink} disabled={!entries}>{t('about.makeLink')}</button>
 			<label class="btn cursor-pointer">
 				{t('about.import')}
-				<input
-					type="file"
-					accept="application/json,.json"
-					class="sr-only"
-					onchange={importBackup}
-				/>
+				<input type="file" accept="application/json,.json" class="sr-only" onchange={importFile} />
 			</label>
 			<!-- A static file, not a page: without the reload the router looks for a game of that name. -->
 			<a class="link text-sm" href={schemaUrl} data-sveltekit-reload>{t('about.schema')}</a>
@@ -224,6 +274,45 @@
 				{t('about.entries', { count: entries })}
 			</p>
 		</details>
+		{#if shownLink}
+			<div class="mt-3 flex flex-wrap items-start gap-4 text-sm">
+				{#if shownLink.qr}
+					<svg
+						class="w-48 shrink-0 rounded bg-white"
+						viewBox="0 0 {shownLink.qr.size} {shownLink.qr.size}"
+						shape-rendering="crispEdges"
+						role="img"
+						aria-label={t('about.linkQr')}
+					>
+						<path d={shownLink.qr.path} fill="#000" />
+					</svg>
+				{/if}
+				<div class="min-w-0 flex-1 basis-64">
+					<p>
+						{shownLink.qr
+							? t('about.linkScan')
+							: t('about.linkTooLong', { length: shownLink.url.length })}
+					</p>
+					{#if parts.includes('player')}
+						<p class="mt-2 text-amber-700 dark:text-amber-400">{t('about.linkPlayer')}</p>
+					{/if}
+					<input
+						class="mt-2 w-full rounded border border-stone-300 bg-transparent px-2 py-1 font-mono text-xs dark:border-stone-600"
+						readonly
+						value={shownLink.url}
+						aria-label={t('about.linkTitle')}
+						onfocus={(e) => e.currentTarget.select()}
+					/>
+					<div class="mt-2 flex flex-wrap items-center gap-2">
+						{#if canShare}
+							<button class="btn" onclick={shareLink}>{t('about.shareLink')}</button>
+						{/if}
+						<button class="btn" onclick={copyLink}>{t('about.copyLink')}</button>
+						{#if linkStatus}<span role="status">{linkStatus}</span>{/if}
+					</div>
+				</div>
+			</div>
+		{/if}
 		{#if error}<p class="mt-2 text-sm text-rose-600 dark:text-rose-400" role="alert">
 				{error}
 			</p>{/if}

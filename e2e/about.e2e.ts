@@ -8,7 +8,7 @@ test('the About page lists every shipped library with its licence text', async (
 	await page.goto('/about');
 	const section = page.locator('section', { has: page.getByRole('heading', { name: 'Licences' }) });
 	const licences = [
-		...['svelte', '@sveltejs/kit', 'devalue', 'clsx', 'tailwindcss'].map((name) => ({
+		...['svelte', '@sveltejs/kit', 'devalue', 'clsx', 'tailwindcss', 'uqr'].map((name) => ({
 			name,
 			terms: /MIT License|Permission is hereby granted/
 		})),
@@ -149,7 +149,7 @@ test('the export takes only what the player chose', async ({ page }) => {
 		localStorage.setItem('vp:settings:loop', '{"values":{},"updatedAt":1}');
 	});
 	await page.reload();
-	await page.getByText('Choose what goes into the file', { exact: true }).click();
+	await page.getByText('Choose what goes into the backup', { exact: true }).click();
 	await page.getByLabel('Player code').uncheck();
 	await page.getByLabel('Sudoku, Calcudoku').uncheck();
 	const downloading = page.waitForEvent('download');
@@ -159,13 +159,56 @@ test('the export takes only what the player chose', async ({ page }) => {
 	expect(keys).toEqual(expect.arrayContaining(['night', 'settings:loop', 'stats:loop:7n']));
 	expect(keys).not.toContain('player');
 	expect(keys.filter((key) => key.includes('sudoku'))).toEqual([]);
-	await expect(page.getByText(`The file gets ${keys.length} entries.`)).toBeVisible();
+	await expect(page.getByText(`The backup gets ${keys.length} entries.`)).toBeVisible();
 
 	// Nothing chosen: nothing to export.
 	for (const part of ['Saved games', 'Statistics', 'Settings']) {
 		await page.getByLabel(part).uncheck();
 	}
 	await expect(page.getByRole('button', { name: 'Export backup' })).toBeDisabled();
+});
+
+test('a link with a QR code brings a backup to another device', async ({ page, browser }) => {
+	await page.goto('/about');
+	await page.evaluate(() => {
+		localStorage.setItem('vp:player', JSON.stringify({ id: 'p', name: 'P', token: 't' }));
+		localStorage.setItem('vp:settings:loop', '{"values":{"greyDone":false},"updatedAt":5}');
+		localStorage.setItem('vp:stats:loop:7n', '{"solved":4}');
+	});
+	await page.reload();
+	await page.getByText('Choose what goes into the backup', { exact: true }).click();
+	await page.getByLabel('Player code').uncheck();
+	await page.getByLabel('Saved games').uncheck();
+	await page.getByRole('button', { name: 'Link for another device' }).click();
+	await expect(page.getByRole('img', { name: 'QR code of the backup link' })).toBeVisible();
+	await expect(page.getByText('holds your player code')).toHaveCount(0);
+	const link = await page.getByRole('textbox', { name: 'Vibe Puzzles backup link' }).inputValue();
+	expect(new URL(link).pathname).toBe('/about');
+	expect(new URL(link).hash).toMatch(/^#backup=[\w-]+$/);
+
+	// Choosing something else makes the link stale.
+	await page.getByLabel('Statistics').uncheck();
+	await expect(page.getByRole('img', { name: 'QR code of the backup link' })).toHaveCount(0);
+
+	// The other device opens the link: it offers to import, and takes the hash out of the address.
+	const other = await browser.newPage();
+	await other.goto(link);
+	const asked = other.getByRole('alertdialog');
+	await expect(asked).toContainText('Import');
+	await expect(other).toHaveURL(/\/about$/);
+	const reloaded = other.waitForEvent('load');
+	await asked.getByRole('button', { name: 'Merge' }).click();
+	await reloaded;
+	const after = await stored(other);
+	expect(after['vp:settings:loop']).toBe('{"values":{"greyDone":false},"updatedAt":5}');
+	expect(after['vp:stats:loop:7n']).toBe('{"solved":4}');
+	expect(after['vp:player']).toBeUndefined();
+	await expect(other.getByRole('alertdialog')).toHaveCount(0);
+
+	// A broken link says so.
+	await other.goto('/about#backup=broken!');
+	await expect(other.getByRole('alert')).toContainText('This link cannot be imported');
+	await other.close();
 });
 
 test('the About page refuses a file that is not a backup and keeps everything', async ({
