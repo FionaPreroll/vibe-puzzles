@@ -120,9 +120,9 @@ test(
 		await page.reload();
 		await importFile(page, file);
 		const asked = page.getByRole('alertdialog');
-		await expect(asked).toContainText(`Restore ${Object.keys(before).length} entries`);
+		await expect(asked).toContainText(`Import ${Object.keys(before).length} entries`);
 		const reloaded = page.waitForEvent('load');
-		await asked.getByRole('button', { name: 'Restore' }).click();
+		await asked.getByRole('button', { name: 'Replace' }).click();
 		await expect(page.getByRole('status')).toHaveText(
 			`Restored ${Object.keys(before).length} entries. Reloading…`
 		);
@@ -217,6 +217,70 @@ test('cancelling the import of a backup keeps everything', async ({ page }) => {
 	await expect(page.getByRole('alertdialog')).toBeHidden();
 	await expect(page.getByRole('status')).toHaveCount(0);
 	expect(await stored(page)).toEqual(before);
+});
+
+test('merging a backup adds up the statistics and keeps what only this device has', async ({
+	page
+}) => {
+	await page.goto('/about');
+	const solve = (puzzleId: number, timeMs: number, at: number) => ({ puzzleId, timeMs, at });
+	const here = {
+		solved: 2,
+		streak: 2,
+		bestStreak: 2,
+		bestMs: 60_000,
+		totalMs: 150_000,
+		recent: [solve(2, 90_000, 2000), solve(1, 60_000, 1000)],
+		solvedIds: [1, 2]
+	};
+	const there = {
+		solved: 2,
+		streak: 1,
+		bestStreak: 1,
+		bestMs: 40_000,
+		totalMs: 100_000,
+		recent: [solve(3, 40_000, 3000), solve(1, 60_000, 1000)],
+		solvedIds: [1, 3]
+	};
+	await page.evaluate((stats) => {
+		localStorage.setItem('vp:stats:tetroid:6n', JSON.stringify(stats));
+		localStorage.setItem('vp:night', 'false');
+	}, here);
+	const backup = {
+		format: BACKUP_FORMAT,
+		version: BACKUP_VERSION,
+		exportedAt: '2026-10-01T12:00:00Z',
+		app: { version: '0.0.1', commit: 'abc1234' },
+		data: {
+			'stats:tetroid:6n': JSON.stringify(there),
+			night: 'true',
+			'tutorialSeen:tetroid': 'true'
+		}
+	};
+	await importFile(page, {
+		name: 'backup.json',
+		mimeType: 'application/json',
+		buffer: Buffer.from(JSON.stringify(backup))
+	});
+	const asked = page.getByRole('alertdialog');
+	await expect(asked).toContainText('Import 3 entries');
+	const reloaded = page.waitForEvent('load');
+	await asked.getByRole('button', { name: 'Merge' }).click();
+	await expect(page.getByRole('status')).toHaveText(
+		'Merged: 2 entries added or updated. Reloading…'
+	);
+	await reloaded;
+	const after = await stored(page);
+	expect(after['vp:night']).toBe('false');
+	expect(after['vp:tutorialSeen:tetroid']).toBe('true');
+	expect(JSON.parse(after['vp:stats:tetroid:6n'])).toMatchObject({
+		solved: 3,
+		streak: 1,
+		bestStreak: 2,
+		bestMs: 40_000,
+		totalMs: 190_000,
+		solvedIds: [1, 2, 3]
+	});
 });
 
 test('the About page shows the changelog, and the version in the footer leads to it', async ({

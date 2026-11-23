@@ -39,9 +39,10 @@ const en = {
 			ok: 'Sign out'
 		},
 		import: {
-			title: 'Restore {count} entries from this backup?',
-			text: 'Entries with the same name are overwritten.',
-			ok: 'Restore'
+			title: 'Import {count} entries from this backup?',
+			text: 'Merge keeps everything on this device and adds the backup: solves and streaks are added up, best times kept, and of two saved games the newer one stays. Replace writes the backup over what is here.',
+			ok: 'Merge',
+			replace: 'Replace'
 		}
 	},
 	nav: {
@@ -581,6 +582,8 @@ const en = {
 		},
 		entries: 'The file gets {count} entries.',
 		imported: 'Restored {count} entries. Reloading…',
+		merged: 'Merged: {count} entries added or updated. Reloading…',
+		mergedNothing: 'This device already has everything in the backup.',
 		importFailed: 'This file cannot be restored: {error}.'
 	},
 	games: {

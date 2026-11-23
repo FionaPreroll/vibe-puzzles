@@ -40,9 +40,10 @@ const de: Dictionary = {
 			ok: 'Abmelden'
 		},
 		import: {
-			title: '{count} Einträge aus dieser Sicherung wiederherstellen?',
-			text: 'Einträge mit gleichem Namen werden überschrieben.',
-			ok: 'Wiederherstellen'
+			title: '{count} Einträge aus dieser Sicherung importieren?',
+			text: 'Zusammenführen behält alles auf diesem Gerät und nimmt die Sicherung dazu: Lösungen und Serien werden zusammengezählt, Bestzeiten behalten, und von zwei Spielständen bleibt der neuere. Ersetzen schreibt die Sicherung über das, was hier ist.',
+			ok: 'Zusammenführen',
+			replace: 'Ersetzen'
 		}
 	},
 	nav: {
@@ -570,6 +571,8 @@ const de: Dictionary = {
 		},
 		entries: 'Die Datei bekommt {count} Einträge.',
 		imported: '{count} Einträge wiederhergestellt. Seite wird neu geladen…',
+		merged: 'Zusammengeführt: {count} Einträge neu oder geändert. Seite wird neu geladen…',
+		mergedNothing: 'Dieses Gerät hat schon alles aus der Sicherung.',
 		importFailed: 'Diese Datei lässt sich nicht wiederherstellen: {error}.'
 	},
 	games: {

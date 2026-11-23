@@ -27,6 +27,11 @@
 		<button class="btn" bind:this={cancelButton} onclick={() => answer(false)}
 			>{t('confirm.cancel')}</button
 		>
+		{#if current?.other}
+			<button class="btn {current.otherDanger ? 'btn-danger' : ''}" onclick={() => answer('other')}
+				>{current.other}</button
+			>
+		{/if}
 		<button
 			class="btn {current?.danger ? 'btn-danger' : 'btn-primary'}"
 			bind:this={okButton}
