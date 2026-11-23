@@ -567,10 +567,20 @@ const en = {
 			'The site is hosted on GitHub Pages; GitHub may log technical data such as your IP address when the page loads.',
 		backup: 'Backup',
 		backupNote:
-			'Download everything this browser stores for Vibe Puzzles as a JSON file, or restore it from such a file. The file contains your player code, so keep it private.',
+			'Download everything this browser stores for Vibe Puzzles as a JSON file, or restore it from such a file. With your player code the file is your sign-in on the server, so keep it private; without it, you can pass it on.',
 		export: 'Export backup',
 		import: 'Import backup',
 		schema: 'File format (JSON Schema)',
+		choose: 'Choose what goes into the file',
+		contents: 'Contents',
+		games: 'Games',
+		part: {
+			saves: 'Saved games',
+			stats: 'Statistics',
+			settings: 'Settings',
+			player: 'Player code (your sign-in on the server)'
+		},
+		entries: 'The file gets {count} entries.',
 		imported: 'Restored {count} entries. Reloading…',
 		merged: 'Merged: {count} entries added or updated. Reloading…',
 		mergedNothing: 'This device already has everything in the backup.',

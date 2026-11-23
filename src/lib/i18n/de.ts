@@ -556,10 +556,20 @@ const de: Dictionary = {
 			'Die Seite liegt bei GitHub Pages; GitHub kann beim Laden technische Daten wie deine IP-Adresse protokollieren.',
 		backup: 'Datensicherung',
 		backupNote:
-			'Lade alles, was dieser Browser für Vibe Puzzles speichert, als JSON-Datei herunter, oder stelle es aus so einer Datei wieder her. Die Datei enthält deinen Spieler-Code, gib sie also nicht weiter.',
+			'Lade alles, was dieser Browser für Vibe Puzzles speichert, als JSON-Datei herunter, oder stelle es aus so einer Datei wieder her. Mit deinem Spieler-Code ist die Datei deine Anmeldung am Server, gib sie also nicht weiter; ohne ihn kannst du sie weitergeben.',
 		export: 'Sicherung exportieren',
 		import: 'Sicherung importieren',
 		schema: 'Dateiformat (JSON-Schema)',
+		choose: 'Auswählen, was in die Datei kommt',
+		contents: 'Inhalt',
+		games: 'Spiele',
+		part: {
+			saves: 'Spielstände',
+			stats: 'Statistiken',
+			settings: 'Einstellungen',
+			player: 'Spieler-Code (deine Anmeldung am Server)'
+		},
+		entries: 'Die Datei bekommt {count} Einträge.',
 		imported: '{count} Einträge wiederhergestellt. Seite wird neu geladen…',
 		merged: 'Zusammengeführt: {count} Einträge neu oder geändert. Seite wird neu geladen…',
 		mergedNothing: 'Dieses Gerät hat schon alles aus der Sicherung.',
