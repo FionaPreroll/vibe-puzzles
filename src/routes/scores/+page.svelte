@@ -4,7 +4,10 @@
 	import { replaceState } from '$app/navigation';
 	import { currentPlayer, leaderboard, watchServer, type Leaderboard } from '#lib/client/api.ts';
 	import { net } from '#lib/client/network.svelte.ts';
+	import { dayShare, solvesToday } from '#lib/client/daySummary.ts';
 	import { getStats, type VariantStats } from '#lib/client/stats.ts';
+	import BragDialog from '#lib/components/game/BragDialog.svelte';
+	import { shareSolve } from '#lib/components/game/share.ts';
 	import { formatDuration } from '#lib/core/time.ts';
 	import { encodePuzzleId, isPlayable, periodKey, specialSeed } from '#lib/core/variants.ts';
 	import { GAMES } from '#lib/games/index.ts';
@@ -16,20 +19,50 @@
 	let board = $state<Leaderboard | null>(null);
 	let boardError = $state('');
 	let stats = $state<VariantStats | null>(null);
+	/** Now, once mounted: the day's solves live in this browser only. */
+	let now = $state<Date | null>(null);
+	/** The day's text, when it could neither go to the share sheet nor be copied. */
+	let manualText = $state<string | null>(null);
+	let copied = $state(false);
+	let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
 	const game = $derived(GAMES.find((g) => g.id === gameId) ?? GAMES[0]);
 	/** Types that are only announced have no scores yet. */
 	const playable = $derived(game.variants.filter(isPlayable));
 	const variant = $derived(playable.find((v) => v.key === variantKey) ?? playable[0]);
 
+	const today = $derived(now ? solvesToday(GAMES, now) : []);
+
+	/** Share the day's solves, e.g. to a messenger, with a link to the home page. */
+	async function shareDay() {
+		now = new Date();
+		const done = await shareSolve(dayShare(today, `${location.origin}${resolve('/')}`));
+		if (done.how === 'copied') noteCopied();
+		if (done.how === 'manual') manualText = done.text;
+	}
+
+	function noteCopied() {
+		copied = true;
+		clearTimeout(copiedTimer);
+		copiedTimer = setTimeout(() => (copied = false), 4000);
+	}
+
 	onMount(() => {
+		now = new Date();
+		// Past midnight a new day starts.
+		const tick = setInterval(() => (now = new Date()), 60_000);
 		const q = new URL(location.href).searchParams;
 		const g = GAMES.find((x) => x.id === q.get('game'));
 		if (g) {
 			gameId = g.id;
 			if (g.variants.some((v) => v.key === q.get('v') && isPlayable(v))) variantKey = q.get('v')!;
 		}
-		return watchServer((ok) => (hasServer = ok));
+		const stop = watchServer((ok) => (hasServer = ok));
+		return () => {
+			stop();
+			clearInterval(tick);
+			clearTimeout(copiedTimer);
+		};
 	});
 
 	$effect(() => {
@@ -75,6 +108,43 @@
 </svelte:head>
 
 <h1 class="font-display text-3xl font-bold tracking-tight">{t('scores.title')}</h1>
+
+{#if today.length}
+	<section class="panel mt-6 max-w-xl" aria-labelledby="today-title">
+		<div class="flex flex-wrap items-start justify-between gap-3">
+			<div>
+				<h2 id="today-title" class="text-lg font-semibold">{t('today.title')}</h2>
+				<p class="text-xs text-stone-500 dark:text-stone-400">{t('today.intro')}</p>
+			</div>
+			<button class="btn btn-primary" onclick={shareDay}>{t('today.share')}</button>
+		</div>
+		<ul class="mt-3 divide-y divide-stone-200 text-sm dark:divide-stone-800">
+			{#each today as s (`${s.game.id}:${s.variant.key}:${s.at}`)}
+				<li class="flex items-center gap-2 py-1.5">
+					<span aria-hidden="true">{s.game.icon}</span>
+					{#if s.puzzleId}
+						<a
+							class="link flex-1 truncate"
+							href="{resolve('/[game]', { game: s.game.id })}?id={s.puzzleId}"
+							>{s.game.name} {variantLabel(s.variant)}</a
+						>
+					{:else}
+						<span class="flex-1 truncate">{s.game.name} {variantLabel(s.variant)}</span>
+					{/if}
+					{#if s.hinted}
+						<span class="text-xs text-stone-500 dark:text-stone-400">{t('today.hinted')}</span>
+					{/if}
+					<span class="font-mono tabular-nums">{formatDuration(s.timeMs, true)}</span>
+				</li>
+			{/each}
+		</ul>
+		{#if copied}
+			<p class="mt-2 text-sm text-emerald-700 dark:text-emerald-400" role="status">
+				{t('today.copied')}
+			</p>
+		{/if}
+	</section>
+{/if}
 
 <div class="mt-6 flex flex-wrap gap-3">
 	<label class="flex items-center gap-2 text-sm">
@@ -178,3 +248,5 @@
 		{/if}
 	</section>
 </div>
+
+<BragDialog bind:text={manualText} title={t('today.manualTitle')} oncopied={noteCopied} />

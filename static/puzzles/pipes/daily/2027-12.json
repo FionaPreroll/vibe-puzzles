@@ -22,6 +22,13 @@
 		{"id":667090492,"period":"2027-12-17","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"8c121884787b4e5ed2c3558ecb541b476c791e3a8cdbed731a52c765928ae5d653eac5b65698d5bba4a54bd65a1831ce1228"}},
 		{"id":935454972,"period":"2027-12-18","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"296824b5419c52b8d5ed3c9c57ec482d5b754e541da5e565149621ddbbb96a39ee9568c7b1118bac159bb5e78d2789216321"}},
 		{"id":130155068,"period":"2027-12-19","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"847ac45ac15192e141ebe882d6ebbca16ab5e336ed2414d321255b77d3363ddb1bb35ae446c5adb458d9e748584968c64273"}},
-		{"id":396243452,"period":"2027-12-20","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"85bbbab5419a31e4168a2817e75ea61ebd1749a285755e5d5235b1de35a1a41396d361135627db8a465bed4ba667489a1358"}}
+		{"id":396243452,"period":"2027-12-20","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"85bbbab5419a31e4168a2817e75ea61ebd1749a285755e5d5235b1de35a1a41396d361135627db8a465bed4ba667489a1358"}},
+		{"id":127801548,"period":"2027-12-21","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"818648a591d9554849e7a8b7eca7915217726763377ebbc721cd7cca5d528821cb7d54816877c7a4bbeabd9ee64322c11121"}},
+		{"id":933101452,"period":"2027-12-22","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"8468393163b5776a596422813bbba22d7b7c3aa1a4bb4aa351c7c85bb3322e21cdd274cc42bc9e71853b7bc87c4b5d32c554"}},
+		{"id":664659548,"period":"2027-12-23","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"155e829d184b497954934b4de13b319b92de8b5c4ced7e77886c8ec35cb32853d2d5a385c172ba6843ba7ea2d64d68ada844"}},
+		{"id":396217644,"period":"2027-12-24","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"866443c12296961adab3a8c55d76a2a89dcdc322a9eb9d95ea6a9367b4691ea557b7c42d11e75e74d33b75513c88c821ca51"}},
+		{"id":127775740,"period":"2027-12-25","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"19411634ac5c6aaa886ae85acb2ca5a1d913d7c5d77b96dbae48dedb82363563e565e9cd2aac586c2d41e7a4791aaac95428"}},
+		{"id":933075644,"period":"2027-12-26","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"145d18b8993dde62ddc425d4ea86d46ca47c18b84dcd787dd98389d5b89ac489e15932ede7e3bbe2aa285b78948644596aa2"}},
+		{"id":664633740,"period":"2027-12-27","puzzle":{"width":10,"height":10,"wrap":false,"tiles":"8947815eb267665ab9348151a7d2729ede57d5eca2224dc88a4e7abeb7b52117e18a21661ee62b911d767855d925c1dac238"}}
 	]
 }
