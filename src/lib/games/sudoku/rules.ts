@@ -1,4 +1,4 @@
-import { latinConflicts, type Cage } from './calc/rules';
+import { brokenCages, latinConflicts, type Cage } from './calc/rules';
 
 export interface SudokuPuzzle {
 	/** Grid size (also the number of digits). Width and height are equal. */
@@ -185,14 +185,23 @@ export function fillMissingNotes(p: SudokuPuzzle, s: SudokuState): SudokuState {
 
 /**
  * Remove small digits that a big digit in the same row, column or box rules out. Notes in cells
- * that hold a digit are kept, so they come back when the digit is cleared.
+ * that hold a digit are kept, so they come back when the digit is cleared. A digit that surely
+ * breaks a rule (it repeats in its row, column or box, or its full cage misses the target) is
+ * most likely a typo, so it rules nothing out: the notes stay until it is corrected.
  */
 export function pruneNotes(p: SudokuPuzzle, s: SudokuState): SudokuState {
 	const grid = currentGrid(p, s);
+	const boxes = hasBoxes(p);
+	const wrong = conflicts(p.width, grid, boxes);
+	if (p.cages) {
+		const broken = brokenCages({ width: p.width, height: p.height, cages: p.cages }, grid);
+		p.cages.forEach((c, k) => broken[k] && c.cells.forEach((i) => (wrong[i] = true)));
+	}
+	const sure = grid.map((d, i) => (wrong[i] && !p.givens[i] ? 0 : d));
 	let changed = false;
 	const notes = s.notes.map((m, i) => {
 		if (!m || grid[i]) return m;
-		const next = m & candidates(p.width, grid, i, hasBoxes(p));
+		const next = m & candidates(p.width, sure, i, boxes);
 		if (next !== m) changed = true;
 		return next;
 	});

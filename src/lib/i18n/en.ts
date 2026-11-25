@@ -405,7 +405,8 @@ const en = {
 			'Compares your digits with the solution and paints wrong ones red, even before they clash with anything.',
 		autoNotes:
 			'Every empty cell without notes gets the digits that its row, column and box still allow.',
-		autoRemoveNotes: 'A new digit disappears from the notes in its row, column and box.',
+		autoRemoveNotes:
+			'A new digit disappears from the notes in its row, column and box. A digit that repeats there is likely a typo, so the notes stay.',
 		highlightLines: 'Tints the row, column and box of the selected cell.',
 		highlightSame:
 			'Highlights every cell with the same digit as the selected cell, or as the digit you picked first.',
@@ -849,7 +850,8 @@ const en = {
 							'A digit that appears twice in a row or column turns red, and so does the label of a full cage whose digits miss its result. This does not compare with the solution.',
 						autoNotes:
 							'Every empty cell without notes gets the digits that its row and column still allow. The cages are up to you.',
-						autoRemoveNotes: 'A new digit disappears from the notes in its row and column.',
+						autoRemoveNotes:
+							'A new digit disappears from the notes in its row and column. A digit that repeats there, or a full cage that misses its result, is likely a typo, so the notes stay.',
 						highlightLines: 'Tints the row and column of the selected cell.'
 					},
 					rules: [
