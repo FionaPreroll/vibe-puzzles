@@ -233,3 +233,57 @@ export function breakStreak(game: string, variant: string) {
 	s.streak = 0;
 	write(game, variant, s);
 }
+
+const solveId = (r: VariantStats['recent'][number]) => `${r.puzzleId}@${r.at}`;
+
+/**
+ * The statistics of one type from two devices as one (`local`, and `other`, e.g. from a backup).
+ * Solves of the same puzzle count once; the streak is the one of the device that solved last; the
+ * best values are the best of both. `kind` is that of a special type, for its periods. Merging
+ * statistics that hold nothing new (the same backup imported twice) changes nothing.
+ */
+export function mergeVariantStats(
+	local: VariantStats,
+	other: VariantStats,
+	kind?: SpecialKind
+): VariantStats {
+	const localIds = new Set(local.solvedIds ?? []);
+	const localSolves = new Set(local.recent.map(solveId));
+	const contained =
+		other.solved <= local.solved &&
+		other.recent.every((r) => localSolves.has(solveId(r))) &&
+		(other.solvedIds ?? []).every((id) => localIds.has(id)) &&
+		(!kind || solvedPeriods(other, kind).every((p) => solvedPeriods(local, kind).includes(p)));
+	if (contained) return local;
+
+	// Solves of `other` that `local` has too: those of a puzzle ID both solved.
+	const shared = (other.solvedIds ?? []).filter((id) => localIds.has(id));
+	const added = Math.max(0, other.solved - shared.length);
+	const average = other.solved ? other.totalMs / other.solved : 0;
+	const sharedMs = shared.reduce(
+		(sum, id) => sum + (other.recent.find((r) => r.puzzleId === id)?.timeMs ?? average),
+		0
+	);
+	const addedMs = added ? Math.max(0, other.totalMs - sharedMs) : 0;
+	const last = (s: VariantStats) => s.recent[0]?.at ?? 0;
+	const streak = last(other) > last(local) ? other.streak : local.streak;
+	const recent = [...local.recent, ...other.recent.filter((r) => !localSolves.has(solveId(r)))]
+		.sort((a, b) => b.at - a.at)
+		.slice(0, 20);
+	const best = [local.bestMs, other.bestMs].filter((ms): ms is number => ms != null);
+	const merged: VariantStats = {
+		...other,
+		...local,
+		solved: local.solved + added,
+		streak,
+		bestStreak: Math.max(local.bestStreak, other.bestStreak, streak),
+		bestMs: best.length ? Math.min(...best) : null,
+		totalMs: local.totalMs + addedMs,
+		recent
+	};
+	const ids = [...localIds, ...(other.solvedIds ?? []).filter((id) => !localIds.has(id))];
+	if (ids.length) merged.solvedIds = ids.slice(-SOLVED_IDS);
+	if (kind)
+		setPeriods(merged, periodList([...solvedPeriods(local, kind), ...solvedPeriods(other, kind)]));
+	return merged;
+}

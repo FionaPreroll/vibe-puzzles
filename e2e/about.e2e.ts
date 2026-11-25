@@ -8,7 +8,7 @@ test('the About page lists every shipped library with its licence text', async (
 	await page.goto('/about');
 	const section = page.locator('section', { has: page.getByRole('heading', { name: 'Licences' }) });
 	const licences = [
-		...['svelte', '@sveltejs/kit', 'devalue', 'clsx', 'tailwindcss'].map((name) => ({
+		...['svelte', '@sveltejs/kit', 'devalue', 'clsx', 'tailwindcss', 'uqr'].map((name) => ({
 			name,
 			terms: /MIT License|Permission is hereby granted/
 		})),
@@ -120,9 +120,9 @@ test(
 		await page.reload();
 		await importFile(page, file);
 		const asked = page.getByRole('alertdialog');
-		await expect(asked).toContainText(`Restore ${Object.keys(before).length} entries`);
+		await expect(asked).toContainText(`Import ${Object.keys(before).length} entries`);
 		const reloaded = page.waitForEvent('load');
-		await asked.getByRole('button', { name: 'Restore' }).click();
+		await asked.getByRole('button', { name: 'Replace' }).click();
 		await expect(page.getByRole('status')).toHaveText(
 			`Restored ${Object.keys(before).length} entries. Reloading…`
 		);
@@ -138,6 +138,78 @@ test(
 		await expect(board.locator(`rect[fill="${palette.shaded}"]`)).toHaveCount(2);
 	}
 );
+
+test('the export takes only what the player chose', async ({ page }) => {
+	await page.goto('/about');
+	await page.evaluate(() => {
+		localStorage.setItem('vp:player', JSON.stringify({ id: 'p', name: 'P', token: 't' }));
+		localStorage.setItem('vp:night', 'true');
+		localStorage.setItem('vp:stats:loop:7n', '{"solved":1}');
+		localStorage.setItem('vp:stats:sudoku:9n', '{"solved":2}');
+		localStorage.setItem('vp:settings:loop', '{"values":{},"updatedAt":1}');
+	});
+	await page.reload();
+	await page.getByText('Choose what goes into the backup', { exact: true }).click();
+	await page.getByLabel('Player code').uncheck();
+	await page.getByLabel('Sudoku, Calcudoku').uncheck();
+	const downloading = page.waitForEvent('download');
+	await page.getByRole('button', { name: 'Export backup' }).click();
+	const backup = JSON.parse(readFileSync(await (await downloading).path(), 'utf8'));
+	const keys = Object.keys(backup.data);
+	expect(keys).toEqual(expect.arrayContaining(['night', 'settings:loop', 'stats:loop:7n']));
+	expect(keys).not.toContain('player');
+	expect(keys.filter((key) => key.includes('sudoku'))).toEqual([]);
+	await expect(page.getByText(`The backup gets ${keys.length} entries.`)).toBeVisible();
+
+	// Nothing chosen: nothing to export.
+	for (const part of ['Saved games', 'Statistics', 'Settings']) {
+		await page.getByLabel(part).uncheck();
+	}
+	await expect(page.getByRole('button', { name: 'Export backup' })).toBeDisabled();
+});
+
+test('a link with a QR code brings a backup to another device', async ({ page, browser }) => {
+	await page.goto('/about');
+	await page.evaluate(() => {
+		localStorage.setItem('vp:player', JSON.stringify({ id: 'p', name: 'P', token: 't' }));
+		localStorage.setItem('vp:settings:loop', '{"values":{"greyDone":false},"updatedAt":5}');
+		localStorage.setItem('vp:stats:loop:7n', '{"solved":4}');
+	});
+	await page.reload();
+	await page.getByText('Choose what goes into the backup', { exact: true }).click();
+	await page.getByLabel('Player code').uncheck();
+	await page.getByLabel('Saved games').uncheck();
+	await page.getByRole('button', { name: 'Link for another device' }).click();
+	await expect(page.getByRole('img', { name: 'QR code of the backup link' })).toBeVisible();
+	await expect(page.getByText('holds your player code')).toHaveCount(0);
+	const link = await page.getByRole('textbox', { name: 'Vibe Puzzles backup link' }).inputValue();
+	expect(new URL(link).pathname).toBe('/about');
+	expect(new URL(link).hash).toMatch(/^#backup=[\w-]+$/);
+
+	// Choosing something else makes the link stale.
+	await page.getByLabel('Statistics').uncheck();
+	await expect(page.getByRole('img', { name: 'QR code of the backup link' })).toHaveCount(0);
+
+	// The other device opens the link: it offers to import, and takes the hash out of the address.
+	const other = await browser.newPage();
+	await other.goto(link);
+	const asked = other.getByRole('alertdialog');
+	await expect(asked).toContainText('Import');
+	await expect(other).toHaveURL(/\/about$/);
+	const reloaded = other.waitForEvent('load');
+	await asked.getByRole('button', { name: 'Merge' }).click();
+	await reloaded;
+	const after = await stored(other);
+	expect(after['vp:settings:loop']).toBe('{"values":{"greyDone":false},"updatedAt":5}');
+	expect(after['vp:stats:loop:7n']).toBe('{"solved":4}');
+	expect(after['vp:player']).toBeUndefined();
+	await expect(other.getByRole('alertdialog')).toHaveCount(0);
+
+	// A broken link says so.
+	await other.goto('/about#backup=broken!');
+	await expect(other.getByRole('alert')).toContainText('This link cannot be imported');
+	await other.close();
+});
 
 test('the About page refuses a file that is not a backup and keeps everything', async ({
 	page
@@ -188,6 +260,70 @@ test('cancelling the import of a backup keeps everything', async ({ page }) => {
 	await expect(page.getByRole('alertdialog')).toBeHidden();
 	await expect(page.getByRole('status')).toHaveCount(0);
 	expect(await stored(page)).toEqual(before);
+});
+
+test('merging a backup adds up the statistics and keeps what only this device has', async ({
+	page
+}) => {
+	await page.goto('/about');
+	const solve = (puzzleId: number, timeMs: number, at: number) => ({ puzzleId, timeMs, at });
+	const here = {
+		solved: 2,
+		streak: 2,
+		bestStreak: 2,
+		bestMs: 60_000,
+		totalMs: 150_000,
+		recent: [solve(2, 90_000, 2000), solve(1, 60_000, 1000)],
+		solvedIds: [1, 2]
+	};
+	const there = {
+		solved: 2,
+		streak: 1,
+		bestStreak: 1,
+		bestMs: 40_000,
+		totalMs: 100_000,
+		recent: [solve(3, 40_000, 3000), solve(1, 60_000, 1000)],
+		solvedIds: [1, 3]
+	};
+	await page.evaluate((stats) => {
+		localStorage.setItem('vp:stats:tetroid:6n', JSON.stringify(stats));
+		localStorage.setItem('vp:night', 'false');
+	}, here);
+	const backup = {
+		format: BACKUP_FORMAT,
+		version: BACKUP_VERSION,
+		exportedAt: '2026-10-01T12:00:00Z',
+		app: { version: '0.0.1', commit: 'abc1234' },
+		data: {
+			'stats:tetroid:6n': JSON.stringify(there),
+			night: 'true',
+			'tutorialSeen:tetroid': 'true'
+		}
+	};
+	await importFile(page, {
+		name: 'backup.json',
+		mimeType: 'application/json',
+		buffer: Buffer.from(JSON.stringify(backup))
+	});
+	const asked = page.getByRole('alertdialog');
+	await expect(asked).toContainText('Import 3 entries');
+	const reloaded = page.waitForEvent('load');
+	await asked.getByRole('button', { name: 'Merge' }).click();
+	await expect(page.getByRole('status')).toHaveText(
+		'Merged: 2 entries added or updated. Reloading…'
+	);
+	await reloaded;
+	const after = await stored(page);
+	expect(after['vp:night']).toBe('false');
+	expect(after['vp:tutorialSeen:tetroid']).toBe('true');
+	expect(JSON.parse(after['vp:stats:tetroid:6n'])).toMatchObject({
+		solved: 3,
+		streak: 1,
+		bestStreak: 2,
+		bestMs: 40_000,
+		totalMs: 190_000,
+		solvedIds: [1, 2, 3]
+	});
 });
 
 test('the About page shows the changelog, and the version in the footer leads to it', async ({

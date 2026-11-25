@@ -140,6 +140,21 @@ export function remoteWins<S>(
 	return !(same && !newer && local!.takenBack);
 }
 
+/**
+ * Whether a save from a backup replaces the save in the same slot of this device (`local`, null if
+ * there is none or it cannot be read). Of the same game, a solved save wins over an open one and
+ * otherwise the newer; of two games, the newer, except that a solved game never replaces one still
+ * open.
+ */
+export function importedSaveWins<S>(local: SavedGame<S> | null, imported: SavedGame<S>): boolean {
+	if (!local) return true;
+	const same =
+		local.puzzleId === imported.puzzleId && (local.ticket ?? null) === (imported.ticket ?? null);
+	if (same && local.solved !== imported.solved) return imported.solved;
+	if (!same && imported.solved && !local.solved) return false;
+	return imported.updatedAt > local.updatedAt;
+}
+
 // The housekeeping below reads saves as they are: it must not take a save from a newer version,
 // which `migrateSave` cannot read, for a broken one.
 

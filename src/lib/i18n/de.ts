@@ -40,9 +40,10 @@ const de: Dictionary = {
 			ok: 'Abmelden'
 		},
 		import: {
-			title: '{count} Einträge aus dieser Sicherung wiederherstellen?',
-			text: 'Einträge mit gleichem Namen werden überschrieben.',
-			ok: 'Wiederherstellen'
+			title: '{count} Einträge aus dieser Sicherung importieren?',
+			text: 'Zusammenführen behält alles auf diesem Gerät und nimmt die Sicherung dazu: Lösungen und Serien werden zusammengezählt, Bestzeiten behalten, und von zwei Spielständen bleibt der neuere. Ersetzen schreibt die Sicherung über das, was hier ist.',
+			ok: 'Zusammenführen',
+			replace: 'Ersetzen'
 		}
 	},
 	nav: {
@@ -569,11 +570,37 @@ const de: Dictionary = {
 			'Die Seite liegt bei GitHub Pages; GitHub kann beim Laden technische Daten wie deine IP-Adresse protokollieren.',
 		backup: 'Datensicherung',
 		backupNote:
-			'Lade alles, was dieser Browser für Vibe Puzzles speichert, als JSON-Datei herunter, oder stelle es aus so einer Datei wieder her. Die Datei enthält deinen Spieler-Code, gib sie also nicht weiter.',
+			'Lade alles, was dieser Browser für Vibe Puzzles speichert, als JSON-Datei herunter, oder stelle es aus so einer Datei wieder her. Mit deinem Spieler-Code ist die Datei deine Anmeldung am Server, gib sie also nicht weiter; ohne ihn kannst du sie weitergeben.',
 		export: 'Sicherung exportieren',
 		import: 'Sicherung importieren',
 		schema: 'Dateiformat (JSON-Schema)',
+		choose: 'Auswählen, was in die Sicherung kommt',
+		contents: 'Inhalt',
+		games: 'Spiele',
+		part: {
+			saves: 'Spielstände',
+			stats: 'Statistiken',
+			settings: 'Einstellungen',
+			player: 'Spieler-Code (deine Anmeldung am Server)'
+		},
+		entries: 'Die Sicherung bekommt {count} Einträge.',
+		makeLink: 'Link für ein anderes Gerät',
+		linkTitle: 'Vibe-Puzzles-Sicherungslink',
+		linkQr: 'QR-Code des Sicherungslinks',
+		linkScan:
+			'Scanne den Code mit dem anderen Gerät oder schick dir den Link. Wenn du ihn dort öffnest, bietet die Seite an, die Sicherung zu importieren.',
+		linkTooLong:
+			'Für einen QR-Code ist dieser Link zu lang ({length} Zeichen): Schick ihn dir selbst, oder wähl weniger aus, zum Beispiel ohne Spielstände.',
+		linkPlayer:
+			'Der Link enthält deinen Spieler-Code, deine Anmeldung am Server: Schick ihn nur an dich selbst.',
+		shareLink: 'Link teilen',
+		copyLink: 'Link kopieren',
+		linkCopied: 'Kopiert.',
+		linkCopyFailed: 'Kopieren ging nicht: Markier den Link oben und kopier ihn von Hand.',
+		linkFailed: 'Dieser Link lässt sich nicht importieren: {error}.',
 		imported: '{count} Einträge wiederhergestellt. Seite wird neu geladen…',
+		merged: 'Zusammengeführt: {count} Einträge neu oder geändert. Seite wird neu geladen…',
+		mergedNothing: 'Dieses Gerät hat schon alles aus der Sicherung.',
 		importFailed: 'Diese Datei lässt sich nicht wiederherstellen: {error}.'
 	},
 	games: {

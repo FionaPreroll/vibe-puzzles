@@ -10,9 +10,12 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 
 - **Keep the screen on**: during a game the screen no longer dims or locks while you think, on phones and tablets (also as an installed app on Android) and in browsers that allow it. By default it stays on for 5 minutes after your last touch, click or key; the settings choose 2, 15 or 30 minutes, always while a puzzle is open, or off. The choice holds for this device. Once the puzzle is solved, or when you switch to another app, the screen dims as usual again.
 - **Share your day**: the "Hall of fame & statistics" page lists the puzzles you solved today on this device, with their times, and "Share your day" sends them as one message, for example to a messenger: how many puzzles, the time they took together, each puzzle with its time (and whether hints helped) and a link to the game. Where the browser cannot share, the text is copied.
+- **Choose what goes into a backup**: on the About page, "Choose what goes into the backup" picks saved games, statistics, settings and your player code, and which games, before you export. A file without your player code can be passed on safely, for example to share your settings.
+- **Backup by link or QR code**: "Link for another device" on the About page puts the backup in a link, with a QR code while it is short enough (for example settings and statistics without saved games). Scan the code with your phone, or send yourself the link: opening it there offers to merge the backup or replace what is there, with no file to download and move. The data stays in the link itself and is not sent to any server.
 
 ### Changed
 
+- **Importing a backup** on the About page now merges it with what this device already has, so nothing gets lost: solves and streaks from both devices are added up (a puzzle solved on both counts once), the best times and the solved days of the daily, weekly and monthly puzzles are kept, and of two saved games the newer one stays. If this device already has a player, it keeps it, and settings that only this device has stay as they are. "Replace" still writes the backup over everything, as before.
 - **System bars on Android**: in the installed app, the status bar at the top takes the colour of the page's header, and the page goes on behind the gesture bar at the bottom, so both match the look, by day and by night, instead of a fixed purple. Browsers that colour the bars from the app's settings alone, such as Firefox, now keep them black, so they no longer glare at night.
 
 ### Fixed
