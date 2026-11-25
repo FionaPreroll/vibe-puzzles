@@ -148,6 +148,14 @@ describe('stats', () => {
 		expect(storage.length).toBe(0);
 	});
 
+	it('marks the recent solves made with a hint', () => {
+		recordSolve('tetroid', '6n', 1, 5000);
+		recordSolve('tetroid', '6n', 2, 5000, undefined, undefined, true);
+		const [hinted, plain] = getStats('tetroid', '6n').recent;
+		expect(hinted.hinted).toBe(true);
+		expect('hinted' in plain).toBe(false);
+	});
+
 	it('keeps only the 20 most recent solves', () => {
 		for (let k = 1; k <= 25; k++) recordSolve('tetroid', '6n', k, k);
 		const { recent } = getStats('tetroid', '6n');

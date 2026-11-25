@@ -452,6 +452,20 @@ const en = {
 		pickName: 'Pick a player name',
 		toAppear: ' to appear here.'
 	},
+	today: {
+		title: 'Today',
+		intro: 'Puzzles you solved today on this device.',
+		share: 'Share your day',
+		shareOne: 'My puzzle day: 1 puzzle solved in {time}.',
+		shareMany: 'My puzzle day: {count} puzzles solved in {time}.',
+		line: '{icon} {game} {variant}: {time}',
+		lineHinted: '{icon} {game} {variant}: {time} (with hints)',
+		hinted: 'with hints',
+		more: '… and {count} more',
+		invite: 'Want to play too?',
+		copied: 'Copied your day and the link. Paste it anywhere to share.',
+		manualTitle: 'Share your day'
+	},
 	player: {
 		title: 'Player',
 		checking: 'Checking for the server…',
