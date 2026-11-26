@@ -32,11 +32,12 @@ The same ID must give the same puzzle on every device, in every browser and on t
 
 Every generator follows the same three steps:
 
-1. **Build a solution** at random: a filled grid, a set of tetrominoes, a partition into regions, a loop, a network of pipes.
+1. **Build a solution** at random: a filled grid, a set of tetrominoes, a partition into regions, a loop, a network of pipes, islands joined by bridges.
 2. **Make it unique.**
    - Sudoku and Loop go the other way round: they start from a full grid (every digit, or every cell's clue) and remove givens or clues only while a logical solver still solves the puzzle, which proves the solution unique.
    - Calcudoku, Tetroid and Pinwheel use a complete solver (propagation plus backtracking) to look for a second solution, with `limit: 2` and a node budget. While it finds one, the generator changes the puzzle where the two solutions differ (a cell becomes its own cage, a cell moves to another region, a galaxy is split) and tries again. A search that runs out of nodes discards the attempt.
    - Pipes changes its network where the solver's techniques get stuck until they decide every tile, which, as with Sudoku and Loop, proves the solution unique.
+   - Bridges changes nothing: it draws new islands and bridges until its techniques decide every link (which proves the solution unique) at the requested level.
 3. **Grade it.** A logical solver that never guesses replays the puzzle with a limited set of techniques. The difficulty is the weakest set of techniques that solves it. Easy and normal Sudoku, normal Tetroid, normal Loop and Pipes are right by construction: their last step already uses that logical solver (Sudoku digs with singles only, Loop with its basic rules; Tetroid reshapes regions until propagation solves the puzzle, Pipes its network until its techniques decide every tile). Otherwise, if the result does not match the requested difficulty, the generator starts a new attempt with the same `Rng` (so still deterministic), up to an attempt limit, and then keeps the best or first puzzle it found (see [Fallbacks](#fallbacks)).
 
 Each game's `GameLogic.fitsDifficulty(puzzle, variant)` applies the same rating to any stored puzzle; the collection script and tests use it.
@@ -51,8 +52,9 @@ Each game's `GameLogic.fitsDifficulty(puzzle, variant)` applies the same rating 
 | Pinwheel  | –                                          | Solvable by propagation alone                                              | Not solvable without case analysis                                           |
 | Loop      | –                                          | Basic rules only, as few clues as they allow                               | Needs inside and outside; never guessing; as few clues as that allows        |
 | Pipes     | –                                          | Solvable by its three techniques alone, without trying anything            | –                                                                            |
+| Bridges   | –                                          | Counting and closed-off groups decide every link                           | Needs the connection rules or a one-step trial; never guessing               |
 
-Specials use these levels too: Sudoku, Tetroid and Loop daily normal, weekly and monthly hard; Pinwheel all three hard. Pipes has one level; a board with wrap (opposite edges touch) is the harder kind of each size: daily 10×10, weekly 15×15 and monthly 25×25 with wrap.
+Specials use these levels too: Sudoku, Tetroid and Loop daily normal, weekly and monthly hard; Pinwheel all three hard. Pipes has one level; a board with wrap (opposite edges touch) is the harder kind of each size: daily 10×10, weekly 15×15 and monthly 25×25 with wrap. Bridges plays 7×7 only so far; its other sizes and specials (daily 10×10 normal, weekly 15×15 and monthly 25×25 hard) are announced (`comingSoon`).
 
 ## Sudoku
 
@@ -198,6 +200,38 @@ A hint scans the whole board again after every cross it finds on the way to a li
 
 Following the hints solves every puzzle tried, never with a wrong step: 200 each of 5×5 and 7×7, 100 of 10×10, 30 of 15×15, 15 of 20×20 and 10 of 25×25, with and without wrap (measured on 2026-10-28). `fit` takes 77 % to 90 % of the steps; `edge` 5 % (25×25) to 21 % (5×5) without wrap and none with wrap; `closed` 9 % to 12 % with wrap and up to 5 % without; `loop` about 1 %; `chain` at most 4 % (5×5 with wrap). A hint takes 0.02 ms (5×5) to 0.13 ms (25×25) on average; the first one of a puzzle takes up to 35 ms on 25×25, as it solves the puzzle to find wrong locks.
 
+## Bridges
+
+`generateBridges(width, height, difficulty, seed)` in `src/lib/games/bridges/generator.ts`. Types: 7×7 Normal and Hard; 10×10, 15×15, 20×20 and 25×25 and the specials are listed but not playable yet (`comingSoon`, see below). A puzzle is one character per cell, `.` for water or the number of an island (1 to 8). The links (`bridgesGraph` in `rules.ts`) join two islands in the same row or column with only water between them, numbered island by island in reading order (the link to the right first, then the one below); a state holds 0 to 2 bridges per link, or 3 for a cross the player set.
+
+1. **Islands** (`randomIslands`): a quarter of the cells, placed one at a time: the first anywhere, each next one in line with an island already there, two or more cells away over water, and never next to another island. So every island faces another one, and the islands can be joined.
+2. **Bridges** (`randomBridges`): a random spanning tree of the links whose bridges do not cross (randomized Kruskal), then a few more links where no bridge crosses them (10 %), and a second bridge on a link with one (35 %). Up to 20 trees per set of islands; about 29 % of the sets have none, as their links cross too much. Each island's number is the bridges at it (`puzzleOf`).
+3. **Grade** (`rate`): the solver's techniques, weakest first, until they decide every link; the level is the strongest one that was needed. Normal takes a puzzle that `Count` and `Isolation` decide, Hard one that needs `Connect` or `Trial` (`fitsLevel`). A puzzle they do not decide (about 54 % of those with a tree, all with more than one solution in a sample of 5,000) or that misses the level is dropped, and the next attempt draws new islands from the same `Rng`. Normal needs a median of 2 attempts (21 at most in 1,000 seeds), Hard 102 (1,128 at most), out of 5,000 (`ATTEMPTS`).
+
+**Solver** (`BridgesSolver` in `solver.ts`) keeps the fewest and the most bridges each link can still take (`Known`) and narrows them with four techniques (`BridgesLevel`):
+
+- `Count`: an island takes as many bridges as its number. If its other links can take at most so many, the rest goes to this one; if they already hold so many, this one takes at most what is left. A sure bridge blocks every link across it.
+- `Isolation`: the islands joined by sure bridges form groups, each with the bridges it still needs. A link may not take the bridges that would join groups (or close one) into a group that needs none, while other islands are left: two 1s facing each other, two 2s with a double bridge.
+- `Connect`: every island must reach every other one. A link that is the only way left between two parts of the board (a bridge of the graph of links that can still take one, by Tarjan's search) gets a bridge. And every way to give one island its bridges is tried at once (`combosAt`): only those that close off no group count.
+- `Trial`: a link's fewest or most bridges are tried with the techniques up to `Connect`; where they run into a contradiction (a number that cannot be met, a closed group, a part cut off), the link cannot take them.
+
+`propagate` runs them until nothing changes. `solve` also branches on the link with the fewest values left, with the techniques up to `Connect` at every node and a node budget, for `countSolutions`. The techniques only ever rule out what no solution has, so a puzzle they decide has one solution; and on 7×7 they decided every one of the 2,281 puzzles with one solution among 5,000 random layouts.
+
+**On the board** (`analyze` in `rules.ts`): an island is wrong only when it is wrong whatever comes: more bridges than its number, fewer and no room left for the rest (counting crosses, links blocked by a bridge and what the island across still takes), or a member of a group that has all its bridges and leaves other islands out. The board never builds a bridge across another one. A board is solved when every island has its bridges and all islands form one group.
+
+**Hints** (`bridgesHint` in `hint.ts`) take the player's bridges and crosses as what they know. Bridges and crosses the solution breaks come first. Otherwise the hint looks for links that need more bridges than they have, with the simplest reasoning that finds some:
+
+1. _Need_: an island's number against what its links can still take, first from what the player built alone, then with what the islands' numbers rule out (a link to a full island takes no more, to one that needs one more no second), then with links that would close off a group. Each link the step rests on that takes fewer bridges than two and that the player has not crossed comes with its reason, the fewest that the step needs; an island that takes every bridge its links can hold comes first.
+2. _Connect_: a part of the board with only one way left to the rest; the smaller part is tinted.
+3. _Combo_: the ways to give one island its bridges without closing off a group all share a bridge.
+4. _Assumption_: a link that the techniques up to `Connect`, tried with its fewest bridges, run into a contradiction with; the hint names what breaks.
+
+The first press tints where to look and names the rule; the second says how many bridges go on the highlighted links. When no rule decides a link (only on puzzles with more than one solution), the hint points at a link that lacks bridges.
+
+Following the hints from the empty board solves every puzzle tried, never with a wrong step: 300 each of 7×7 Normal and Hard (measured on 2026-11-26). Normal puzzles need only _need_ (3,089 steps). On Hard puzzles _need_ takes 88 % of the steps, _combo_ 6 %, _assumption_ 6 % (175 of the 300 puzzles need one) and _connect_ 0.1 %. A hint takes 0.03 to 0.05 ms on average, the first one of a puzzle up to 1 ms.
+
+**Larger boards** are listed but not playable yet: the share of random layouts with one solution falls with the size (about 20 % on 15×15), and the techniques decide fewer of them, so the generator needs a way to change a puzzle where it has a second solution (as Pipes does) before they open.
+
 ## Fallbacks
 
 Each generator has an attempt limit, so it always ends in bounded work. When no attempt hits the requested difficulty, the puzzle may not match it:
@@ -212,6 +246,7 @@ Each generator has an attempt limit, so it always ends in bounded work. When no 
 | Loop normal    | 40       | None: `generation failed` (not observed)                       |
 | Loop hard      | 40       | First puzzle, solvable by the basic rules (not observed)       |
 | Pipes          | 100 × 50 | None: `generation failed` (not observed; at most 2 networks)   |
+| Bridges        | 5,000    | None: `generation failed` (not observed; at most 1,128 tried)  |
 
 The limits are far above what the measurements below need, so in practice the difficulty is always right. A returned puzzle is always valid and unique.
 
@@ -273,12 +308,16 @@ Measured on 2026-10-09 (commit `e88783b`, after issue #84) with each game's `fit
 | Pipes 20×20 wrap      | 100  | 100          | 10 ms   | 117 ms |
 | Pipes 25×25 normal    | 100  | 100          | 16 ms   | 98 ms  |
 | Pipes 25×25 wrap      | 100  | 100          | 26 ms   | 161 ms |
+| Bridges 7×7 normal    | 1000 | 1000         | < 1 ms  | 16 ms  |
+| Bridges 7×7 hard      | 300  | 300          | 25 ms   | 247 ms |
 
 Loop was measured on 2026-10-10 (on top of commit `ccd2ccd`), with the clue-minimal definition of `fitsDifficulty`. Normal and hard puzzles have about as many clues (median 10 on 5×5, 19 on 7×7); the difference is how far the basic rules get. On a hard puzzle they stop with 13 % to 100 % of the edges still open (median 57 % on 5×5 and 50 % on 7×7, 100 seeds each), so every hard puzzle needs inside and outside for a good part of the board, not for one last edge.
 
 The sizes from 10×10 on were measured on 2026-10-17, with the spread loop; their times are the median and maximum of seeds 1 to 5 in `pnpm test:perf`. Every puzzle has one solution (the complete solver agrees), and every one fits its type. All have about 40 % of their cells numbered, of which 15 % to 18 % are 0s and 16 % to 20 % are 3s, and none leaves a square of more than 3×3 cells that the loop does not touch (with the plain loop: up to 4×4 on 10×10, 5×5 on 20×20 and 12×12 on 25×30). On hard puzzles the basic rules stop with a median of 43 % (10×10) to 54 % (15×15) of the edges open; as on 5×5 and 7×7, a few percent stop late (9 of 200 10×10 hard puzzles below 20 %, the lowest at 5 %).
 
 Pipes was measured on 2026-10-28 (on top of commit `d2bda16`, with the kept results of step 2). A Pipes puzzle counts as graded right when the complete solver finds exactly one solution and the three techniques alone decide every tile. The unit tests check 1,000 seeds each of 5×5 and 7×7 and 200 of 10×10, with and without wrap, the same way. The kept results left the medians as they were and brought the slowest 5 % of 25×25 from 120 to 130 ms down to 70 to 80 ms.
+
+Bridges was measured on 2026-11-26 (on top of commit `ad89a16`). A Bridges puzzle counts as graded right when the complete solver finds exactly one solution and the rating fits its type. Of the normal puzzles, 65 % need `Count` alone and 35 % `Isolation`; of the hard ones, 42 % need `Connect` and 58 % a `Trial`. The slowest 5 % of hard puzzles take 143 ms or more. A 7×7 puzzle has 9 to 12 islands (median 12).
 
 Before the fix (2026-10-08, commit `9a96875`), Tetroid missed on up to 12 of 40 per type and on 5 of 12 at 20×20 normal, Pinwheel hard below 15×15 was graded right for only 2 to 16 of 40, and Tetroid 20×20 normal took a median of 8.3 s.
 

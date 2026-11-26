@@ -47,15 +47,15 @@
 		'bg-indigo-50 font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300';
 </script>
 
-<!-- A type that is only announced: greyed out, with "Soon" instead of its marker. -->
-{#snippet soon(v: Variant, name: string)}
+<!-- A type that is only announced: greyed out, with "Soon" instead of its marker. Screen
+     readers hear the size too, before what the button shows ("15×15 Normal Soon"). -->
+{#snippet soon(v: Variant, name: string, size = '')}
 	<button
 		class="{cell} cursor-not-allowed text-stone-400 hover:bg-transparent dark:text-stone-500 dark:hover:bg-transparent"
-		aria-label={t('game.comingSoonTitle', { variant: variantLabel(v) })}
 		title={t('game.comingSoonTitle', { variant: variantLabel(v) })}
 		disabled
 	>
-		{name}
+		{#if size}<span class="sr-only">{size} </span>{/if}{name}
 		<span class="block text-[10px] leading-3 uppercase">{t('game.comingSoon')}</span>
 	</button>
 {/snippet}
@@ -71,7 +71,7 @@
 						{@const v = find(mode, size, d)}
 						<td class="p-0.5">
 							{#if v?.comingSoon}
-								{@render soon(v, columnLabel(d))}
+								{@render soon(v, columnLabel(d), size)}
 							{:else if v}
 								<button
 									class="{cell} {v.key === current ? active : ''}"

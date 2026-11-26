@@ -6,9 +6,10 @@ test('home lists the games', { tag: '@webkit' }, async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'Pinwheel' })).toBeVisible();
 });
 
-for (const game of ['tetroid', 'pinwheel', 'loop', 'pipes']) {
+const SMALLEST: Record<string, string> = { tetroid: '6n', bridges: '7n' };
+for (const game of ['tetroid', 'pinwheel', 'loop', 'pipes', 'bridges']) {
 	test(`${game} generates and renders a board`, { tag: '@webkit' }, async ({ page }) => {
-		await page.goto(`/${game}?v=${game === 'tetroid' ? '6n' : '5n'}`);
+		await page.goto(`/${game}?v=${SMALLEST[game] ?? '5n'}`);
 		await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 		await expect(page.getByRole('application', { name: 'Puzzle board' }).first()).toBeVisible();
 	});
