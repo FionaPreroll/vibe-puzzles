@@ -305,7 +305,8 @@ const de: Dictionary = {
 		digit: 'Ziffer',
 		note: 'Notiz',
 		turn: 'Drehen',
-		lock: 'Sperren'
+		lock: 'Sperren',
+		bridge: 'Brücke'
 	},
 	swatch: ['', 'Violett', 'Rot', 'Gelb', 'Grün', 'Blau'],
 	setting: {
@@ -343,7 +344,9 @@ const de: Dictionary = {
 		showWater: 'Wasser zeigen',
 		animateRotation: 'Kacheln sanft drehen',
 		markErrors: 'Kacheln zeigen, die nicht zu ihren Notizen passen',
-		turnToMarks: 'Kacheln nur in Lagen drehen, die zu ihren Notizen passen'
+		turnToMarks: 'Kacheln nur in Lagen drehen, die zu ihren Notizen passen',
+		dimSatisfied: 'Inseln mit allen Brücken ausgrauen',
+		showGroup: 'Inseln hinterlegen, die mit deiner letzten Brücke verbunden sind'
 	},
 	/** Was jede Einstellung bewirkt, unter ihr angezeigt. Spiele und Modi können es eigens formulieren. */
 	settingHelp: {
@@ -413,7 +416,11 @@ const de: Dictionary = {
 		markErrors:
 			'Eine Kachel wird rot hinterlegt, wenn keine Lage zu den Notizen an ihren Seiten passt, etwa ein = an zwei benachbarten Seiten einer Geraden. Verglichen wird nur mit deinen Notizen, nicht mit der Lösung.',
 		turnToMarks:
-			'Ein Klick dreht eine Kachel gleich in die nächste Lage, die zu ihren Notizen passt, und überspringt die anderen: offen zu jedem =, geschlossen zu jedem x. Kacheln ohne Notizen und Kacheln, zu denen keine Lage passt, drehen sich wie gewohnt.'
+			'Ein Klick dreht eine Kachel gleich in die nächste Lage, die zu ihren Notizen passt, und überspringt die anderen: offen zu jedem =, geschlossen zu jedem x. Kacheln ohne Notizen und Kacheln, zu denen keine Lage passt, drehen sich wie gewohnt.',
+		dimSatisfied:
+			'Graut die Zahl einer Insel aus, sobald sie so viele Brücken hat, wie sie zeigt, damit die offenen auffallen.',
+		showGroup:
+			'Hinterlegt nach jedem Zug alle Inseln, die über Brücken mit der eben geänderten Verbindung zusammenhängen. So siehst du auf einen Blick, welche Inseln schon verbunden sind.'
 	},
 	source: {
 		title: 'Woher neue Rätsel kommen',
@@ -1175,6 +1182,94 @@ const de: Dictionary = {
 					task: 'Dreh die übrigen Kacheln, bis Wasser jedes Rohr füllt.'
 				}
 			]
+		},
+		bridges: {
+			/** Der Name des Spiels, der der Sprache folgt. */
+			name: 'Brücken',
+			tagline: 'Verbinde alle Inseln mit Brücken, so viele, wie jede Zahl sagt.',
+			rules: [
+				'Baue Brücken zwischen den Inseln, sodass alle zu einer einzigen Gruppe verbunden sind.',
+				'Eine Brücke führt waagerecht oder senkrecht von Insel zu Insel, nur über Wasser. Sie kreuzt keine andere Brücke und keine Insel.',
+				'Zwischen zwei Inseln liegen eine oder zwei Brücken, nicht mehr.',
+				'Die Zahl auf einer Insel sagt, wie viele Brücken dort enden.'
+			],
+			notes: [
+				'Streich eine Verbindung durch, wo keine Brücke hinkommt: Ein Rechtsklick oder langes Halten auf einem Touchscreen setzt ein x. Tipps bauen auf deinen Brücken und Kreuzen auf.'
+			],
+			toolHint: {
+				bridge:
+					'Klick zwischen zwei Inseln oder zieh von einer zur anderen, um eine Brücke zu bauen; noch einmal für eine zweite, ein dritter Klick nimmt beide weg. Rechtsklick streicht die Verbindung durch.',
+				cross:
+					'Klick zwischen zwei Inseln, um die Verbindung durchzustreichen: Dort kommt keine Brücke hin. Ein zweiter Klick nimmt das Kreuz weg.'
+			},
+			controlsMouse:
+				'Klick zwischen zwei Inseln oder zieh von einer Insel zu einer anderen, um eine Brücke zu bauen. Ein zweiter Klick macht eine Doppelbrücke daraus, ein dritter nimmt sie weg. Rechtsklick setzt ein Kreuz, wo keine Brücke hinkommt. Zieh über mehrere Inseln in einer Reihe, um zwischen allen eine Brücke zu bauen.',
+			controlsTouch:
+				'Tippe zwischen zwei Inseln oder zieh von einer zur anderen, um eine Brücke zu bauen; tippe noch einmal für eine Doppelbrücke, ein drittes Mal nimmt sie weg. Halte eine Verbindung, um sie durchzustreichen, oder wähle das Werkzeug Kreuz.',
+			controlsKeys:
+				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Felder. Die Leertaste baut auf dem Wasser zwischen zwei Inseln eine Brücke (dann eine zweite, dann keine), Shift+Leertaste streicht die Verbindung durch. Halte {mod} und drücke die Pfeile, um Brücken auf dem Weg zu bauen, oder Shift mit den Pfeilen für Kreuze; beim Loslassen wird das übernommen. Esc blendet den Cursor aus.',
+			speech: {
+				island: 'Insel {clue}',
+				bridges: 'Brücken: {list}',
+				crosses: 'Durchgestrichen: {list}',
+				water: 'Wasser',
+				single: 'eine Brücke {way}',
+				double: 'eine Doppelbrücke {way}',
+				none: 'durchgestrichen {way}',
+				across: 'waagerecht',
+				down: 'senkrecht'
+			},
+			settingHelp: {
+				highlightErrors:
+					'Eine Insel wird rot, wenn sie mehr Brücken hat, als ihre Zahl sagt, wenn sie nicht mehr genug bekommen kann oder wenn sie zu einer Gruppe mit allen Brücken gehört, die von den übrigen Inseln abgeschnitten ist.'
+			},
+			/** Was der Tipp sagt: wo man hinschaut und welche Regel gilt, dann die Brücken. */
+			hints: {
+				mistake:
+					'Die markierten Brücken oder Kreuze passen nicht zur Lösung: Dort liegen weniger Brücken, oder über das Kreuz führt eine Brücke. Sie bleiben markiert, bis du sie änderst.',
+				needLook:
+					'Schau dir die hinterlegte Insel an: Zähl, wie viele Brücken ihr noch fehlen und wie viele ihre Nachbarn noch aufnehmen können.',
+				needAll:
+					'Ihr fehlen genau so viele Brücken, wie ihre Verbindungen noch tragen können, also bekommt sie alle.',
+				need: 'Selbst wenn jede andere Verbindung so viele Brücken trüge wie möglich, kämen nicht genug zusammen.',
+				connectLook:
+					'Schau dir die hinterlegten Inseln an: Wie alle Inseln müssen sie mit dem Rest verbunden sein.',
+				connect:
+					'Nur noch die markierte Verbindung führt von ihnen zu den übrigen Inseln, also kommt dort eine Brücke hin.',
+				comboLook:
+					'Schau dir die hinterlegte Insel und die Gruppen um sie herum an: Geh die Möglichkeiten durch, ihr ihre Brücken zu geben.',
+				combo:
+					'Jede Möglichkeit, die keine Gruppe mit allen Brücken vom Rest abschneidet, nutzt die markierte Verbindung.',
+				assumeLook:
+					'Hier hilft keine einfache Regel: Probier die hinterlegte Verbindung im Kopf aus.',
+				assumeNone:
+					'Angenommen, auf der markierten Verbindung läge keine Brücke: Folge den Regeln von dort aus.',
+				assumeOne:
+					'Angenommen, auf der markierten Verbindung läge nur eine Brücke: Folge den Regeln von dort aus.',
+				breaksCount: 'Eine Insel kann nicht mehr so viele Brücken bekommen, wie ihre Zahl sagt.',
+				breaksClosed:
+					'Eine Gruppe von Inseln bekommt alle ihre Brücken und schneidet sich vom Rest ab.',
+				breaksCut: 'Einige Inseln können die übrigen nicht mehr erreichen.',
+				breaksCross: 'Zwei Brücken müssten sich kreuzen.',
+				then1: 'Also bau eine Brücke auf der markierten Verbindung.',
+				then1Each: 'Also bau auf jeder markierten Verbindung eine Brücke.',
+				then2: 'Also trägt die markierte Verbindung zwei Brücken: Mach eine Doppelbrücke daraus.',
+				then2Each: 'Also trägt jede markierte Verbindung zwei Brücken: Mach Doppelbrücken daraus.',
+				/** Warum Verbindungen, auf denen der Schritt beruht, weniger Brücken tragen, wo kein Kreuz steht. */
+				emptyBlocked:
+					'Über die hinterlegte Verbindung führt quer eine Brücke: Dort passt keine hin.',
+				emptyFull: 'Die hinterlegte Insel hat schon alle ihre Brücken: Zu ihr führt keine mehr.',
+				singleFull:
+					'Die hinterlegte Insel hat schon alle ihre Brücken: Die Verbindung zu ihr behält ihre eine Brücke.',
+				singleCapacity:
+					'Der hinterlegten Insel fehlt nur noch eine Brücke: Die Verbindung zu ihr trägt höchstens eine.',
+				emptyIsolation:
+					'Eine Brücke auf der hinterlegten Verbindung würde die hinterlegten Inseln zu einer Gruppe mit allen Brücken verbinden, abgeschnitten vom Rest: Sie bleibt leer.',
+				singleIsolation:
+					'Eine Doppelbrücke auf der hinterlegten Verbindung würde die hinterlegten Inseln zu einer Gruppe mit allen Brücken verbinden, abgeschnitten vom Rest: Sie trägt höchstens eine Brücke.',
+				stuck:
+					'Keine Regel legt hier eine Verbindung fest. Probier im Kopf eine Brücke auf der markierten Verbindung aus und verfolge sie, bis eine Regel verletzt ist.'
+			}
 		}
 	}
 };

@@ -317,7 +317,8 @@ const en = {
 		digit: 'Digit',
 		note: 'Note',
 		turn: 'Turn',
-		lock: 'Lock'
+		lock: 'Lock',
+		bridge: 'Bridge'
 	},
 	swatch: ['', 'Violet', 'Red', 'Yellow', 'Green', 'Blue'],
 	setting: {
@@ -355,7 +356,9 @@ const en = {
 		showWater: 'Show the water',
 		animateRotation: 'Animate turning tiles',
 		markErrors: 'Show tiles that cannot keep to their notes',
-		turnToMarks: 'Turn tiles only into ways that fit their notes'
+		turnToMarks: 'Turn tiles only into ways that fit their notes',
+		dimSatisfied: 'Grey out islands that have all their bridges',
+		showGroup: 'Tint the islands joined to your last bridge'
 	},
 	/** What each setting does, shown below it. Games and modes can word it their own way. */
 	settingHelp: {
@@ -421,7 +424,11 @@ const en = {
 		markErrors:
 			'A tile turns red when no way of turning it fits the notes on its sides, such as an = on two neighbouring sides of a straight. It compares with your notes only, not with the solution.',
 		turnToMarks:
-			'A click turns a tile on to the next way that fits its notes and skips the others: open towards every =, closed towards every x. Tiles without notes, and tiles that no way fits, turn as usual.'
+			'A click turns a tile on to the next way that fits its notes and skips the others: open towards every =, closed towards every x. Tiles without notes, and tiles that no way fits, turn as usual.',
+		dimSatisfied:
+			'Greys out the number of an island once it has as many bridges as it shows, so the open ones stand out.',
+		showGroup:
+			'After each move, tints every island joined by bridges to the link you just changed, so you see at a glance which islands already hang together.'
 	},
 	source: {
 		title: 'Where new puzzles come from',
@@ -1176,6 +1183,90 @@ const en = {
 					task: 'Turn the remaining tiles until water fills every pipe.'
 				}
 			]
+		},
+		bridges: {
+			/** The game's name, which follows the language. */
+			name: 'Bridges',
+			tagline: 'Join all islands with bridges, as many as each number says.',
+			rules: [
+				'Build bridges between the islands so that all of them join into one group.',
+				'A bridge runs straight across or up and down from island to island, over water only. It never crosses another bridge or an island.',
+				'Two islands take one or two bridges between them, no more.',
+				'The number on an island says how many bridges end there.'
+			],
+			notes: [
+				'Cross out a link where no bridge goes: a right click, or holding it on a touch screen, sets an x. Hints build on your bridges and crosses.'
+			],
+			toolHint: {
+				bridge:
+					'Click between two islands, or drag from one to the other, to build a bridge; again for a second one, and a third click takes both away. Right click crosses the link out.',
+				cross:
+					'Click between two islands to cross the link out: no bridge goes there. Click again to clear the cross.'
+			},
+			controlsMouse:
+				'Click between two islands, or drag from one island towards another, to build a bridge. Click again for a double bridge; a third click removes them. Right click sets a cross where no bridge goes. Dragging over several islands in a row builds a bridge between each pair.',
+			controlsTouch:
+				'Tap between two islands, or drag from one towards another, to build a bridge; tap again for a double bridge, a third tap removes them. Hold a link to cross it out, or pick the Cross tool.',
+			controlsKeys:
+				'Arrow keys or W, A, S, D move a cursor over the cells. Space on the water between two islands builds a bridge there (then a second one, then none), Shift+Space crosses it out. Hold {mod} and press the arrows to build bridges along the way, or Shift with the arrows for crosses; letting go sets them. Esc hides the cursor.',
+			speech: {
+				island: 'island {clue}',
+				bridges: 'Bridges: {list}',
+				crosses: 'Crossed out: {list}',
+				water: 'water',
+				single: 'a bridge {way}',
+				double: 'a double bridge {way}',
+				none: 'crossed out {way}',
+				across: 'across',
+				down: 'up and down'
+			},
+			settingHelp: {
+				highlightErrors:
+					'An island turns red when it has more bridges than its number, when it can no longer get enough, or when it belongs to a group with all its bridges that is cut off from the other islands.'
+			},
+			/** What the hint button says: where to look and which rule applies, then the bridges. */
+			hints: {
+				mistake:
+					'The highlighted bridges or crosses do not match the solution: fewer bridges go there, or a bridge goes across the cross. They stay highlighted until you change them.',
+				needLook:
+					'Look at the tinted island: count the bridges it still needs, and how many its neighbours can still take.',
+				needAll:
+					'It needs exactly as many bridges as its links can still hold, so it takes all of them.',
+				need: 'Even if every other link held as many bridges as it can, the island would still be short.',
+				connectLook: 'Look at the tinted islands: like all islands, they have to join the rest.',
+				connect:
+					'Only the highlighted link still leads from them to the other islands, so it takes a bridge.',
+				comboLook:
+					'Look at the tinted island and the groups around it: think through the ways to give it its bridges.',
+				combo:
+					'Every way that does not close off a group with all its bridges from the rest uses the highlighted link.',
+				assumeLook: 'No simple rule helps here: try out the tinted link in your head.',
+				assumeNone: 'Suppose the highlighted link had no bridge, and follow the rules from there.',
+				assumeOne:
+					'Suppose the highlighted link had only one bridge, and follow the rules from there.',
+				breaksCount: 'An island can no longer get as many bridges as its number says.',
+				breaksClosed:
+					'A group of islands gets all its bridges and closes itself off from the rest.',
+				breaksCut: 'Some islands can no longer reach the others.',
+				breaksCross: 'Two bridges would have to cross.',
+				then1: 'So build a bridge on the highlighted link.',
+				then1Each: 'So build a bridge on each highlighted link.',
+				then2: 'So the highlighted link takes two bridges: make it a double bridge.',
+				then2Each: 'So each highlighted link takes two bridges: make them double bridges.',
+				/** Why links the step rests on take fewer bridges, where the player has not crossed them. */
+				emptyBlocked: 'A bridge crosses the tinted link: it can take none.',
+				emptyFull: 'The tinted island already has all its bridges: no more go to it.',
+				singleFull:
+					'The tinted island already has all its bridges: the link to it keeps its one bridge.',
+				singleCapacity:
+					'The tinted island needs only one more bridge: the link to it takes at most one.',
+				emptyIsolation:
+					'A bridge on the tinted link would join the tinted islands into a group with all its bridges, cut off from the rest: it stays empty.',
+				singleIsolation:
+					'A double bridge on the tinted link would join the tinted islands into a group with all its bridges, cut off from the rest: it takes one bridge at most.',
+				stuck:
+					'No rule decides a link here. Try a bridge on the highlighted link in your head and follow it until a rule breaks.'
+			}
 		}
 	}
 };

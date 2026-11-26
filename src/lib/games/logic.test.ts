@@ -60,6 +60,10 @@ describe('variant lists', () => {
 			pipes: [
 				...['5n', '5w', '7n', '7w', '10n', '10w', '15n', '15w', '20n', '20w', '25n', '25w'],
 				...['daily', 'weekly', 'monthly']
+			],
+			bridges: [
+				...['7n', '7h', '10n', '10h', '15n', '15h', '20n', '20h', '25n', '25h'],
+				...['daily', 'weekly', 'monthly']
 			]
 		});
 	});
@@ -80,7 +84,9 @@ describe('variant lists', () => {
 			sudoku: ['9n', '9h', '9h'],
 			loop: ['10n', '15h', '25x30h'],
 			// Wrap is a rule of its own, like a mode: the weekly and monthly have it.
-			pipes: ['10n', '15w', '25w']
+			pipes: ['10n', '15w', '25w'],
+			// Only 7×7 is playable so far: the specials, still to come, fall back to it.
+			bridges: ['7n', '7h', '7h']
 		});
 	});
 

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryStorage } from '../../test/memory-storage';
+import { BRIDGES_SETTINGS } from '../games/bridges/settings';
 import { LOOP_SETTINGS } from '../games/loop/settings';
 import { PINWHEEL_SETTINGS } from '../games/pinwheel/settings';
 import { PIPES_SETTINGS } from '../games/pipes/settings';
@@ -150,7 +151,8 @@ describe('labels', () => {
 			pinwheel: PINWHEEL_SETTINGS,
 			sudoku: SUDOKU_SETTINGS,
 			loop: LOOP_SETTINGS,
-			pipes: PIPES_SETTINGS
+			pipes: PIPES_SETTINGS,
+			bridges: BRIDGES_SETTINGS
 		};
 		for (const [game, list] of Object.entries(lists)) {
 			for (const mode of game === 'sudoku' ? [undefined, 'calc'] : [undefined]) {

@@ -29,7 +29,7 @@ test('every size is playable: a link to 10×10 opens it', async ({ page }) => {
 	for (const name of ['10×10 Normal', '15×15 Hard', '20×20 Normal', '25×30 Hard']) {
 		await expect(page.getByRole('button', { name, exact: true })).toBeEnabled();
 	}
-	await expect(page.getByRole('button', { name: /coming soon/ })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: /Soon$/ })).toHaveCount(0);
 });
 
 test('a collection puzzle is solved by drawing its loop', { tag: '@webkit' }, async ({ page }) => {

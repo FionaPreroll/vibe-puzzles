@@ -1,4 +1,10 @@
 import { readFileSync } from 'node:fs';
+import {
+	bridgesGraph,
+	CROSS as NO_BRIDGE,
+	type BridgesPuzzle
+} from '../src/lib/games/bridges/rules';
+import { solveBridges } from '../src/lib/games/bridges/solver';
 import { GAME_LOGIC } from '../src/lib/games/logic';
 import { solveLoop } from '../src/lib/games/loop/solver';
 import type { LoopPuzzle } from '../src/lib/games/loop/rules';
@@ -192,6 +198,24 @@ export function pipes(type = '7n', reach = 2): Position {
 	return {
 		path: position('pipes', type, id, { tiles, locks }),
 		width: w,
+		height: puzzle.height
+	};
+}
+
+/**
+ * Bridges: the bridges between the islands in the upper part of the board built, and crosses on
+ * the links there that take none.
+ */
+export function bridges(type = '7h', share = 0.5): Position {
+	const { id, puzzle } = first<BridgesPuzzle>('bridges', type);
+	const [solution] = solveBridges(puzzle, 1).solutions;
+	const g = bridgesGraph(puzzle);
+	const upper = (l: number) =>
+		row(g.cells[g.ends[2 * l + 1]], puzzle.width) < puzzle.height * share;
+	const links = solution.map((b, l) => (!upper(l) ? 0 : b || NO_BRIDGE));
+	return {
+		path: position('bridges', type, id, { links }),
+		width: puzzle.width,
 		height: puzzle.height
 	};
 }

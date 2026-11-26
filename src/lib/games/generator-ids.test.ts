@@ -113,7 +113,11 @@ const PINNED: Record<string, string> = {
 	'pipes 20w 1': '326161e35edbb3d1',
 	'pipes 25n 1': '91bb8fd041a9e9aa',
 	'pipes 25n 6': 'd189204ff77b764d',
-	'pipes 25w 1': 'a51d5c592856728b'
+	'pipes 25w 1': 'a51d5c592856728b',
+	'bridges 7n 1': '1a5cadfdc07e234b',
+	'bridges 7n 2': 'f1654dadeeabebcd',
+	'bridges 7h 1': 'e0c6bdc7b9c54fce',
+	'bridges 7h 2': 'f1c240551654648f'
 };
 
 const fingerprint = (puzzle: unknown) =>

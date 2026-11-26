@@ -35,7 +35,8 @@ const GAMES = [
 	'/sudoku?v=calc6',
 	'/loop?v=5n',
 	'/pinwheel?v=7n&id=1027244002',
-	'/pipes?v=7w'
+	'/pipes?v=7w',
+	'/bridges?v=7n'
 ];
 const TETROID = GAMES[0];
 
