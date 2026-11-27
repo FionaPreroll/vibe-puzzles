@@ -7,7 +7,7 @@ test('home lists the games', { tag: '@webkit' }, async ({ page }) => {
 });
 
 const SMALLEST: Record<string, string> = { tetroid: '6n', bridges: '7n' };
-for (const game of ['tetroid', 'pinwheel', 'loop', 'pipes', 'bridges']) {
+for (const game of ['tetroid', 'pinwheel', 'loop', 'pipes', 'bridges', 'pixels']) {
 	test(`${game} generates and renders a board`, { tag: '@webkit' }, async ({ page }) => {
 		await page.goto(`/${game}?v=${SMALLEST[game] ?? '5n'}`);
 		await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });

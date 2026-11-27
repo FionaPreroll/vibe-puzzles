@@ -64,6 +64,10 @@ describe('variant lists', () => {
 			bridges: [
 				...['7n', '7h', '10n', '10h', '15n', '15h', '20n', '20h', '25n', '25h'],
 				...['daily', 'weekly', 'monthly']
+			],
+			pixels: [
+				...['5n', '5h', '10n', '10h', '15n', '15h', '20n', '20h', '25n', '25h'],
+				...['daily', 'weekly', 'monthly']
 			]
 		});
 	});
@@ -85,7 +89,8 @@ describe('variant lists', () => {
 			loop: ['10n', '15h', '25x30h'],
 			// Wrap is a rule of its own, like a mode: the weekly and monthly have it.
 			pipes: ['10n', '15w', '25w'],
-			bridges: ['10n', '15h', '25h']
+			bridges: ['10n', '15h', '25h'],
+			pixels: ['10n', '15h', '25h']
 		});
 	});
 
@@ -103,7 +108,9 @@ describe('difficulty', () => {
 		['sudoku', '9n', '9h'],
 		['sudoku', 'c5e', 'c5h'],
 		['bridges', '7n', '7h'],
-		['bridges', '10n', '10h']
+		['bridges', '10n', '10h'],
+		['pixels', '5n', '5h'],
+		['pixels', '10n', '10h']
 	])('%s tells %s from %s puzzles', (game, a, b) => {
 		const logic = GAME_LOGIC[game];
 		const [va, vb] = [a, b].map((key) => variant(logic.variants, key));

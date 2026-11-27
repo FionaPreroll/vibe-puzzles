@@ -36,7 +36,8 @@ const GAMES = [
 	'/loop?v=5n',
 	'/pinwheel?v=7n&id=1027244002',
 	'/pipes?v=7w',
-	'/bridges?v=7n'
+	'/bridges?v=7n',
+	'/pixels?v=5n'
 ];
 const TETROID = GAMES[0];
 

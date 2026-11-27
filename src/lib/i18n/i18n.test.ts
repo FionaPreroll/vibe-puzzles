@@ -4,6 +4,7 @@ import { BRIDGES_SETTINGS } from '../games/bridges/settings';
 import { LOOP_SETTINGS } from '../games/loop/settings';
 import { PINWHEEL_SETTINGS } from '../games/pinwheel/settings';
 import { PIPES_SETTINGS } from '../games/pipes/settings';
+import { PIXELS_SETTINGS } from '../games/pixels/settings';
 import { SUDOKU_SETTINGS } from '../games/sudoku/settings';
 import { TETROID_SETTINGS } from '../games/tetroid/settings';
 import de from './de';
@@ -152,7 +153,8 @@ describe('labels', () => {
 			sudoku: SUDOKU_SETTINGS,
 			loop: LOOP_SETTINGS,
 			pipes: PIPES_SETTINGS,
-			bridges: BRIDGES_SETTINGS
+			bridges: BRIDGES_SETTINGS,
+			pixels: PIXELS_SETTINGS
 		};
 		for (const [game, list] of Object.entries(lists)) {
 			for (const mode of game === 'sudoku' ? [undefined, 'calc'] : [undefined]) {
