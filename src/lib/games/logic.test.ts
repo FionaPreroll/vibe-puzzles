@@ -85,8 +85,7 @@ describe('variant lists', () => {
 			loop: ['10n', '15h', '25x30h'],
 			// Wrap is a rule of its own, like a mode: the weekly and monthly have it.
 			pipes: ['10n', '15w', '25w'],
-			// Only 7×7 is playable so far: the specials, still to come, fall back to it.
-			bridges: ['7n', '7h', '7h']
+			bridges: ['10n', '15h', '25h']
 		});
 	});
 
@@ -102,7 +101,9 @@ describe('difficulty', () => {
 		['tetroid', '6n', '6h'],
 		['pinwheel', '5n', '5h'],
 		['sudoku', '9n', '9h'],
-		['sudoku', 'c5e', 'c5h']
+		['sudoku', 'c5e', 'c5h'],
+		['bridges', '7n', '7h'],
+		['bridges', '10n', '10h']
 	])('%s tells %s from %s puzzles', (game, a, b) => {
 		const logic = GAME_LOGIC[game];
 		const [va, vb] = [a, b].map((key) => variant(logic.variants, key));

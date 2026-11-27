@@ -38,26 +38,33 @@ async function open(page: Page, entry = { id, puzzle }) {
 	};
 }
 
-test('Bridges is listed in early access, without a tutorial', async ({ page }) => {
+test('Bridges is listed in early access, with its daily puzzle and no tutorial', async ({
+	page
+}) => {
 	await page.goto('/');
 	const card = page
 		.getByRole('listitem')
 		.filter({ has: page.getByRole('heading', { name: 'Bridges' }) });
 	await expect(card.getByText('Early access')).toBeVisible();
 	await expect(card.getByRole('link', { name: 'Learn Bridges' })).toHaveCount(0);
-	await expect(card.getByRole('link', { name: /Daily puzzle/ })).toHaveCount(0);
+	await expect(card.getByRole('link', { name: /Daily puzzle/ })).toBeVisible();
 });
 
-test('the other types are listed, but only 7×7 can be played so far', async ({ page }) => {
-	await page.goto('/bridges?v=10n');
+test('every size is playable: a link to 25×25 Hard opens it', async ({ page }) => {
+	await page.goto('/bridges?v=25h');
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
-	// A link to a type that is not there yet opens the first one.
-	await expect(page).toHaveURL(/v=7n/);
-	await expect(page.getByRole('button', { name: '7×7 Hard', exact: true })).toBeEnabled();
-	const soon = page.getByRole('button', { name: '15×15 Hard Soon', exact: true });
-	await expect(soon).toBeDisabled();
-	await expect(soon).toHaveAttribute('title', '15×15 Hard: coming soon');
-	await expect(page.getByRole('button', { name: 'Daily Soon', exact: true })).toBeDisabled();
+	await expect(page).toHaveURL(/v=25h/);
+	await expect(page.getByRole('application', { name: 'Puzzle board' })).toBeVisible();
+	for (const name of [
+		'10×10 Normal',
+		'15×15 Hard',
+		'20×20 Normal',
+		'25×25 Hard',
+		'Monthly 25×25'
+	]) {
+		await expect(page.getByRole('button', { name, exact: true })).toBeEnabled();
+	}
+	await expect(page.getByRole('button', { name: /Soon$/ })).toHaveCount(0);
 });
 
 test(
