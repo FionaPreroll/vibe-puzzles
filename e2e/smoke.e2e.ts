@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { collectionRevisions } from '../scripts/revisions';
 
 test('home lists the games', { tag: '@webkit' }, async ({ page }) => {
 	await page.goto('/');
@@ -141,6 +143,82 @@ test('caches a collection file when it is first used, not on install', async ({
 	expect(await loads(chunk)).toBe(true);
 	expect(await loads('/puzzles/tetroid/8n/index.json')).toBe(false);
 	await context.setOffline(false);
+});
+
+test('a collection file cached by an older version is replaced before a puzzle is picked from it', async ({
+	page,
+	context
+}) => {
+	await page.goto('/');
+	await page.evaluate(async () => {
+		localStorage.setItem('vp:puzzleSource', '"bank"');
+		await navigator.serviceWorker.ready;
+		if (!navigator.serviceWorker.controller) {
+			await new Promise((r) => navigator.serviceWorker.addEventListener('controllerchange', r));
+		}
+	});
+	const path = '/puzzles/pixels/5n/0000.json';
+	const revision = collectionRevisions('static').pixels['5n'];
+	const ids = (JSON.parse(readFileSync(`static${path}`, 'utf8')).puzzles as { id: number }[]).map(
+		(p) => p.id
+	);
+	// What an older version cached: a puzzle this collection took out.
+	const old = {
+		version: 2,
+		game: 'pixels',
+		variant: '5n',
+		puzzles: [
+			{
+				id: 799749296,
+				puzzle: {
+					width: 5,
+					height: 5,
+					rows: [[], [], [1, 1], [1], []],
+					cols: [[2], [], [], [], [1]]
+				}
+			}
+		]
+	};
+	const cacheOld = (headers: Record<string, string> = {}) =>
+		page.evaluate(
+			async ({ path, old, headers }) => {
+				const cache = await caches.open('vibe-puzzles-collection');
+				await cache.put(path, Response.json(old, { headers }));
+			},
+			{ path, old, headers }
+		);
+	const cached = () =>
+		page.evaluate(async (path) => {
+			const hit = await caches.match(path);
+			return {
+				revision: hit?.headers.get('X-Collection-Revision'),
+				ids: ((await hit?.json())?.puzzles as { id: number }[]).map((p) => p.id)
+			};
+		}, path);
+	const load = (url: string) =>
+		page.evaluate(
+			async (url) =>
+				((await (await fetch(url)).json()).puzzles as { id: number }[]).map((p) => p.id),
+			url
+		);
+
+	await cacheOld();
+	await page.goto('/pixels?v=5n');
+	await expect(page.getByText('(from the puzzle collection)')).toBeVisible({ timeout: 10_000 });
+	const shown = await page.locator('.font-mono.select-all').first().textContent();
+	expect(ids).toContain(Number(shown!.replaceAll(',', '')));
+	expect(await cached()).toEqual({ revision, ids });
+
+	// A copy of this revision is used as it is, without asking the network.
+	await cacheOld({ 'X-Collection-Revision': revision });
+	expect(await load(`${path}?r=${revision}`)).toEqual([799749296]);
+	// Without a connection, a copy of another revision is better than none.
+	await cacheOld({ 'X-Collection-Revision': 'older' });
+	await context.setOffline(true);
+	expect(await load(`${path}?r=${revision}`)).toEqual([799749296]);
+	await context.setOffline(false);
+	expect(await load(`${path}?r=${revision}`)).toEqual(ids);
+	expect(await cached()).toEqual({ revision, ids });
 });
 
 test('has an install manifest', async ({ request }) => {

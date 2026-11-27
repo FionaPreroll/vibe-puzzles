@@ -10,8 +10,11 @@ import { self } from '$app/service-worker';
  *
  * The puzzle collection is the exception. It is large and keeps growing, so it is not part of the
  * install: each file is cached the first time a puzzle of its type is needed, in a cache that
- * outlives new versions of the app. Such a file is served from that cache at once and refreshed in
- * the background (usually a cheap "not modified" answer).
+ * outlives new versions of the app. The app asks for a file with the revision of its type in its
+ * version (`?r=`, see collectionUrl in src/lib/client/bank.ts). A cached copy fetched for that
+ * revision is served at once; any other copy is replaced from the network first, so a new version
+ * never shows puzzles of an older collection. Without a connection the cached copy is served,
+ * whatever its revision.
  *
  * In offline mode (the page sends a message when it is switched) nothing goes to the network:
  * pages come from the cache, and a collection file that is not cached fails, so the app generates
@@ -97,18 +100,44 @@ async function pruneCollection() {
 	}
 }
 
-/** Serve a collection file from the cache if there is one, and refresh it from the network. */
+/** The revision of its type a cached collection file was fetched for. */
+const REVISION = 'X-Collection-Revision';
+
+/**
+ * Serve a collection file from the cache if it holds the copy of the revision asked for; else from
+ * the network, with the cached copy as the fallback. A request without a revision gets the cached
+ * copy at once, refreshed in the background.
+ */
 async function collectionFile(event: FetchEvent): Promise<Response> {
+	const target = new URL(event.request.url);
+	const revision = target.searchParams.get('r');
+	// One copy of each file, whatever revision it was asked for.
+	target.search = '';
+	const key = target.href;
 	const cache = await caches.open(COLLECTION);
-	const cached = await cache.match(event.request);
+	const cached = await cache.match(key);
+	if (cached && revision && cached.headers.get(REVISION) === revision) return cached;
 	if (await offlineMode()) return cached ?? Response.error();
-	const fresh = fetch(event.request).then(async (res) => {
-		if (res.ok) await cache.put(event.request, res.clone());
-		return res;
-	});
-	if (!cached) return fresh;
-	event.waitUntil(fresh.catch(() => undefined));
-	return cached;
+	const fresh = refresh(cache, key, revision);
+	if (cached && !revision) {
+		event.waitUntil(fresh.catch(() => undefined));
+		return cached;
+	}
+	return fresh.catch(() => cached ?? Response.error());
+}
+
+/** A collection file from the network, cached with the revision it was asked for. */
+async function refresh(cache: Cache, key: string, revision: string | null): Promise<Response> {
+	// Past the browser's HTTP cache, which may hold an older copy for a few minutes: it asks the
+	// server whether its copy is current (usually a cheap "not modified" answer).
+	const res = await fetch(key, { cache: 'no-cache' });
+	if (!res.ok) return res;
+	// Only the type: the body is already decoded.
+	const headers = new Headers({ 'Content-Type': res.headers.get('Content-Type') ?? '' });
+	if (revision) headers.set(REVISION, revision);
+	const copy = new Response(await res.blob(), { headers });
+	await cache.put(key, copy.clone()).catch(() => undefined);
+	return copy;
 }
 
 self.addEventListener('fetch', (event) => {

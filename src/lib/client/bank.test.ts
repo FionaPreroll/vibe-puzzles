@@ -22,9 +22,9 @@ const daily = layoutType(
 	'daily'
 );
 const files: Record<string, unknown> = { ...regular, ...daily };
-/** Answers collection requests from `files`; anything else is missing. */
+/** Answers collection requests from `files`, whatever revision they ask for; anything else is missing. */
 const serve = (url: string) => {
-	const file = files[url.replace(/^\/base\//, '')];
+	const file = files[url.replace(/^\/base\//, '').replace(/\?.*/, '')];
 	return file ? Response.json(file) : new Response('', { status: 404 });
 };
 const variant = (key: string, special?: Variant['special']) =>
@@ -40,7 +40,11 @@ async function setup(respond: (url: string) => Response | Promise<Response>): Pr
 	return import('./bank');
 }
 
-beforeEach(() => vi.stubGlobal('localStorage', new MemoryStorage()));
+beforeEach(() => {
+	vi.stubGlobal('localStorage', new MemoryStorage());
+	// The revisions of the build, in place of the deployed collection's: none for daily.
+	vi.stubGlobal('__COLLECTION_REVISIONS__', { tetroid: { '6n': 'rev6n' } });
+});
 afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
@@ -64,8 +68,8 @@ describe('collection', () => {
 		expect(await bank.findInBank('tetroid', variant('6n'), 101)).toBe('p101');
 		expect(await bank.findInBank('tetroid', variant('6n'), 999)).toBeNull();
 		expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-			'/base/puzzles/tetroid/6n/index.json',
-			'/base/puzzles/tetroid/6n/0001.json'
+			'/base/puzzles/tetroid/6n/index.json?r=rev6n',
+			'/base/puzzles/tetroid/6n/0001.json?r=rev6n'
 		]);
 	});
 
@@ -74,7 +78,32 @@ describe('collection', () => {
 		const bank = await setup(serve);
 		expect(await bank.findInBank('tetroid', variant('daily', 'daily'), 7)).toBe('d');
 		expect(await bank.findInBank('tetroid', variant('daily', 'daily'), 8)).toBeNull();
+		// A type without a revision is asked for without one.
+		expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+			'/base/puzzles/tetroid/daily/2026-10.json'
+		]);
 		vi.useRealTimers();
+	});
+
+	it('asks for each file with the revision of its type in this version', async () => {
+		const bank = await setup(serve);
+		const revisions = { tetroid: { '6n': 'abc', '8n': 'def' }, pixels: { '5n': 'ghi' } };
+		expect(bank.collectionUrl('puzzles/tetroid/8n/0003.json', revisions)).toBe(
+			'/base/puzzles/tetroid/8n/0003.json?r=def'
+		);
+		expect(bank.collectionUrl('puzzles/pixels/5n/index.json', revisions)).toBe(
+			'/base/puzzles/pixels/5n/index.json?r=ghi'
+		);
+		// The build's revisions by default; a type or game they lack gets none.
+		expect(bank.collectionUrl('puzzles/tetroid/6n/0000.json')).toBe(
+			'/base/puzzles/tetroid/6n/0000.json?r=rev6n'
+		);
+		expect(bank.collectionUrl('puzzles/pixels/10n/0000.json', revisions)).toBe(
+			'/base/puzzles/pixels/10n/0000.json'
+		);
+		expect(bank.collectionUrl('puzzles/loop/5n/0000.json', revisions)).toBe(
+			'/base/puzzles/loop/5n/0000.json'
+		);
 	});
 
 	it('treats a missing file or no connection as an empty collection', async () => {
@@ -99,8 +128,8 @@ describe('collection', () => {
 		expect(await bank.pickFromBank('tetroid', '6n')).toBeNull();
 		// Picking needs the chunks only, not the index.
 		expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-			'/base/puzzles/tetroid/6n/0000.json',
-			'/base/puzzles/tetroid/6n/0001.json'
+			'/base/puzzles/tetroid/6n/0000.json?r=rev6n',
+			'/base/puzzles/tetroid/6n/0001.json?r=rev6n'
 		]);
 	});
 
