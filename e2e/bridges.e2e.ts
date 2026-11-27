@@ -55,7 +55,13 @@ test('every size is playable: a link to 25×25 Hard opens it', async ({ page }) 
 	await expect(page.getByText(/Puzzle ID/i).first()).toBeVisible({ timeout: 30_000 });
 	await expect(page).toHaveURL(/v=25h/);
 	await expect(page.getByRole('application', { name: 'Puzzle board' })).toBeVisible();
-	for (const name of ['10×10 Normal', '15×15 Hard', '20×20 Normal', '25×25 Hard', 'Daily']) {
+	for (const name of [
+		'10×10 Normal',
+		'15×15 Hard',
+		'20×20 Normal',
+		'25×25 Hard',
+		'Monthly 25×25'
+	]) {
 		await expect(page.getByRole('button', { name, exact: true })).toBeEnabled();
 	}
 	await expect(page.getByRole('button', { name: /Soon$/ })).toHaveCount(0);
