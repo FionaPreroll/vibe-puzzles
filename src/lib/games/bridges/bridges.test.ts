@@ -379,6 +379,8 @@ describe('generator', () => {
 				expect(fitsBridgesDifficulty(puzzle, difficulty), `${difficulty} ${seed}`).toBe(true);
 			}
 		}
+		// On seed 22 one layout is still undecided after all its changes: the next one grows.
+		expect(fitsBridgesDifficulty(generateBridges(10, 10, 'hard', 22).puzzle, 'hard')).toBe(true);
 		expect(generateBridges(15, 15, 'hard', 3)).toEqual(generateBridges(15, 15, 'hard', 3));
 	});
 });
