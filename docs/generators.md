@@ -248,10 +248,10 @@ On the bigger boards (2026-11-27: 50 each of 10×10 and 15×15, 25 each of 20×2
 `generatePixels(width, height, difficulty, seed)` in `src/lib/games/pixels/generator.ts`. Types: 5×5, 10×10, 15×15, 20×20 and 25×25, each Normal and Hard; daily 10×10 Normal, weekly 15×15 and monthly 25×25 Hard. A puzzle is the numbers of its rows and columns (`rows`, `cols`): the lengths of the blocks of filled cells in each line, in order, none for an empty line. A state holds per cell 0 (not marked), 1 (filled) or 2 (crossed out, so it stays empty); a board is solved when every row and column shows its blocks.
 
 1. **Picture** (`randomPicture`): every cell filled at 50 % (52 % on Hard), then one round in which each cell takes the value that most of the cells around it and itself have (a tie keeps it). That joins the cells into blobs, so a picture has long blocks and few lone cells, more like a drawn one than noise.
-2. **Decide** (`makeDecided`): the solver's techniques up to the level (`Line` for Normal, `Probe` for Hard) on the picture's numbers. A cell they leave open flips, and the flip stays if it leaves them no more cells open, otherwise it is undone; up to 400 flips (`CHANGES`). Once they decide every cell, the solution is unique, as the techniques only conclude what every solution has.
-3. **Harden** (Hard only): 150 more flips anywhere (`HARDEN`). Each stays if `Probe` still decides every cell and `Line` leaves at least as many open as before, up to 35 % of the cells; the probe only runs where the lines leave the right share, which keeps this fast. A puzzle whose lines leave fewer than 10 % of the cells open is dropped, so every hard puzzle needs the probe for a fair part of the board, not for a corner.
+2. **Decide** (`makeDecided`): no row or column may be empty or full (`plainLines`): a 0 or a number as long as the line is decided at a glance, and without this rule 93 of 100 puzzles on 5×5 Normal had such a line, a third of all their lines. So while there is one, a cell of such a line flips; then a cell that the solver's techniques up to the level (`Line` for Normal, `Probe` for Hard) leave open. A flip stays if it leaves fewer such lines, or as many and no more cells open, otherwise it is undone; up to 400 flips (`CHANGES`). Once there are none and the techniques decide every cell, the solution is unique, as the techniques only conclude what every solution has.
+3. **Harden** (Hard only): 150 more flips anywhere (`HARDEN`). Each stays if it leaves no row or column empty or full, `Probe` still decides every cell and `Line` leaves at least as many open as before, up to 35 % of the cells; the probe only runs where the lines leave the right share, which keeps this fast. A puzzle whose lines leave fewer than 10 % of the cells open is dropped, so every hard puzzle needs the probe for a fair part of the board, not for a corner.
 
-A picture that its flips do not decide, or a hard one under 10 %, is dropped, and the next one is drawn from the same `Rng`; up to 200 (`ATTEMPTS`). The lines leave a median of 32 % (5×5, where 8 of the 25 cells is the most) to 35 % of a hard puzzle open, at least 10 % (10×10) to 17 % (25×25). A puzzle has 1.0 (5×5 Normal) to 5.0 (25×25 Hard) numbers per line on average and about half of its cells filled (44 % to 52 %).
+A picture that its flips do not decide, or a hard one under 10 %, is dropped, and the next one is drawn from the same `Rng`; up to 200 (`ATTEMPTS`). The lines leave a median of 32 % (5×5, where 8 of the 25 cells is the most) to 35 % of a hard puzzle open, at least 10 % (10×10) to 17 % (25×25). A puzzle has 1.4 (5×5 Normal) to 5.0 (25×25 Hard) numbers per line on average and about half of its cells filled (47 % to 52 %). Looking at each line alone, from the empty board, decides a median of 40 % of the cells on 5×5 Normal (68 % at most) down to 9 % on 25×25 Normal; on Hard 24 % (5×5) down to 7 %.
 
 **Solver** (`PixelsSolver` in `solver.ts`) knows of each cell whether it is filled, empty or not decided yet, in the board's own marks, so the player's position is what the hints start from. Its techniques (`PixelsLevel`):
 
@@ -262,9 +262,9 @@ A picture that its flips do not decide, or a hard one under 10 %, is dropped, an
 
 **On the board** (`analyze` in `rules.ts`): a line's numbers turn red when its marks leave no way to place its blocks (too many filled cells, a block too long, too little room). Its numbers turn grey once its filled cells are exactly its blocks, and single numbers before that when their block is closed off by crosses or the edge from either end of the line. The numbers stand left of the rows and above the columns; the game module's `boardSize` gives the game view the size of the board with them, so the cells shrink to make room (`clueSpace` in `draw.ts`).
 
-**Hints** (`pixelsHint` in `hint.ts`) take the player's filled cells and crosses as what they know. Marks the solution breaks come first. Otherwise every line gets what `Line` decides in it, each cell named by the simplest reason that explains it: _overlap_ (slid to one end and to the other, a block covers the same cells both ways), _done_ (the filled cells already make all the blocks), _zero_ (the line has none), _reach_ (no block reaches the cells, slid either way) and _line_ (every way that fits the marks fills the cells, or none does). The hint takes the first reason in that order, fills before crosses, in the line with the most such cells. Where no line decides a cell, _assumption_: the cell whose trial the other way breaks a line soonest, and the line that breaks. The first press tints the line and says where to look and how; the second marks the cells and says why.
+**Hints** (`pixelsHint` in `hint.ts`) take the player's filled cells and crosses as what they know. Marks the solution breaks come first. Otherwise every line gets what `Line` decides in it, each cell named by the simplest reason that explains it: _overlap_ (slid to one end and to the other, a block covers the same cells both ways), _done_ (the filled cells already make all the blocks), _zero_ (the line has none; generated puzzles have no such line, but the player's position or a puzzle from elsewhere may), _reach_ (no block reaches the cells, slid either way) and _line_ (every way that fits the marks fills the cells, or none does). The hint takes the first reason in that order, fills before crosses, in the line with the most such cells. Where no line decides a cell, _assumption_: the cell whose trial the other way breaks a line soonest, and the line that breaks. The first press tints the line and says where to look and how; the second marks the cells and says why.
 
-Following the hints from the empty board solves every puzzle tried, never with a wrong step: 100 each of 5×5, 50 of 10×10, 20 of 15×15, 10 of 20×20 and 5 of 25×25, Normal and Hard (measured on 2026-11-27). On Normal puzzles _overlap_ takes 55 % (5×5) to 67 % of the steps, _done_ 39 % to 16 %, _reach_ up to 19 % and _zero_ up to 6 %; _line_ under 1 %. Hard puzzles need an _assumption_ every one, for 3 % to 6 % of their steps; _overlap_ takes about half of them, _reach_ 5 % (5×5) to 29 %, _done_ 38 % to 11 % and _line_ up to 3 %. A hint takes 0.03 ms (5×5) to 1 ms (25×25 Hard) on average, 48 ms at most.
+Following the hints from the empty board solves every puzzle tried, never with a wrong step: 100 each of 5×5, 50 of 10×10, 20 of 15×15, 10 of 20×20 and 5 of 25×25, Normal and Hard (measured on 2026-11-27). On Normal puzzles _overlap_ takes 57 % (5×5) to 68 % of the steps, _done_ 42 % to 15 % and _reach_ 1 % to 20 %; _line_ under 1 %. A 5×5 Normal puzzle takes 9 to 19 steps (median 13). Hard puzzles need an _assumption_ every one, for 4 % to 6 % of their steps; _overlap_ takes about half of them, _reach_ 8 % (5×5) to 29 %, _done_ 37 % to 11 % and _line_ up to 4 %. A hint takes 0.03 ms (5×5) to 0.9 ms (25×25 Hard) on average, 49 ms at most.
 
 ## Fallbacks
 
@@ -354,16 +354,16 @@ Measured on 2026-10-09 (commit `e88783b`, after issue #84) with each game's `fit
 | Bridges 20×20 hard    | 100  | 100          | 76 ms   | 257 ms |
 | Bridges 25×25 normal  | 100  | 100          | 4 ms    | 20 ms  |
 | Bridges 25×25 hard    | 100  | 100          | 122 ms  | 405 ms |
-| Pixels 5×5 normal     | 100  | 100          | < 1 ms  | 4 ms   |
-| Pixels 5×5 hard       | 100  | 100          | 9 ms    | 149 ms |
-| Pixels 10×10 normal   | 100  | 100          | < 1 ms  | < 1 ms |
-| Pixels 10×10 hard     | 100  | 100          | 16 ms   | 64 ms  |
-| Pixels 15×15 normal   | 50   | 50           | < 1 ms  | 7 ms   |
-| Pixels 15×15 hard     | 50   | 50           | 59 ms   | 180 ms |
-| Pixels 20×20 normal   | 25   | 25           | 1 ms    | 36 ms  |
-| Pixels 20×20 hard     | 25   | 25           | 127 ms  | 568 ms |
-| Pixels 25×25 normal   | 25   | 25           | 3 ms    | 100 ms |
-| Pixels 25×25 hard     | 25   | 25           | 410 ms  | 1.3 s  |
+| Pixels 5×5 normal     | 100  | 100          | < 1 ms  | 6 ms   |
+| Pixels 5×5 hard       | 100  | 100          | 10 ms   | 54 ms  |
+| Pixels 10×10 normal   | 100  | 100          | < 1 ms  | 15 ms  |
+| Pixels 10×10 hard     | 100  | 100          | 16 ms   | 95 ms  |
+| Pixels 15×15 normal   | 50   | 50           | < 1 ms  | 9 ms   |
+| Pixels 15×15 hard     | 50   | 50           | 66 ms   | 232 ms |
+| Pixels 20×20 normal   | 25   | 25           | 1 ms    | 37 ms  |
+| Pixels 20×20 hard     | 25   | 25           | 125 ms  | 478 ms |
+| Pixels 25×25 normal   | 25   | 25           | 3 ms    | 101 ms |
+| Pixels 25×25 hard     | 25   | 25           | 422 ms  | 821 ms |
 
 Loop was measured on 2026-10-10 (on top of commit `ccd2ccd`), with the clue-minimal definition of `fitsDifficulty`. Normal and hard puzzles have about as many clues (median 10 on 5×5, 19 on 7×7); the difference is how far the basic rules get. On a hard puzzle they stop with 13 % to 100 % of the edges still open (median 57 % on 5×5 and 50 % on 7×7, 100 seeds each), so every hard puzzle needs inside and outside for a good part of the board, not for one last edge.
 
@@ -375,7 +375,7 @@ Bridges was measured on 2026-11-26 (on top of commit `ad89a16`). A Bridges puzzl
 
 The Bridges sizes from 10×10 on were measured on 2026-11-27 (on top of commit `27450ee`), the same way. Of the normal puzzles, 51 % need `Count` alone on 10×10, 29 % on 15×15, 11 % on 20×20 and 4 % on 25×25, the others `Isolation`; every hard one needs `Connect`. The slowest 5 % of hard puzzles take 64 ms (10×10) to 282 ms (25×25) or more.
 
-Pixels was measured on 2026-11-27 (on top of commit `1855f57`). A Pixels puzzle counts as graded right when the complete solver finds exactly one solution and `fitsDifficulty` agrees: the lines alone decide every cell on Normal, only the probe on Hard. The slowest 10 % of hard puzzles take 33 ms (5×5) to 681 ms (25×25) or more.
+Pixels was measured on 2026-11-27 (on top of commit `f334603`, with the rule against empty and full lines). A Pixels puzzle counts as graded right when the complete solver finds exactly one solution and `fitsDifficulty` agrees: the lines alone decide every cell on Normal, only the probe on Hard. None has an empty or a full line. The slowest 10 % of hard puzzles take 23 ms (5×5) to 717 ms (25×25) or more.
 
 Before the fix (2026-10-08, commit `9a96875`), Tetroid missed on up to 12 of 40 per type and on 5 of 12 at 20×20 normal, Pinwheel hard below 15×15 was graded right for only 2 to 16 of 40, and Tetroid 20×20 normal took a median of 8.3 s.
 
@@ -405,6 +405,8 @@ Any change to a generator, to a solver it calls or to the order of its random dr
 The fix for issue #84 went this way. It changed all Tetroid normal puzzles and the Tetroid hard, Pinwheel and Sudoku hard seeds that used to end in a fallback; every other ID kept its puzzle. In the collection it replaced 1,569 misgraded puzzles, then generated every special again from the next day (dailies), the week in progress (weeklies) and the month in progress (monthlies) on, so that they are what the generator now makes for their IDs: 358 Tetroid dailies, 4 Pinwheel dailies and the Tetroid weekly of 2026-W41 changed.
 
 The Loop rating (2026-10-10) went this way too: the basic rules got stronger (corner flags) and both levels became clue-minimal, so every Loop ID changed its puzzle. `pnpm bank:regrade` replaced 100 of the 111 stored 5×5 Normal puzzles, which had clues to spare under the new rules; the 11 others already fit. Loop had no specials yet.
+
+The Pixels rule against empty and full lines (2026-11-27, the day the game came out) changed the puzzle behind 6 of the 14 pinned IDs, all on 5×5 and 10×10. Its stored regular puzzles were all replaced by new ones with fresh seeds, and the specials were generated again from the daily of 2026-12-01, the weekly of 2026-W50 and the monthly of 2027-01 on. The specials before those, which players may already have had, kept the old generator's puzzles.
 
 ## Traces
 

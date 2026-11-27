@@ -8,6 +8,7 @@ import {
 	generatePixels,
 	harden,
 	makeDecided,
+	plainLines,
 	randomPicture,
 	rate
 } from './generator';
@@ -267,6 +268,7 @@ describe('pixels generator', () => {
 				const { puzzle, solution } = generatePixels(size, size, difficulty, seed);
 				expect(generatePixels(size, size, difficulty, seed).puzzle).toEqual(puzzle);
 				expect(puzzle).toEqual(puzzleOf(size, size, solution));
+				expect(plainLines(size, size, Uint8Array.from(solution))).toBe(0);
 				const res = solvePixels(puzzle, 2);
 				expect(res.solutions, `${size} ${difficulty} ${seed}`).toHaveLength(1);
 				expect(Array.from(res.solutions[0], (v) => (v === FILLED ? 1 : 0))).toEqual(solution);
@@ -305,11 +307,22 @@ describe('pixels generator', () => {
 		expect(edges(blobs)).toBeLessThan(edges(noise) * 0.7);
 	});
 
-	it('changes cells until the techniques decide all of them', () => {
-		const p = Uint8Array.from(picture('#.', '.#'));
+	it('counts the lines that are empty or full', () => {
+		expect(plainLines(3, 2, Uint8Array.from(picture('###', '#..')))).toBe(2);
+		expect(plainLines(3, 2, Uint8Array.from(picture('.#.', '#.#')))).toBe(0);
+		expect(plainLines(2, 2, Uint8Array.from(picture('..', '..')))).toBe(4);
+	});
+
+	it('changes cells until no line is empty or full and the techniques decide all', () => {
+		const blank = new Uint8Array(25);
+		expect(makeDecided(5, 5, blank, PixelsLevel.Line, new Rng(1))).toBe(true);
+		expect(plainLines(5, 5, blank)).toBe(0);
+		expect(rate(5, 5, blank, PixelsLevel.Line).open).toBe(0);
+		// On 2×2 only the two diagonals leave no line empty or full, and they share their numbers.
+		const p = Uint8Array.from(picture('##', '..'));
+		expect(makeDecided(2, 2, p, PixelsLevel.Probe, new Rng(1))).toBe(false);
+		expect(plainLines(2, 2, p)).toBe(0);
 		expect(rate(2, 2, p, PixelsLevel.Probe).open).toBe(4);
-		expect(makeDecided(2, 2, p, PixelsLevel.Line, new Rng(1))).toBe(true);
-		expect(rate(2, 2, p, PixelsLevel.Line).open).toBe(0);
 		// The probe is left out where `probeIf` says so.
 		const q = Uint8Array.from(picture('#.', '.#'));
 		expect(rate(2, 2, q, PixelsLevel.Probe, () => false)).toMatchObject({ lineOpen: 4, open: 4 });
@@ -323,6 +336,7 @@ describe('pixels generator', () => {
 		expect(share).toBeLessThanOrEqual(0.35);
 		expect(rate(10, 10, p, PixelsLevel.Line).lineOpen).toBe(share * 100);
 		expect(rate(10, 10, p, PixelsLevel.Probe).open).toBe(0);
+		expect(plainLines(10, 10, p)).toBe(0);
 	});
 
 	it('gives up on a board too small for a hard puzzle', () => {

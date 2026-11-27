@@ -74,9 +74,8 @@ describe('pixels hints', () => {
 				expect(pixels.hint!(puzzle, end)).toBeNull();
 			}
 		}
-		expect([...techniques].sort()).toEqual(
-			['assumption', 'done', 'line', 'overlap', 'reach', 'zero'].sort()
-		);
+		// No line of a generated puzzle is a 0: boards of their own test that step.
+		expect([...techniques].sort()).toEqual(['assumption', 'done', 'line', 'overlap', 'reach']);
 	});
 
 	it('name each cell a line decides by the simplest reason', () => {
@@ -106,10 +105,10 @@ describe('pixels hints', () => {
 
 	it('try a cell where no line decides one, and name the line that breaks', () => {
 		const texts = new Set<string>();
-		// 10×10 Hard #3 breaks rows and columns.
+		// 10×10 Hard #6 and #15 break rows and columns, with cells tried filled and empty.
 		for (const [size, seed] of [
-			[5, 1],
-			[10, 3]
+			[10, 6],
+			[10, 15]
 		]) {
 			const { puzzle, solution } = generatePixels(size, size, 'hard', seed);
 			const solver = new PixelsSolver(puzzle);
@@ -130,7 +129,9 @@ describe('pixels hints', () => {
 			});
 		}
 		expect([...texts].sort()).toEqual(
-			['assumeEmptyRow', 'assumeFilledCol', 'assumeFilledRow'].map((k) => `games.pixels.hints.${k}`)
+			['assumeEmptyCol', 'assumeEmptyRow', 'assumeFilledCol', 'assumeFilledRow'].map(
+				(k) => `games.pixels.hints.${k}`
+			)
 		);
 	});
 
@@ -199,8 +200,8 @@ describe('pixels hints', () => {
 			['normal', 1],
 			['normal', 2],
 			['hard', 1],
-			// Fills a cell that one block or another covers, at step 34.
-			['hard', 8]
+			// Fills a cell that one block or another covers, at step 45.
+			['hard', 15]
 		] as const) {
 			const { puzzle } = generatePixels(10, 10, difficulty, seed);
 			follow(puzzle, empty(puzzle), (h, at) => {
@@ -217,7 +218,6 @@ describe('pixels hints', () => {
 		expect(Object.fromEntries([...reasons].map(([k, v]) => [k, [...v].sort()]))).toEqual({
 			overlap: ['overlap', 'overlapMany'],
 			done: ['done'],
-			zero: ['zero'],
 			reach: ['reach'],
 			line: ['lineCross', 'lineFill']
 		});
