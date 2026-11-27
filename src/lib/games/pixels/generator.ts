@@ -68,6 +68,39 @@ export function randomPicture(
 }
 
 /**
+ * Lines of a picture without filled cells or filled from end to end: a 0 or a number as long as
+ * the line, decided at a glance. Generated puzzles have none.
+ */
+export function plainLines(width: number, height: number, picture: Uint8Array): number {
+	let plain = 0;
+	for (let r = 0; r < height; r++) {
+		let filled = 0;
+		for (let c = 0; c < width; c++) filled += picture[r * width + c];
+		if (filled === 0 || filled === width) plain++;
+	}
+	for (let c = 0; c < width; c++) {
+		let filled = 0;
+		for (let r = 0; r < height; r++) filled += picture[r * width + c];
+		if (filled === 0 || filled === height) plain++;
+	}
+	return plain;
+}
+
+/** The cells of the plain lines of a picture (see `plainLines`), each once. */
+function plainCells(width: number, height: number, picture: Uint8Array): number[] {
+	const out = new Set<number>();
+	for (let r = 0; r < height; r++) {
+		const cells = Array.from({ length: width }, (_, c) => r * width + c);
+		if (cells.every((c) => picture[c] === picture[cells[0]])) for (const c of cells) out.add(c);
+	}
+	for (let c = 0; c < width; c++) {
+		const cells = Array.from({ length: height }, (_, r) => r * width + c);
+		if (cells.every((x) => picture[x] === picture[cells[0]])) for (const x of cells) out.add(x);
+	}
+	return [...out].sort((a, b) => a - b);
+}
+
+/**
  * What the techniques up to `level` leave known of a picture's puzzle, and how many cells are
  * open: after the lines alone (`lineOpen`) and at the level (`open`). `probeIf` can leave the
  * probe out after the lines (`open` is then theirs).
@@ -88,9 +121,10 @@ export function rate(
 }
 
 /**
- * Change cells of `picture` where the techniques up to `level` get stuck, until they decide
- * every cell: a cell they leave open flips, and the flip stays if it leaves them no more cells
- * open. True once they decide all of them (the solution is then unique).
+ * Change cells of `picture` until it has no plain line (see `plainLines`) and the techniques up
+ * to `level` decide every cell. A cell of a plain line flips while there is one, else a cell the
+ * techniques leave open. The flip stays if it leaves fewer plain lines, or as many and no more
+ * cells open. True once both are done (the solution is then unique).
  */
 export function makeDecided(
 	width: number,
@@ -100,14 +134,18 @@ export function makeDecided(
 	rng: Rng
 ): boolean {
 	let rated = rate(width, height, picture, level);
-	for (let change = 0; change < CHANGES && rated.open; change++) {
-		const cell = rng.pick(openCells(rated.known));
+	let plain = plainLines(width, height, picture);
+	for (let change = 0; change < CHANGES && (rated.open || plain); change++) {
+		const cell = rng.pick(plain ? plainCells(width, height, picture) : openCells(rated.known));
 		picture[cell] ^= 1;
 		const next = rate(width, height, picture, level);
-		if (next.open <= rated.open) rated = next;
-		else picture[cell] ^= 1;
+		const nextPlain = plainLines(width, height, picture);
+		if (nextPlain < plain || (nextPlain === plain && next.open <= rated.open)) {
+			rated = next;
+			plain = nextPlain;
+		} else picture[cell] ^= 1;
 	}
-	return rated.open === 0;
+	return rated.open === 0 && plain === 0;
 }
 
 function openCells(known: Known): number[] {
@@ -117,9 +155,9 @@ function openCells(known: Known): number[] {
 }
 
 /**
- * Harden a picture that the probe decides: cells anywhere flip, and a flip stays if the probe
- * still decides every cell and the lines leave at least as many open as before, up to
- * `HARD_MAX_OPEN`. The share the lines leave open in the end.
+ * Harden a picture that the probe decides: cells anywhere flip, and a flip stays if it makes no
+ * line plain, the probe still decides every cell and the lines leave at least as many open as
+ * before, up to `HARD_MAX_OPEN`. The share the lines leave open in the end.
  */
 export function harden(width: number, height: number, picture: Uint8Array, rng: Rng): number {
 	const cells = width * height;
@@ -127,6 +165,10 @@ export function harden(width: number, height: number, picture: Uint8Array, rng: 
 	for (let change = 0; change < HARDEN; change++) {
 		const cell = rng.int(cells);
 		picture[cell] ^= 1;
+		if (plainAt(width, height, picture, cell)) {
+			picture[cell] ^= 1;
+			continue;
+		}
 		// The lines first: the probe only where they leave the right share open.
 		const fits = (lines: number) => lines >= open && lines <= HARD_MAX_OPEN * cells;
 		const next = rate(width, height, picture, PixelsLevel.Probe, fits);
@@ -136,9 +178,20 @@ export function harden(width: number, height: number, picture: Uint8Array, rng: 
 	return open / cells;
 }
 
+/** Whether the row or the column of `cell` is plain (see `plainLines`). */
+function plainAt(width: number, height: number, picture: Uint8Array, cell: number): boolean {
+	const [r, c] = [Math.floor(cell / width), cell % width];
+	let row = 0;
+	for (let x = 0; x < width; x++) row += picture[r * width + x];
+	let col = 0;
+	for (let y = 0; y < height; y++) col += picture[y * width + c];
+	return row === 0 || row === width || col === 0 || col === height;
+}
+
 /**
- * A Pixels puzzle with one solution: a random picture, changed where the techniques get stuck
- * until they decide every cell. Normal puzzles are decided by the lines alone; hard ones need
+ * A Pixels puzzle with one solution and no row or column that is empty or full: a random
+ * picture, changed where it has such lines and where the techniques get stuck until they decide
+ * every cell. Normal puzzles are decided by the lines alone; hard ones need
  * the probe, for a fair part of the board.
  */
 export function generatePixels(
