@@ -3,6 +3,7 @@ import { bridgesLogic } from './bridges/logic';
 import { loopLogic } from './loop/logic';
 import { pinwheelLogic } from './pinwheel/logic';
 import { pipesLogic } from './pipes/logic';
+import { pixelsLogic } from './pixels/logic';
 import { sudokuLogic } from './sudoku/logic';
 import { tetroidLogic } from './tetroid/logic';
 
@@ -13,7 +14,8 @@ export const GAME_LOGIC: Record<string, GameLogic> = {
 	sudoku: sudokuLogic,
 	loop: loopLogic,
 	pipes: pipesLogic,
-	bridges: bridgesLogic
+	bridges: bridgesLogic,
+	pixels: pixelsLogic
 };
 
 /** The logic of a game ID from outside the app (a request, a stored key); never `Object`'s own. */

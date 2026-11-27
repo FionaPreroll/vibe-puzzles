@@ -127,7 +127,21 @@ const PINNED: Record<string, string> = {
 	'bridges 20n 1': '114e28166f36140a',
 	'bridges 20h 1': '06c1bc245f082f48',
 	'bridges 25n 1': '29745594189939ed',
-	'bridges 25h 1': 'e61763696284d1c8'
+	'bridges 25h 1': 'e61763696284d1c8',
+	'pixels 5n 1': '9898d2b1190f69b2',
+	'pixels 5n 2': 'f82d3e3773269034',
+	'pixels 5h 1': '4c5e2de2718b043b',
+	'pixels 5h 2': '1aa2da3e1b2bbb94',
+	'pixels 10n 1': '87ab97f730008d56',
+	'pixels 10n 2': '7a891d2565f1fcbf',
+	'pixels 10h 1': '7a33b805126a20a9',
+	'pixels 10h 2': '24653beb334c6cfd',
+	'pixels 15n 1': 'c123bad3b7298b3e',
+	'pixels 15h 1': '9f7e1266a26d98a6',
+	'pixels 20n 1': 'a542c7ea2dd804b4',
+	'pixels 20h 1': '4d62577d887a855a',
+	'pixels 25n 1': '6881e40fd35b23de',
+	'pixels 25h 1': '4b290d921cdf8e68'
 };
 
 const fingerprint = (puzzle: unknown) =>

@@ -217,6 +217,11 @@ export interface GameModule<
 	board: BoardComponent<P, S, K>;
 	/** Board height in cells beyond the grid (e.g. a number pad below it), for fitting the screen. */
 	padRows?: number;
+	/**
+	 * The board's size in cells where it is more than the grid, for fitting the screen and the
+	 * printed page: Pixels draws its numbers left of and above the grid.
+	 */
+	boardSize?(puzzle: P): { width: number; height: number };
 	/** Small static preview for the home page. */
 	icon: string;
 	/** A small hand-picked first puzzle for the interactive tutorial (texts in the translations). */

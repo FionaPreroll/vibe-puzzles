@@ -358,7 +358,8 @@ const en = {
 		markErrors: 'Show tiles that cannot keep to their notes',
 		turnToMarks: 'Turn tiles only into ways that fit their notes',
 		dimSatisfied: 'Grey out islands that have all their bridges',
-		showGroup: 'Tint the islands joined to your last bridge'
+		showGroup: 'Tint the islands joined to your last bridge',
+		dimDone: 'Grey out numbers whose blocks are in place'
 	},
 	/** What each setting does, shown below it. Games and modes can word it their own way. */
 	settingHelp: {
@@ -428,7 +429,9 @@ const en = {
 		dimSatisfied:
 			'Greys out the number of an island once it has as many bridges as it shows, so the open ones stand out.',
 		showGroup:
-			'After each move, tints every island joined by bridges to the link you just changed, so you see at a glance which islands already hang together.'
+			'After each move, tints every island joined by bridges to the link you just changed, so you see at a glance which islands already hang together.',
+		dimDone:
+			'Greys out a number once its block is in place: closed off by crosses or the edge, counted from the end of its line. A line whose filled cells make all its blocks greys out completely.'
 	},
 	source: {
 		title: 'Where new puzzles come from',
@@ -1266,6 +1269,92 @@ const en = {
 					'A double bridge on the tinted link would join the tinted islands into a group with all its bridges, cut off from the rest: it takes one bridge at most.',
 				stuck:
 					'No rule decides a link here. Try a bridge on the highlighted link in your head and follow it until a rule breaks.'
+			}
+		},
+		pixels: {
+			/** The game's name, which follows the language. */
+			name: 'Pixels',
+			tagline: 'Fill the cells that the numbers ask for, and a picture appears.',
+			rules: [
+				'The numbers beside a row and above a column are the blocks of filled cells in it, in order: "3 1" means a block of three filled cells, then a single one.',
+				'Between two blocks of a line lies at least one empty cell. A 0 means the line stays empty.',
+				'Fill the cells so that every row and every column shows its blocks.'
+			],
+			notes: [
+				'Cross out cells that stay empty: they help as much as filled ones. Hints build on your filled cells and crosses.'
+			],
+			tool: { black: 'Fill' },
+			toolHint: {
+				black:
+					'Click a cell to fill it, click again to clear it; drag along a row or column to fill several. Right click sets a cross.',
+				cross: 'Click a cell to cross it out: it stays empty. Click again to remove the cross.',
+				rotate:
+					'Each tap or click steps a cell from empty to filled to cross and back. Drag along a row or column to do the same to every cell on the way.'
+			},
+			controlsMouse:
+				'Click a cell to fill it, right click to cross it out. Drag along a row or a column to mark several cells at once: the drag sets the mark of its first cell on every cell that looked like it, and a badge counts the cells.',
+			controlsTouch:
+				'Tap a cell to step it from filled to cross to empty, or pick Fill or Cross. Hold a moment, then drag along a row or a column to mark several cells.',
+			controlsKeys:
+				'Arrow keys or W, A, S, D move a cursor over the cells; Space fills the cell under it or clears it, Shift+Space crosses it out. Hold {mod} and press the arrows to fill the cells on the way, or Shift with the arrows for crosses; letting go sets them. Esc hides the cursor.',
+			speech: {
+				filled: 'filled',
+				cross: 'crossed out',
+				row: 'Row: {clue}',
+				column: 'Column: {clue}'
+			},
+			setting: {
+				highlightLines: 'Highlight row and column'
+			},
+			settingHelp: {
+				highlightErrors:
+					'The numbers of a line turn red when its filled cells and crosses no longer leave room for its blocks: too many filled cells, a block too long, or too little space.',
+				highlightLines:
+					'Tints the row and the column of the cell under the mouse or the cursor, with their numbers, so long lines are easy to follow.'
+			},
+			/** What the hint button says: where to look and which rule applies, then the cells. */
+			hints: {
+				mistake:
+					'The highlighted cells do not match the solution: a filled one stays empty, or a crossed one is filled. They stay highlighted until you change them.',
+				lookRow: 'Look at row {n}, with the numbers {clue}.',
+				lookCol: 'Look at column {n}, with the numbers {clue}.',
+				lookRow1: 'Look at row {n}, with the number {clue}.',
+				lookCol1: 'Look at column {n}, with the number {clue}.',
+				overlapLook:
+					'Slide its blocks as far as they go to one end, then to the other, keeping to your marks.',
+				overlap: 'The block of {len} covers the highlighted cells both ways.',
+				overlapMany: 'Each highlighted cell is covered by the same block both ways.',
+				reachLook:
+					'Slide its blocks as far as they go to one end, then to the other, keeping to your marks.',
+				overlapLook1:
+					'Slide its block as far as it goes to one end, then to the other, keeping to your marks.',
+				reachLook1:
+					'Slide its block as far as it goes to one end, then to the other, keeping to your marks.',
+				reach: 'No block reaches the highlighted cells, whichever way it slides.',
+				doneLook: 'Compare its filled cells with its numbers.',
+				done: 'Its filled cells already make all its blocks, so its other cells stay empty.',
+				zeroLook: 'Its 0 says that it has no blocks.',
+				zero: 'None of its cells is filled.',
+				lineLook: 'Think through the ways its blocks can lie that fit your marks.',
+				lineLook1: 'Think through the places its block can take that fit your marks.',
+				lineFill: 'Every one of them fills the highlighted cells.',
+				lineCross: 'None of them fills the highlighted cells.',
+				assumeLook:
+					'No row or column decides a cell on its own any more: try out the tinted cell in your head.',
+				assumeFilledRow:
+					'Suppose the highlighted cell were filled, and let the rows and columns follow from it: row {n} could no longer take its blocks.',
+				assumeFilledCol:
+					'Suppose the highlighted cell were filled, and let the rows and columns follow from it: column {n} could no longer take its blocks.',
+				assumeEmptyRow:
+					'Suppose the highlighted cell stayed empty, and let the rows and columns follow from it: row {n} could no longer take its blocks.',
+				assumeEmptyCol:
+					'Suppose the highlighted cell stayed empty, and let the rows and columns follow from it: column {n} could no longer take its blocks.',
+				thenFill: 'So fill the highlighted cells.',
+				thenFill1: 'So fill the highlighted cell.',
+				thenCross: 'So the highlighted cells stay empty: cross them out.',
+				thenCross1: 'So the highlighted cell stays empty: cross it out.',
+				stuck:
+					'No rule decides a cell here. Try filling the highlighted cell in your head and follow the rows and columns until one breaks.'
 			}
 		}
 	}

@@ -108,7 +108,11 @@
 	/** Zoom relative to the automatic size (1 = fit the screen). */
 	let zoom = $derived(storedZoom(load<unknown>(zoomKey, 1)));
 	const fitCell = $derived(
-		fit.fitCell(session.puzzle, game.padRows, settings.values.showCoordinates)
+		fit.fitCell(
+			session.puzzle && (game.boardSize?.(session.puzzle) ?? session.puzzle),
+			game.padRows,
+			settings.values.showCoordinates
+		)
 	);
 	const cellSize = $derived(zoomedCellSize(fitCell, zoom));
 

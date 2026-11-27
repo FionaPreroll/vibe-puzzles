@@ -163,7 +163,8 @@ test.describe('games', () => {
 		calcudoku: () => positions.sudoku('c7n', 0.4),
 		loop: () => positions.loop(),
 		pipes: () => positions.pipes(),
-		bridges: () => positions.bridges()
+		bridges: () => positions.bridges(),
+		pixels: () => positions.pixels()
 	})) {
 		test(name, async ({ page }) => {
 			await open(page, position().path, { board: true, settings: GAME_SETTINGS });

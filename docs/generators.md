@@ -53,6 +53,7 @@ Each game's `GameLogic.fitsDifficulty(puzzle, variant)` applies the same rating 
 | Loop      | –                                          | Basic rules only, as few clues as they allow                               | Needs inside and outside; never guessing; as few clues as that allows        |
 | Pipes     | –                                          | Solvable by its three techniques alone, without trying anything            | –                                                                            |
 | Bridges   | –                                          | Counting and closed-off groups decide every link                           | Needs the connection rules or a one-step trial; never guessing               |
+| Pixels    | –                                          | The rows and columns alone decide every cell, one line at a time           | Needs cells tried both ways for 10 % to 35 % of the board; never guessing    |
 
 Specials use these levels too: Sudoku, Tetroid and Loop daily normal, weekly and monthly hard; Pinwheel all three hard. Pipes has one level; a board with wrap (opposite edges touch) is the harder kind of each size: daily 10×10, weekly 15×15 and monthly 25×25 with wrap. Bridges: daily 10×10 normal, weekly 15×15 and monthly 25×25 hard.
 
@@ -242,6 +243,29 @@ Following the hints from the empty board solves every puzzle tried, never with a
 
 On the bigger boards (2026-11-27: 50 each of 10×10 and 15×15, 25 each of 20×20 and 25×25, Normal and Hard) the hints solve every puzzle too, never with a wrong step. Normal puzzles again need only _need_; on Hard ones _need_ takes 94 % (10×10) to 98 % (25×25) of the steps, _combo_ 5 % to 2 % and _connect_ under 1 %, and none needs an _assumption_. A hint takes 0.06 to 0.15 ms on average, 9 ms at most.
 
+## Pixels
+
+`generatePixels(width, height, difficulty, seed)` in `src/lib/games/pixels/generator.ts`. Types: 5×5, 10×10, 15×15, 20×20 and 25×25, each Normal and Hard; daily 10×10 Normal, weekly 15×15 and monthly 25×25 Hard. A puzzle is the numbers of its rows and columns (`rows`, `cols`): the lengths of the blocks of filled cells in each line, in order, none for an empty line. A state holds per cell 0 (not marked), 1 (filled) or 2 (crossed out, so it stays empty); a board is solved when every row and column shows its blocks.
+
+1. **Picture** (`randomPicture`): every cell filled at 50 % (52 % on Hard), then one round in which each cell takes the value that most of the cells around it and itself have (a tie keeps it). That joins the cells into blobs, so a picture has long blocks and few lone cells, more like a drawn one than noise.
+2. **Decide** (`makeDecided`): the solver's techniques up to the level (`Line` for Normal, `Probe` for Hard) on the picture's numbers. A cell they leave open flips, and the flip stays if it leaves them no more cells open, otherwise it is undone; up to 400 flips (`CHANGES`). Once they decide every cell, the solution is unique, as the techniques only conclude what every solution has.
+3. **Harden** (Hard only): 150 more flips anywhere (`HARDEN`). Each stays if `Probe` still decides every cell and `Line` leaves at least as many open as before, up to 35 % of the cells; the probe only runs where the lines leave the right share, which keeps this fast. A puzzle whose lines leave fewer than 10 % of the cells open is dropped, so every hard puzzle needs the probe for a fair part of the board, not for a corner.
+
+A picture that its flips do not decide, or a hard one under 10 %, is dropped, and the next one is drawn from the same `Rng`; up to 200 (`ATTEMPTS`). The lines leave a median of 32 % (5×5, where 8 of the 25 cells is the most) to 35 % of a hard puzzle open, at least 10 % (10×10) to 17 % (25×25). A puzzle has 1.0 (5×5 Normal) to 5.0 (25×25 Hard) numbers per line on average and about half of its cells filled (44 % to 52 %).
+
+**Solver** (`PixelsSolver` in `solver.ts`) knows of each cell whether it is filled, empty or not decided yet, in the board's own marks, so the player's position is what the hints start from. Its techniques (`PixelsLevel`):
+
+- `Line`: one row or column at a time, every way to place its blocks that fits what is known of its cells, all at once (`LineSolver`: dynamic programming forwards and backwards over the blocks placed and the cells used, `O(cells × blocks)`). A cell that every way fills is filled, one that none fills stays empty. Each new cell queues the line across it, until no line has news (`propagate`). A line whose cells are all decided only checks its blocks.
+- `Probe`: where the lines get stuck, every open cell is tried filled and empty, and the lines follow from it; where they break a line, the cell is the other way, and the lines go on from there. A trial that breaks nothing is not repeated for the cells it decides, until something new is known: they could only break where the trial itself would have.
+
+`solve` runs both at every node and branches on an open cell of the line with the fewest open cells, with a node budget, for `countSolutions`. A generated puzzle takes one node, 10 ms at most on 25×25 Hard; the whole collection checks in about two seconds.
+
+**On the board** (`analyze` in `rules.ts`): a line's numbers turn red when its marks leave no way to place its blocks (too many filled cells, a block too long, too little room). Its numbers turn grey once its filled cells are exactly its blocks, and single numbers before that when their block is closed off by crosses or the edge from either end of the line. The numbers stand left of the rows and above the columns; the game module's `boardSize` gives the game view the size of the board with them, so the cells shrink to make room (`clueSpace` in `draw.ts`).
+
+**Hints** (`pixelsHint` in `hint.ts`) take the player's filled cells and crosses as what they know. Marks the solution breaks come first. Otherwise every line gets what `Line` decides in it, each cell named by the simplest reason that explains it: _overlap_ (slid to one end and to the other, a block covers the same cells both ways), _done_ (the filled cells already make all the blocks), _zero_ (the line has none), _reach_ (no block reaches the cells, slid either way) and _line_ (every way that fits the marks fills the cells, or none does). The hint takes the first reason in that order, fills before crosses, in the line with the most such cells. Where no line decides a cell, _assumption_: the cell whose trial the other way breaks a line soonest, and the line that breaks. The first press tints the line and says where to look and how; the second marks the cells and says why.
+
+Following the hints from the empty board solves every puzzle tried, never with a wrong step: 100 each of 5×5, 50 of 10×10, 20 of 15×15, 10 of 20×20 and 5 of 25×25, Normal and Hard (measured on 2026-11-27). On Normal puzzles _overlap_ takes 55 % (5×5) to 67 % of the steps, _done_ 39 % to 16 %, _reach_ up to 19 % and _zero_ up to 6 %; _line_ under 1 %. Hard puzzles need an _assumption_ every one, for 3 % to 6 % of their steps; _overlap_ takes about half of them, _reach_ 5 % (5×5) to 29 %, _done_ 38 % to 11 % and _line_ up to 3 %. A hint takes 0.03 ms (5×5) to 1 ms (25×25 Hard) on average, 48 ms at most.
+
 ## Fallbacks
 
 Each generator has an attempt limit, so it always ends in bounded work. When no attempt hits the requested difficulty, the puzzle may not match it:
@@ -258,6 +282,7 @@ Each generator has an attempt limit, so it always ends in bounded work. When no 
 | Pipes          | 100 × 50 | None: `generation failed` (not observed; at most 2 networks)   |
 | Bridges 7×7    | 5,000    | None: `generation failed` (not observed; at most 1,128 tried)  |
 | Bridges 10×10+ | 2,000    | None: `generation failed` (not observed; at most 198 grown)    |
+| Pixels         | 200      | None: `generation failed` (not observed)                       |
 
 The limits are far above what the measurements below need, so in practice the difficulty is always right. A returned puzzle is always valid and unique.
 
@@ -329,6 +354,16 @@ Measured on 2026-10-09 (commit `e88783b`, after issue #84) with each game's `fit
 | Bridges 20×20 hard    | 100  | 100          | 76 ms   | 257 ms |
 | Bridges 25×25 normal  | 100  | 100          | 4 ms    | 20 ms  |
 | Bridges 25×25 hard    | 100  | 100          | 122 ms  | 405 ms |
+| Pixels 5×5 normal     | 100  | 100          | < 1 ms  | 4 ms   |
+| Pixels 5×5 hard       | 100  | 100          | 9 ms    | 149 ms |
+| Pixels 10×10 normal   | 100  | 100          | < 1 ms  | < 1 ms |
+| Pixels 10×10 hard     | 100  | 100          | 16 ms   | 64 ms  |
+| Pixels 15×15 normal   | 50   | 50           | < 1 ms  | 7 ms   |
+| Pixels 15×15 hard     | 50   | 50           | 59 ms   | 180 ms |
+| Pixels 20×20 normal   | 25   | 25           | 1 ms    | 36 ms  |
+| Pixels 20×20 hard     | 25   | 25           | 127 ms  | 568 ms |
+| Pixels 25×25 normal   | 25   | 25           | 3 ms    | 100 ms |
+| Pixels 25×25 hard     | 25   | 25           | 410 ms  | 1.3 s  |
 
 Loop was measured on 2026-10-10 (on top of commit `ccd2ccd`), with the clue-minimal definition of `fitsDifficulty`. Normal and hard puzzles have about as many clues (median 10 on 5×5, 19 on 7×7); the difference is how far the basic rules get. On a hard puzzle they stop with 13 % to 100 % of the edges still open (median 57 % on 5×5 and 50 % on 7×7, 100 seeds each), so every hard puzzle needs inside and outside for a good part of the board, not for one last edge.
 
@@ -339,6 +374,8 @@ Pipes was measured on 2026-10-28 (on top of commit `d2bda16`, with the kept resu
 Bridges was measured on 2026-11-26 (on top of commit `ad89a16`). A Bridges puzzle counts as graded right when the complete solver finds exactly one solution and the rating fits its type. Of the normal puzzles, 65 % need `Count` alone and 35 % `Isolation`; of the hard ones, 42 % need `Connect` and 58 % a `Trial`. The slowest 5 % of hard puzzles take 143 ms or more. A 7×7 puzzle has 9 to 12 islands (median 12).
 
 The Bridges sizes from 10×10 on were measured on 2026-11-27 (on top of commit `27450ee`), the same way. Of the normal puzzles, 51 % need `Count` alone on 10×10, 29 % on 15×15, 11 % on 20×20 and 4 % on 25×25, the others `Isolation`; every hard one needs `Connect`. The slowest 5 % of hard puzzles take 64 ms (10×10) to 282 ms (25×25) or more.
+
+Pixels was measured on 2026-11-27 (on top of commit `1855f57`). A Pixels puzzle counts as graded right when the complete solver finds exactly one solution and `fitsDifficulty` agrees: the lines alone decide every cell on Normal, only the probe on Hard. The slowest 10 % of hard puzzles take 33 ms (5×5) to 681 ms (25×25) or more.
 
 Before the fix (2026-10-08, commit `9a96875`), Tetroid missed on up to 12 of 40 per type and on 5 of 12 at 20×20 normal, Pinwheel hard below 15×15 was graded right for only 2 to 16 of 40, and Tetroid 20×20 normal took a median of 8.3 s.
 
@@ -381,7 +418,7 @@ The Inside page (`/inside`) shows the generators at work from their own trace. A
 
 ## Tests and budgets
 
-- Unit tests per game check uniqueness, validity, determinism and the difficulty of generated puzzles: Sudoku (9×9, and a seed whose first 30 attempts failed), Calcudoku (4×4 to 7×7), Tetroid (6×6 and 8×8 normal and hard, 10×10 normal), Pinwheel (5×5 normal and hard, 7×7 and 10×10 hard), Loop (5×5, 7×7 and 10×10 normal and hard, 15×15 hard, the spread loop of big boards, single-edge trials against rating from the start, and the techniques on small patterns), Pipes (1,000 seeds each of 5×5 and 7×7, 200 of 10×10 and a few of every bigger size, with and without wrap; the techniques and the errors on small boards) and Bridges (7×7 and 10×10 normal and hard, 15×15 hard; the grown layouts, the changes a link can take and the techniques on small boards).
+- Unit tests per game check uniqueness, validity, determinism and the difficulty of generated puzzles: Sudoku (9×9, and a seed whose first 30 attempts failed), Calcudoku (4×4 to 7×7), Tetroid (6×6 and 8×8 normal and hard, 10×10 normal), Pinwheel (5×5 normal and hard, 7×7 and 10×10 hard), Loop (5×5, 7×7 and 10×10 normal and hard, 15×15 hard, the spread loop of big boards, single-edge trials against rating from the start, and the techniques on small patterns), Pipes (1,000 seeds each of 5×5 and 7×7, 200 of 10×10 and a few of every bigger size, with and without wrap; the techniques and the errors on small boards) Bridges (7×7 and 10×10 normal and hard, 15×15 hard; the grown layouts, the changes a link can take and the techniques on small boards) and Pixels (5×5 and 10×10 normal and hard, 15×15 hard; the line solver, the probe, puzzles with two solutions or none, and the hints on small boards).
 - `src/lib/games/generator-ids.test.ts` pins the puzzle behind a few IDs of every distinct generator setting (rule set, size, difficulty, wrap) and checks that every setting is pinned.
 - `src/lib/games/bank.test.ts` checks every stored puzzle for validity, a unique solution and its type's difficulty (special puzzles from `DIFFICULTY_CHECKED_FROM` on; see the README on `BANK_TEST_SINCE`).
 - `perf/generate.perf.ts` (`pnpm test:perf`) holds median time budgets per board size over five fixed seeds: 200 ms (5×5) up to 20 s (20×20 and larger), four times as much for Calcudoku. `PERF_BUDGET_SCALE` relaxes them on slow machines.

@@ -83,6 +83,14 @@ describe('board geometry', () => {
 		expect(toBoardPoint(rect, 90, 120, layout)).toEqual({ x: 1.5, y: 2 });
 	});
 
+	it('takes wider margins left of and above the grid where a board has them', () => {
+		// Pixels: its numbers take 30 px on the left and 50 px above the grid.
+		const rect = { left: 0, top: 0, width: 100 };
+		const layout = { width: 100, pad: 10, cellSize: 20, left: 30, top: 50 };
+		expect(toBoardPoint(rect, 30, 50, layout)).toEqual({ x: 0, y: 0 });
+		expect(toBoardPoint(rect, 70, 60, layout)).toEqual({ x: 2, y: 0.5 });
+	});
+
 	it('steps through every cell on the way of a fast drag', () => {
 		expect(interpolate({ x: 0, y: 0 }, { x: 2, y: 0 }, 2)).toEqual([
 			{ x: 0.5, y: 0 },

@@ -12,6 +12,8 @@ import { solvePinwheel } from '../src/lib/games/pinwheel/solver';
 import type { PinwheelPuzzle } from '../src/lib/games/pinwheel/rules';
 import { dealt, sourceOf, type PipesPuzzle } from '../src/lib/games/pipes/rules';
 import { solvePipes } from '../src/lib/games/pipes/solver';
+import type { PixelsPuzzle } from '../src/lib/games/pixels/rules';
+import { solvePixels } from '../src/lib/games/pixels/solver';
 import type { SudokuPuzzle } from '../src/lib/games/sudoku/rules';
 import { solveSudoku } from '../src/lib/games/sudoku/solver';
 import { solveCalc } from '../src/lib/games/sudoku/calc/solver';
@@ -215,6 +217,23 @@ export function bridges(type = '7h', share = 0.5): Position {
 	const links = solution.map((b, l) => (!upper(l) ? 0 : b || NO_BRIDGE));
 	return {
 		path: position('bridges', type, id, { links }),
+		width: puzzle.width,
+		height: puzzle.height
+	};
+}
+
+/**
+ * Pixels: the picture in the upper rows of the board filled in, and crosses on the empty cells
+ * there.
+ */
+export function pixels(type = '10n', share = 0.5): Position {
+	const { id, puzzle } = first<PixelsPuzzle>('pixels', type);
+	const [solution] = solvePixels(puzzle, 1).solutions;
+	const cells = Array.from(solution, (m, c) =>
+		row(c, puzzle.width) < puzzle.height * share ? m : OPEN
+	);
+	return {
+		path: position('pixels', type, id, { cells }),
 		width: puzzle.width,
 		height: puzzle.height
 	};

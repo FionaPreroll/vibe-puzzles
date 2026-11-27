@@ -12,7 +12,8 @@ describe('game page', () => {
 			{ game: 'sudoku' },
 			{ game: 'loop' },
 			{ game: 'pipes' },
-			{ game: 'bridges' }
+			{ game: 'bridges' },
+			{ game: 'pixels' }
 		]);
 	});
 

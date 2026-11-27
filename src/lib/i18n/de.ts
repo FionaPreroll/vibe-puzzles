@@ -346,7 +346,8 @@ const de: Dictionary = {
 		markErrors: 'Kacheln zeigen, die nicht zu ihren Notizen passen',
 		turnToMarks: 'Kacheln nur in Lagen drehen, die zu ihren Notizen passen',
 		dimSatisfied: 'Inseln mit allen Brücken ausgrauen',
-		showGroup: 'Inseln hinterlegen, die mit deiner letzten Brücke verbunden sind'
+		showGroup: 'Inseln hinterlegen, die mit deiner letzten Brücke verbunden sind',
+		dimDone: 'Zahlen ausgrauen, deren Block an seinem Platz ist'
 	},
 	/** Was jede Einstellung bewirkt, unter ihr angezeigt. Spiele und Modi können es eigens formulieren. */
 	settingHelp: {
@@ -420,7 +421,9 @@ const de: Dictionary = {
 		dimSatisfied:
 			'Graut die Zahl einer Insel aus, sobald sie so viele Brücken hat, wie sie zeigt, damit die offenen auffallen.',
 		showGroup:
-			'Hinterlegt nach jedem Zug alle Inseln, die über Brücken mit der eben geänderten Verbindung zusammenhängen. So siehst du auf einen Blick, welche Inseln schon verbunden sind.'
+			'Hinterlegt nach jedem Zug alle Inseln, die über Brücken mit der eben geänderten Verbindung zusammenhängen. So siehst du auf einen Blick, welche Inseln schon verbunden sind.',
+		dimDone:
+			'Graut eine Zahl aus, sobald ihr Block an seinem Platz ist: vom Ende der Reihe her gezählt und durch Kreuze oder den Rand abgeschlossen. Ergeben die gefüllten Felder einer Reihe alle ihre Blöcke, wird sie ganz ausgegraut.'
 	},
 	source: {
 		title: 'Woher neue Rätsel kommen',
@@ -1269,6 +1272,95 @@ const de: Dictionary = {
 					'Eine Doppelbrücke auf der hinterlegten Verbindung würde die hinterlegten Inseln zu einer Gruppe mit allen Brücken verbinden, abgeschnitten vom Rest: Sie trägt höchstens eine Brücke.',
 				stuck:
 					'Keine Regel legt hier eine Verbindung fest. Probier im Kopf eine Brücke auf der markierten Verbindung aus und verfolge sie, bis eine Regel verletzt ist.'
+			}
+		},
+		pixels: {
+			/** Der Name des Spiels, der der Sprache folgt. */
+			name: 'Pixelbild',
+			tagline: 'Füll die Felder, die die Zahlen verlangen, und ein Bild erscheint.',
+			rules: [
+				'Die Zahlen neben einer Zeile und über einer Spalte sind die Blöcke gefüllter Felder darin, der Reihe nach: „3 1“ heißt ein Block aus drei gefüllten Feldern, danach ein einzelnes.',
+				'Zwischen zwei Blöcken einer Reihe liegt mindestens ein leeres Feld. Eine 0 heißt, die Reihe bleibt leer.',
+				'Füll die Felder so, dass jede Zeile und jede Spalte ihre Blöcke zeigt.'
+			],
+			notes: [
+				'Streich Felder durch, die leer bleiben: Sie helfen so viel wie gefüllte. Tipps bauen auf deinen gefüllten Feldern und Kreuzen auf.'
+			],
+			tool: { black: 'Füllen' },
+			toolHint: {
+				black:
+					'Klick ein Feld, um es zu füllen, ein zweiter Klick leert es; zieh entlang einer Zeile oder Spalte, um mehrere zu füllen. Rechtsklick setzt ein Kreuz.',
+				cross:
+					'Klick ein Feld, um es durchzustreichen: Es bleibt leer. Ein zweiter Klick nimmt das Kreuz weg.',
+				rotate:
+					'Jedes Tippen oder Klicken schaltet ein Feld von leer zu gefüllt zu Kreuz und zurück. Zieh entlang einer Zeile oder Spalte, um das mit jedem Feld auf dem Weg zu tun.'
+			},
+			controlsMouse:
+				'Klick ein Feld, um es zu füllen, Rechtsklick streicht es durch. Zieh entlang einer Zeile oder Spalte, um mehrere Felder auf einmal zu markieren: Jedes Feld auf dem Weg, das so aussah wie das erste, bekommt dessen neue Markierung, und ein Schildchen zählt die Felder.',
+			controlsTouch:
+				'Tippe ein Feld an, um es von gefüllt zu Kreuz zu leer zu schalten, oder wähle Füllen oder Kreuz. Halte kurz und zieh dann entlang einer Zeile oder Spalte, um mehrere Felder zu markieren.',
+			controlsKeys:
+				'Pfeiltasten oder W, A, S, D bewegen einen Cursor über die Felder; die Leertaste füllt das Feld darunter oder leert es, Shift+Leertaste streicht es durch. Halte {mod} und drücke die Pfeile, um die Felder auf dem Weg zu füllen, oder Shift mit den Pfeilen für Kreuze; beim Loslassen wird das übernommen. Esc blendet den Cursor aus.',
+			speech: {
+				filled: 'gefüllt',
+				cross: 'durchgestrichen',
+				row: 'Zeile: {clue}',
+				column: 'Spalte: {clue}'
+			},
+			setting: {
+				highlightLines: 'Zeile und Spalte hervorheben'
+			},
+			settingHelp: {
+				highlightErrors:
+					'Die Zahlen einer Reihe werden rot, wenn ihre gefüllten Felder und Kreuze keinen Platz mehr für ihre Blöcke lassen: zu viele gefüllte Felder, ein zu langer Block oder zu wenig Raum.',
+				highlightLines:
+					'Hinterlegt Zeile und Spalte des Felds unter der Maus oder dem Cursor samt ihren Zahlen, damit man lange Reihen leicht verfolgt.'
+			},
+			/** Was der Tipp sagt: wo man hinschaut und welche Regel gilt, dann die Felder. */
+			hints: {
+				mistake:
+					'Die markierten Felder passen nicht zur Lösung: Ein gefülltes bleibt leer, oder ein durchgestrichenes ist gefüllt. Sie bleiben markiert, bis du sie änderst.',
+				lookRow: 'Schau dir Zeile {n} an, mit den Zahlen {clue}.',
+				lookCol: 'Schau dir Spalte {n} an, mit den Zahlen {clue}.',
+				lookRow1: 'Schau dir Zeile {n} an, mit der Zahl {clue}.',
+				lookCol1: 'Schau dir Spalte {n} an, mit der Zahl {clue}.',
+				overlapLook:
+					'Schieb ihre Blöcke so weit wie möglich an das eine Ende, dann an das andere, passend zu deinen Markierungen.',
+				overlap: 'Der Block aus {len} deckt die markierten Felder in beiden Lagen.',
+				overlapMany: 'Jedes markierte Feld deckt in beiden Lagen derselbe Block.',
+				reachLook:
+					'Schieb ihre Blöcke so weit wie möglich an das eine Ende, dann an das andere, passend zu deinen Markierungen.',
+				overlapLook1:
+					'Schieb ihren Block so weit wie möglich an das eine Ende, dann an das andere, passend zu deinen Markierungen.',
+				reachLook1:
+					'Schieb ihren Block so weit wie möglich an das eine Ende, dann an das andere, passend zu deinen Markierungen.',
+				reach: 'Kein Block erreicht die markierten Felder, wohin er sich auch schiebt.',
+				doneLook: 'Vergleich ihre gefüllten Felder mit ihren Zahlen.',
+				done: 'Ihre gefüllten Felder ergeben schon alle ihre Blöcke, also bleiben die übrigen Felder leer.',
+				zeroLook: 'Ihre 0 sagt, dass sie keine Blöcke hat.',
+				zero: 'Keins ihrer Felder ist gefüllt.',
+				lineLook:
+					'Geh die Möglichkeiten durch, wie ihre Blöcke passend zu deinen Markierungen liegen können.',
+				lineLook1:
+					'Geh die Stellen durch, an denen ihr Block passend zu deinen Markierungen liegen kann.',
+				lineFill: 'Jede davon füllt die markierten Felder.',
+				lineCross: 'Keine davon füllt die markierten Felder.',
+				assumeLook:
+					'Keine Zeile und keine Spalte legt allein noch ein Feld fest: Probier das hinterlegte Feld im Kopf aus.',
+				assumeFilledRow:
+					'Angenommen, das markierte Feld wäre gefüllt: Folge den Zeilen und Spalten von dort aus, bis Zeile {n} ihre Blöcke nicht mehr unterbringt.',
+				assumeFilledCol:
+					'Angenommen, das markierte Feld wäre gefüllt: Folge den Zeilen und Spalten von dort aus, bis Spalte {n} ihre Blöcke nicht mehr unterbringt.',
+				assumeEmptyRow:
+					'Angenommen, das markierte Feld bliebe leer: Folge den Zeilen und Spalten von dort aus, bis Zeile {n} ihre Blöcke nicht mehr unterbringt.',
+				assumeEmptyCol:
+					'Angenommen, das markierte Feld bliebe leer: Folge den Zeilen und Spalten von dort aus, bis Spalte {n} ihre Blöcke nicht mehr unterbringt.',
+				thenFill: 'Also füll die markierten Felder.',
+				thenFill1: 'Also füll das markierte Feld.',
+				thenCross: 'Also bleiben die markierten Felder leer: Streich sie durch.',
+				thenCross1: 'Also bleibt das markierte Feld leer: Streich es durch.',
+				stuck:
+					'Keine Regel legt hier ein Feld fest. Füll das markierte Feld im Kopf aus und folge den Zeilen und Spalten, bis eine nicht mehr passt.'
 			}
 		}
 	}

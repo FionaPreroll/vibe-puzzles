@@ -62,7 +62,7 @@
 			{settings}
 			{tool}
 			{toolOption}
-			cellSize={printCellSize(session.puzzle.width)}
+			cellSize={printCellSize((game.boardSize?.(session.puzzle) ?? session.puzzle).width)}
 			readonly={true}
 			lastChange={new Set()}
 			blank={true}

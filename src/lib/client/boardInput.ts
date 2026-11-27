@@ -12,6 +12,9 @@ export interface BoardLayout {
 	width: number;
 	pad: number;
 	cellSize: number;
+	/** Margins left of and above the grid where they are wider than `pad` (Pixels' numbers). */
+	left?: number;
+	top?: number;
 }
 
 /** Page coordinates to board cell units, for a board drawn in `rect` (which may be scaled). */
@@ -23,8 +26,8 @@ export function toBoardPoint(
 ): BoardPoint {
 	const scale = rect.width / layout.width;
 	return {
-		x: ((clientX - rect.left) / scale - layout.pad) / layout.cellSize,
-		y: ((clientY - rect.top) / scale - layout.pad) / layout.cellSize
+		x: ((clientX - rect.left) / scale - (layout.left ?? layout.pad)) / layout.cellSize,
+		y: ((clientY - rect.top) / scale - (layout.top ?? layout.pad)) / layout.cellSize
 	};
 }
 
