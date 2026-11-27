@@ -471,6 +471,8 @@ const en = {
 		shareMany: 'My puzzle day: {count} puzzles solved in {time}.',
 		line: '{icon} {game} {variant}: {time}',
 		lineHinted: '{icon} {game} {variant}: {time} (with hints)',
+		lineBest: '{icon} {game} {variant}: {count}×, best {time}',
+		lineBestHinted: '{icon} {game} {variant}: {count}×, best {time} (with hints)',
 		hinted: 'with hints',
 		more: '… and {count} more',
 		invite: 'Want to play too?',

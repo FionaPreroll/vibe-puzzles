@@ -463,6 +463,8 @@ const de: Dictionary = {
 		shareMany: 'Mein Rätseltag: {count} Rätsel in {time} gelöst.',
 		line: '{icon} {game} {variant}: {time}',
 		lineHinted: '{icon} {game} {variant}: {time} (mit Hinweisen)',
+		lineBest: '{icon} {game} {variant}: {count}×, Bestzeit {time}',
+		lineBestHinted: '{icon} {game} {variant}: {count}×, Bestzeit {time} (mit Hinweisen)',
 		hinted: 'mit Hinweisen',
 		more: '… und {count} weitere',
 		invite: 'Spielst du mit?',

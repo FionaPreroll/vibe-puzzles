@@ -1,5 +1,5 @@
 import { formatDuration } from '../core/time';
-import { isPlayable, type Variant } from '../core/variants';
+import { isPlayable, type Difficulty, type Variant } from '../core/variants';
 import { t, variantLabel } from '../i18n/index.svelte';
 import { getStats, type RecentSolve } from './stats';
 
@@ -22,7 +22,7 @@ export interface DaySolve extends RecentSolve {
 	variant: Variant;
 }
 
-/** At most this many solves are named one by one in the shared text; the rest are counted. */
+/** At most this many puzzle types are named one by one in the shared text; the rest are counted. */
 export const SHARED_LINES = 10;
 
 /** Local midnight of `now`'s day, in epoch ms. */
@@ -48,13 +48,61 @@ export function solvesToday(
 	return solves.sort((a, b) => a.at - b.at);
 }
 
-/** One solve as a line of the shared text, e.g. "🧩 Sudoku 9×9 Normal: 06:12". */
-export function solveLine(s: DaySolve): string {
-	return t(s.hinted ? 'today.lineHinted' : 'today.line', {
-		icon: s.game.icon,
-		game: s.game.name,
-		variant: variantLabel(s.variant),
-		time: formatDuration(s.timeMs, true)
+/** A puzzle type played today: how often, and its best time of the day. */
+export interface DayType {
+	game: DayGame;
+	variant: Variant;
+	/** Puzzles of this type solved today. */
+	count: number;
+	/** The fastest solve without hints, or the fastest one if every solve took hints. */
+	bestMs: number;
+	/** Every solve of the type today took hints, so `bestMs` did too. */
+	hinted: boolean;
+}
+
+/** The hardest puzzles first. */
+const DIFFICULTY_ORDER: Record<Difficulty, number> = { hard: 0, normal: 1, easy: 2 };
+
+/**
+ * The puzzle types played today, each with how often and its best time: the hardest first, and
+ * within a difficulty the fastest first. Types solved only with hints have no best time, so they
+ * come after the others of their difficulty.
+ */
+export function dayTypes(solves: readonly DaySolve[]): DayType[] {
+	const types = new Map<string, DayType>();
+	for (const s of solves) {
+		const key = `${s.game.id}:${s.variant.key}`;
+		const type = types.get(key);
+		const hinted = !!s.hinted;
+		if (!type) {
+			types.set(key, { game: s.game, variant: s.variant, count: 1, bestMs: s.timeMs, hinted });
+			continue;
+		}
+		type.count++;
+		// A solve without hints beats one with hints, whatever their times.
+		if (type.hinted && !hinted) Object.assign(type, { bestMs: s.timeMs, hinted });
+		else if (type.hinted === hinted) type.bestMs = Math.min(type.bestMs, s.timeMs);
+	}
+	return [...types.values()].sort(
+		(a, b) =>
+			DIFFICULTY_ORDER[a.variant.difficulty] - DIFFICULTY_ORDER[b.variant.difficulty] ||
+			Number(a.hinted) - Number(b.hinted) ||
+			a.bestMs - b.bestMs
+	);
+}
+
+/**
+ * A puzzle type as a line of the shared text, e.g. "🧩 Sudoku 9×9 Normal: 06:12", or with more than
+ * one solve "🧩 Sudoku 9×9 Normal: 3×, best 06:12".
+ */
+export function typeLine(type: DayType): string {
+	const key = type.count === 1 ? 'today.line' : 'today.lineBest';
+	return t(type.hinted ? `${key}Hinted` : key, {
+		icon: type.game.icon,
+		game: type.game.name,
+		variant: variantLabel(type.variant),
+		count: type.count,
+		time: formatDuration(type.bestMs, true)
 	});
 }
 
@@ -68,8 +116,9 @@ export function dayShare(
 		count: solves.length,
 		time: formatDuration(totalMs)
 	});
-	const lines = solves.slice(0, SHARED_LINES).map(solveLine);
-	const more = solves.length - lines.length;
+	const types = dayTypes(solves);
+	const lines = types.slice(0, SHARED_LINES).map(typeLine);
+	const more = types.slice(SHARED_LINES).reduce((sum, type) => sum + type.count, 0);
 	if (more > 0) lines.push(t('today.more', { count: more }));
 	const text = [head, ...lines, t('today.invite')].join('\n');
 	return { title: `${t('today.title')} · ${t('app.name')}`, text, url };
