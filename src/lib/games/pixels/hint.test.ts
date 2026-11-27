@@ -105,25 +105,33 @@ describe('pixels hints', () => {
 	});
 
 	it('try a cell where no line decides one, and name the line that breaks', () => {
-		const { puzzle, solution } = generatePixels(5, 5, 'hard', 1);
-		const solver = new PixelsSolver(puzzle);
-		let tried = 0;
-		follow(puzzle, empty(puzzle), (h, s) => {
-			if (h.kind !== 'step' || h.technique !== 'assumption') return;
-			tried++;
-			const [cell] = h.cells;
-			expect(solution[cell] ? FILLED : CROSS).toBe(h.value);
-			const other = h.value === FILLED ? CROSS : FILLED;
-			const scratch = new Uint8Array(s.cells.length);
-			expect(solver.tryCell(Uint8Array.from(s.cells), cell, other, scratch)).toBe(false);
-			expect(solver.broken).toBe(h.line);
-			const hint = pixels.hint!(puzzle, s)!;
-			expect(hint.teaser).toEqual(['games.pixels.hints.assumeLook']);
-			expect(hint.text[0]).toMatch(/^games\.pixels\.hints\.assume(Filled|Empty)(Row|Col)$/);
-			expect(hint.text[1]).toMatch(/^games\.pixels\.hints\.then(Fill|Cross)1$/);
-			expect(hint.area).toEqual([String(cell), h.line < 5 ? `r:${h.line}` : `c:${h.line - 5}`]);
-		});
-		expect(tried).toBeGreaterThan(0);
+		const texts = new Set<string>();
+		// 10×10 Hard #3 breaks rows and columns.
+		for (const [size, seed] of [
+			[5, 1],
+			[10, 3]
+		]) {
+			const { puzzle, solution } = generatePixels(size, size, 'hard', seed);
+			const solver = new PixelsSolver(puzzle);
+			follow(puzzle, empty(puzzle), (h, s) => {
+				if (h.kind !== 'step' || h.technique !== 'assumption') return;
+				const [cell] = h.cells;
+				expect(solution[cell] ? FILLED : CROSS).toBe(h.value);
+				const other = h.value === FILLED ? CROSS : FILLED;
+				const scratch = new Uint8Array(s.cells.length);
+				expect(solver.tryCell(Uint8Array.from(s.cells), cell, other, scratch)).toBe(false);
+				expect(solver.broken).toBe(h.line);
+				const hint = pixels.hint!(puzzle, s)!;
+				expect(hint.teaser).toEqual(['games.pixels.hints.assumeLook']);
+				expect(hint.text[1]).toMatch(/^games\.pixels\.hints\.then(Fill|Cross)1$/);
+				const line = h.line < size ? `r:${h.line}` : `c:${h.line - size}`;
+				expect(hint.area).toEqual([String(cell), line]);
+				texts.add(hint.text[0]);
+			});
+		}
+		expect([...texts].sort()).toEqual(
+			['assumeEmptyRow', 'assumeFilledCol', 'assumeFilledRow'].map((k) => `games.pixels.hints.${k}`)
+		);
 	});
 
 	it('say so where no rule decides a cell', () => {
