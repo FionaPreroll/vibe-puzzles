@@ -7,6 +7,7 @@ import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { networkDefaults } from './scripts/buildFlags.ts';
 import { readChangelog } from './scripts/changelog.ts';
+import { collectionRevisions } from './scripts/revisions.ts';
 import { checkShippedLicenses, readLicense } from './scripts/licenses.ts';
 
 /**
@@ -78,7 +79,10 @@ export default defineConfig({
 		// Separate from __BUILD__, which every page uses: only the About page carries the texts.
 		__LICENSES__: JSON.stringify(SHIPPED_PACKAGES.map((name) => readLicense('.', name))),
 		// CHANGELOG.md for the About page; the build fails on a line it does not understand.
-		__CHANGELOG__: JSON.stringify(readChangelog('.'))
+		__CHANGELOG__: JSON.stringify(readChangelog('.')),
+		// The revision of each type of the puzzle collection, so that a new version never uses a
+		// cached copy of an older collection (src/lib/client/bank.ts, src/service-worker).
+		__COLLECTION_REVISIONS__: JSON.stringify(collectionRevisions('static'))
 	},
 	plugins: [
 		checkShippedLicenses(SHIPPED_PACKAGES),
@@ -107,7 +111,8 @@ export default defineConfig({
 				'scripts/licenses.ts',
 				'scripts/buildFlags.ts',
 				'scripts/changelog.ts',
-				'scripts/collection.ts'
+				'scripts/collection.ts',
+				'scripts/revisions.ts'
 			],
 			exclude: ['src/test/**', 'src/service-worker/**', '**/*.test.ts'],
 			reporter: ['text-summary', 'lcov']

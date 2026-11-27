@@ -21,12 +21,27 @@ export function savePuzzleSource(source: PuzzleSource) {
 }
 
 /**
+ * Where a collection file is fetched from: its path with the revision of its type in this version
+ * (`?r=`), so that neither the browser nor the service worker answers with a copy of an older
+ * collection, such as one with puzzles a later version took out.
+ */
+export function collectionUrl(
+	path: string,
+	revisions: typeof __COLLECTION_REVISIONS__ = __COLLECTION_REVISIONS__
+): string {
+	const [, game, variant] = path.split('/');
+	const url = asset(`/${path}` as AssetPath);
+	const revision = revisions[game]?.[variant];
+	return revision ? `${url}?r=${revision}` : url;
+}
+
+/**
  * The collection as deployed with the app. A missing file, or no connection, counts as an empty
  * collection; the caller then generates the puzzle on the device.
  */
 export const collection = new Collection(
 	(path) =>
-		fetch(asset(`/${path}` as AssetPath))
+		fetch(collectionUrl(path))
 			.then((r) => (r.ok ? r.json() : null))
 			.catch(() => null),
 	sizes,

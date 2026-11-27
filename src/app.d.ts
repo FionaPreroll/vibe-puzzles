@@ -13,6 +13,8 @@ declare global {
 	const __LICENSES__: import('../scripts/licenses').ShippedLicense[];
 	/** CHANGELOG.md, newest release first (vite.config.ts, scripts/changelog.ts). */
 	const __CHANGELOG__: import('../scripts/changelog').ChangelogRelease[];
+	/** The revision of each type of the puzzle collection (vite.config.ts, scripts/revisions.ts). */
+	const __COLLECTION_REVISIONS__: import('../scripts/revisions').CollectionRevisions;
 
 	namespace App {
 		// interface Error {}
