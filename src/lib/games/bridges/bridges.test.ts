@@ -7,6 +7,8 @@ import {
 	fitsBridgesDifficulty,
 	fitsLevel,
 	generateBridges,
+	grownLayout,
+	otherValues,
 	puzzleOf,
 	randomBridges,
 	randomIslands
@@ -332,22 +334,74 @@ describe('generator', () => {
 	it('gives up where no puzzle fits', () => {
 		// On 2×2 no second island fits: no hard puzzle.
 		expect(() => generateBridges(2, 2, 'hard', 1)).toThrow('generation failed for 2x2 hard #1');
+		// On one row the counts decide every link: no hard puzzle grows there either.
+		expect(() => generateBridges(10, 1, 'hard', 1)).toThrow('generation failed for 10x1 hard #1');
+	});
+
+	it('grows islands along their bridges on bigger boards', () => {
+		const rng = new Rng(7);
+		for (let n = 0; n < 10; n++) {
+			const { islands, g, bridges } = grownLayout(10, 10, rng, {
+				density: 0.3,
+				extra: 0.3,
+				double: 0.2
+			});
+			const cells = islands.flatMap((c, i) => (c === '.' ? [] : [i]));
+			expect(cells).toEqual([...g.cells]);
+			expect(cells.length).toBeGreaterThanOrEqual(15);
+			for (const i of cells) {
+				expect(cells).not.toContain(i + 10);
+				if (i % 10 < 9) expect(cells).not.toContain(i + 1);
+			}
+			// The bridges join every island and none crosses another: a solution.
+			expect(isSolvedState(puzzleOf(10, 10, islands, bridges), { links: bridges })).toBe(true);
+			expect(bridges.some((b) => b === 2)).toBe(true);
+		}
+	});
+
+	it('changes a link only to bridges that still make a solution', () => {
+		// Without any one bridge of the ring the others still join the islands.
+		expect(otherValues(bridgesGraph(RING), [1, 1, 1, 1], 0)).toEqual([0, 2]);
+		// Without the left bridge of the line the left island is alone.
+		expect(otherValues(bridgesGraph(LINE), [1, 1], 0)).toEqual([2]);
+		// A bridge across the plus blocks the link down.
+		expect(otherValues(bridgesGraph(PLUS), [0, 1], 0)).toEqual([]);
+		expect(otherValues(bridgesGraph(PLUS), [0, 1], 1)).toEqual([2]);
+	});
+
+	it('makes bigger boards unique by changing bridges, hard ones beyond Isolation', () => {
+		for (const difficulty of ['normal', 'hard'] as const) {
+			for (const seed of [1, 2]) {
+				const { puzzle, solution } = generateBridges(10, 10, difficulty, seed);
+				const res = solveBridges(puzzle, 2);
+				expect(res.finished).toBe(true);
+				expect(res.solutions).toEqual([solution]);
+				expect(fitsBridgesDifficulty(puzzle, difficulty), `${difficulty} ${seed}`).toBe(true);
+			}
+		}
+		expect(generateBridges(15, 15, 'hard', 3)).toEqual(generateBridges(15, 15, 'hard', 3));
 	});
 });
 
 describe('logic', () => {
 	const seven = BRIDGES_VARIANTS[0];
 
-	it('plays 7×7 so far, and lists the rest as coming soon', () => {
-		expect(BRIDGES_VARIANTS.filter(isPlayable).map((v) => v.key)).toEqual(['7n', '7h']);
+	it('plays every type, up to 25×25 and the specials', () => {
+		expect(BRIDGES_VARIANTS.every(isPlayable)).toBe(true);
 		expect(BRIDGES_VARIANTS.find((v) => v.key === '7h')?.label).toBe('7x7 Hard');
+		expect(BRIDGES_VARIANTS.find((v) => v.key === 'monthly')).toMatchObject({
+			width: 25,
+			difficulty: 'hard'
+		});
 	});
 
 	it('generates valid puzzles with one solution', () => {
-		const p = bridgesLogic.generate(seven, 1);
-		expect(bridgesLogic.isValidPuzzle(p, seven)).toBe(true);
-		expect(bridgesLogic.countSolutions(p, 2)).toEqual({ count: 1, finished: true });
-		expect(bridgesLogic.fitsDifficulty!(p, seven)).toBe(true);
+		for (const v of [seven, BRIDGES_VARIANTS.find((v) => v.key === 'daily')!]) {
+			const p = bridgesLogic.generate(v, 1);
+			expect(bridgesLogic.isValidPuzzle(p, v)).toBe(true);
+			expect(bridgesLogic.countSolutions(p, 2)).toEqual({ count: 1, finished: true });
+			expect(bridgesLogic.fitsDifficulty!(p, v)).toBe(true);
+		}
 	});
 
 	it('rejects broken puzzles', () => {

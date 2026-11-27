@@ -17,9 +17,6 @@ import {
 } from './rules';
 import { solveBridges } from './solver';
 
-/** Board sizes playable so far: the others are listed, but come later. */
-const PLAYABLE = new Set([7]);
-
 /**
  * Every type of Bridges, in their final order: puzzle IDs hold a type's place in this list, so
  * new types may only be appended.
@@ -30,8 +27,7 @@ const regular = (size: number): Variant[] =>
 		label: `${size}x${size} ${difficulty === 'normal' ? 'Normal' : 'Hard'}`,
 		width: size,
 		height: size,
-		difficulty,
-		...(!PLAYABLE.has(size) && { comingSoon: true })
+		difficulty
 	}));
 
 export const BRIDGES_VARIANTS: Variant[] = [
@@ -46,8 +42,7 @@ export const BRIDGES_VARIANTS: Variant[] = [
 		width: 10,
 		height: 10,
 		difficulty: 'normal',
-		special: 'daily',
-		comingSoon: true
+		special: 'daily'
 	},
 	{
 		key: 'weekly',
@@ -55,8 +50,7 @@ export const BRIDGES_VARIANTS: Variant[] = [
 		width: 15,
 		height: 15,
 		difficulty: 'hard',
-		special: 'weekly',
-		comingSoon: true
+		special: 'weekly'
 	},
 	{
 		key: 'monthly',
@@ -64,8 +58,7 @@ export const BRIDGES_VARIANTS: Variant[] = [
 		width: 25,
 		height: 25,
 		difficulty: 'hard',
-		special: 'monthly',
-		comingSoon: true
+		special: 'monthly'
 	}
 ];
 
