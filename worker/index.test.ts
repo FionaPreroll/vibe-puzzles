@@ -33,6 +33,34 @@ describe('worker', () => {
 		expect(limit).toHaveBeenCalledWith({ key: '203.0.113.7' });
 	});
 
+	it('limits saves, solves and leaderboards with their bindings, and new players per day', async () => {
+		const limit = vi.fn(async () => ({ success: false }));
+		const e = {
+			...env(),
+			SAVE_LIMIT: { limit },
+			SCORE_LIMIT: { limit },
+			BOARD_LIMIT: { limit }
+		} as unknown as Env;
+		const res = await call('https://example.test/api/scores?game=tetroid&variant=6n', e);
+		expect(res.status).toBe(429);
+		expect(limit).toHaveBeenCalledWith({ key: '' });
+		// Over the day's new players from one address: refused before the player is created.
+		const DB = {
+			prepare: (query: string) => ({
+				bind: () => ({
+					first: async () => (query.includes('signups') ? { count: 21 } : null),
+					run: async () => ({ meta: { changes: 1 } })
+				})
+			})
+		};
+		const req = new Request('https://example.test/api/player', {
+			method: 'POST',
+			body: JSON.stringify({ name: 'A' })
+		});
+		const signup = await worker.fetch(req as never, { ...e, DB } as Env, {} as ExecutionContext);
+		expect(signup.status).toBe(429);
+	});
+
 	it('ignores the rate limiters with RATE_LIMITS=off', async () => {
 		const limit = vi.fn(async () => ({ success: false }));
 		const e = { ...env(), REGISTER_LIMIT: { limit }, RATE_LIMITS: 'off' } as unknown as Env;
@@ -53,7 +81,7 @@ describe('worker', () => {
 		expect(await res.json()).toEqual({ ok: true, serverPuzzles: true });
 	});
 
-	it('deletes old tickets and saves on the daily schedule, and waits for it', async () => {
+	it('deletes old tickets, saves and registration counts on the daily schedule, and waits for it', async () => {
 		const sql: string[] = [];
 		const DB = {
 			prepare: (query: string) => {
@@ -69,14 +97,16 @@ describe('worker', () => {
 			{ ...env(), DB } as unknown as Env,
 			ctx as unknown as ExecutionContext
 		);
-		expect(waiting).toHaveLength(2);
+		expect(waiting).toHaveLength(3);
 		await Promise.all(waiting);
 		expect(sql).toEqual([
 			expect.stringMatching(/^DELETE FROM tickets/),
-			expect.stringMatching(/^DELETE FROM saves/)
+			expect.stringMatching(/^DELETE FROM saves/),
+			expect.stringMatching(/^DELETE FROM signups/)
 		]);
 		expect(log).toHaveBeenCalledWith('Deleted 3 old tickets');
 		expect(log).toHaveBeenCalledWith('Deleted 3 old saves');
+		expect(log).toHaveBeenCalledWith('Deleted 3 registration counts');
 		log.mockRestore();
 	});
 });

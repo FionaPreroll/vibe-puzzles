@@ -18,9 +18,7 @@ jobs:
   deploy:
     if: github.event_name == 'workflow_dispatch' || vars.CLOUDFLARE_DEPLOY == 'true'
     runs-on: ubuntu-latest
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    # The Cloudflare token is only handed to the deploy step: install and build run code from npm.
     steps:
       - uses: actions/checkout@v7
       # Installs the pnpm version from the packageManager field in package.json.
@@ -31,7 +29,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Set D1 database ID
-        run: sed -i "s/00000000-0000-0000-0000-000000000000/${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}/" wrangler.jsonc
+        env:
+          DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+        run: sed -i "s/00000000-0000-0000-0000-000000000000/$DATABASE_ID/" wrangler.jsonc
       # Build first, so the check below happens right before anything goes live.
       - run: pnpm build
       - id: latest
@@ -48,4 +48,7 @@ jobs:
           fi
       # The same as `pnpm cf:deploy` after its build.
       - if: steps.latest.outputs.latest == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm exec wrangler d1 migrations apply DB --remote && pnpm exec wrangler deploy

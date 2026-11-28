@@ -33,18 +33,25 @@ jobs:
       pull-requests: write
     env:
       BRANCH: feature/grow_puzzle_collection
-      # Pull requests opened with the default token start no other workflows, so CI does not run
-      # on them. A token in the BANK_PR_TOKEN secret (contents and pull requests: write) avoids that.
-      GH_TOKEN: ${{ secrets.BANK_PR_TOKEN || github.token }}
       GH_REPO: ${{ github.repository }}
+    # The token is only handed to the steps that talk to GitHub: the steps in between run code from
+    # npm (install, generator, tests), which must not be able to read it. Pull requests opened with
+    # the default token start no other workflows, so CI does not run on them; a token in the
+    # BANK_PR_TOKEN secret (contents and pull requests: write) avoids that.
     steps:
       - uses: actions/checkout@v7
         with:
           ref: main
           token: ${{ secrets.BANK_PR_TOKEN || github.token }}
+          # Not kept in .git/config, where the later steps could read it.
+          persist-credentials: false
       # Puzzles of an earlier run that still wait for review: keep adding to that pull request.
       - name: Continue an open pull request
+        env:
+          GH_TOKEN: ${{ secrets.BANK_PR_TOKEN || github.token }}
         run: |
+          # Git asks gh for the token, which gh only has in steps that set GH_TOKEN.
+          gh auth setup-git
           open=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number')
           echo "OPEN_PR=$open" >> "$GITHUB_ENV"
           if [ -n "$open" ]; then
@@ -67,6 +74,7 @@ jobs:
       - run: pnpm exec vitest --run src/lib/games/bank.test.ts
       - name: Commit new puzzles and propose them
         env:
+          GH_TOKEN: ${{ secrets.BANK_PR_TOKEN || github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           git add static/puzzles
@@ -91,4 +99,6 @@ jobs:
       # with required checks on main; CI only runs on the pull request with BANK_PR_TOKEN.
       - name: Merge automatically once CI passes
         if: env.PROPOSED == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.BANK_PR_TOKEN || github.token }}
         run: gh pr merge "$BRANCH" --auto --merge

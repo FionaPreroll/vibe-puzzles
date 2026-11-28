@@ -297,7 +297,7 @@ The Cloudflare deployment hands out puzzles from the server (`SERVER_PUZZLES` is
 
 Because the collection is public, a determined player can look a puzzle up in it or feed it to a solver program; the server clock still keeps ranked times honest about when the puzzle was handed out.
 
-The server deletes old tickets once a day (a cron trigger in `wrangler.jsonc`): unsolved ones 45 days after they were issued, solved ones 7 days after the solve. A game whose ticket is gone can still be solved, but is not ranked.
+The server deletes old tickets once a day (a cron trigger in `wrangler.jsonc`): unsolved ones 45 days after they were issued, solved ones 7 days after the solve. A player keeps at most 500 unsolved tickets; a new one deletes the oldest unsolved beyond that. A game whose ticket is gone can still be solved, but is not ranked.
 
 A ticket counts as solved only once its score is stored, so a solve whose score could not be stored (a server error) can be sent again.
 
@@ -319,5 +319,8 @@ The server keeps up to 500 saves and 4 MiB of saves per player (`SAVE_LIMITS` in
 ### Security
 
 - Players authenticate with a random token (the sync code); only its SHA-256 hash is stored.
-- Requests that add rows to the database are rate limited on Cloudflare (`ratelimits` in `wrangler.jsonc`): registering a player to 5 per minute per client address, `POST /api/puzzles` to 30 per minute per player. Above that the API answers 429.
-- Submitted answers are always checked on the server. Without `SERVER_PUZZLES` the solve times come from the client, so leaderboards are easy to cheat; with it, times are measured by the server, though a player can still feed a puzzle to a solver program.
+- Requests that write to the database, and leaderboards, are rate limited on Cloudflare (`ratelimits` in `wrangler.jsonc`): registering a player to 5 per minute per client address, `POST /api/puzzles` to 30, `PUT /api/saves/:key` to 120 and `POST /api/scores` to 60 per minute per player, and `GET /api/scores` to 60 per minute per client address. Above that the API answers 429. Cloudflare counts per location and roughly, so these limits slow a flood down rather than stop it exactly.
+- On top of that, one client address registers at most 20 players per day (UTC, `SIGNUPS_PER_DAY` in `worker/api.ts`). The count is kept under a SHA-256 hash of the day and the address, and the daily cron deletes the counts of earlier days.
+- A player has at most 500 unsolved tickets (`OPEN_TICKETS`); a new one deletes the oldest unsolved beyond that.
+- Submitted answers are always checked on the server, before anything is stored. Without `SERVER_PUZZLES` the solve times come from the client, so leaderboards are easy to cheat; with it, times are measured by the server, though a player can still feed a puzzle to a solver program.
+- A solve under a puzzle ID must be of the puzzle that ID stands for: with the collection, the server compares the submitted puzzle with the collection's puzzle for that ID (also for the daily, weekly and monthly puzzles). For an ID the collection does not hold, the first correct solve fixes its puzzle; a wrong answer fixes nothing.

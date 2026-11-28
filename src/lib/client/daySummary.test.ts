@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MemoryStorage } from '../../test/memory-storage';
 import type { Variant } from '../core/variants';
 import { i18n } from '../i18n/index.svelte';
 import {
@@ -9,7 +10,7 @@ import {
 	startOfDay,
 	type DayGame
 } from './daySummary';
-import type { RecentSolve } from './stats';
+import { RECENT_SOLVES, recordSolve, type RecentSolve } from './stats';
 
 const easy: Variant = { key: '9e', label: '9×9', width: 9, height: 9, difficulty: 'easy' };
 const normal: Variant = { key: '9n', label: '9×9', width: 9, height: 9, difficulty: 'normal' };
@@ -57,6 +58,20 @@ describe('solvesToday', () => {
 			['sudoku', '9n', 3]
 		]);
 		expect(solves[1].hinted).toBe(true);
+	});
+
+	it('counts every solve of a type today, also beyond the recent solves the stats list', () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(at(8));
+		vi.stubGlobal('localStorage', new MemoryStorage());
+		try {
+			for (let k = 1; k <= RECENT_SOLVES + 5; k++) recordSolve('sudoku', '9n', k, 1000);
+			const types = dayTypes(solvesToday([sudoku], now));
+			expect(types.map((d) => [d.variant.key, d.count])).toEqual([['9n', RECENT_SOLVES + 5]]);
+		} finally {
+			vi.unstubAllGlobals();
+			vi.useRealTimers();
+		}
 	});
 
 	it('is empty on a day without solves', () => {

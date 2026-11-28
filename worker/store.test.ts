@@ -214,4 +214,33 @@ describe.each([
 		expect(await store.getTicket('new-solved')).not.toBeNull();
 		expect(await store.deleteTickets(200, 400)).toBe(0);
 	});
+
+	it("keeps a player's newest unsolved tickets and every solved one", async () => {
+		const store = await withPlayers('ann', 'bob');
+		const ticket = { game: 'tetroid', variant: '6n', puzzleId: 7, puzzle: '{}', solvedAt: null };
+		// a3 and a4 were issued at the same time: the lower ID counts as the newer.
+		for (const [i, issuedAt] of [1, 2, 3, 3, 5].entries()) {
+			await store.createTicket({ ...ticket, id: `a${i + 1}`, playerId: 'ann', issuedAt });
+		}
+		await store.solveTicket('a1', 10);
+		await store.createTicket({ ...ticket, id: 'b1', playerId: 'bob', issuedAt: 0 });
+		expect(await store.trimTickets('ann', 2)).toBe(2);
+		const left = [];
+		for (const id of ['a1', 'a2', 'a3', 'a4', 'a5', 'b1']) {
+			if (await store.getTicket(id)) left.push(id);
+		}
+		expect(left).toEqual(['a1', 'a3', 'a5', 'b1']);
+		expect(await store.trimTickets('ann', 2)).toBe(0);
+	});
+
+	it('counts registrations per day and client, and forgets earlier days', async () => {
+		const store = make();
+		expect(await store.countSignup('2026-11-27', 'x')).toBe(1);
+		expect(await store.countSignup('2026-11-28', 'x')).toBe(1);
+		expect(await store.countSignup('2026-11-28', 'x')).toBe(2);
+		expect(await store.countSignup('2026-11-28', 'y')).toBe(1);
+		expect(await store.deleteSignups('2026-11-28')).toBe(1);
+		expect(await store.countSignup('2026-11-27', 'x')).toBe(1);
+		expect(await store.countSignup('2026-11-28', 'x')).toBe(3);
+	});
 });

@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	breakStreak,
 	currentPeriodStreak,
+	DAY_SOLVES,
+	keepRecent,
+	RECENT_SOLVES,
 	getStats,
 	mergePeriods,
 	notePeriodSolved,
@@ -156,12 +159,34 @@ describe('stats', () => {
 		expect('hinted' in plain).toBe(false);
 	});
 
-	it('keeps only the 20 most recent solves', () => {
+	it('keeps the 20 most recent solves, and every solve of today', () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(2026, 10, 27, 12));
 		for (let k = 1; k <= 25; k++) recordSolve('tetroid', '6n', k, k);
+		expect(getStats('tetroid', '6n').recent).toHaveLength(25);
+		// The next day, the older solves beyond the 20 newest go.
+		vi.setSystemTime(new Date(2026, 10, 28, 9));
+		recordSolve('tetroid', '6n', 26, 1);
 		const { recent } = getStats('tetroid', '6n');
-		expect(recent).toHaveLength(20);
-		expect(recent[0].puzzleId).toBe(25);
-		expect(recent.at(-1)!.puzzleId).toBe(6);
+		expect(recent).toHaveLength(RECENT_SOLVES);
+		expect(recent[0].puzzleId).toBe(26);
+		expect(recent.at(-1)!.puzzleId).toBe(7);
+		for (let k = 27; k <= 50; k++) recordSolve('tetroid', '6n', k, 1);
+		expect(getStats('tetroid', '6n').recent.map((r) => r.puzzleId)).toEqual(
+			Array.from({ length: 25 }, (_, k) => 50 - k)
+		);
+	});
+
+	it('keeps at most DAY_SOLVES solves of one day', () => {
+		const now = new Date(2026, 10, 28, 20);
+		const solves = Array.from({ length: DAY_SOLVES + 10 }, (_, k) => ({
+			puzzleId: k + 1,
+			timeMs: 1000,
+			at: now.getTime() - k * 1000
+		}));
+		const kept = keepRecent(solves, now);
+		expect(kept).toHaveLength(DAY_SOLVES);
+		expect(kept[0].puzzleId).toBe(1);
 	});
 
 	it('remembers the latest 2000 solved puzzle IDs', () => {

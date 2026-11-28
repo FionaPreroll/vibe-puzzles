@@ -18,6 +18,8 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 ### Changed
 
 - **Importing a backup** on the About page now merges it with what this device already has, so nothing gets lost: solves and streaks from both devices are added up (a puzzle solved on both counts once), the best times and the solved days of the daily, weekly and monthly puzzles are kept, and of two saved games the newer one stays. If this device already has a player, it keeps it, and settings that only this device has stay as they are. "Replace" still writes the backup over everything, as before.
+- **Replacing with a backup** of another player now says so before it starts: the question names the player the backup signs this device in as, and the player it replaces here.
+- **Privacy note**: the About page now also says that the server, to keep anyone from filling it with players, counts the players created from one network on one day, under a hash of the IP address, and deletes that count the next day.
 - **System bars on Android**: in the installed app, the status bar at the top takes the colour of the page's header, and the page goes on behind the gesture bar at the bottom, so both match the look, by day and by night, instead of a fixed purple. Browsers that colour the bars from the app's settings alone, such as Firefox, now keep them black, so they no longer glare at night.
 
 ### Fixed
@@ -27,6 +29,8 @@ Changes go under `## [Unreleased]` until they get a version; see "Changelog and 
 - **Space after a click**: once you had clicked or tapped a button such as "New puzzle", "Note" or "Undo", Space and Enter pressed that button again. So Space could start yet another new puzzle instead of switching between digits and notes in Sudoku and Calcudoku. Now these keys go to the board and the keyboard shortcuts after a click, in every game and tutorial; a button you reach with Tab still takes them.
 - **Puzzles after an update**: when an update changed puzzles of the collection, for example when the 5×5 Pixels puzzles lost their empty and full lines, the app could still show puzzles from the copy it had saved before, until the page was reloaded. Now it fetches the new puzzles first and keeps the saved copy only for when there is no connection.
 - **Win animation on phones**: the coloured ring that appeared around the board when you solved a puzzle filled the board's narrow white edge, so on phones held upright the board seemed to shrink for a moment. The ring is gone; the board keeps its look and size while the colours, confetti and sparkles play inside it. In Sudoku and Calcudoku the number pad no longer disappears once the puzzle is solved: it stays, greyed out, so the board does not get shorter. In the winter and Halloween looks, the decorations beside the buttons below the board no longer slip onto a line of their own when "Share success" appears, which made the board smaller; where there is too little room, they step aside.
+- **Other apps at the same address**: when Vibe Puzzles updated, it deleted the offline copies of every other web app at the same address (on GitHub Pages, all apps of an account share one), so they could stop working without a connection. Now it removes only its own older copies.
+- **Importing a backup** when the browser's storage is full no longer stops halfway and leaves a mix of old and new without a word: either the whole backup goes in or nothing changes, and a message says why.
 
 ## [0.9.0] - 2026-11-02
 

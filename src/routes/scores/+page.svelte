@@ -5,7 +5,7 @@
 	import { currentPlayer, leaderboard, watchServer, type Leaderboard } from '#lib/client/api.ts';
 	import { net } from '#lib/client/network.svelte.ts';
 	import { dayShare, solvesToday } from '#lib/client/daySummary.ts';
-	import { getStats, type VariantStats } from '#lib/client/stats.ts';
+	import { getStats, RECENT_SOLVES, type VariantStats } from '#lib/client/stats.ts';
 	import BragDialog from '#lib/components/game/BragDialog.svelte';
 	import { shareSolve } from '#lib/components/game/share.ts';
 	import { formatDuration } from '#lib/core/time.ts';
@@ -177,7 +177,7 @@
 			{#if stats.recent.length}
 				<h3 class="section-title mt-5">{t('scores.recent')}</h3>
 				<ul class="mt-2 divide-y divide-stone-200 text-sm dark:divide-stone-800">
-					{#each stats.recent as r (r.at)}
+					{#each stats.recent.slice(0, RECENT_SOLVES) as r (r.at)}
 						<li class="flex justify-between py-1.5">
 							{#if r.puzzleId}
 								<a

@@ -1,4 +1,11 @@
-import { cleanupSaves, cleanupTickets, handleApi, type Limiter } from './api';
+import {
+	cleanupSaves,
+	cleanupSignups,
+	cleanupTickets,
+	handleApi,
+	SIGNUPS_PER_DAY,
+	type Limiter
+} from './api';
 import { assetCollection } from './bank';
 import { D1Store } from './store';
 
@@ -10,9 +17,12 @@ export interface Env {
 	/** Rate limiters (`ratelimits` in wrangler.jsonc); without them requests are not limited. */
 	REGISTER_LIMIT?: RateLimit;
 	PUZZLE_LIMIT?: RateLimit;
+	SAVE_LIMIT?: RateLimit;
+	SCORE_LIMIT?: RateLimit;
+	BOARD_LIMIT?: RateLimit;
 	/**
-	 * "off" ignores the rate limiters: the server tests (`--var RATE_LIMITS:off`) register more
-	 * players a minute than one address may.
+	 * "off" ignores the rate limiters and the daily limit on new players: the server tests
+	 * (`--var RATE_LIMITS:off`) register more players than one address may.
 	 */
 	RATE_LIMITS?: string;
 }
@@ -33,7 +43,14 @@ export default {
 				limits:
 					env.RATE_LIMITS === 'off'
 						? undefined
-						: { register: limiter(env.REGISTER_LIMIT), puzzles: limiter(env.PUZZLE_LIMIT) }
+						: {
+								register: limiter(env.REGISTER_LIMIT),
+								puzzles: limiter(env.PUZZLE_LIMIT),
+								saves: limiter(env.SAVE_LIMIT),
+								scores: limiter(env.SCORE_LIMIT),
+								boards: limiter(env.BOARD_LIMIT),
+								signupsPerDay: SIGNUPS_PER_DAY
+							}
 			});
 		return env.ASSETS.fetch(req);
 	},
@@ -43,5 +60,8 @@ export default {
 		const store = new D1Store(env.DB);
 		ctx.waitUntil(cleanupTickets(store).then((n) => console.log(`Deleted ${n} old tickets`)));
 		ctx.waitUntil(cleanupSaves(store).then((n) => console.log(`Deleted ${n} old saves`)));
+		ctx.waitUntil(
+			cleanupSignups(store).then((n) => console.log(`Deleted ${n} registration counts`))
+		);
 	}
 } satisfies ExportedHandler<Env>;

@@ -16,9 +16,38 @@ export const LINK_PARAM = 'backup';
  */
 const QR_MAX_VERSION = 25;
 
-async function pipe(bytes: Uint8Array, through: CompressionStream | DecompressionStream) {
-	const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(through);
-	return new Uint8Array(await new Response(stream).arrayBuffer());
+/**
+ * The most a link's backup may unpack to. Far more than a browser's storage holds, so every real
+ * backup fits; it stops a link made to unpack into gigabytes, which would freeze the page.
+ */
+export const MAX_LINK_BACKUP_BYTES = 32 * 1024 * 1024;
+
+/** `bytes` through a (de)compression stream; rejects once the result grows beyond `limit`. */
+async function pipe(
+	bytes: Uint8Array,
+	through: CompressionStream | DecompressionStream,
+	limit = Infinity
+) {
+	const reader = new Blob([bytes as BlobPart]).stream().pipeThrough(through).getReader();
+	const chunks: Uint8Array[] = [];
+	let size = 0;
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		size += value.byteLength;
+		if (size > limit) {
+			await reader.cancel().catch(() => undefined);
+			throw new RangeError('too large');
+		}
+		chunks.push(value);
+	}
+	const out = new Uint8Array(size);
+	let at = 0;
+	for (const c of chunks) {
+		out.set(c, at);
+		at += c.byteLength;
+	}
+	return out;
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -52,18 +81,22 @@ export async function backupLink(pageUrl: string, backup: Backup): Promise<strin
 
 /**
  * The backup in a page's fragment (`location.hash`), null when the fragment carries none. A
- * broken one gives the reason, as `parseBackup` does.
+ * broken one, or one that unpacks to more than `limit` bytes, gives the reason, as `parseBackup`
+ * does.
  */
-export async function backupFromHash(hash: string): Promise<ParseResult | null> {
+export async function backupFromHash(
+	hash: string,
+	limit = MAX_LINK_BACKUP_BYTES
+): Promise<ParseResult | null> {
 	const prefix = `#${LINK_PARAM}=`;
 	if (!hash.startsWith(prefix)) return null;
 	const bytes = fromBase64Url(hash.slice(prefix.length));
 	if (!bytes?.length) return { ok: false, error: 'broken link' };
 	try {
-		const json = await pipe(bytes, new DecompressionStream('deflate-raw'));
+		const json = await pipe(bytes, new DecompressionStream('deflate-raw'), limit);
 		return parseBackup(new TextDecoder().decode(json));
-	} catch {
-		return { ok: false, error: 'broken link' };
+	} catch (e) {
+		return { ok: false, error: e instanceof RangeError ? 'too large' : 'broken link' };
 	}
 }
 
