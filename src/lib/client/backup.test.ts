@@ -9,6 +9,7 @@ import {
 	backupPart,
 	createBackup,
 	mergeBackup,
+	newPlayer,
 	parseBackup,
 	restoreBackup,
 	type Backup
@@ -50,6 +51,56 @@ describe('backup', () => {
 		expect(to.getItem('vp:locale')).toBe('de');
 		expect(to.getItem('vp:keep')).toBe('1');
 		expect(to.getItem('vp:stats:tetroid:6n')).toBe('{"solved":3}');
+	});
+
+	/** `memory`, whose writes fail like a full storage: the `fail`th write, or every one from it on. */
+	function filling(entries: Record<string, string>, fail: number, always = false): Storage {
+		const storage = memory(entries);
+		const setItem = storage.setItem;
+		let writes = 0;
+		storage.setItem = (k, v) => {
+			writes++;
+			if (writes === fail || (always && writes > fail)) {
+				throw new DOMException('Storage is full', 'QuotaExceededError');
+			}
+			setItem(k, v);
+		};
+		return storage;
+	}
+
+	it('restores all or nothing: a full storage takes back what was written and throws', () => {
+		const backup = createBackup(memory({ 'vp:a': 'new', 'vp:b': 'new', 'vp:c': 'new' }), APP);
+		const to = filling({ 'vp:a': 'old' }, 3);
+		expect(() => restoreBackup(to, backup)).toThrow(DOMException);
+		expect(to.getItem('vp:a')).toBe('old');
+		expect(to.getItem('vp:b')).toBeNull();
+		expect(to.getItem('vp:c')).toBeNull();
+		// A storage that stays full keeps what it cannot take back, and the error still comes.
+		const stuck = filling({ 'vp:a': 'old' }, 3, true);
+		expect(() => restoreBackup(stuck, backup)).toThrow(DOMException);
+		expect(stuck.getItem('vp:b')).toBeNull();
+	});
+
+	it('merges all or nothing too', () => {
+		const backup = createBackup(memory({ 'vp:night': 'true', 'vp:look': '"winter"' }), APP);
+		const to = filling({}, 2);
+		expect(() => mergeBackup(to, backup)).toThrow(DOMException);
+		expect(to.length).toBe(0);
+	});
+
+	it('names the player a backup brings when it is not the one here', () => {
+		const player = (id: string, name: string) => JSON.stringify({ id, name, token: 't' });
+		const withPlayer = createBackup(memory({ 'vp:player': player('b', 'Bea') }), APP);
+		expect(newPlayer(memory(), withPlayer)).toEqual({ name: 'Bea', current: null });
+		expect(newPlayer(memory({ 'vp:player': player('a', 'Ada') }), withPlayer)).toEqual({
+			name: 'Bea',
+			current: 'Ada'
+		});
+		expect(newPlayer(memory({ 'vp:player': player('b', 'Bea') }), withPlayer)).toBeNull();
+		const without = createBackup(memory({ 'vp:night': 'true' }), APP);
+		expect(newPlayer(memory({ 'vp:player': player('a', 'Ada') }), without)).toBeNull();
+		const nameless = createBackup(memory({ 'vp:player': '{"id":"c"}' }), APP);
+		expect(newPlayer(memory(), nameless)).toEqual({ name: '', current: null });
 	});
 
 	const good = createBackup(memory({ 'vp:a': '1' }), APP);

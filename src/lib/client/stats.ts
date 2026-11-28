@@ -12,6 +12,26 @@ export interface RecentSolve {
 	hinted?: true;
 }
 
+/** Solves listed as recent, the newest first. */
+export const RECENT_SOLVES = 20;
+
+/**
+ * Solves kept at most: beyond the RECENT_SOLVES newest, those of today stay too, so that the day's
+ * summary counts every solve of a type (`solvesToday`). The bound only keeps storage in check.
+ */
+export const DAY_SOLVES = 500;
+
+/** Local midnight of `now`'s day, in epoch ms. */
+export function startOfDay(now: Date): number {
+	return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+}
+
+/** The solves to keep of `solves` (newest first): the RECENT_SOLVES newest, and any of today. */
+export function keepRecent(solves: RecentSolve[], now = new Date()): RecentSolve[] {
+	const today = startOfDay(now);
+	return solves.filter((r, i) => i < RECENT_SOLVES || r.at >= today).slice(0, DAY_SOLVES);
+}
+
 /** Per-device statistics for one game variant. */
 export interface VariantStats {
 	solved: number;
@@ -20,7 +40,7 @@ export interface VariantStats {
 	bestStreak: number;
 	bestMs: number | null;
 	totalMs: number;
-	/** Most recent solve times, newest first. */
+	/** Most recent solve times, newest first: RECENT_SOLVES, and more of today (`keepRecent`). */
 	recent: RecentSolve[];
 	/** Special types: the last period solved. */
 	lastPeriod?: string;
@@ -148,7 +168,7 @@ export function recordSolve(
 	if (!hinted) s.bestMs = s.bestMs == null ? timeMs : Math.min(s.bestMs, timeMs);
 	s.totalMs += timeMs;
 	const solve: RecentSolve = { puzzleId, timeMs, at: Date.now(), ...(hinted && { hinted: true }) };
-	s.recent = [solve, ...s.recent].slice(0, 20);
+	s.recent = keepRecent([solve, ...s.recent]);
 	if (period && kind) countPeriod(s, period, kind);
 	write(game, variant, s);
 	return s;
@@ -267,9 +287,11 @@ export function mergeVariantStats(
 	const addedMs = added ? Math.max(0, other.totalMs - sharedMs) : 0;
 	const last = (s: VariantStats) => s.recent[0]?.at ?? 0;
 	const streak = last(other) > last(local) ? other.streak : local.streak;
-	const recent = [...local.recent, ...other.recent.filter((r) => !localSolves.has(solveId(r)))]
-		.sort((a, b) => b.at - a.at)
-		.slice(0, 20);
+	const recent = keepRecent(
+		[...local.recent, ...other.recent.filter((r) => !localSolves.has(solveId(r)))].sort(
+			(a, b) => b.at - a.at
+		)
+	);
 	const best = [local.bestMs, other.bestMs].filter((ms): ms is number => ms != null);
 	const merged: VariantStats = {
 		...other,

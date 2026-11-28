@@ -42,7 +42,9 @@ const en = {
 			title: 'Import {count} entries from this backup?',
 			text: 'Merge keeps everything on this device and adds the backup: solves and streaks are added up, best times kept, and of two saved games the newer one stays. Replace writes the backup over what is here.',
 			ok: 'Merge',
-			replace: 'Replace'
+			replace: 'Replace',
+			newPlayer: 'It also signs this device in as “{name}”.',
+			otherPlayer: 'Replace also signs this device in as “{name}” in place of “{current}”.'
 		}
 	},
 	nav: {
@@ -589,7 +591,7 @@ const en = {
 		privacyLocal:
 			'Your games, stats and settings are stored only in this browser (local storage). There are no cookies, no tracking and no ads.',
 		privacyServer:
-			'If you create a player on the server, it stores your player name, a hash of your random player code, your scores, the puzzles it issued to you and, for syncing between devices, your saves and settings. Nothing else.',
+			'If you create a player on the server, it stores your player name, a hash of your random player code, your scores, the puzzles it issued to you and, for syncing between devices, your saves and settings. Nothing else. To stop anyone from filling it with players, it also counts the players created from one network on one day, under a hash of the IP address, and deletes that count the next day.',
 		privacyHost:
 			'The site is hosted on GitHub Pages; GitHub may log technical data such as your IP address when the page loads.',
 		backup: 'Backup',
@@ -625,7 +627,10 @@ const en = {
 		imported: 'Restored {count} entries. Reloading…',
 		merged: 'Merged: {count} entries added or updated. Reloading…',
 		mergedNothing: 'This device already has everything in the backup.',
-		importFailed: 'This file cannot be restored: {error}.'
+		importFailed: 'This file cannot be restored: {error}.',
+		importNoRoom: "There is not enough room in this browser's storage, so nothing was imported.",
+		importNoStorage:
+			'This browser does not let the page store anything here, so nothing was imported.'
 	},
 	games: {
 		tetroid: {

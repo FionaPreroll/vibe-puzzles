@@ -6,6 +6,7 @@
 		backupGames,
 		createBackup,
 		mergeBackup,
+		newPlayer,
 		parseBackup,
 		restoreBackup,
 		type Backup,
@@ -14,6 +15,7 @@
 	import { backupFromHash, backupLink, qrCode } from '#lib/client/backupLink.ts';
 	import { choose } from '#lib/client/confirm.svelte.ts';
 	import { downloadFile } from '#lib/client/download.ts';
+	import { browserStorage, isQuotaError } from '#lib/client/storage.ts';
 	import { i18n, t } from '#lib/i18n/index.svelte.ts';
 	import type { ChangelogRelease, Inline } from '../../../scripts/changelog';
 
@@ -39,7 +41,8 @@
 	let chosenGames = $state<string[]>([]);
 
 	onMount(() => {
-		games = backupGames(localStorage);
+		const storage = browserStorage();
+		games = storage ? backupGames(storage) : [];
 		chosenGames = [...games];
 		void importFromLink();
 		const onHash = () => void importFromLink();
@@ -91,7 +94,7 @@
 	}
 
 	function makeBackup() {
-		return createBackup(localStorage, app, new URL(schemaUrl, location.href).href, new Date(), {
+		return createBackup(storage(), app, new URL(schemaUrl, location.href).href, new Date(), {
 			parts,
 			games: chosenGames
 		});
@@ -99,10 +102,10 @@
 
 	/** How many entries the file gets, so that an empty choice cannot be exported. */
 	const entries = $derived.by(() => {
-		if (typeof localStorage === 'undefined') return 0;
+		const storage = browserStorage();
+		if (!storage) return 0;
 		const selection = { parts, games: chosenGames };
-		return Object.keys(createBackup(localStorage, app, undefined, undefined, selection).data)
-			.length;
+		return Object.keys(createBackup(storage, app, undefined, undefined, selection).data).length;
 	});
 
 	function exportBackup() {
@@ -131,24 +134,48 @@
 		await importBackup(parsed.backup);
 	}
 
-	/** Ask whether to merge or replace, then do so and reload. */
+	/** This browser's storage; the export is only offered where there is one (`entries`). */
+	function storage(): Storage {
+		const s = browserStorage();
+		if (!s) throw new Error('No storage');
+		return s;
+	}
+
+	/** The sentence that names the player a backup signs this device in as, if another one. */
+	function playerNote(storage: Storage, backup: Backup): string {
+		const player = newPlayer(storage, backup);
+		if (!player) return '';
+		return player.current == null
+			? t('confirm.import.newPlayer', { name: player.name })
+			: t('confirm.import.otherPlayer', { name: player.name, current: player.current });
+	}
+
+	/** Ask whether to merge or replace, then do so and reload. Nothing changes if it fails. */
 	async function importBackup(backup: Backup) {
+		const storage = browserStorage();
+		if (!storage) return void (error = t('about.importNoStorage'));
 		const count = Object.keys(backup.data).length;
+		const note = playerNote(storage, backup);
 		const choice = await choose({
 			title: t('confirm.import.title', { count }),
-			text: t('confirm.import.text'),
+			text: note ? `${t('confirm.import.text')} ${note}` : t('confirm.import.text'),
 			confirm: t('confirm.import.ok'),
 			other: t('confirm.import.replace'),
 			otherDanger: true
 		});
 		if (!choice) return;
-		if (choice === 'other') {
-			restoreBackup(localStorage, backup);
-			done = t('about.imported', { count });
-		} else {
-			const changed = mergeBackup(localStorage, backup);
-			if (!changed) return void (done = t('about.mergedNothing'));
-			done = t('about.merged', { count: changed });
+		try {
+			if (choice === 'other') {
+				restoreBackup(storage, backup);
+				done = t('about.imported', { count });
+			} else {
+				const changed = mergeBackup(storage, backup);
+				if (!changed) return void (done = t('about.mergedNothing'));
+				done = t('about.merged', { count: changed });
+			}
+		} catch (e) {
+			error = t(isQuotaError(e) ? 'about.importNoRoom' : 'about.importNoStorage');
+			return;
 		}
 		setTimeout(() => location.reload(), 800);
 	}

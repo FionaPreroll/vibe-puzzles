@@ -129,14 +129,61 @@ export function parseBackup(text: string): ParseResult {
 	return { ok: true, backup: raw as unknown as Backup };
 }
 
-/** Writes the backup's entries over this browser's; keys not in the backup stay. Returns the number written. */
-export function restoreBackup(storage: Storage, backup: Backup): number {
-	let n = 0;
-	for (const [key, value] of Object.entries(backup.data)) {
-		storage.setItem(PREFIX + key, value);
-		n++;
+/**
+ * Writes `entries` (keys without `vp:`) into storage, all or none: when a write fails (storage is
+ * full), the ones before it are taken back and the error is thrown. Returns the number written.
+ */
+function writeAll(storage: Storage, entries: [string, string][]): number {
+	const before: [string, string | null][] = [];
+	try {
+		for (const [key, value] of entries) {
+			before.push([key, storage.getItem(PREFIX + key)]);
+			storage.setItem(PREFIX + key, value);
+		}
+	} catch (e) {
+		for (const [key, old] of before.reverse()) {
+			try {
+				if (old == null) storage.removeItem(PREFIX + key);
+				else storage.setItem(PREFIX + key, old);
+			} catch {
+				// As much as can be taken back.
+			}
+		}
+		throw e;
 	}
-	return n;
+	return entries.length;
+}
+
+/**
+ * Writes the backup's entries over this browser's; keys not in the backup stay. Returns the number
+ * written. All or nothing: if storage runs full, nothing changes and the error is thrown.
+ */
+export function restoreBackup(storage: Storage, backup: Backup): number {
+	return writeAll(storage, Object.entries(backup.data));
+}
+
+/** The player a backup brings (its name), and the one it would take the place of, if another. */
+export interface BackupPlayer {
+	name: string;
+	/** The name of this browser's player, null if it has none. */
+	current: string | null;
+}
+
+/**
+ * The player of `backup` if it is not the one this browser has: importing it signs this device in
+ * as that player (replacing always, merging when this browser has none). Null otherwise.
+ */
+export function newPlayer(storage: Storage, backup: Backup): BackupPlayer | null {
+	const player = (text: string | null | undefined) => {
+		const p = parse(text ?? null);
+		return isObject(p) && typeof p.id === 'string'
+			? { id: p.id, name: String(p.name ?? '') }
+			: null;
+	};
+	const theirs = player(backup.data[KEY.player]);
+	const mine = player(storage.getItem(PREFIX + KEY.player));
+	if (!theirs || theirs.id === mine?.id) return null;
+	return { name: theirs.name, current: mine?.name ?? null };
 }
 
 const SPECIAL_KINDS: readonly string[] = ['daily', 'weekly', 'monthly'] satisfies SpecialKind[];
@@ -201,7 +248,7 @@ function statsOf(raw: Record<string, unknown>): VariantStats {
  * Adds the backup to what this browser keeps, losing nothing of either: entries it lacks are
  * written, statistics are added up, of two saved games or settings the newer (or the solved game)
  * wins, and anything else, such as the player, stays as it is here. Returns the number of entries
- * written.
+ * written. All or nothing, like `restoreBackup`.
  */
 export function mergeBackup(storage: Storage, backup: Backup): number {
 	const playerId = (text: string | null | undefined) => {
@@ -211,16 +258,14 @@ export function mergeBackup(storage: Storage, backup: Backup): number {
 	const localPlayer = playerId(storage.getItem(PREFIX + KEY.player));
 	// Uploads that wait for another player than the one who stays must not go out under this one.
 	const otherPlayer = !!localPlayer && localPlayer !== playerId(backup.data[KEY.player]);
-	let n = 0;
+	const writes: [string, string][] = [];
 	for (const [key, value] of Object.entries(backup.data)) {
 		if (key === KEY.outbox && otherPlayer) continue;
 		const local = storage.getItem(PREFIX + key);
 		const merged = mergeEntry(key, local, value, !!localPlayer);
-		if (merged === local) continue;
-		storage.setItem(PREFIX + key, merged);
-		n++;
+		if (merged !== local) writes.push([key, merged]);
 	}
-	return n;
+	return writeAll(storage, writes);
 }
 
 function isObject(v: unknown): v is Record<string, unknown> {

@@ -1,12 +1,19 @@
 import { gameLogic } from '../src/lib/games/logic';
-import type { BankEntry, Collection } from '../src/lib/core/bank';
-import type { Variant } from '../src/lib/core/variants';
+import {
+	specialPuzzleId,
+	upcomingPeriods,
+	type BankEntry,
+	type Collection
+} from '../src/lib/core/bank';
+import { sameData } from '../src/lib/core/equal';
+import type { SpecialKind, Variant } from '../src/lib/core/variants';
 import {
 	decodePuzzleId,
 	encodePuzzleId,
 	isPlayable,
 	periodKey,
 	randomSeed,
+	SPECIAL_RETENTION_DAYS,
 	specialSeed
 } from '../src/lib/core/variants';
 import type { Scope, Store } from './store';
@@ -22,8 +29,27 @@ export interface ApiOptions {
 	 * keeps every request within the CPU limits of Cloudflare Workers.
 	 */
 	collection?: Collection;
-	/** Limits on requests that create rows: registering by client address, puzzles by player. */
-	limits?: { register?: Limiter; puzzles?: Limiter };
+	/** Limits on requests that write to or read much of the database (see `Limits`). */
+	limits?: Limits;
+}
+
+/**
+ * Limits on requests: each limiter by client address (`register`, `boards`) or by player (the
+ * others). Without them a single client could fill the database or use up its daily allowance.
+ */
+export interface Limits {
+	/** Registering a player, a few a minute. */
+	register?: Limiter;
+	/** Puzzles handed out by the server. */
+	puzzles?: Limiter;
+	/** Saves stored. */
+	saves?: Limiter;
+	/** Solves submitted. */
+	scores?: Limiter;
+	/** Leaderboards read, which read every score of a type. */
+	boards?: Limiter;
+	/** New players a day from one client address (`SIGNUPS_PER_DAY`); no limit when left out. */
+	signupsPerDay?: number;
 }
 
 /** Whether a request with this key may go ahead (false once the key used up its allowance). */
@@ -44,7 +70,21 @@ const MAX_SAVE_BYTES = 256 * 1024;
  * first; the device that made them keeps its own copy.
  */
 export const SAVE_LIMITS = { count: 500, size: 4 * 1024 * 1024, days: 400 };
+
+/**
+ * New players a day from one client address. Each may store SAVE_LIMITS.size of saves, so this
+ * bounds what one client can put into the database in a day. A household or a school shares an
+ * address, so it is well above what people sign up for.
+ */
+export const SIGNUPS_PER_DAY = 20;
+
+/**
+ * Unsolved tickets kept per player, the newest: a player has one open game per type (and special
+ * period), far fewer; the rest are puzzles given up. Bounds the tickets one player can pile up.
+ */
+export const OPEN_TICKETS = 500;
 const BOARD_SIZE = 20;
+const DAY_MS = 86_400_000;
 
 class HttpError extends Error {
 	constructor(
@@ -58,7 +98,11 @@ class HttpError extends Error {
 const json = (body: unknown, status = 200) =>
 	new Response(JSON.stringify(body), {
 		status,
-		headers: { 'content-type': 'application/json', 'cache-control': 'no-store' }
+		headers: {
+			'content-type': 'application/json',
+			'cache-control': 'no-store',
+			'x-content-type-options': 'nosniff'
+		}
 	});
 
 async function sha256(text: string): Promise<string> {
@@ -219,6 +263,7 @@ async function issuePuzzle(req: Request, store: Store, options: ApiOptions) {
 		issuedAt,
 		solvedAt: null
 	});
+	await store.trimTickets(player.id, OPEN_TICKETS);
 	// Special puzzles are the same for everyone, so their ID is no secret.
 	return json({ ticket, puzzle, issuedAt, puzzleId: variant.special ? puzzleId : null }, 201);
 }
@@ -270,8 +315,75 @@ async function submitTicket(player: { id: string }, b: Record<string, unknown>, 
 	return res;
 }
 
+/** The shortest length of each kind of period, in days. */
+const PERIOD_DAYS: Record<SpecialKind, number> = { daily: 1, weekly: 7, monthly: 28 };
+
+/**
+ * The period of a special type whose puzzle has the ID `puzzleId`: one of the periods players
+ * still keep games of (SPECIAL_RETENTION_DAYS), up to the next one. Null for any other ID.
+ */
+export function specialPeriodOf(
+	game: string,
+	variantIndex: number,
+	kind: SpecialKind,
+	puzzleId: number,
+	now = Date.now()
+): string | null {
+	const days = SPECIAL_RETENTION_DAYS[kind];
+	const count = Math.ceil(days / PERIOD_DAYS[kind]) + 2;
+	const periods = upcomingPeriods(kind, count, new Date(now - days * DAY_MS));
+	return periods.find((p) => specialPuzzleId(game, variantIndex, kind, p) === puzzleId) ?? null;
+}
+
+/**
+ * The puzzle with ID `puzzleId` as the collection holds it: the special puzzle of its period, or
+ * a puzzle of a regular type. Undefined when the collection does not have it.
+ */
+async function collectionPuzzle(
+	collection: Collection | undefined,
+	game: string,
+	variantIndex: number,
+	variant: Variant,
+	puzzleId: number
+): Promise<unknown> {
+	if (!collection) return undefined;
+	if (variant.special) {
+		const period = specialPeriodOf(game, variantIndex, variant.special, puzzleId);
+		const entry = period
+			? await collection.special(game, variant.key, variant.special, period)
+			: null;
+		return entry?.puzzle;
+	}
+	return (await collection.find(game, variant.key, puzzleId))?.puzzle;
+}
+
+/**
+ * Refuses a puzzle that is not the one its ID stands for: the collection's puzzle where it holds
+ * the ID, else the puzzle of the first solve of the ID that the server verified. Only verified
+ * solves count, so nobody can claim an ID with a puzzle they did not solve.
+ */
+async function checkPuzzleId(
+	store: Store,
+	collection: Collection | undefined,
+	game: string,
+	variantIndex: number,
+	variant: Variant,
+	puzzleId: number,
+	puzzle: unknown
+) {
+	const mismatch = () => new HttpError(400, 'Puzzle does not match its ID');
+	const known = await collectionPuzzle(collection, game, variantIndex, variant, puzzleId);
+	if (known !== undefined) {
+		if (!sameData(known, puzzle)) throw mismatch();
+		return;
+	}
+	const print = await sha256(JSON.stringify(puzzle));
+	if ((await store.fingerprint(game, puzzleId, print)) !== print) throw mismatch();
+}
+
 async function submitScore(req: Request, store: Store, options: ApiOptions) {
 	const player = await auth(req, store);
+	await checkLimit(options.limits?.scores, player.id);
 	const b = await body(req);
 	if (options.serverPuzzles && typeof b.ticket === 'string') {
 		return submitTicket(player, b, store);
@@ -282,14 +394,11 @@ async function submitScore(req: Request, store: Store, options: ApiOptions) {
 	const puzzleId = Number(b.puzzleId);
 	if (!Number.isSafeInteger(puzzleId) || puzzleId <= 0)
 		throw new HttpError(400, 'Invalid puzzle ID');
-	const variant = logic.variants[decodePuzzleId(puzzleId).variantIndex];
+	const { variantIndex } = decodePuzzleId(puzzleId);
+	const variant = logic.variants[variantIndex];
 	if (!isPlayable(variant) || variant.key !== b.variant)
 		throw new HttpError(400, 'Puzzle ID does not match its type');
 	if (!logic.isValidPuzzle(b.puzzle, variant)) throw new HttpError(400, 'Invalid puzzle');
-	const print = await sha256(JSON.stringify(b.puzzle));
-	if ((await store.fingerprint(game, puzzleId, print)) !== print) {
-		throw new HttpError(400, 'Puzzle does not match its ID');
-	}
 	if (typeof b.answer !== 'string' || !logic.verifyAnswer(b.puzzle, b.answer)) {
 		return json({ ok: false, code: 'wrong', message: 'That is not the solution yet.' });
 	}
@@ -298,6 +407,8 @@ async function submitScore(req: Request, store: Store, options: ApiOptions) {
 	// Whole milliseconds the database can store; Infinity (`1e400` in JSON) would be no score.
 	if (!Number.isSafeInteger(timeMs) || timeMs <= 0 || !Number.isSafeInteger(playMs) || playMs < 0)
 		throw new HttpError(400, 'Invalid time');
+	// Only now, with the solve verified: what a request stores must have cost a solve.
+	await checkPuzzleId(store, options.collection, game, variantIndex, variant, puzzleId, b.puzzle);
 	return recordScore(player, store, {
 		game,
 		variant,
@@ -410,16 +521,38 @@ export const TICKET_RETENTION_DAYS = { unsolved: 45, solved: 7 };
  * old cannot give a meaningful ranked time; a solved one is only kept to recognise a repeat.
  */
 export async function cleanupTickets(store: Store, now = Date.now()): Promise<number> {
-	const day = 86_400_000;
 	return store.deleteTickets(
-		now - TICKET_RETENTION_DAYS.unsolved * day,
-		now - TICKET_RETENTION_DAYS.solved * day
+		now - TICKET_RETENTION_DAYS.unsolved * DAY_MS,
+		now - TICKET_RETENTION_DAYS.solved * DAY_MS
 	);
 }
 
 /** Removes saves nobody has stored for SAVE_LIMITS.days (run daily with cleanupTickets). */
 export async function cleanupSaves(store: Store, now = Date.now()): Promise<number> {
-	return store.deleteSaves(now - SAVE_LIMITS.days * 86_400_000);
+	return store.deleteSaves(now - SAVE_LIMITS.days * DAY_MS);
+}
+
+/** The day (UTC) that registrations are counted by, e.g. `2026-11-28`. */
+const signupDay = (now: number) => new Date(now).toISOString().slice(0, 10);
+
+/** Removes the counts of registrations of earlier days (run daily with cleanupTickets). */
+export async function cleanupSignups(store: Store, now = Date.now()): Promise<number> {
+	return store.deleteSignups(signupDay(now));
+}
+
+/**
+ * Counts a registration from client address `address` today, and refuses it beyond
+ * `perDay`. The address is kept only as a hash with the day, and only until the next day.
+ */
+async function countSignup(store: Store, address: string, perDay: number | undefined) {
+	if (perDay === undefined) return;
+	const day = signupDay(Date.now());
+	if ((await store.countSignup(day, await sha256(`${day}\n${address}`))) > perDay) {
+		throw new HttpError(
+			429,
+			'Too many new players from this network today, please try again tomorrow'
+		);
+	}
 }
 
 export async function handleApi(
@@ -439,8 +572,10 @@ export async function handleApi(
 
 		if (path === '/player') {
 			if (method === 'POST') {
-				await checkLimit(options.limits?.register, req.headers.get('cf-connecting-ip') ?? '');
+				const address = req.headers.get('cf-connecting-ip') ?? '';
+				await checkLimit(options.limits?.register, address);
 				const name = cleanName((await body(req)).name);
+				await countSignup(store, address, options.limits?.signupsPerDay);
 				const id = crypto.randomUUID();
 				const token = newToken();
 				await store.createPlayer(id, name, await sha256(token));
@@ -471,6 +606,7 @@ export async function handleApi(
 				return json({ key, data: JSON.parse(row.data), updatedAt: row.updatedAt });
 			}
 			if (method === 'PUT') {
+				await checkLimit(options.limits?.saves, player.id);
 				const b = await body(req);
 				const data = JSON.stringify(b.data ?? null);
 				if (data.length > MAX_SAVE_BYTES) throw new HttpError(413, 'Save too large');
@@ -484,7 +620,10 @@ export async function handleApi(
 
 		if (path === '/scores') {
 			if (method === 'POST') return await submitScore(req, store, options);
-			if (method === 'GET') return await getBoard(url, req, store);
+			if (method === 'GET') {
+				await checkLimit(options.limits?.boards, req.headers.get('cf-connecting-ip') ?? '');
+				return await getBoard(url, req, store);
+			}
 		}
 
 		throw new HttpError(404, 'Not found');

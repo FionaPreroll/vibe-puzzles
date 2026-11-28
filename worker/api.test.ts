@@ -13,9 +13,12 @@ import type { TetroidPuzzle } from '../src/lib/games/tetroid/rules';
 import { solveTetroid } from '../src/lib/games/tetroid/solver';
 import {
 	cleanupSaves,
+	cleanupSignups,
 	cleanupTickets,
 	handleApi,
+	OPEN_TICKETS,
 	SAVE_LIMITS,
+	specialPeriodOf,
 	TICKET_RETENTION_DAYS,
 	type ApiOptions
 } from './api';
@@ -43,6 +46,8 @@ const seed = 4242;
 const { puzzle, solution } = generateTetroid(6, 6, 'normal', seed);
 const puzzleId = encodePuzzleId(0, seed);
 const answer = solution.join('');
+const another = generateTetroid(6, 6, 'normal', 99);
+const anotherAnswer = another.solution.join('');
 
 describe('api', () => {
 	it('reports health', async () => {
@@ -75,6 +80,51 @@ describe('api', () => {
 		});
 		// The test requests carry no Cloudflare client address.
 		expect(keys).toEqual(['', '', '']);
+	});
+
+	it('limits new players per client address and day', async () => {
+		const store = new MemoryStore();
+		const api = client({ limits: { signupsPerDay: 2 } }, store);
+		const now = vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 10, 28, 12));
+		expect((await api('POST', '/player', { name: 'A' })).status).toBe(201);
+		// A refused name counts no registration.
+		expect((await api('POST', '/player', { name: '' })).status).toBe(400);
+		expect((await api('POST', '/player', { name: 'B' })).status).toBe(201);
+		expect(await api('POST', '/player', { name: 'C' })).toMatchObject({
+			status: 429,
+			body: { error: expect.stringContaining('tomorrow') }
+		});
+		now.mockReturnValue(Date.UTC(2026, 10, 29, 0, 1));
+		expect((await api('POST', '/player', { name: 'C' })).status).toBe(201);
+		now.mockRestore();
+		// The daily cron forgets the counts of earlier days.
+		expect(await cleanupSignups(store, Date.UTC(2026, 10, 29, 4))).toBe(1);
+		expect(await cleanupSignups(store, Date.UTC(2026, 10, 29, 4))).toBe(0);
+	});
+
+	it('limits saves and solves per player, and leaderboards per client address', async () => {
+		const keys: Record<string, string[]> = { saves: [], scores: [], boards: [] };
+		const limiter = (kind: string) => async (key: string) => (keys[kind].push(key), false);
+		const api = client({
+			limits: { saves: limiter('saves'), scores: limiter('scores'), boards: limiter('boards') }
+		});
+		const created = (await api('POST', '/player', { name: 'A' })).body;
+		const token = created.token as string;
+		expect((await api('PUT', '/saves/k', { data: 1, updatedAt: 1 }, token)).status).toBe(429);
+		// Reading a save is not limited.
+		expect((await api('GET', '/saves/k', undefined, token)).status).toBe(200);
+		const solve = {
+			game: 'tetroid',
+			variant: '6n',
+			puzzleId,
+			puzzle,
+			answer,
+			timeMs: 1,
+			playMs: 1
+		};
+		expect((await api('POST', '/scores', solve, token)).status).toBe(429);
+		expect((await api('GET', '/scores?game=tetroid&variant=6n')).status).toBe(429);
+		expect(keys).toEqual({ saves: [created.id], scores: [created.id], boards: [''] });
 	});
 
 	it('keeps the newest save', async () => {
@@ -161,14 +211,14 @@ describe('api', () => {
 		const wrong = await submit(a, { answer: '0'.repeat(36) });
 		expect(wrong.body.ok).toBe(false);
 		expect((await submit(a, { variant: '6h' })).status).toBe(400);
-		const tampered = { ...puzzle, regions: puzzle.regions.slice().reverse() };
-		expect((await submit(a, { puzzle: tampered })).status).toBe(400);
 
 		expect((await submit(a, { timeMs: 90000 })).body).toMatchObject({
 			ok: true,
 			rank: 1,
 			total: 1
 		});
+		// Another puzzle, solved, under the ID of the one solved first.
+		expect((await submit(b, { puzzle: another.puzzle, answer: anotherAnswer })).status).toBe(400);
 		expect((await submit(b)).body).toMatchObject({ ok: true, rank: 1, total: 2 });
 		expect((await submit(b)).body.message).toContain('before');
 
@@ -239,6 +289,49 @@ describe('api', () => {
 		// The details go to the log only.
 		expect(logged).toHaveBeenCalledWith(expect.objectContaining({ message: expect.any(String) }));
 		logged.mockRestore();
+	});
+
+	it('lets no wrong answer claim a puzzle ID', async () => {
+		const api = client();
+		const a = (await api('POST', '/player', { name: 'A' })).body.token as string;
+		const b = (await api('POST', '/player', { name: 'B' })).body.token as string;
+		const solve = (extra: Record<string, unknown>) => ({
+			game: 'tetroid',
+			variant: '6n',
+			puzzleId,
+			puzzle,
+			answer,
+			timeMs: 1000,
+			playMs: 900,
+			...extra
+		});
+		// Another puzzle under this ID, without its solution, and with a time the server refuses.
+		const fake = await api('POST', '/scores', solve({ puzzle: another.puzzle }), a);
+		expect(fake.body.code).toBe('wrong');
+		const untimed = solve({ puzzle: another.puzzle, answer: anotherAnswer, timeMs: 0 });
+		expect((await api('POST', '/scores', untimed, a)).status).toBe(400);
+		// The puzzle the ID stands for still counts.
+		expect((await api('POST', '/scores', solve({}), b)).body.ok).toBe(true);
+	});
+
+	it('finds the period of a special puzzle by its ID among the recent ones', () => {
+		const now = Date.UTC(2026, 10, 28, 12);
+		const day = (d: number) => new Date(Date.UTC(2026, 10, d));
+		for (const [kind, date, period] of [
+			['daily', day(28), '2026-11-28'],
+			['daily', day(1), '2026-11-01'],
+			['daily', day(29), '2026-11-29'],
+			['weekly', day(2), '2026-W45'],
+			['monthly', new Date(Date.UTC(2026, 6, 1)), '2026-07']
+		] as const) {
+			expect(periodKey(kind, date)).toBe(period);
+			const id = specialPuzzleId('tetroid', 10, kind, period);
+			expect(specialPeriodOf('tetroid', 10, kind, id, now), period).toBe(period);
+		}
+		// Longer ago than players keep such games, or not a special ID at all.
+		const old = specialPuzzleId('tetroid', 10, 'daily', '2026-09-01');
+		expect(specialPeriodOf('tetroid', 10, 'daily', old, now)).toBeNull();
+		expect(specialPeriodOf('tetroid', 10, 'daily', puzzleId, now)).toBeNull();
 	});
 
 	it('does not rank the personal timer', async () => {
@@ -492,6 +585,59 @@ describe('api', () => {
 			for (const variant of ['8n', '8h', '10n', 'weekly']) {
 				expect((await issue(variant)).status, variant).toBe(503);
 			}
+		});
+
+		it('checks a solve opened by ID against the puzzle the collection holds for it', async () => {
+			const { api, token } = await setup();
+			const submit = (variant: string, id: number, p: unknown, a: string) =>
+				api(
+					'POST',
+					'/scores',
+					{ game: 'tetroid', variant, puzzleId: id, puzzle: p, answer: a, timeMs: 1, playMs: 1 },
+					token
+				);
+			// Another puzzle, solved, under an ID the collection holds: refused, even as the first.
+			expect((await submit('6n', puzzleId, another.puzzle, anotherAnswer)).status).toBe(400);
+			expect((await submit('6n', puzzleId, puzzle, answer)).body.ok).toBe(true);
+			const fakeDaily = generateTetroid(10, 10, 'normal', 5);
+			const fakeAnswer = fakeDaily.solution.join('');
+			expect((await submit('daily', dailyId, fakeDaily.puzzle, fakeAnswer)).status).toBe(400);
+			const dailyAnswer = solveTetroid(daily, { limit: 1 }).solutions[0].join('');
+			expect((await submit('daily', dailyId, daily, dailyAnswer)).body.ok).toBe(true);
+			// A special the collection does not hold (yesterday's): the first verified solve decides.
+			const yesterdayId = specialPuzzleId(
+				'tetroid',
+				10,
+				'daily',
+				periodKey('daily', new Date(Date.now() - 86_400_000))
+			);
+			const yesterday = generateTetroid(10, 10, 'normal', decodePuzzleId(yesterdayId).seed);
+			const yesterdayAnswer = yesterday.solution.join('');
+			expect((await submit('daily', yesterdayId, yesterday.puzzle, yesterdayAnswer)).body.ok).toBe(
+				true
+			);
+			expect((await submit('daily', yesterdayId, fakeDaily.puzzle, fakeAnswer)).status).toBe(400);
+			// Nor an ID that is no special puzzle's.
+			const seedId = encodePuzzleId(10, 5);
+			expect((await submit('daily', seedId, fakeDaily.puzzle, fakeAnswer)).body.ok).toBe(true);
+			// An ID the collection does not hold: the first verified solve decides.
+			const loose = generateTetroid(6, 6, 'normal', 1234);
+			const looseId = encodePuzzleId(0, 1234);
+			expect((await submit('6n', looseId, loose.puzzle, loose.solution.join(''))).body.ok).toBe(
+				true
+			);
+			expect((await submit('6n', looseId, another.puzzle, anotherAnswer)).status).toBe(400);
+		});
+
+		it('keeps the newest OPEN_TICKETS unsolved tickets of a player', async () => {
+			const store = new MemoryStore();
+			const trim = vi.spyOn(store, 'trimTickets');
+			const api = client({ serverPuzzles: true, collection }, store);
+			const token = (await api('POST', '/player', { name: 'A' })).body.token as string;
+			expect(
+				(await api('POST', '/puzzles', { game: 'tetroid', variant: '6n' }, token)).status
+			).toBe(201);
+			expect(trim).toHaveBeenCalledWith(expect.any(String), OPEN_TICKETS);
 		});
 
 		it('ranks a solve of a collection puzzle and reveals its ID', async () => {

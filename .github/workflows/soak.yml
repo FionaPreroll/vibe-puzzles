@@ -45,7 +45,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # A new seed every night covers new paths; the seed is printed so a failure can be repeated.
       - name: Pick the seed
-        run: echo "SOAK_SEED=${{ inputs.seed || github.run_id }}" >> "$GITHUB_ENV"
+        env:
+          SEED: ${{ inputs.seed || github.run_id }}
+        run: |
+          # A whole number only: the seed goes into the environment of the later steps.
+          case "$SEED" in
+            '' | *[!0-9]*) echo "::error::The seed must be a whole number, not '$SEED'."; exit 1 ;;
+          esac
+          echo "SOAK_SEED=$SEED" >> "$GITHUB_ENV"
       - run: echo "Soak test with seed $SOAK_SEED and $SOAK_ACTIONS actions per session"
       - run: pnpm test:soak
       - if: always()

@@ -43,7 +43,9 @@ const de: Dictionary = {
 			title: '{count} Einträge aus dieser Sicherung importieren?',
 			text: 'Zusammenführen behält alles auf diesem Gerät und nimmt die Sicherung dazu: Lösungen und Serien werden zusammengezählt, Bestzeiten behalten, und von zwei Spielständen bleibt der neuere. Ersetzen schreibt die Sicherung über das, was hier ist.',
 			ok: 'Zusammenführen',
-			replace: 'Ersetzen'
+			replace: 'Ersetzen',
+			newPlayer: 'Sie meldet dieses Gerät außerdem als „{name}“ an.',
+			otherPlayer: 'Ersetzen meldet dieses Gerät außerdem als „{name}“ an, statt als „{current}“.'
 		}
 	},
 	nav: {
@@ -577,7 +579,7 @@ const de: Dictionary = {
 		privacyLocal:
 			'Deine Spiele, Statistiken und Einstellungen liegen nur in diesem Browser (Local Storage). Es gibt keine Cookies, kein Tracking und keine Werbung.',
 		privacyServer:
-			'Wenn du einen Spieler auf dem Server anlegst, speichert er deinen Spielernamen, deinen zufälligen Spieler-Code (nur als Hash), deine Ergebnisse, die dir ausgegebenen Rätsel und, zum Abgleich zwischen Geräten, deine Spielstände und Einstellungen. Sonst nichts.',
+			'Wenn du einen Spieler auf dem Server anlegst, speichert er deinen Spielernamen, deinen zufälligen Spieler-Code (nur als Hash), deine Ergebnisse, die dir ausgegebenen Rätsel und, zum Abgleich zwischen Geräten, deine Spielstände und Einstellungen. Sonst nichts. Damit niemand ihn mit Spielern füllen kann, zählt er außerdem, wie viele Spieler an einem Tag aus einem Netz angelegt werden, unter einem Hash der IP-Adresse, und löscht diese Zahl am nächsten Tag.',
 		privacyHost:
 			'Die Seite liegt bei GitHub Pages; GitHub kann beim Laden technische Daten wie deine IP-Adresse protokollieren.',
 		backup: 'Datensicherung',
@@ -613,7 +615,11 @@ const de: Dictionary = {
 		imported: '{count} Einträge wiederhergestellt. Seite wird neu geladen…',
 		merged: 'Zusammengeführt: {count} Einträge neu oder geändert. Seite wird neu geladen…',
 		mergedNothing: 'Dieses Gerät hat schon alles aus der Sicherung.',
-		importFailed: 'Diese Datei lässt sich nicht wiederherstellen: {error}.'
+		importFailed: 'Diese Datei lässt sich nicht wiederherstellen: {error}.',
+		importNoRoom:
+			'Im Speicher dieses Browsers ist nicht genug Platz, daher wurde nichts importiert.',
+		importNoStorage:
+			'Dieser Browser lässt die Seite hier nichts speichern, daher wurde nichts importiert.'
 	},
 	games: {
 		tetroid: {

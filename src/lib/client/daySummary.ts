@@ -1,7 +1,9 @@
 import { formatDuration } from '../core/time';
 import { isPlayable, type Difficulty, type Variant } from '../core/variants';
 import { t, variantLabel } from '../i18n/index.svelte';
-import { getStats, type RecentSolve } from './stats';
+import { getStats, startOfDay, type RecentSolve } from './stats';
+
+export { startOfDay };
 
 /**
  * The player's day: every puzzle solved on this device since local midnight, in all games, and the
@@ -25,12 +27,10 @@ export interface DaySolve extends RecentSolve {
 /** At most this many puzzle types are named one by one in the shared text; the rest are counted. */
 export const SHARED_LINES = 10;
 
-/** Local midnight of `now`'s day, in epoch ms. */
-export function startOfDay(now: Date): number {
-	return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-}
-
-/** The puzzles solved today (since local midnight) in `games`, the first solved first. */
+/**
+ * The puzzles solved today (since local midnight) in `games`, the first solved first. The
+ * statistics keep every solve of today (`keepRecent`), however many.
+ */
 export function solvesToday(
 	games: readonly DayGame[],
 	now = new Date(),

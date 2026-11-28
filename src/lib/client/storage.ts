@@ -15,13 +15,23 @@ export function setQuotaHandler(handler: () => boolean | void) {
 	onQuota = handler;
 }
 
-function store(): Storage | null {
+/**
+ * The browser's localStorage, or null where there is none: on the server, or where the browser
+ * blocks it (reading `localStorage` then throws).
+ */
+export function browserStorage(): Storage | null {
 	try {
 		return typeof localStorage === 'undefined' ? null : localStorage;
 	} catch {
 		return null;
 	}
 }
+
+const store = browserStorage;
+
+/** Whether `e`, thrown by a write, means that storage is full. */
+export const isQuotaError = (e: unknown) =>
+	e instanceof DOMException && /quota/i.test(e.name + e.message);
 
 export function load<T>(key: string, fallback: T): T {
 	try {
@@ -42,8 +52,8 @@ export function save(key: string, value: unknown, freeSpace = true): boolean {
 			s.setItem(PREFIX + key, text);
 			return true;
 		} catch (e) {
-			const quota = e instanceof DOMException && /quota/i.test(e.name + e.message);
-			if (!quota || !freeSpace || onQuota?.() !== true || retry >= QUOTA_RETRIES) return false;
+			if (!isQuotaError(e) || !freeSpace || onQuota?.() !== true || retry >= QUOTA_RETRIES)
+				return false;
 		}
 	}
 }

@@ -93,6 +93,34 @@ test('works offline after the first visit', async ({ page, context }) => {
 	await context.setOffline(false);
 });
 
+test("a new service worker removes this app's old caches and keeps other apps' caches", async ({
+	page
+}) => {
+	const controlled = () =>
+		page.evaluate(async () => {
+			await navigator.serviceWorker.ready;
+			if (!navigator.serviceWorker.controller) {
+				await new Promise((r) => navigator.serviceWorker.addEventListener('controllerchange', r));
+			}
+		});
+	await page.goto('/');
+	await controlled();
+	// Another app on the same origin (all GitHub Pages sites of an account share one), and a cache
+	// of an older version of this app.
+	await page.evaluate(async () => {
+		await (await caches.open('other-app-v1')).put('/other', new Response('kept'));
+		await (await caches.open('vibe-puzzles-0')).put('/old', new Response('gone'));
+		await (await navigator.serviceWorker.getRegistration())!.unregister();
+	});
+	// The page registers the worker again, which installs and activates as a new version would.
+	await page.reload();
+	await controlled();
+	await expect
+		.poll(() => page.evaluate(() => caches.keys()))
+		.toEqual(expect.not.arrayContaining(['vibe-puzzles-0']));
+	expect(await page.evaluate(() => caches.keys())).toContain('other-app-v1');
+});
+
 test('caches a collection file when it is first used, not on install', async ({
 	page,
 	context

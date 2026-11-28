@@ -81,6 +81,12 @@ export interface Store {
 	playedPuzzles(playerId: string, game: string, variant: string): Promise<Set<number>>;
 	/** Deletes tickets issued before `issuedBefore` or solved before `solvedBefore`; returns how many. */
 	deleteTickets(issuedBefore: number, solvedBefore: number): Promise<number>;
+	/** Keeps the `keep` newest unsolved tickets of a player, deletes the older; returns how many. */
+	trimTickets(playerId: string, keep: number): Promise<number>;
+	/** Counts one more registration from `client` (a hash) on `day`; returns that day's count. */
+	countSignup(day: string, client: string): Promise<number>;
+	/** Deletes the counts of days before `day`; returns how many. */
+	deleteSignups(day: string): Promise<number>;
 }
 
 export class MemoryStore implements Store {
@@ -92,6 +98,7 @@ export class MemoryStore implements Store {
 	private readonly prints = new Map<string, string>();
 	private readonly scores: ScoreRow[] = [];
 	private readonly tickets = new Map<string, TicketRow>();
+	private readonly signups = new Map<string, { day: string; count: number }>();
 
 	async createPlayer(id: string, name: string, tokenHash: string) {
 		this.playerRows.set(id, { id, name, tokenHash });
@@ -227,6 +234,33 @@ export class MemoryStore implements Store {
 		for (const t of [...this.tickets.values()]) {
 			if (t.issuedAt < issuedBefore || (t.solvedAt != null && t.solvedAt < solvedBefore)) {
 				this.tickets.delete(t.id);
+				deleted++;
+			}
+		}
+		return deleted;
+	}
+
+	async trimTickets(playerId: string, keep: number) {
+		const open = [...this.tickets.values()]
+			.filter((t) => t.playerId === playerId && t.solvedAt == null)
+			.sort((a, b) => b.issuedAt - a.issuedAt || Number(a.id > b.id) - Number(a.id < b.id));
+		for (const t of open.slice(keep)) this.tickets.delete(t.id);
+		return Math.max(0, open.length - keep);
+	}
+
+	async countSignup(day: string, client: string) {
+		const k = `${day}\n${client}`;
+		const row = this.signups.get(k) ?? { day, count: 0 };
+		row.count++;
+		this.signups.set(k, row);
+		return row.count;
+	}
+
+	async deleteSignups(day: string) {
+		let deleted = 0;
+		for (const [k, row] of [...this.signups.entries()]) {
+			if (row.day < day) {
+				this.signups.delete(k);
 				deleted++;
 			}
 		}
@@ -461,6 +495,36 @@ export class D1Store implements Store {
 			.prepare('DELETE FROM tickets WHERE issued_at < ? OR solved_at < ?')
 			.bind(issuedBefore, solvedBefore)
 			.run();
+		return res.meta.changes;
+	}
+
+	async trimTickets(playerId: string, keep: number) {
+		const res = await this.db
+			.prepare(
+				`DELETE FROM tickets WHERE player_id = ? AND solved_at IS NULL AND id NOT IN (
+				   SELECT id FROM tickets WHERE player_id = ? AND solved_at IS NULL
+				   ORDER BY issued_at DESC, id LIMIT ?
+				 )`
+			)
+			.bind(playerId, playerId, keep)
+			.run();
+		return res.meta.changes;
+	}
+
+	async countSignup(day: string, client: string) {
+		const row = await this.db
+			.prepare(
+				`INSERT INTO signups (day, client, count) VALUES (?, ?, 1)
+				 ON CONFLICT (day, client) DO UPDATE SET count = count + 1
+				 RETURNING count`
+			)
+			.bind(day, client)
+			.first<{ count: number }>();
+		return row!.count;
+	}
+
+	async deleteSignups(day: string) {
+		const res = await this.db.prepare('DELETE FROM signups WHERE day < ?').bind(day).run();
 		return res.meta.changes;
 	}
 }

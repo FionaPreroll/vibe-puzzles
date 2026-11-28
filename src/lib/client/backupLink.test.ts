@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BACKUP_FORMAT, BACKUP_VERSION, type Backup } from './backup';
-import { backupFromHash, backupLink, qrCode } from './backupLink';
+import { backupFromHash, backupLink, MAX_LINK_BACKUP_BYTES, qrCode } from './backupLink';
 
 const backup = (data: Record<string, string>): Backup => ({
 	$schema: 'https://example.org/backup.schema.json',
@@ -53,6 +53,15 @@ describe('backup links', () => {
 			ok: false,
 			error: 'not a Vibe Puzzles backup'
 		});
+	});
+
+	it('refuse a link that unpacks to more than the limit', async () => {
+		const data = { night: 'true', filler: 'x'.repeat(100_000) };
+		const { hash } = new URL(await backupLink('https://example.org/about', backup(data)));
+		expect(hash.length).toBeLessThan(2000);
+		expect(await backupFromHash(hash, 50_000)).toEqual({ ok: false, error: 'too large' });
+		expect((await backupFromHash(hash, 200_000))?.ok).toBe(true);
+		expect(MAX_LINK_BACKUP_BYTES).toBeGreaterThanOrEqual(16 * 1024 * 1024);
 	});
 
 	it('get a QR code while they are short enough', () => {

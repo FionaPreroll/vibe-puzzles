@@ -24,10 +24,15 @@ import { self } from '$app/service-worker';
 /** Built files of the Inside page, filled in by the build (`insideFiles` in vite.config.ts). */
 declare const __INSIDE_FILES__: string[];
 
-const CACHE = `vibe-puzzles-${version}`;
-const COLLECTION = 'vibe-puzzles-collection';
+/**
+ * The start of every cache name of this app. Other apps can share the origin (all GitHub Pages
+ * sites of one account do), so the worker only ever deletes caches whose name starts with it.
+ */
+const PREFIX = 'vibe-puzzles-';
+const CACHE = `${PREFIX}${version}`;
+const COLLECTION = `${PREFIX}collection`;
 /** Outlives new versions too: holds whether offline mode is on. */
-const SETTINGS = 'vibe-puzzles-settings';
+const SETTINGS = `${PREFIX}settings`;
 const scope = new URL(self.registration.scope);
 const url = (path: string) => new URL(path.replace(/^\//, ''), scope).href;
 const inCollection = (href: string) => href.startsWith(url('puzzles/'));
@@ -84,7 +89,8 @@ self.addEventListener('activate', (event) => {
 			.then((keys) =>
 				Promise.all(
 					keys
-						.filter((k) => k !== CACHE && k !== COLLECTION && k !== SETTINGS)
+						// Caches of other apps on the same origin stay.
+						.filter((k) => k.startsWith(PREFIX) && ![CACHE, COLLECTION, SETTINGS].includes(k))
 						.map((k) => caches.delete(k))
 				)
 			)
